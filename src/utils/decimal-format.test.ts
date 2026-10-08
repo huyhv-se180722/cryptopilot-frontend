@@ -7,6 +7,7 @@ import {
   fractionToPercent,
   groupThousands,
   shiftDecimal,
+  subtractDecimal,
   toFixedDecimal,
 } from './decimal-format';
 
@@ -70,5 +71,17 @@ describe('market display helpers', () => {
       '10',
       '10.0001',
     ]);
+  });
+});
+
+describe('subtractDecimal', () => {
+  it('subtracts exactly across different scales and signs', () => {
+    expect(subtractDecimal('63000.01', '63000.00')).toBe('0.01');
+    expect(subtractDecimal('0.1', '0.3')).toBe('-0.2');
+    expect(subtractDecimal('1', '0.0001')).toBe('0.9999');
+    expect(subtractDecimal('-1.5', '-2')).toBe('0.5');
+    expect(subtractDecimal('99999999999999999999.99999999', '0.00000001')).toBe(
+      '99999999999999999999.99999998',
+    );
   });
 });
