@@ -34,6 +34,7 @@ export function fakeAuth(overrides: Partial<AuthService> = {}): AuthService {
     resendVerification: async () => ({ messageCode: 'MSG05' }),
     forgotPassword: async () => ({ messageCode: 'MSG12' }),
     resetPassword: async () => ({ messageCode: 'MSG13' }),
+    changePassword: async () => ({ messageCode: 'MSG14' }),
     logout: async () => undefined,
     ...overrides,
   };

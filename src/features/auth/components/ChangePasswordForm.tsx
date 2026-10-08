@@ -9,9 +9,9 @@ import { useCopy } from '../../../hooks/use-copy';
 import { errorText, fieldErrorText, messageText } from '../../../i18n/messages';
 import { problemOf } from '../../../services/api/errors';
 import { FormNotice } from '../../../components/feedback/FormNotice';
-import { PasswordRules } from '../../auth/components/PasswordRules';
-import { applyServerFieldErrors } from '../../auth/server-errors';
-import { useChangePassword } from '../hooks/use-profile';
+import { PasswordRules } from './PasswordRules';
+import { applyServerFieldErrors } from '../server-errors';
+import { useChangePassword } from '../hooks/use-auth-actions';
 import { passwordChangeSchema, type PasswordChangeValues } from '../schemas';
 import { SectionTitle } from '../../../components/ui/SectionTitle';
 

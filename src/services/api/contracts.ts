@@ -55,12 +55,7 @@ export type AiService = ReadService<AiConversation>;
 export type SubscriptionService = ReadService<SubscriptionPackage>;
 export type AdminService = ReadService<AdminLog>;
 
-export interface PasswordChange {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
-}
-/** Account settings of the signed-in user (`/me/*`; password for Trader and Admin). */
+/** Account settings of the signed-in Trader (`/me/*`; the password is in `AuthService`). */
 export interface ProfileService {
   get(signal?: AbortSignal): Promise<UserProfile>;
   update(update: ProfileUpdate): Promise<void>;
@@ -78,5 +73,4 @@ export interface ProfileService {
   suggestRiskProfile(
     answers: Readonly<Record<string, string>>,
   ): Promise<RiskSuggestion>;
-  changePassword(change: PasswordChange): Promise<void>;
 }

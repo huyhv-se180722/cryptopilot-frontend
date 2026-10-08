@@ -13,7 +13,8 @@ import type { TokenSession } from './token-session';
 const AUTH = 'auth/';
 
 /**
- * HTTP adapter for the backend auth module (`/api/v1/auth/*`, `/me/profile`).
+ * HTTP adapter for the backend auth module (`/api/v1/auth/*`, `/me/password`;
+ * `/me/profile` for the signed-in identity).
  * Tokens stay in memory (`TokenSession`); a reload starts as a guest until
  * Q-38 settles where the refresh token may live in a browser.
  */
@@ -101,6 +102,13 @@ export function createHttpAuthService(
       tokens.clear();
       return result;
     },
+    changePassword: (request) =>
+      http.request({
+        path: 'me/password',
+        method: 'PUT',
+        body: request,
+        decode: decodeMessage,
+      }),
     onSessionEnded: (listener) => tokens.onEnded(listener),
   };
 }

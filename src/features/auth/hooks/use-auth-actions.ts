@@ -20,3 +20,8 @@ export function useForgotPassword() {
 export function useResetPassword() {
   return useMutation(useServices().auth.resetPassword);
 }
+
+/** SCR-07 Security tab for a Trader or an Admin (UC-07). */
+export function useChangePassword() {
+  return useMutation(useServices().auth.changePassword);
+}

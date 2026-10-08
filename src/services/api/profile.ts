@@ -19,7 +19,6 @@ export function createPendingProfileService(): ProfileService {
     chooseRiskProfile: async () => integrationPending(),
     getQuestionnaire: async () => integrationPending(),
     suggestRiskProfile: async () => integrationPending(),
-    changePassword: async () => integrationPending(),
   };
 }
 
@@ -27,7 +26,7 @@ const withSignal = (signal?: AbortSignal) => (signal ? { signal } : {});
 
 /**
  * `/me/profile`, `/me/notification-preferences`, `/me/risk-profile`,
- * `/me/risk-questionnaire` (Trader) and `/me/password` (Trader and Admin).
+ * `/me/risk-questionnaire` (Trader). `/me/password` is in the auth adapter.
  */
 export function createHttpProfileService(http: HttpClient): ProfileService {
   return {
@@ -76,13 +75,6 @@ export function createHttpProfileService(http: HttpClient): ProfileService {
         method: 'POST',
         body: { answers },
         decode: decodeSuggestion,
-      }),
-    changePassword: (change) =>
-      http.request({
-        path: 'me/password',
-        method: 'PUT',
-        body: change,
-        decode: decodeSaved,
       }),
   };
 }

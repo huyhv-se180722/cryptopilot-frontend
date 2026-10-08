@@ -20,6 +20,12 @@ export interface ResetPasswordRequest {
   newPassword: string;
   confirmPassword: string;
 }
+/** SCR-07 Security tab (UC-07); the session comes from the access token. */
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
 /** Write operations that only return the SRS message to show. */
 export interface MessageResult {
   messageCode: string;
@@ -37,6 +43,11 @@ export interface AuthService {
   resendVerification(email: string): Promise<MessageResult>;
   forgotPassword(email: string): Promise<MessageResult>;
   resetPassword(request: ResetPasswordRequest): Promise<MessageResult>;
+  /**
+   * `PUT /me/password` (Trader and Admin): MSG14; the other sessions of the
+   * account are revoked, this one stays.
+   */
+  changePassword(request: ChangePasswordRequest): Promise<MessageResult>;
   logout(): Promise<void>;
   /** Notifies when the server ends the session (renewal refused, MSG44). */
   onSessionEnded?(listener: () => void): () => void;

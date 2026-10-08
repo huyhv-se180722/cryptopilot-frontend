@@ -87,6 +87,36 @@ describe('development auth seam (ADR-010)', () => {
     expect(await auth.restoreSession()).toBeNull();
   });
 
+  it('changes the password of the signed-in account only', async () => {
+    const auth = createDevelopmentAuth();
+    const change = {
+      currentPassword: DEV_PASSWORD,
+      newPassword: 'Another-1a',
+      confirmPassword: 'Another-1a',
+    };
+    await expect(auth.changePassword(change)).rejects.toMatchObject({
+      problem: { messageCode: 'MSG44' },
+    });
+    await auth.login({
+      email: 'admin@dev.local',
+      password: DEV_PASSWORD,
+      rememberMe: false,
+    });
+    await expect(
+      auth.changePassword({ ...change, currentPassword: 'wrong' }),
+    ).rejects.toMatchObject({
+      problem: { code: 'CURRENT_PASSWORD_INCORRECT', messageCode: 'MSG08' },
+    });
+    await expect(
+      auth.changePassword({ ...change, confirmPassword: 'Another-1b' }),
+    ).rejects.toMatchObject({
+      problem: { fieldErrors: { confirmPasswordMatching: 'MSG03' } },
+    });
+    await expect(auth.changePassword(change)).resolves.toEqual({
+      messageCode: 'MSG14',
+    });
+  });
+
   it('rejects duplicate registrations and invalid links', async () => {
     const auth = createDevelopmentAuth();
     const form = {
@@ -149,15 +179,6 @@ describe('development profile seam', () => {
     expect(await profile.getRiskProfile()).toMatchObject({
       riskProfile: 'AGGRESSIVE',
       maxFuturesLeverage: 10,
-    });
-    await expect(
-      profile.changePassword({
-        currentPassword: 'wrong',
-        newPassword: 'Another-1a',
-        confirmPassword: 'Another-1a',
-      }),
-    ).rejects.toMatchObject({
-      problem: { code: 'CURRENT_PASSWORD_INCORRECT' },
     });
     expect(request).not.toHaveBeenCalled();
   });

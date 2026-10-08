@@ -10,5 +10,6 @@ export const unconfiguredAuth: AuthService = {
   resendVerification: async () => integrationPending(),
   forgotPassword: async () => integrationPending(),
   resetPassword: async () => integrationPending(),
+  changePassword: async () => integrationPending(),
   logout: async () => integrationPending(),
 };

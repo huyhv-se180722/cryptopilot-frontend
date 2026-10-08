@@ -81,6 +81,3 @@ export function useChooseRiskProfile() {
 export function useSuggestRiskProfile() {
   return useMutation(useServices().profile.suggestRiskProfile);
 }
-export function useChangePassword() {
-  return useMutation(useServices().profile.changePassword);
-}

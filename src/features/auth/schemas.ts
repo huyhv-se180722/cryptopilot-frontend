@@ -54,3 +54,16 @@ export type ResetPasswordForm = z.infer<typeof resetPasswordSchema>;
 export const SERVER_FIELD_ALIASES: Readonly<Record<string, string>> = {
   confirmPasswordMatching: 'confirmPassword',
 };
+
+/** SCR-07 Security tab (UC-07): same BR-02 rule and MSG03 mismatch. */
+export const passwordChangeSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'MSG01'),
+    newPassword: z.string().min(1, 'MSG01').regex(PASSWORD_PATTERN, 'MSG03'),
+    confirmPassword: z.string().min(1, 'MSG01'),
+  })
+  .refine((form) => form.newPassword === form.confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'MSG03',
+  });
+export type PasswordChangeValues = z.infer<typeof passwordChangeSchema>;

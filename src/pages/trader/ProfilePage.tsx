@@ -5,7 +5,7 @@ import { PageHeader } from '../../components/layout/PageHeader';
 import { Tabs } from '../../components/ui/Tabs';
 import { useCopy } from '../../hooks/use-copy';
 import { errorText } from '../../i18n/messages';
-import { ChangePasswordForm } from '../../features/profile/components/ChangePasswordForm';
+import { ChangePasswordForm } from '../../features/auth/components/ChangePasswordForm';
 import { NotificationsForm } from '../../features/profile/components/NotificationsForm';
 import { ProfileForm } from '../../features/profile/components/ProfileForm';
 import { RiskProfileSection } from '../../features/profile/components/RiskProfileSection';

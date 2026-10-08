@@ -193,6 +193,33 @@ describe('HTTP auth adapter', () => {
     expect(await auth.restoreSession()).toBeNull();
   });
 
+  it('changes the password with the bearer token and keeps the session', async () => {
+    const { auth, tokens, calls } = setup({
+      'auth/login': () => json(200, sessionBody(1, 'ADMIN')),
+      'me/password': () => json(200, { messageCode: 'MSG14' }),
+    });
+    await auth.login({
+      email: 'admin@example.test',
+      password: 'Abcdef12',
+      rememberMe: false,
+    });
+    const change = {
+      currentPassword: 'Abcdef12',
+      newPassword: 'Abcdef34',
+      confirmPassword: 'Abcdef34',
+    };
+    await expect(auth.changePassword(change)).resolves.toEqual({
+      messageCode: 'MSG14',
+    });
+    expect(calls[1]!.path).toBe('me/password');
+    expect(calls[1]!.init.method).toBe('PUT');
+    expect(body(calls[1]!.init)).toEqual(change);
+    expect(bearer(calls[1]!.init)).toBe(
+      'Bearer ' + sessionBody(1, 'ADMIN').accessToken,
+    );
+    expect(tokens.hasTokens()).toBe(true);
+  });
+
   it('posts the account flows and returns their SRS message', async () => {
     const { auth, calls } = setup({
       'auth/register': () => json(201, { messageCode: 'MSG05' }),

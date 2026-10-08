@@ -151,11 +151,6 @@ describe('HTTP profile service', () => {
       attitudeScore: 6,
       suggestedProfile: 'BALANCED',
     });
-    await profile.changePassword({
-      currentPassword: 'Old-pass1',
-      newPassword: 'New-pass1',
-      confirmPassword: 'New-pass1',
-    });
     expect(calls).toEqual([
       {
         path: 'me/profile',
@@ -181,15 +176,6 @@ describe('HTTP profile service', () => {
         path: 'me/risk-questionnaire',
         method: 'POST',
         body: { answers: { CAPACITY_SHARE_OF_SAVINGS: 'MORE_THAN_HALF' } },
-      },
-      {
-        path: 'me/password',
-        method: 'PUT',
-        body: {
-          currentPassword: 'Old-pass1',
-          newPassword: 'New-pass1',
-          confirmPassword: 'New-pass1',
-        },
       },
     ]);
   });

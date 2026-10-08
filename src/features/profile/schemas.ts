@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { PASSWORD_PATTERN } from '../auth/password-policy';
 import type { Copy } from '../../i18n/locales/en';
 import { fieldErrorText, messageText } from '../../i18n/messages';
 import type { ProfileUpdate, TradingStyle } from '../../types/domain';
@@ -55,18 +54,6 @@ export function toProfileUpdate(values: ProfileFormValues): ProfileUpdate {
     tradingStyle: (values.tradingStyle || null) as TradingStyle | null,
   };
 }
-
-export const passwordChangeSchema = z
-  .object({
-    currentPassword: z.string().min(1, 'MSG01'),
-    newPassword: z.string().min(1, 'MSG01').regex(PASSWORD_PATTERN, 'MSG03'),
-    confirmPassword: z.string().min(1, 'MSG01'),
-  })
-  .refine((form) => form.newPassword === form.confirmPassword, {
-    path: ['confirmPassword'],
-    message: 'MSG03',
-  });
-export type PasswordChangeValues = z.infer<typeof passwordChangeSchema>;
 
 /** Field error text; MSG15 names the field's range. */
 export function profileFieldError(

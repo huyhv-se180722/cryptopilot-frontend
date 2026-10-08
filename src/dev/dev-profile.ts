@@ -1,7 +1,5 @@
 import type { ProfileService } from '../services/api/contracts';
 import { ServiceError } from '../services/api/errors';
-import { PASSWORD_PATTERN } from '../features/auth/password-policy';
-import { DEV_PASSWORD } from './fixtures/auth';
 import {
   devProfile,
   devQuestionnaire,
@@ -87,16 +85,6 @@ export function createDevelopmentProfile(): ProfileService {
       );
       if (!answered) refuse('VALIDATION_FAILED', 'MSG01');
       return devSuggestion;
-    },
-    async changePassword(change) {
-      if (change.currentPassword !== DEV_PASSWORD)
-        refuse('CURRENT_PASSWORD_INCORRECT', 'MSG08');
-      if (!PASSWORD_PATTERN.test(change.newPassword))
-        refuse('PASSWORD_POLICY_VIOLATION', 'MSG03', { newPassword: 'MSG03' });
-      if (change.newPassword !== change.confirmPassword)
-        refuse('VALIDATION_FAILED', 'MSG03', {
-          confirmPasswordMatching: 'MSG03',
-        });
     },
   };
 }

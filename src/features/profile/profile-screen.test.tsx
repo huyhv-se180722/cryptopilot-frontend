@@ -78,14 +78,17 @@ function fakeProfile(overrides: Partial<ProfileService> = {}) {
       attitudeScore: 7,
       suggestedProfile: 'BALANCED' as const,
     })),
-    changePassword: vi.fn(async () => undefined),
     ...overrides,
   };
   return service;
 }
 
-async function open(profile: ProfileService, path = '/profile') {
-  await renderRoutes([page('/profile', <ProfilePage />)], path, fakeAuth(), {
+async function open(
+  profile: ProfileService,
+  path = '/profile',
+  auth = fakeAuth(),
+) {
+  await renderRoutes([page('/profile', <ProfilePage />)], path, auth, {
     profile,
   });
 }
@@ -206,12 +209,12 @@ describe('SCR-07 Profile tab', () => {
 
 describe('SCR-07 Security and Notifications tabs', () => {
   it('shows MSG08 under the current password and keeps the form', async () => {
-    const profile = fakeProfile({
+    const auth = fakeAuth({
       changePassword: vi.fn(async () => {
         throw refusal('CURRENT_PASSWORD_INCORRECT', 'MSG08');
       }),
     });
-    await open(profile, '/profile?tab=security');
+    await open(fakeProfile(), '/profile?tab=security', auth);
     await userEvent.type(
       await screen.findByLabelText('Current password'),
       'Wrong-pass1',

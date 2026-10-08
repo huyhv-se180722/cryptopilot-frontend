@@ -1,6 +1,6 @@
 import { PageHeader } from '../../components/layout/PageHeader';
 import { useCopy } from '../../hooks/use-copy';
-import { ChangePasswordForm } from '../../features/profile/components/ChangePasswordForm';
+import { ChangePasswordForm } from '../../features/auth/components/ChangePasswordForm';
 
 /** SCR-07 for an Admin: the Security tab only (SRS 3.2.5). */
 export function AdminAccountPage() {
