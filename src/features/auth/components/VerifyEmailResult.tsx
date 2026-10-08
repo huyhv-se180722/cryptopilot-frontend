@@ -46,7 +46,7 @@ function ResendBlock({ initialEmail }: { initialEmail: string }) {
 }
 
 /**
- * SCR-03 (no Figma frame; spec §1). Reads `token` from the link, verifies it
+ * SCR-03 (no Figma frame). Reads `token` from the link, verifies it
  * once and offers resend when the link is invalid (MSG06 / MSG07).
  */
 export function VerifyEmailResult() {
