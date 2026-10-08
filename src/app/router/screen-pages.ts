@@ -7,4 +7,7 @@ export const screenPages: Readonly<Record<string, PageModule>> = {
   '/login': async () => ({
     Component: (await import('../../pages/guest/LoginPage')).LoginPage,
   }),
+  '/register': async () => ({
+    Component: (await import('../../pages/guest/RegisterPage')).RegisterPage,
+  }),
 };
