@@ -1,12 +1,10 @@
-import { Link, Outlet } from 'react-router-dom';
-import { Warning } from '../../components/feedback/States';
-import { useIntegrationMode } from '../../hooks/use-integration-mode';
+import { Outlet } from 'react-router-dom';
+import { IntegrationBanner } from '../../components/layout/IntegrationBanner';
 import { useCopy } from '../../hooks/use-copy';
 import { DocumentTitle } from './DocumentTitle';
 
-/** Minimal route host; the application shell belongs to feature/app-shell. */
+/** Root route host: skip link, document title and integration status. */
 export function RouteFrame() {
-  const mode = useIntegrationMode();
   const copy = useCopy();
   return (
     <>
@@ -17,27 +15,8 @@ export function RouteFrame() {
       >
         {copy.common.skipToContent}
       </a>
-      <div className="mx-auto max-w-[1120px] p-4 sm:p-6">
-        <Link
-          className="mb-6 inline-block text-lg font-semibold no-underline"
-          to="/"
-        >
-          {copy.product.name}
-        </Link>
-        {mode === 'development-fixtures' && (
-          <Warning title={copy.integration.fixturesTitle}>
-            {copy.integration.fixturesBody}
-          </Warning>
-        )}
-        {mode === 'backend-pending' && (
-          <Warning title={copy.integration.pendingTitle}>
-            {copy.integration.pendingBody}
-          </Warning>
-        )}
-        <main id="main-content" tabIndex={-1}>
-          <Outlet />
-        </main>
-      </div>
+      <IntegrationBanner />
+      <Outlet />
     </>
   );
 }

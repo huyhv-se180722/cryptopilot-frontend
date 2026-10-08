@@ -3,6 +3,8 @@ import { NotFoundPage } from '../../pages/NotFoundPage';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RouteFrame } from './RouteFrame';
 import { RouteError } from './RouteError';
+import { GuestShell } from '../layouts/GuestShell';
+import { AuthShell } from '../layouts/AuthShell';
 import {
   adminRoutes,
   guestOnlyRoutes,
@@ -29,8 +31,14 @@ export const routes: RouteObject[] = [
     element: <RouteFrame />,
     errorElement: <RouteError />,
     children: [
-      ...publicRoutes.map(screenRoute),
-      ...guestOnlyRoutes.map(screenRoute),
+      {
+        element: <GuestShell />,
+        children: [
+          ...publicRoutes.map(screenRoute),
+          { path: '*', element: <NotFoundPage /> },
+        ],
+      },
+      { element: <AuthShell />, children: guestOnlyRoutes.map(screenRoute) },
       {
         element: <ProtectedRoute roles={['Trader']} />,
         children: traderRoutes.map(screenRoute),
@@ -39,7 +47,6 @@ export const routes: RouteObject[] = [
         element: <ProtectedRoute roles={['Admin']} />,
         children: adminRoutes.map(screenRoute),
       },
-      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ];
