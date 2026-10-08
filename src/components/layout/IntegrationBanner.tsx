@@ -12,7 +12,7 @@ export function IntegrationBanner() {
   return (
     <div
       role="status"
-      className="flex items-center gap-2 border-b border-warning-line bg-warning-soft px-4 py-1.5 text-[11px] text-warning sm:px-6"
+      className="flex h-(--cp-banner-h) items-center gap-2 overflow-hidden border-b border-warning-line bg-warning-soft px-4 text-[11px] text-warning sm:px-6"
     >
       <Icon size={12} aria-hidden="true" className="shrink-0" />
       <strong className="font-semibold">

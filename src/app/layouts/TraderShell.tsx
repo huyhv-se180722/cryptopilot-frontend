@@ -52,7 +52,7 @@ export function TraderShell() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex min-h-[calc(100dvh-var(--cp-banner-h))] flex-col">
       <header className="sticky top-0 z-30 flex h-[52px] shrink-0 items-center border-b border-line bg-page-alt px-3 dark:bg-(--cp-dock-bg) dark:shadow-panel dark:backdrop-blur-xl">
         <div
           aria-hidden="true"

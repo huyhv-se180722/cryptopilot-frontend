@@ -8,7 +8,7 @@ import { useCopy } from '../../hooks/use-copy';
 export function AuthShell() {
   const copy = useCopy();
   return (
-    <div className="relative flex min-h-dvh flex-col overflow-hidden">
+    <div className="relative flex min-h-[calc(100dvh-var(--cp-banner-h))] flex-col overflow-hidden">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -top-[120px] left-1/2 h-[300px] w-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(ellipse_at_center,var(--cp-primary-bg)_0%,transparent_70%)]"

@@ -39,7 +39,7 @@ export function GuestShell() {
     ];
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex min-h-[calc(100dvh-var(--cp-banner-h))] flex-col">
       <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-line bg-page-alt/95 px-4 backdrop-blur-xl sm:px-6 dark:bg-(--cp-dock-bg)">
         <Link
           to="/"
