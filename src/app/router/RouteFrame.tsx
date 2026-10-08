@@ -2,6 +2,7 @@ import { Link, Outlet } from 'react-router-dom';
 import { Warning } from '../../components/feedback/States';
 import { useIntegrationMode } from '../../hooks/use-integration-mode';
 import { useCopy } from '../../hooks/use-copy';
+import { DocumentTitle } from './DocumentTitle';
 
 /** Minimal route host; the application shell belongs to feature/app-shell. */
 export function RouteFrame() {
@@ -9,6 +10,7 @@ export function RouteFrame() {
   const copy = useCopy();
   return (
     <>
+      <DocumentTitle />
       <a
         className="fixed -top-24 left-4 z-[100] rounded-lg bg-surface p-3 text-fg shadow-overlay focus:top-3"
         href="#main-content"
