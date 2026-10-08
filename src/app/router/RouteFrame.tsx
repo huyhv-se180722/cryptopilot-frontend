@@ -4,6 +4,7 @@ import type { CSSProperties } from 'react';
 import { useCopy } from '../../hooks/use-copy';
 import { useIntegrationMode } from '../../hooks/use-integration-mode';
 import { DocumentTitle } from './DocumentTitle';
+import { SessionExpiredDialog } from '../../features/auth/components/SessionExpiredDialog';
 
 /** Root route host: skip link, document title and integration status. */
 export function RouteFrame() {
@@ -24,6 +25,7 @@ export function RouteFrame() {
       </a>
       <IntegrationBanner />
       <Outlet />
+      <SessionExpiredDialog />
     </div>
   );
 }
