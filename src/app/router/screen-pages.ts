@@ -22,4 +22,11 @@ export const screenPages: Readonly<Record<string, PageModule>> = {
     Component: (await import('../../pages/guest/ResetPasswordPage'))
       .ResetPasswordPage,
   }),
+  '/profile': async () => ({
+    Component: (await import('../../pages/trader/ProfilePage')).ProfilePage,
+  }),
+  '/admin/account': async () => ({
+    Component: (await import('../../pages/admin/AdminAccountPage'))
+      .AdminAccountPage,
+  }),
 };
