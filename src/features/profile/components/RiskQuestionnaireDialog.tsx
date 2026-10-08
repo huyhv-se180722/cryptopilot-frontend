@@ -7,7 +7,7 @@ import { useCopy } from '../../../hooks/use-copy';
 import { errorText } from '../../../i18n/messages';
 import { formatCopy } from '../../../i18n/copy';
 import type { RiskProfile, RiskQuestion } from '../../../types/domain';
-import { FormNotice } from '../../auth/components/FormNotice';
+import { FormNotice } from '../../../components/feedback/FormNotice';
 import {
   useRiskQuestionnaire,
   useSuggestRiskProfile,

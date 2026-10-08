@@ -6,9 +6,9 @@ import { Switch } from '../../../components/ui/Switch';
 import { useCopy } from '../../../hooks/use-copy';
 import { errorText, messageText } from '../../../i18n/messages';
 import type { UserProfile } from '../../../types/domain';
-import { FormNotice } from '../../auth/components/FormNotice';
+import { FormNotice } from '../../../components/feedback/FormNotice';
 import { useUpdateNotifications } from '../hooks/use-profile';
-import { SectionTitle } from './SectionTitle';
+import { SectionTitle } from '../../../components/ui/SectionTitle';
 
 /** SCR-07 Notifications tab (UC-08): email and push; in-app is always on. */
 export function NotificationsForm({

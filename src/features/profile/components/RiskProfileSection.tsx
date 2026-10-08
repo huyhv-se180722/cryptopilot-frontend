@@ -8,10 +8,10 @@ import { errorText, messageText } from '../../../i18n/messages';
 import { formatCopy } from '../../../i18n/copy';
 import type { RiskProfile, RiskProfileParams } from '../../../types/domain';
 import { classNames } from '../../../utils/class-names';
-import { FormNotice } from '../../auth/components/FormNotice';
+import { FormNotice } from '../../../components/feedback/FormNotice';
 import { useChooseRiskProfile } from '../hooks/use-profile';
 import { RiskQuestionnaireDialog } from './RiskQuestionnaireDialog';
-import { SectionTitle } from './SectionTitle';
+import { SectionTitle } from '../../../components/ui/SectionTitle';
 
 const PROFILES: readonly RiskProfile[] = [
   'CONSERVATIVE',

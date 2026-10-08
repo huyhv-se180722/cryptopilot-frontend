@@ -16,7 +16,7 @@ import {
 import { applyServerFieldErrors } from '../server-errors';
 import { useResetPassword } from '../hooks/use-auth-actions';
 import { AuthHeading } from './AuthHeading';
-import { FormNotice } from './FormNotice';
+import { FormNotice } from '../../../components/feedback/FormNotice';
 import { PasswordRules } from './PasswordRules';
 import { StatusPanel } from './StatusPanel';
 

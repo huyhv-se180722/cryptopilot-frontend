@@ -8,12 +8,12 @@ import { PasswordInput } from '../../../components/ui/PasswordInput';
 import { useCopy } from '../../../hooks/use-copy';
 import { errorText, fieldErrorText, messageText } from '../../../i18n/messages';
 import { problemOf } from '../../../services/api/errors';
-import { FormNotice } from '../../auth/components/FormNotice';
+import { FormNotice } from '../../../components/feedback/FormNotice';
 import { PasswordRules } from '../../auth/components/PasswordRules';
 import { applyServerFieldErrors } from '../../auth/server-errors';
 import { useChangePassword } from '../hooks/use-profile';
 import { passwordChangeSchema, type PasswordChangeValues } from '../schemas';
-import { SectionTitle } from './SectionTitle';
+import { SectionTitle } from '../../../components/ui/SectionTitle';
 
 const FIELDS = ['currentPassword', 'newPassword', 'confirmPassword'] as const;
 const EMPTY: PasswordChangeValues = {

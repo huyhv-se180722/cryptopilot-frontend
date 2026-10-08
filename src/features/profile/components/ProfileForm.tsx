@@ -9,8 +9,8 @@ import { Select } from '../../../components/ui/Select';
 import { useCopy } from '../../../hooks/use-copy';
 import { errorText, messageText } from '../../../i18n/messages';
 import type { TradingStyle, UserProfile } from '../../../types/domain';
-import { FormNotice } from '../../auth/components/FormNotice';
-import { applyServerFieldErrors } from '../../auth/server-errors';
+import { FormNotice } from '../../../components/feedback/FormNotice';
+import { applyServerFieldErrors } from '../../../utils/server-field-errors';
 import { useUpdateProfile } from '../hooks/use-profile';
 import {
   RANGES,
@@ -19,7 +19,7 @@ import {
   toProfileUpdate,
   type ProfileFormValues,
 } from '../schemas';
-import { SectionTitle } from './SectionTitle';
+import { SectionTitle } from '../../../components/ui/SectionTitle';
 
 const FIELDS = [
   'displayName',

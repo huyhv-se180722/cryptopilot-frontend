@@ -6,7 +6,7 @@ import { buttonClassName } from '../../../components/ui/button-styles';
 import { useAuth } from '../../../hooks/use-auth';
 import { useCopy } from '../../../hooks/use-copy';
 import { formatCopy } from '../../../i18n/copy';
-import { SectionTitle } from './SectionTitle';
+import { SectionTitle } from '../../../components/ui/SectionTitle';
 
 /**
  * SCR-07 Subscription tab. Shows the plan the session reports (display
