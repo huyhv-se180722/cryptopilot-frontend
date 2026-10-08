@@ -114,23 +114,29 @@ export function createDevelopmentMarket(now: () => number = Date.now): {
       const walk = generator(symbol.length * 7919);
       const places = decimalsOf(devTickSize(symbol.toUpperCase()));
       const today = Math.floor(now() / DAY_MS) * DAY_MS;
-      let close = devStartPrice(symbol.toUpperCase()) * 0.8;
-      const candles: Candle[] = [];
-      for (let i = limit; i >= 1; i -= 1) {
+      // A seeded walk, scaled so the last close meets the live price.
+      const bars: { open: number; high: number; low: number; close: number }[] =
+        [];
+      let close = 1;
+      for (let i = 0; i < limit; i += 1) {
         const open = close;
         close = open * (1 + (walk() - 0.48) * 0.05);
-        const high = Math.max(open, close) * (1 + walk() * 0.02);
-        const low = Math.min(open, close) * (1 - walk() * 0.02);
-        candles.push({
-          openTime: new Date(today - i * DAY_MS).toISOString(),
-          open: open.toFixed(places),
-          high: high.toFixed(places),
-          low: low.toFixed(places),
-          close: close.toFixed(places),
-          quoteVolume: (close * (5_000 + walk() * 5_000)).toFixed(2),
+        bars.push({
+          open,
+          close,
+          high: Math.max(open, close) * (1 + walk() * 0.02),
+          low: Math.min(open, close) * (1 - walk() * 0.02),
         });
       }
-      return candles;
+      const scale = priceOf(symbol.toUpperCase()) / close;
+      return bars.map((bar, index): Candle => ({
+        openTime: new Date(today - (limit - index) * DAY_MS).toISOString(),
+        open: (bar.open * scale).toFixed(places),
+        high: (bar.high * scale).toFixed(places),
+        low: (bar.low * scale).toFixed(places),
+        close: (bar.close * scale).toFixed(places),
+        quoteVolume: (bar.close * scale * 7_500).toFixed(2),
+      }));
     },
     async getTicker(marketType, symbol, signal) {
       signal?.throwIfAborted();
