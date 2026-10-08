@@ -16,6 +16,7 @@ import {
   createPendingMarketService,
   unavailableMarketFeed,
 } from '../../services/api/market';
+import { createStompMarketFeed } from '../../services/websocket/stomp-market-feed';
 import { createCoinAnalysisService } from '../../services/api/coin-analysis';
 import { createTradingPlanService } from '../../services/api/trading-plan';
 import { createJournalService } from '../../services/api/journal';
@@ -41,7 +42,9 @@ export async function createServices(env: Environment): Promise<Services> {
     market: connected
       ? createHttpMarketService(http)
       : createPendingMarketService(),
-    marketFeed: unavailableMarketFeed,
+    marketFeed: env.wsUrl
+      ? createStompMarketFeed(env.wsUrl)
+      : unavailableMarketFeed,
     coinAnalysis: createCoinAnalysisService(),
     tradingPlan: createTradingPlanService(),
     journal: createJournalService(),
