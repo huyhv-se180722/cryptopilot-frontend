@@ -9,7 +9,7 @@ import {
 
 type Props = SelectHTMLAttributes<HTMLSelectElement> & {
   label: string;
-  error?: string;
+  error?: string | undefined;
 };
 
 export function Select({

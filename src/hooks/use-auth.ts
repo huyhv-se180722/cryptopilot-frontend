@@ -12,7 +12,7 @@ export function useAuth() {
   return {
     ...state,
     login: store.login,
-    register: store.register,
+    acknowledgeEnded: store.acknowledgeEnded,
     logout: store.logout,
     restore: store.restore,
   };

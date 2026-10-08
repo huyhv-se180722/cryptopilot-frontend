@@ -6,5 +6,9 @@ export const unconfiguredAuth: AuthService = {
   restoreSession: async () => integrationPending(),
   login: async () => integrationPending(),
   register: async () => integrationPending(),
+  verifyEmail: async () => integrationPending(),
+  resendVerification: async () => integrationPending(),
+  forgotPassword: async () => integrationPending(),
+  resetPassword: async () => integrationPending(),
   logout: async () => integrationPending(),
 };

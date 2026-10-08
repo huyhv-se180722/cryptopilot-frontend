@@ -1,11 +1,13 @@
 import { FlaskConical, PlugZap } from 'lucide-react';
 import { useCopy } from '../../hooks/use-copy';
 import { useIntegrationMode } from '../../hooks/use-integration-mode';
+import { useAuth } from '../../hooks/use-auth';
 
 /** Thin strip stating that data is isolated fixtures or not connected yet. */
 export function IntegrationBanner() {
   const mode = useIntegrationMode();
   const copy = useCopy();
+  const session = useAuth().session;
   if (mode === 'backend') return null;
   const fixtures = mode === 'development-fixtures';
   const Icon = fixtures ? FlaskConical : PlugZap;
@@ -25,6 +27,11 @@ export function IntegrationBanner() {
           ? copy.integration.fixturesBody
           : copy.integration.pendingBody}
       </span>
+      {fixtures && session && (
+        <span className="ml-auto shrink-0 truncate rounded-full border border-warning-line px-2 font-mono text-[10px] font-semibold tracking-wider">
+          {copy.integration.devSession} · {session.user.email}
+        </span>
+      )}
     </div>
   );
 }

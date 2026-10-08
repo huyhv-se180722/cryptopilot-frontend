@@ -1,9 +1,14 @@
 import type { Session } from '../../types/domain';
-import type { AuthService, LoginRequest, RegisterRequest } from './contracts';
+import type { AuthService, LoginRequest } from './contracts';
 
 export type AuthState =
   | { status: 'loading'; session: null }
-  | { status: 'ready'; session: Session | null }
+  | {
+      status: 'ready';
+      session: Session | null;
+      /** Set when a live session was ended by the server (MSG44). */
+      ended?: 'expired';
+    }
   | { status: 'error'; session: null; message: string };
 
 export class AuthStore {
@@ -55,43 +60,33 @@ export class AuthStore {
         });
     }
   };
+  /**
+   * The sign-in form owns its pending state; the global state only changes
+   * on success, so a refused attempt (MSG08…MSG11) leaves the guest as is.
+   */
   login = async (request: LoginRequest) => {
     const revision = this.nextRevision();
-    this.setState({ status: 'loading', session: null });
-    try {
-      const session = await this.service.login(request);
-      if (revision === this.revision) this.accept(session);
-    } catch (error) {
-      if (revision === this.revision)
-        this.setState({
-          status: 'error',
-          session: null,
-          message: 'Sign in could not be completed.',
-        });
-      throw error;
-    }
+    const session = await this.service.login(request);
+    if (revision === this.revision) this.accept(session);
   };
-  register = (request: RegisterRequest) => this.service.register(request);
   logout = async () => {
-    const revision = this.nextRevision();
+    this.nextRevision();
     // Clear local access immediately even if backend revocation fails.
     this.accept(null);
-    try {
-      await this.service.logout();
-    } catch (error) {
-      if (revision === this.revision)
-        this.setState({
-          status: 'error',
-          session: null,
-          message:
-            'Local session cleared; server logout could not be confirmed.',
-        });
-      throw error;
-    }
+    await this.service.logout();
   };
+  /** Called when the server reports the session has ended (401). */
   invalidate = () => {
+    const hadSession = this.state.session !== null;
     this.nextRevision();
-    this.accept(null);
+    if (hadSession)
+      this.setState({ status: 'ready', session: null, ended: 'expired' });
+    else this.accept(null);
+  };
+  /** The user has seen the session-expired notice. */
+  acknowledgeEnded = () => {
+    if (this.state.status === 'ready' && this.state.ended)
+      this.setState({ status: 'ready', session: this.state.session });
   };
   cancelPending = () => {
     this.nextRevision();

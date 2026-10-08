@@ -16,16 +16,19 @@ import {
   traderRoutes,
   type RouteDefinition,
 } from './route-definitions';
+import { screenPages } from './screen-pages';
 
 /** Screens load on demand; each feature branch swaps in its real page. */
 function screenRoute(route: RouteDefinition): RouteObject {
   return {
     path: route.path,
     handle: toHandle(route),
-    lazy: async () => {
-      const { PlaceholderPage } = await import('../../pages/PlaceholderPage');
-      return { Component: PlaceholderPage };
-    },
+    lazy:
+      screenPages[route.path] ??
+      (async () => ({
+        Component: (await import('../../pages/PlaceholderPage'))
+          .PlaceholderPage,
+      })),
   };
 }
 

@@ -5,8 +5,8 @@ import { decideAccess, homePathFor } from './access-decision';
 
 function session(role: AccountRole, status: AccountStatus = 'active'): Session {
   return {
-    user: { id: 'u1', email: 'u@example.test', fullName: 'U', role, status },
-    entitlements: { aiAccess: false, videoPosting: false },
+    user: { id: 'u1', email: 'u@example.test', displayName: 'U', role, status },
+    entitlements: 'unknown',
   };
 }
 const ready = (value: Session | null): AuthState => ({
@@ -35,9 +35,10 @@ describe('decideAccess — protected areas', () => {
   });
 
   it('blocks locked or banned accounts before any role check', () => {
-    expect(decideAccess(ready(session('Trader', 'suspended')), trader)).toEqual(
-      { type: 'blocked', status: 'suspended' },
-    );
+    expect(decideAccess(ready(session('Trader', 'locked')), trader)).toEqual({
+      type: 'blocked',
+      status: 'locked',
+    });
     expect(decideAccess(ready(session('Admin', 'banned')), admin)).toEqual({
       type: 'blocked',
       status: 'banned',

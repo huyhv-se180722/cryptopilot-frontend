@@ -1,4 +1,5 @@
 import { ServiceError } from './errors';
+import { decodeProblem, type ApiProblem } from './problem';
 
 export interface RequestOptions<T> {
   path: string;
@@ -7,6 +8,8 @@ export interface RequestOptions<T> {
   body?: unknown;
   signal?: AbortSignal;
   headers?: Readonly<Record<string, string>>;
+  /** For sign-in style calls whose 401 means wrong credentials, not an ended session. */
+  skipUnauthorizedHandler?: boolean;
 }
 
 /** No endpoint paths, auth scheme, retries, or response envelopes are invented here. */
@@ -65,12 +68,21 @@ export function createHttpClient(options: {
             : { body: JSON.stringify(request.body) }),
         });
         if (!response.ok) {
-          if (response.status === 401) options.onUnauthorized?.();
-          // Do not echo raw backend bodies, stack traces, or credentials into the UI.
+          if (response.status === 401 && !request.skipUnauthorizedHandler)
+            options.onUnauthorized?.();
+          // Only whitelisted problem fields are kept; raw bodies, titles and
+          // details never reach the UI.
+          let problem: ApiProblem | undefined;
+          try {
+            problem = decodeProblem(await response.json(), response.status);
+          } catch {
+            problem = undefined;
+          }
           throw new ServiceError(
             'The request could not be completed.',
             'HTTP_ERROR',
             response.status,
+            problem,
           );
         }
         const body: unknown =

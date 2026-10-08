@@ -7,17 +7,21 @@ const session: Session = {
   user: {
     id: 'test-user',
     email: 'user@example.test',
-    fullName: 'Test user',
+    displayName: 'Test user',
     role: 'Trader',
     status: 'active',
   },
-  entitlements: { aiAccess: false, videoPosting: false },
+  entitlements: 'unknown',
 };
 function service(overrides: Partial<AuthService> = {}): AuthService {
   return {
     restoreSession: async () => null,
     login: async () => session,
-    register: async () => ({ status: 'verification-required' }),
+    register: async () => ({ messageCode: 'MSG05' }),
+    verifyEmail: async () => ({ messageCode: 'MSG06' }),
+    resendVerification: async () => ({ messageCode: 'MSG05' }),
+    forgotPassword: async () => ({ messageCode: 'MSG12' }),
+    resetPassword: async () => ({ messageCode: 'MSG13' }),
     logout: async () => undefined,
     ...overrides,
   };
@@ -55,10 +59,11 @@ describe('session lifecycle', () => {
     await store.login({
       email: 'user@example.test',
       password: 'test-only-value',
+      rememberMe: false,
     });
     await expect(store.logout()).rejects.toThrow('offline');
     expect(store.getSnapshot()).toMatchObject({
-      status: 'error',
+      status: 'ready',
       session: null,
     });
   });
@@ -74,6 +79,7 @@ describe('session lifecycle', () => {
     await store.login({
       email: 'user@example.test',
       password: 'test-only-value',
+      rememberMe: false,
     });
     expect(store.getSnapshot()).toMatchObject({
       status: 'error',
@@ -99,5 +105,41 @@ describe('session lifecycle', () => {
     store.invalidate();
     expect(signal?.aborted).toBe(true);
     expect(listener).not.toHaveBeenCalled();
+  });
+  it('keeps a guest a guest when sign in is refused', async () => {
+    const refusal = new Error('MSG08');
+    const store = new AuthStore(
+      service({
+        login: async () => {
+          throw refusal;
+        },
+      }),
+    );
+    await store.restore();
+    await expect(
+      store.login({ email: 'u@example.test', password: 'x', rememberMe: true }),
+    ).rejects.toBe(refusal);
+    expect(store.getSnapshot()).toEqual({ status: 'ready', session: null });
+  });
+  it('flags a server-ended session once until acknowledged', async () => {
+    const store = new AuthStore(service());
+    await store.login({
+      email: 'user@example.test',
+      password: 'test-only-value',
+      rememberMe: false,
+    });
+    store.invalidate();
+    expect(store.getSnapshot()).toEqual({
+      status: 'ready',
+      session: null,
+      ended: 'expired',
+    });
+    store.acknowledgeEnded();
+    expect(store.getSnapshot()).toEqual({ status: 'ready', session: null });
+  });
+  it('does not report an expiry for a guest', () => {
+    const store = new AuthStore(service());
+    store.invalidate();
+    expect(store.getSnapshot()).toEqual({ status: 'ready', session: null });
   });
 });
