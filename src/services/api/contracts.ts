@@ -8,6 +8,12 @@ import type {
   MarketType,
   NewsArticle,
   PriceAlert,
+  ProfileUpdate,
+  RiskProfile,
+  RiskProfileParams,
+  RiskQuestion,
+  RiskSuggestion,
+  UserProfile,
   SubscriptionPackage,
   TradingPlan,
 } from '../../types/domain';
@@ -48,3 +54,29 @@ export type NewsService = ReadService<NewsArticle>;
 export type AiService = ReadService<AiConversation>;
 export type SubscriptionService = ReadService<SubscriptionPackage>;
 export type AdminService = ReadService<AdminLog>;
+
+export interface PasswordChange {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+/** Account settings of the signed-in user (`/me/*`; password for Trader and Admin). */
+export interface ProfileService {
+  get(signal?: AbortSignal): Promise<UserProfile>;
+  update(update: ProfileUpdate): Promise<void>;
+  updateNotifications(preferences: {
+    email: boolean;
+    push: boolean;
+  }): Promise<void>;
+  getRiskProfile(signal?: AbortSignal): Promise<RiskProfileParams>;
+  /** AGGRESSIVE requires the MSG48 confirmation first. */
+  chooseRiskProfile(
+    profile: RiskProfile,
+    confirmAggressive: boolean,
+  ): Promise<void>;
+  getQuestionnaire(signal?: AbortSignal): Promise<readonly RiskQuestion[]>;
+  suggestRiskProfile(
+    answers: Readonly<Record<string, string>>,
+  ): Promise<RiskSuggestion>;
+  changePassword(change: PasswordChange): Promise<void>;
+}

@@ -7,6 +7,10 @@ import {
   createRefresher,
 } from '../../services/auth/http-auth';
 import { TokenSession } from '../../services/auth/token-session';
+import {
+  createHttpProfileService,
+  createPendingProfileService,
+} from '../../services/api/profile';
 import { createMarketService } from '../../services/api/market';
 import { createCoinAnalysisService } from '../../services/api/coin-analysis';
 import { createTradingPlanService } from '../../services/api/trading-plan';
@@ -27,6 +31,9 @@ export async function createServices(env: Environment): Promise<Services> {
     mode: connected ? 'backend' : 'backend-pending',
     http,
     auth: connected ? createHttpAuthService(http, tokens) : unconfiguredAuth,
+    profile: connected
+      ? createHttpProfileService(http)
+      : createPendingProfileService(),
     market: createMarketService(),
     coinAnalysis: createCoinAnalysisService(),
     tradingPlan: createTradingPlanService(),
