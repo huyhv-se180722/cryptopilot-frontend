@@ -3,7 +3,7 @@ import type { MessageResult } from './contracts';
 import type { TokenPair } from './token-session';
 
 /**
- * Runtime decoders for the backend auth contract (fe-guide modules/auth.md,
+ * Runtime decoders for the backend auth contract (SRS 3.2,
  * checked against `develop` @ 0d92def). Unknown input never becomes a typed
  * value without passing these checks.
  */

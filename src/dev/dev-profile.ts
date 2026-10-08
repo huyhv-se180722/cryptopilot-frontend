@@ -9,8 +9,8 @@ import {
 
 /**
  * DEVELOPMENT ONLY. In-memory `/me/*` adapter with the backend's refusals
- * (fe-guide modules/user.md): field rules, MSG48 and the wrong current
- * password. A reload restores the fixture.
+ * (UC-06, UC-08): field rules (MSG01, MSG15) and MSG48. A reload restores
+ * the fixture.
  */
 function refuse(
   code: string,

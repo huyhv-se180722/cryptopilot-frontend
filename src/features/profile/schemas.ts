@@ -4,7 +4,7 @@ import { fieldErrorText, messageText } from '../../i18n/messages';
 import type { ProfileUpdate, TradingStyle } from '../../types/domain';
 
 /**
- * Client mirror of `PUT /me/profile` (fe-guide modules/user.md); issues are
+ * Client mirror of `PUT /me/profile` (UC-06, SRS 3.2.5); issues are
  * SRS message ids and the server stays authoritative. Decimals are strings.
  */
 const DECIMAL = /^\d+(\.\d+)?$/;

@@ -43,7 +43,7 @@ export function createHttpAuthService(
     tokens.set(decoded.tokens);
     try {
       const id = subjectOf(decoded.tokens.accessToken);
-      // `/me/profile` is Trader-only (403 for an Admin, 02-auth).
+      // `/me/profile` is Trader-only (403 for an Admin, SRS 3.1.3).
       const identity =
         decoded.role === 'Trader'
           ? await http.request({
@@ -97,7 +97,7 @@ export function createHttpAuthService(
       post('forgot-password', { email }, decodeMessage),
     async resetPassword(request) {
       const result = await post('reset-password', request, decodeMessage);
-      // A reset revokes every session of the account (02-auth).
+      // A reset revokes every session of the account (TECHNICAL_DESIGN 7.15).
       current = null;
       tokens.clear();
       return result;

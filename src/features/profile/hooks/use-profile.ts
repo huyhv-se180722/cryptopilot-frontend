@@ -14,7 +14,7 @@ export type LoadState<T> =
 
 /**
  * One read with cancellation; `reload` re-reads after a `/me/*` write
- * (fe-guide: invalidate the "me" query). Stale responses are discarded.
+ * (every SCR-07 save changes what `/me/*` returns). Stale responses are discarded.
  */
 function useLoad<T>(load: (signal: AbortSignal) => Promise<T>, enabled = true) {
   const [version, setVersion] = useState(0);

@@ -1,6 +1,6 @@
 import { ServiceError } from '../api/errors';
 
-/** Tokens of one sign-in, as the backend issues them (fe-guide 02-auth). */
+/** Tokens of one sign-in, as the backend issues them (TECHNICAL_DESIGN 7.15). */
 export interface TokenPair {
   accessToken: string;
   accessTokenExpiresAt: string;
@@ -23,7 +23,7 @@ const browserTimers: Timers = {
     globalThis.clearTimeout(handle as ReturnType<typeof setTimeout>),
 };
 
-/** Renew about a minute before the access token expires (02-auth rule 3). */
+/** Renew about a minute before the access token expires, not after a 401. */
 export const REFRESH_LEAD_MS = 60_000;
 
 /**

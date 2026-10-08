@@ -11,7 +11,7 @@ import {
   decodeSuggestion,
 } from './profile-dto';
 
-/** Shapes from fe-guide modules/user.md, checked against develop @ 0d92def. */
+/** Response shapes of the backend `/me/*` endpoints on develop @ 0d92def. */
 const PROFILE = {
   email: 'trader.pro@cryptopilot.invalid',
   displayName: 'Pro Trader',

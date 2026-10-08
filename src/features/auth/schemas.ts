@@ -48,7 +48,8 @@ export const resetPasswordSchema = z
 export type ResetPasswordForm = z.infer<typeof resetPasswordSchema>;
 
 /**
- * Backend field-error keys that are not form fields (03-conventions):
+ * Backend field-error keys that are not form fields (the backend's
+ * `isConfirmPasswordMatching` check, A-20):
  * the confirmation mismatch shows under the confirm field.
  */
 export const SERVER_FIELD_ALIASES: Readonly<Record<string, string>> = {

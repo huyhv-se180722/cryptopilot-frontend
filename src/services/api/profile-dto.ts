@@ -8,7 +8,7 @@ import type {
 } from '../../types/domain';
 
 /**
- * Runtime decoders for the `/me/*` contract (fe-guide modules/user.md,
+ * Runtime decoders for the `/me/*` contract (SRS 3.2.5,
  * checked against `develop` @ 0d92def). Decimals stay strings.
  */
 function record(value: unknown): Record<string, unknown> {
