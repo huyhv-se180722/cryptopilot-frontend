@@ -203,6 +203,18 @@ describe('SCR-07 Profile tab', () => {
     expect(profile.chooseRiskProfile).not.toHaveBeenCalled();
   });
 
+  it('shows a skeleton while the profile loads', async () => {
+    await open(
+      fakeProfile({ get: vi.fn(() => new Promise<UserProfile>(() => {})) }),
+    );
+    const loading = await screen.findByRole('status');
+    expect(loading.getAttribute('aria-busy')).toBe('true');
+    expect(loading.textContent).toBe('Loading…');
+    expect(screen.getByRole('tablist').getAttribute('aria-orientation')).toBe(
+      'vertical',
+    );
+  });
+
   it('shows the pending state while the API is not configured', async () => {
     await open(createPendingProfileService());
     // The Profile and Notifications tabs both need the profile.

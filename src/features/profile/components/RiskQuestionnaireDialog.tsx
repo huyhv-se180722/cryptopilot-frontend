@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Dialog } from '../../../components/ui/Dialog';
-import { ErrorState, Loading } from '../../../components/feedback/States';
+import { ErrorState } from '../../../components/feedback/States';
 import { useCopy } from '../../../hooks/use-copy';
 import { errorText } from '../../../i18n/messages';
 import { formatCopy } from '../../../i18n/copy';
 import type { RiskProfile, RiskQuestion } from '../../../types/domain';
+import { QuestionSkeleton } from './SettingsSkeleton';
 import { FormNotice } from '../../../components/feedback/FormNotice';
 import {
   useRiskQuestionnaire,
@@ -47,7 +48,7 @@ export function RiskQuestionnaireDialog({
   }
 
   let body;
-  if (state.status === 'loading') body = <Loading />;
+  if (state.status === 'loading') body = <QuestionSkeleton />;
   else if (state.status === 'error')
     body = (
       <ErrorState message={errorText(copy, state.error)} onRetry={reload} />
