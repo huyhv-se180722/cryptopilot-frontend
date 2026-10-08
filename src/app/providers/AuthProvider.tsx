@@ -10,5 +10,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     void store.restore();
     return store.cancelPending;
   }, [store]);
+  // A session the server ended (refused renewal) shows the MSG44 notice.
+  useEffect(() => auth.onSessionEnded?.(store.invalidate), [auth, store]);
   return <AuthContext.Provider value={store}>{children}</AuthContext.Provider>;
 }
