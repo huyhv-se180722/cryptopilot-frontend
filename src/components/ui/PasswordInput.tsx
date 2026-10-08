@@ -10,7 +10,7 @@ import {
 
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & {
   label: string;
-  error?: string;
+  error?: string | undefined;
 };
 
 /** Figma login password field with a show/hide toggle. */

@@ -8,7 +8,7 @@ import {
 
 type Props = ComponentPropsWithRef<'input'> & {
   label: string;
-  error?: string;
+  error?: string | undefined;
   hint?: string;
 };
 

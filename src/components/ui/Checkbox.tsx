@@ -9,7 +9,7 @@ import { fieldErrorClass } from './field-styles';
 
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & {
   label: ReactNode;
-  error?: string;
+  error?: string | undefined;
 };
 
 /** Figma 16px checkbox on a native input (keyboard and form friendly). */
