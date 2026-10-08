@@ -17,6 +17,8 @@ export type FeedFreshness = 'connecting' | 'live' | 'delayed';
 export interface MarketTickers {
   tickers: ReadonlyMap<string, MarketTicker>;
   freshness: FeedFreshness;
+  /** The hook's one-second clock, for countdowns on the same screen. */
+  now: number;
 }
 
 interface FeedState {
@@ -131,5 +133,5 @@ export function useMarketTickers(
     };
   }, [delayed, symbolKey, market, service, merge]);
 
-  return { tickers: current.tickers, freshness };
+  return { tickers: current.tickers, freshness, now };
 }
