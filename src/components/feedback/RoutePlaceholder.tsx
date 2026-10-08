@@ -10,8 +10,8 @@ export function RoutePlaceholder({ title }: { title: string }) {
       <PageHeader title={title} description={copy.product.description} />
       <Card>
         <Badge tone="info">{copy.placeholder.badge}</Badge>
-        <h2>{copy.placeholder.title}</h2>
-        <p>{copy.placeholder.body}</p>
+        <h2 className="mt-3 text-sm font-semibold">{copy.placeholder.title}</h2>
+        <p className="mt-1 text-xs text-muted-dim">{copy.placeholder.body}</p>
       </Card>
     </section>
   );

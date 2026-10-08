@@ -9,11 +9,17 @@ export function RouteFrame() {
   const copy = useCopy();
   return (
     <>
-      <a className="skip-link" href="#main-content">
+      <a
+        className="fixed -top-24 left-4 z-[100] rounded-lg bg-surface p-3 text-fg shadow-overlay focus:top-3"
+        href="#main-content"
+      >
         {copy.common.skipToContent}
       </a>
-      <div className="foundation-container">
-        <Link className="wordmark" to="/">
+      <div className="mx-auto max-w-[1120px] p-4 sm:p-6">
+        <Link
+          className="mb-6 inline-block text-lg font-semibold no-underline"
+          to="/"
+        >
           {copy.product.name}
         </Link>
         {mode === 'development-fixtures' && (
