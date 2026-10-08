@@ -5,6 +5,7 @@ import { RouteFrame } from './RouteFrame';
 import { RouteError } from './RouteError';
 import { GuestShell } from '../layouts/GuestShell';
 import { AuthShell } from '../layouts/AuthShell';
+import { TraderShell } from '../layouts/TraderShell';
 import {
   adminRoutes,
   guestOnlyRoutes,
@@ -41,7 +42,9 @@ export const routes: RouteObject[] = [
       { element: <AuthShell />, children: guestOnlyRoutes.map(screenRoute) },
       {
         element: <ProtectedRoute roles={['Trader']} />,
-        children: traderRoutes.map(screenRoute),
+        children: [
+          { element: <TraderShell />, children: traderRoutes.map(screenRoute) },
+        ],
       },
       {
         element: <ProtectedRoute roles={['Admin']} />,

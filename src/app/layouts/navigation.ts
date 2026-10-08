@@ -1,6 +1,7 @@
 import {
   BarChart2,
   Bell,
+  BellRing,
   BookOpen,
   Bot,
   Coins,
@@ -11,11 +12,13 @@ import {
   MessageSquare,
   Newspaper,
   Package,
+  Receipt,
   ScrollText,
   Settings,
   ShieldCheck,
   Star,
   TrendingUp,
+  User,
   Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -54,6 +57,19 @@ export const traderNav: readonly NavItem[] = [
   { to: '/ai', labelKey: 'ai', icon: Bot },
   { to: '/news', labelKey: 'news', icon: Newspaper },
   { to: '/community', labelKey: 'community', icon: Users },
+];
+
+/** Account destinations (avatar menu, bell, plan chip). */
+export const traderAccountNav: readonly NavItem[] = [
+  { to: '/notifications', labelKey: 'notifications', icon: BellRing },
+  { to: '/profile', labelKey: 'profile', icon: User },
+  {
+    to: '/subscription',
+    labelKey: 'subscription',
+    icon: CreditCard,
+    end: true,
+  },
+  { to: '/subscription/payments', labelKey: 'payments', icon: Receipt },
 ];
 
 /** Figma floating mobile dock; the rest is under "More". */

@@ -26,6 +26,7 @@ export function Menu({
   items,
   header,
   align = 'end',
+  side = 'bottom',
 }: {
   /** Visual content of the trigger button. */
   trigger: ReactNode;
@@ -34,6 +35,8 @@ export function Menu({
   items: readonly MenuItem[];
   header?: ReactNode;
   align?: 'start' | 'end';
+  /** Open below (default) or above the trigger, e.g. in a bottom dock. */
+  side?: 'bottom' | 'top';
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -103,7 +106,8 @@ export function Menu({
           aria-label={label}
           onKeyDown={onMenuKeyDown}
           className={classNames(
-            'absolute top-full z-50 mt-2 min-w-52 overflow-hidden rounded-xl border border-line-strong bg-surface py-1 shadow-overlay',
+            'absolute z-50 min-w-52 overflow-hidden rounded-xl border border-line-strong bg-surface py-1 shadow-overlay',
+            side === 'bottom' ? 'top-full mt-2' : 'bottom-full mb-2',
             align === 'end' ? 'right-0' : 'left-0',
           )}
         >
