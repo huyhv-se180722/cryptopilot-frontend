@@ -1,6 +1,7 @@
 import { createBrowserRouter, type RouteObject } from 'react-router-dom';
 import { NotFoundPage } from '../../pages/NotFoundPage';
 import { ProtectedRoute } from './ProtectedRoute';
+import { GuestOnlyRoute } from './GuestOnlyRoute';
 import { RouteFrame } from './RouteFrame';
 import { RouteError } from './RouteError';
 import { GuestShell } from '../layouts/GuestShell';
@@ -40,7 +41,15 @@ export const routes: RouteObject[] = [
           { path: '*', element: <NotFoundPage /> },
         ],
       },
-      { element: <AuthShell />, children: guestOnlyRoutes.map(screenRoute) },
+      {
+        element: <GuestOnlyRoute />,
+        children: [
+          {
+            element: <AuthShell />,
+            children: guestOnlyRoutes.map(screenRoute),
+          },
+        ],
+      },
       {
         element: <ProtectedRoute roles={['Trader']} />,
         children: [
