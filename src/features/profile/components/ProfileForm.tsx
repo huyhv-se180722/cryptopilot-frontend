@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
@@ -7,7 +6,8 @@ import { Card } from '../../../components/ui/Card';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { useCopy } from '../../../hooks/use-copy';
-import { errorText, messageText } from '../../../i18n/messages';
+import { useFormFeedback } from '../../../hooks/use-form-feedback';
+import { errorText } from '../../../i18n/messages';
 import type { TradingStyle, UserProfile } from '../../../types/domain';
 import { FormNotice } from '../../../components/feedback/FormNotice';
 import { applyServerFieldErrors } from '../../../utils/server-field-errors';
@@ -53,9 +53,7 @@ export function ProfileForm({
 }) {
   const copy = useCopy();
   const action = useUpdateProfile();
-  const [banner, setBanner] = useState<
-    { tone: 'error'; error: unknown } | { tone: 'success' } | null
-  >(null);
+  const feedback = useFormFeedback();
   const {
     register,
     handleSubmit,
@@ -73,7 +71,7 @@ export function ProfileForm({
     <form
       noValidate
       onSubmit={handleSubmit(async (values) => {
-        setBanner(null);
+        feedback.clear();
         const update = toProfileUpdate(values);
         const result = await action.run(update);
         if (result.status === 'success') {
@@ -82,20 +80,19 @@ export function ProfileForm({
             defaultCapital: update.defaultCapital ?? '',
             defaultRiskPercent: update.defaultRiskPercent ?? '',
           });
-          setBanner({ tone: 'success' });
+          feedback.saved();
           onSaved();
         } else if (
           result.status === 'error' &&
           !applyServerFieldErrors(result.error, FIELDS, setError)
         )
-          setBanner({ tone: 'error', error: result.error });
+          feedback.failed(result.error);
       })}
     >
-      {banner?.tone === 'success' && (
-        <FormNotice tone="success">{messageText(copy, 'MSG14')}</FormNotice>
-      )}
-      {banner?.tone === 'error' && (
-        <FormNotice tone="error">{errorText(copy, banner.error)}</FormNotice>
+      {feedback.inline && (
+        <FormNotice tone="error">
+          {errorText(copy, feedback.inline.error)}
+        </FormNotice>
       )}
       <Card padding="lg" className="mb-5">
         <SectionTitle>{p.identityTitle}</SectionTitle>

@@ -4,6 +4,7 @@ import { Button } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
 import { Dialog } from '../../../components/ui/Dialog';
 import { useCopy } from '../../../hooks/use-copy';
+import { useFormFeedback } from '../../../hooks/use-form-feedback';
 import { errorText, messageText } from '../../../i18n/messages';
 import { formatCopy } from '../../../i18n/copy';
 import type { RiskProfile, RiskProfileParams } from '../../../types/domain';
@@ -37,31 +38,27 @@ export function RiskProfileSection({
   const [selected, setSelected] = useState<RiskProfile>(risk.riskProfile);
   const [confirming, setConfirming] = useState(false);
   const [questionnaire, setQuestionnaire] = useState(false);
-  const [banner, setBanner] = useState<
-    { tone: 'error'; error: unknown } | { tone: 'success' } | null
-  >(null);
+  const feedback = useFormFeedback();
   const label = (profile: RiskProfile) => p[`risk${profile}`];
 
   async function save(confirmAggressive: boolean) {
     setConfirming(false);
-    setBanner(null);
+    feedback.clear();
     const result = await action.run(selected, confirmAggressive);
     if (result.status === 'success') {
-      setBanner({ tone: 'success' });
+      feedback.saved();
       onSaved();
-    } else if (result.status === 'error')
-      setBanner({ tone: 'error', error: result.error });
+    } else if (result.status === 'error') feedback.failed(result.error);
   }
 
   return (
     <Card padding="lg" className="mb-5">
       <SectionTitle>{p.riskTitle}</SectionTitle>
       <p className="-mt-2 mb-4 text-xs text-muted-dim">{p.riskHint}</p>
-      {banner?.tone === 'success' && (
-        <FormNotice tone="success">{messageText(copy, 'MSG14')}</FormNotice>
-      )}
-      {banner?.tone === 'error' && (
-        <FormNotice tone="error">{errorText(copy, banner.error)}</FormNotice>
+      {feedback.inline && (
+        <FormNotice tone="error">
+          {errorText(copy, feedback.inline.error)}
+        </FormNotice>
       )}
 
       <dl className="mb-5 grid grid-cols-1 gap-3 rounded-lg border border-line bg-raised p-4 sm:grid-cols-4">

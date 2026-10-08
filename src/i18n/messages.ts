@@ -43,6 +43,26 @@ export function fieldErrorText(copy: Copy, id: string, fieldLabel: string) {
   return messageText(copy, id, [], { field: fieldLabel.toLowerCase() });
 }
 
+/**
+ * True when `errorText` falls back to MSG43 (unexpected error). SRS 5.3
+ * shows MSG43 as a toast; every other failure keeps its own placement.
+ */
+export function isUnexpectedError(copy: Copy, error: unknown): boolean {
+  if (!(error instanceof ServiceError)) return true;
+  const problem = error.problem;
+  if (problem) {
+    if (
+      problem.code === 'RATE_LIMITED' ||
+      problem.code === 'ACCOUNT_NOT_ACTIVE'
+    )
+      return false;
+    return (
+      !isMessageId(copy, problem.messageCode) || problem.messageCode === 'MSG43'
+    );
+  }
+  return !['NOT_CONFIGURED', 'NETWORK_ERROR', 'TIMEOUT'].includes(error.code);
+}
+
 /** User-facing text for any service failure; never backend developer text. */
 export function errorText(copy: Copy, error: unknown): string {
   if (error instanceof ServiceError) {

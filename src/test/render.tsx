@@ -8,6 +8,7 @@ import {
 import { createServices } from '../app/providers/create-services';
 import { ServicesContext } from '../app/providers/services-context';
 import { AuthProvider } from '../app/providers/AuthProvider';
+import { ToastProvider } from '../app/providers/ToastProvider';
 import { I18nProvider } from '../i18n/I18nProvider';
 import type { Services } from '../services/api/services';
 import type { AuthService } from '../services/auth/contracts';
@@ -60,9 +61,11 @@ export async function renderRoutes(
     <StrictMode>
       <I18nProvider>
         <ServicesContext.Provider value={{ ...base, ...overrides, auth }}>
-          <AuthProvider>
-            <RouterProvider router={router} />
-          </AuthProvider>
+          <ToastProvider>
+            <AuthProvider>
+              <RouterProvider router={router} />
+            </AuthProvider>
+          </ToastProvider>
         </ServicesContext.Provider>
       </I18nProvider>
     </StrictMode>,

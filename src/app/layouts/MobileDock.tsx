@@ -24,7 +24,7 @@ export function MobileDock({
   return (
     <nav
       aria-label={copy.nav.primary}
-      className="fixed inset-x-4 bottom-4 z-40 md:hidden"
+      className="fixed inset-x-4 bottom-4 z-40 mx-auto max-w-md lg:hidden"
     >
       <div className="flex items-center justify-around rounded-full border border-(--cp-dock-border) bg-(--cp-dock-bg) px-3 py-2 shadow-overlay backdrop-blur-2xl">
         {items.map((item) => {

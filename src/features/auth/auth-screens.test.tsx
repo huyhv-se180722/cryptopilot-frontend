@@ -241,7 +241,10 @@ describe('SCR-06 reset password', () => {
   it('sends the token with the new password and confirms MSG13', async () => {
     const resetPassword = vi.fn(async () => ({ messageCode: 'MSG13' }));
     await renderRoutes(
-      [page('/reset-password', <ResetPasswordForm />)],
+      [
+        page('/reset-password', <ResetPasswordForm />),
+        page('/login', <LoginForm />),
+      ],
       '/reset-password?token=t1',
       fakeAuth({ resetPassword }),
     );
@@ -260,9 +263,42 @@ describe('SCR-06 reset password', () => {
         confirmPassword: 'Abcdef12',
       }),
     );
+    // MSG13 is a toast that survives the redirect to SCR-04 (SRS 3.2.4).
     expect(
-      await screen.findByText(/Your password has been changed/),
+      await screen.findByText(
+        'Your password has been changed. Please log in again.',
+      ),
     ).toBeTruthy();
+    expect(await screen.findByLabelText('Email address')).toBeTruthy();
+  });
+
+  it('shows an unexpected sign-in failure as an MSG43 toast', async () => {
+    const login = vi.fn(async () => {
+      throw new ServiceError('boom', 'HTTP_ERROR', 500, {
+        status: 500,
+        code: 'INTERNAL_ERROR',
+        messageCode: 'MSG43',
+        messageArgs: [],
+        fieldErrors: {},
+        traceId: 'trace-7',
+      });
+    });
+    await renderRoutes(
+      [page('/login', <LoginForm />)],
+      '/login',
+      fakeAuth({ login }),
+    );
+    await userEvent.type(
+      await screen.findByLabelText('Email address'),
+      'a@b.test',
+    );
+    await userEvent.type(screen.getByLabelText('Password'), 'Abcdef12');
+    await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+    const toast = await screen.findByRole('alert');
+    expect(toast.textContent).toContain(
+      'Something went wrong. Please try again. (Ref: trace-7)',
+    );
+    expect(toast.closest('ol')).not.toBeNull();
   });
 });
 

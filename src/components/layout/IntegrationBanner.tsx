@@ -17,19 +17,21 @@ export function IntegrationBanner() {
       className="flex h-(--cp-banner-h) items-center gap-2 overflow-hidden border-b border-warning-line bg-warning-soft px-4 text-[11px] text-warning sm:px-6"
     >
       <Icon size={12} aria-hidden="true" className="shrink-0" />
-      <strong className="font-semibold">
+      <strong className="shrink-0 font-semibold whitespace-nowrap">
         {fixtures
           ? copy.integration.fixturesTitle
           : copy.integration.pendingTitle}
       </strong>
-      <span className="hidden text-fg-2 sm:inline">
+      <span className="hidden min-w-0 truncate text-fg-2 sm:inline">
         {fixtures
           ? copy.integration.fixturesBody
           : copy.integration.pendingBody}
       </span>
       {fixtures && session && (
-        <span className="ml-auto shrink-0 truncate rounded-full border border-warning-line px-2 font-mono text-[10px] font-semibold tracking-wider">
-          {copy.integration.devSession} · {session.user.email}
+        <span className="ml-auto min-w-0 truncate rounded-full border border-warning-line px-2 font-mono text-[10px] font-semibold tracking-wider">
+          {copy.integration.devSession}
+          {/* The email needs the room of sm and up; the badge stays. */}
+          <span className="hidden sm:inline"> · {session.user.email}</span>
         </span>
       )}
     </div>

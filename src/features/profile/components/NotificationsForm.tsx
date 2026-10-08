@@ -4,7 +4,8 @@ import { Button } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
 import { Switch } from '../../../components/ui/Switch';
 import { useCopy } from '../../../hooks/use-copy';
-import { errorText, messageText } from '../../../i18n/messages';
+import { useFormFeedback } from '../../../hooks/use-form-feedback';
+import { errorText } from '../../../i18n/messages';
 import type { UserProfile } from '../../../types/domain';
 import { FormNotice } from '../../../components/feedback/FormNotice';
 import { useUpdateNotifications } from '../hooks/use-profile';
@@ -27,9 +28,7 @@ export function NotificationsForm({
     email: profile.notifyEmail,
     push: profile.notifyPush,
   });
-  const [banner, setBanner] = useState<
-    { tone: 'error'; error: unknown } | { tone: 'success' } | null
-  >(null);
+  const feedback = useFormFeedback();
   const dirty = email !== saved.email || push !== saved.push;
 
   return (
@@ -37,21 +36,19 @@ export function NotificationsForm({
       noValidate
       onSubmit={async (event) => {
         event.preventDefault();
-        setBanner(null);
+        feedback.clear();
         const result = await action.run({ email, push });
         if (result.status === 'success') {
           setSaved({ email, push });
-          setBanner({ tone: 'success' });
+          feedback.saved();
           onSaved();
-        } else if (result.status === 'error')
-          setBanner({ tone: 'error', error: result.error });
+        } else if (result.status === 'error') feedback.failed(result.error);
       }}
     >
-      {banner?.tone === 'success' && (
-        <FormNotice tone="success">{messageText(copy, 'MSG14')}</FormNotice>
-      )}
-      {banner?.tone === 'error' && (
-        <FormNotice tone="error">{errorText(copy, banner.error)}</FormNotice>
+      {feedback.inline && (
+        <FormNotice tone="error">
+          {errorText(copy, feedback.inline.error)}
+        </FormNotice>
       )}
       <Card padding="lg" className="mb-5">
         <SectionTitle>{p.notificationsTitle}</SectionTitle>

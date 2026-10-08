@@ -9,6 +9,9 @@ import { Checkbox } from '../../../components/ui/Checkbox';
 import { Button } from '../../../components/ui/Button';
 import { buttonClassName } from '../../../components/ui/button-styles';
 import { useCopy } from '../../../hooks/use-copy';
+import { useFormFeedback } from '../../../hooks/use-form-feedback';
+import { useToast } from '../../../hooks/use-toast';
+import { formatCopy } from '../../../i18n/copy';
 import { errorText, fieldErrorText, messageText } from '../../../i18n/messages';
 import {
   registerSchema,
@@ -37,7 +40,8 @@ const FIELDS = [
 export function RegisterForm() {
   const copy = useCopy();
   const action = useRegister();
-  const [bannerError, setBannerError] = useState<unknown>(null);
+  const feedback = useFormFeedback();
+  const { show } = useToast();
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
   const {
     register,
@@ -73,7 +77,9 @@ export function RegisterForm() {
       <StatusPanel
         tone="mail"
         title={copy.auth.checkMailboxTitle}
-        message={messageText(copy, 'MSG05', [], { email: registeredEmail })}
+        message={formatCopy(copy.auth.checkMailboxBody, {
+          email: registeredEmail,
+        })}
       >
         <ResendVerification email={registeredEmail} />
         <Link
@@ -91,21 +97,29 @@ export function RegisterForm() {
         title={copy.auth.registerTitle}
         subtitle={copy.auth.registerSubtitle}
       />
-      {bannerError !== null && (
-        <FormNotice tone="error">{errorText(copy, bannerError)}</FormNotice>
+      {feedback.inline && (
+        <FormNotice tone="error">
+          {errorText(copy, feedback.inline.error)}
+        </FormNotice>
       )}
       <form
         noValidate
         onSubmit={handleSubmit(async (values) => {
-          setBannerError(null);
+          feedback.clear();
           const result = await action.run(values);
-          if (result.status === 'success')
-            setRegisteredEmail(values.email.trim());
-          else if (
+          if (result.status === 'success') {
+            const email = values.email.trim();
+            // SRS 5.3: MSG05 is a toast; the panel keeps the next steps.
+            show({
+              tone: 'success',
+              message: messageText(copy, 'MSG05', [], { email }),
+            });
+            setRegisteredEmail(email);
+          } else if (
             result.status === 'error' &&
             !applyServerFieldErrors(result.error, FIELDS, setError)
           )
-            setBannerError(result.error);
+            feedback.failed(result.error);
         })}
       >
         <Input

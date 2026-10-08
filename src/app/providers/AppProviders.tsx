@@ -5,6 +5,7 @@ import { AuthProvider } from './AuthProvider';
 import { ErrorBoundary } from '../../components/feedback/ErrorBoundary';
 import { I18nProvider } from '../../i18n/I18nProvider';
 import { ThemeProvider } from './ThemeProvider';
+import { ToastProvider } from './ToastProvider';
 
 export function AppProviders({
   services,
@@ -15,7 +16,9 @@ export function AppProviders({
       <ThemeProvider>
         <ErrorBoundary>
           <ServicesContext.Provider value={services}>
-            <AuthProvider>{children}</AuthProvider>
+            <ToastProvider>
+              <AuthProvider>{children}</AuthProvider>
+            </ToastProvider>
           </ServicesContext.Provider>
         </ErrorBoundary>
       </ThemeProvider>
