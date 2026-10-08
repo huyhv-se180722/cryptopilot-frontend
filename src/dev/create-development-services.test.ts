@@ -109,3 +109,56 @@ describe('development auth seam (ADR-010)', () => {
     });
   });
 });
+
+describe('development profile seam', () => {
+  it('saves in memory and refuses like the backend', async () => {
+    const { services, request } = await devServices();
+    const { profile } = services;
+    await expect(
+      profile.update({
+        displayName: 'A',
+        defaultCapital: '0',
+        defaultRiskPercent: '12',
+        tradingStyle: null,
+      }),
+    ).rejects.toMatchObject({
+      problem: {
+        fieldErrors: {
+          displayName: 'MSG01',
+          defaultCapital: 'MSG15',
+          defaultRiskPercent: 'MSG15',
+        },
+      },
+    });
+    await profile.update({
+      displayName: 'Renamed',
+      defaultCapital: '2500.25',
+      defaultRiskPercent: null,
+      tradingStyle: 'DAY',
+    });
+    expect(await profile.get()).toMatchObject({
+      displayName: 'Renamed',
+      defaultCapital: '2500.25',
+      defaultRiskPercent: null,
+      tradingStyle: 'DAY',
+    });
+    await expect(
+      profile.chooseRiskProfile('AGGRESSIVE', false),
+    ).rejects.toMatchObject({ problem: { messageCode: 'MSG48' } });
+    await profile.chooseRiskProfile('AGGRESSIVE', true);
+    expect(await profile.getRiskProfile()).toMatchObject({
+      riskProfile: 'AGGRESSIVE',
+      maxFuturesLeverage: 10,
+    });
+    await expect(
+      profile.changePassword({
+        currentPassword: 'wrong',
+        newPassword: 'Another-1a',
+        confirmPassword: 'Another-1a',
+      }),
+    ).rejects.toMatchObject({
+      problem: { code: 'CURRENT_PASSWORD_INCORRECT' },
+    });
+    expect(request).not.toHaveBeenCalled();
+  });
+});
