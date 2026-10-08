@@ -14,7 +14,7 @@ export interface TabItem {
 
 /**
  * `vertical` is the Figma Settings list: a 200px column left of the panel
- * from `md`, a scrolling row above it on narrow screens.
+ * from `md`, a scrolling row of labels above it on narrow screens.
  */
 export function Tabs({
   label,
@@ -91,7 +91,8 @@ export function Tabs({
                 <span
                   aria-hidden="true"
                   className={classNames(
-                    'flex',
+                    // The narrow row keeps every label in view without icons.
+                    vertical ? 'hidden md:flex' : 'flex',
                     selected ? 'opacity-100' : 'opacity-70',
                   )}
                 >

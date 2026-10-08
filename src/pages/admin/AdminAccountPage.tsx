@@ -7,11 +7,7 @@ export function AdminAccountPage() {
   const copy = useCopy();
   return (
     <div className="w-full max-w-4xl">
-      <PageHeader
-        size="sm"
-        title={copy.screens.adminAccount}
-        description={copy.profile.securitySubtitle}
-      />
+      <PageHeader size="sm" title={copy.screens.adminAccount} />
       <ChangePasswordForm />
     </div>
   );

@@ -111,7 +111,7 @@ export function ProfileForm({
               {p.avatarPending}
             </span>
           </div>
-          <div className="grid flex-1 gap-4 md:grid-cols-2">
+          <div className="grid flex-1 gap-4 lg:grid-cols-2">
             <Input
               {...register('displayName')}
               label={copy.auth.displayNameLabel}
