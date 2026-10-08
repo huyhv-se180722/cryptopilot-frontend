@@ -23,6 +23,7 @@ export const unavailableMarketFeed: MarketFeed = {
   status: () => 'unavailable',
   onStatus: () => () => undefined,
   subscribeOverview: () => () => undefined,
+  subscribeKline: () => () => undefined,
 };
 
 const PAGE_SIZE = 100;

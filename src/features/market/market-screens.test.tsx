@@ -75,6 +75,7 @@ const CANDLES: Candle[] = [
     high: '63500.00',
     low: '61800.00',
     close: '63000.01',
+    baseVolume: '10',
     quoteVolume: '1000',
   },
 ];
@@ -100,6 +101,7 @@ function fakeFeed(status: FeedStatus) {
   const feed: MarketFeed = {
     status: () => status,
     onStatus: () => () => undefined,
+    subscribeKline: () => () => undefined,
     subscribeOverview: (market, listener) => {
       listeners.set(market, listener);
       return () => listeners.delete(market);

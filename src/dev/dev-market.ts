@@ -2,6 +2,8 @@ import type { MarketFeed, MarketService } from '../services/api/contracts';
 import { ServiceError } from '../services/api/errors';
 import type {
   Candle,
+  CandleTimeframe,
+  KlineUpdate,
   MarketOverview,
   MarketTicker,
   MarketType,
@@ -29,6 +31,12 @@ function generator(seed: number) {
 
 const decimalsOf = (tickSize: string) => tickSize.split('.')[1]?.length ?? 0;
 const DAY_MS = 86_400_000;
+const TIMEFRAME_MS: Record<CandleTimeframe, number> = {
+  '15m': 900_000,
+  '1h': 3_600_000,
+  '4h': 14_400_000,
+  '1d': DAY_MS,
+};
 const FUNDING_MS = 8 * 3_600_000;
 
 function notEnabled(): never {
@@ -108,12 +116,14 @@ export function createDevelopmentMarket(now: () => number = Date.now): {
       signal?.throwIfAborted();
       return devPairs(marketType);
     },
-    async getCandles({ market: marketType, symbol, limit, signal }) {
+    async getCandles({ market: marketType, symbol, timeframe, limit, signal }) {
       signal?.throwIfAborted();
       if (!enabled(marketType, symbol)) notEnabled();
       const walk = generator(symbol.length * 7919);
       const places = decimalsOf(devTickSize(symbol.toUpperCase()));
-      const today = Math.floor(now() / DAY_MS) * DAY_MS;
+      const step = TIMEFRAME_MS[timeframe];
+      // The last closed candle ends where the forming one starts.
+      const current = Math.floor(now() / step) * step;
       // A seeded walk, scaled so the last close meets the live price.
       const bars: { open: number; high: number; low: number; close: number }[] =
         [];
@@ -130,11 +140,12 @@ export function createDevelopmentMarket(now: () => number = Date.now): {
       }
       const scale = priceOf(symbol.toUpperCase()) / close;
       return bars.map((bar, index): Candle => ({
-        openTime: new Date(today - (limit - index) * DAY_MS).toISOString(),
+        openTime: new Date(current - (limit - index) * step).toISOString(),
         open: (bar.open * scale).toFixed(places),
         high: (bar.high * scale).toFixed(places),
         low: (bar.low * scale).toFixed(places),
         close: (bar.close * scale).toFixed(places),
+        baseVolume: (7_500 * (0.6 + walk() * 0.8)).toFixed(4),
         quoteVolume: (bar.close * scale * 7_500).toFixed(2),
       }));
     },
@@ -164,7 +175,61 @@ export function createDevelopmentMarket(now: () => number = Date.now): {
     }
   };
 
+  const klineListeners = new Set<{
+    market: MarketType;
+    symbol: string;
+    timeframe: CandleTimeframe;
+    listener: (update: KlineUpdate) => void;
+    open: number;
+  }>();
+  let klineTimer: ReturnType<typeof setInterval> | undefined;
+  /** The forming candle of each followed series, moving with the price. */
+  const publishKlines = () => {
+    step();
+    for (const entry of klineListeners) {
+      const price = priceOf(entry.symbol);
+      const places = decimalsOf(devTickSize(entry.symbol));
+      const span = TIMEFRAME_MS[entry.timeframe];
+      const openTime = Math.floor(now() / span) * span;
+      entry.open ||= price;
+      entry.listener({
+        market: entry.market,
+        symbol: entry.symbol,
+        timeframe: entry.timeframe,
+        closed: false,
+        candle: {
+          openTime: new Date(openTime).toISOString(),
+          open: entry.open.toFixed(places),
+          high: (Math.max(entry.open, price) * 1.001).toFixed(places),
+          low: (Math.min(entry.open, price) * 0.999).toFixed(places),
+          close: price.toFixed(places),
+          baseVolume: (1_200 + random() * 400).toFixed(4),
+          quoteVolume: (price * 1_200).toFixed(2),
+        },
+      });
+    }
+  };
+
   const marketFeed: MarketFeed = {
+    subscribeKline(marketType, symbol, timeframe, listener) {
+      const entry = {
+        market: marketType,
+        symbol: symbol.toUpperCase(),
+        timeframe,
+        listener,
+        open: 0,
+      };
+      klineListeners.add(entry);
+      klineTimer ??= setInterval(publishKlines, 2_000);
+      queueMicrotask(publishKlines);
+      return () => {
+        klineListeners.delete(entry);
+        if (klineListeners.size === 0 && klineTimer !== undefined) {
+          clearInterval(klineTimer);
+          klineTimer = undefined;
+        }
+      };
+    },
     status: () => 'open',
     onStatus: () => () => undefined,
     subscribeOverview(marketType, listener) {

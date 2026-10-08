@@ -206,6 +206,36 @@ describe('development market seam', () => {
     });
   });
 
+  it('streams a forming candle that continues the stored series', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(Date.UTC(2026, 9, 9, 10, 20));
+      const { market, marketFeed } = createDevelopmentMarket();
+      const candles = await market.getCandles({
+        market: 'spot',
+        symbol: 'ETHUSDT',
+        timeframe: '1h',
+        limit: 3,
+      });
+      expect(candles.map((c) => c.openTime)).toEqual([
+        '2026-10-09T07:00:00.000Z',
+        '2026-10-09T08:00:00.000Z',
+        '2026-10-09T09:00:00.000Z',
+      ]);
+      const listener = vi.fn();
+      const stop = marketFeed.subscribeKline('spot', 'ETHUSDT', '1h', listener);
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(listener.mock.lastCall?.[0]).toMatchObject({
+        closed: false,
+        timeframe: '1h',
+        candle: { openTime: '2026-10-09T10:00:00.000Z' },
+      });
+      stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('publishes the overview of each subscribed market until the last stops', async () => {
     vi.useFakeTimers();
     try {

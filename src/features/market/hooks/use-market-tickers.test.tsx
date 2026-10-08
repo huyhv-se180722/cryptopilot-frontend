@@ -44,6 +44,7 @@ function controllableFeed(initial: FeedStatus) {
       statusListeners.add(listener);
       return () => statusListeners.delete(listener);
     },
+    subscribeKline: () => () => undefined,
     subscribeOverview: (_market, listener) => {
       listeners.add(listener);
       return () => listeners.delete(listener);

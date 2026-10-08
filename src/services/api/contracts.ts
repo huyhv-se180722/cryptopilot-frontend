@@ -6,6 +6,7 @@ import type {
   JournalEntry,
   Candle,
   CandleTimeframe,
+  KlineUpdate,
   MarketOverview,
   MarketPair,
   MarketTicker,
@@ -70,6 +71,13 @@ export interface MarketFeed {
   subscribeOverview(
     market: MarketType,
     listener: (overview: MarketOverview) => void,
+  ): () => void;
+  /** Closed and forming candles of one series (`/topic/kline.*`). */
+  subscribeKline(
+    market: MarketType,
+    symbol: string,
+    timeframe: CandleTimeframe,
+    listener: (update: KlineUpdate) => void,
   ): () => void;
 }
 export interface CoinAnalysisRequest {

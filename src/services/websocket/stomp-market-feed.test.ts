@@ -117,6 +117,39 @@ describe('STOMP market feed', () => {
     expect(second).toHaveBeenCalledTimes(1);
   });
 
+  it('routes a series to its kline topic', () => {
+    const { feed, fake, connected } = setup();
+    const listener = vi.fn();
+    feed.subscribeKline('futures', 'btcusdt', '4h', listener);
+    connected();
+    expect([...fake.subscriptions.keys()]).toEqual([
+      '/topic/kline.FUTURES.BTCUSDT.4h',
+    ]);
+    fake.send(
+      '/topic/kline.FUTURES.BTCUSDT.4h',
+      JSON.stringify({
+        market: 'FUTURES',
+        symbol: 'BTCUSDT',
+        timeframe: '4h',
+        openTime: '2026-10-03T00:00:00Z',
+        closeTime: '2026-10-03T03:59:59.999Z',
+        open: '1',
+        high: '2',
+        low: '0.5',
+        close: '1.5',
+        baseVolume: '3',
+        quoteVolume: '4.5',
+        closed: true,
+        sourceTime: '2026-10-03T04:00:00Z',
+      }),
+    );
+    expect(listener.mock.lastCall?.[0]).toMatchObject({
+      market: 'futures',
+      closed: true,
+      candle: { close: '1.5' },
+    });
+  });
+
   it('unsubscribes and closes the socket with the last subscriber', () => {
     const { feed, fake, connected } = setup();
     const statuses: string[] = [];
