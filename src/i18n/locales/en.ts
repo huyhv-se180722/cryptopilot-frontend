@@ -50,7 +50,9 @@ export const en = {
   },
   integration: {
     fixturesTitle: 'Development fixtures enabled',
-    fixturesBody: 'Isolated test data; no live backend connection.',
+    fixturesBody:
+      'Isolated test data and development sign-in; no live backend connection.',
+    devSession: 'DEV SESSION',
     pendingTitle: 'Backend integration pending',
     pendingBody:
       'Routes and services are prepared. Live data and sign in are not connected.',
