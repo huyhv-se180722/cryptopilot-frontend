@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { toFixedDecimal } from './decimal-format';
+import {
+  compactDecimal,
+  compareDecimal,
+  decimalPlaces,
+  formatPrice,
+  fractionToPercent,
+  groupThousands,
+  shiftDecimal,
+  toFixedDecimal,
+} from './decimal-format';
 
 describe('toFixedDecimal', () => {
   it('pads and rounds half-up to the requested places', () => {
@@ -24,5 +33,42 @@ describe('toFixedDecimal', () => {
   it('returns input that is not a plain decimal unchanged', () => {
     expect(toFixedDecimal('abc', 2)).toBe('abc');
     expect(toFixedDecimal('', 2)).toBe('');
+  });
+});
+
+describe('market display helpers', () => {
+  it('reads precision from a tick size and formats prices with it', () => {
+    expect(decimalPlaces('0.01000000')).toBe(2);
+    expect(decimalPlaces('1.00000000')).toBe(0);
+    expect(decimalPlaces(null)).toBe(0);
+    expect(formatPrice('63000.016', '0.01')).toBe('63,000.02');
+    expect(formatPrice('0.52', '0.0001')).toBe('0.5200');
+    expect(groupThousands('-1234567.5')).toBe('-1,234,567.5');
+  });
+
+  it('turns a funding fraction into a percent exactly', () => {
+    expect(shiftDecimal('0.00010000', 2)).toBe('0.010000');
+    expect(fractionToPercent('0.00010000', 4)).toBe('0.0100');
+    expect(fractionToPercent('-0.000075', 4)).toBe('-0.0075');
+  });
+
+  it('compacts volumes without a float', () => {
+    expect(compactDecimal('1139455120.42')).toBe('1.14B');
+    expect(compactDecimal('18234.11')).toBe('18.23K');
+    expect(compactDecimal('999.5')).toBe('999.50');
+    expect(compactDecimal('12345678901234567890')).toBe('12345678.90T');
+  });
+
+  it('orders decimal strings', () => {
+    const values = ['10', '-2.5', '0.000', '9.99', '-10', '10.0001', '-0'];
+    expect([...values].sort(compareDecimal)).toEqual([
+      '-10',
+      '-2.5',
+      '0.000',
+      '-0',
+      '9.99',
+      '10',
+      '10.0001',
+    ]);
   });
 });
