@@ -162,7 +162,7 @@ export function TraderShell() {
               user ? (
                 <div className="min-w-0">
                   <div className="truncate text-xs font-semibold text-fg">
-                    {user.fullName}
+                    {user.displayName}
                   </div>
                   <div className="truncate text-[11px] text-muted-dim">
                     {user.email}

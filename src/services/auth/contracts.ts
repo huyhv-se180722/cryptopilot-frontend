@@ -5,7 +5,7 @@ export interface LoginRequest {
   password: string;
 }
 export interface RegisterRequest extends LoginRequest {
-  fullName: string;
+  displayName: string;
 }
 /** Registration may require verification; do not assume automatic login. */
 export type RegisterResult =

@@ -7,11 +7,11 @@ const session: Session = {
   user: {
     id: 'test-user',
     email: 'user@example.test',
-    fullName: 'Test user',
+    displayName: 'Test user',
     role: 'Trader',
     status: 'active',
   },
-  entitlements: { aiAccess: false, videoPosting: false },
+  entitlements: 'unknown',
 };
 function service(overrides: Partial<AuthService> = {}): AuthService {
   return {
