@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useCopy } from '../../hooks/use-copy';
 export interface Column<T> {
   id: string;
   header: string;
@@ -10,7 +11,7 @@ export function Table<T>({
   columns,
   rows,
   rowKey,
-  emptyMessage = 'No records available.',
+  emptyMessage,
 }: {
   caption: string;
   columns: readonly Column<T>[];
@@ -18,6 +19,7 @@ export function Table<T>({
   rowKey: (row: T) => string;
   emptyMessage?: string;
 }) {
+  const copy = useCopy();
   return (
     <div
       className="table-scroll"
@@ -56,7 +58,9 @@ export function Table<T>({
             ))
           ) : (
             <tr>
-              <td colSpan={Math.max(columns.length, 1)}>{emptyMessage}</td>
+              <td colSpan={Math.max(columns.length, 1)}>
+                {emptyMessage ?? copy.common.noRecords}
+              </td>
             </tr>
           )}
         </tbody>

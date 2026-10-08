@@ -3,14 +3,20 @@ import type { AccountRole } from '../../types/domain';
 import { useAuth } from '../../hooks/use-auth';
 import { canAccessRole } from '../../services/auth/access';
 import { ErrorState, Loading } from '../../components/feedback/States';
+import { useCopy } from '../../hooks/use-copy';
 
 export function ProtectedRoute({ roles }: { roles: readonly AccountRole[] }) {
   const auth = useAuth();
   const location = useLocation();
-  if (auth.status === 'loading') return <Loading label="Restoring session…" />;
+  const copy = useCopy();
+  if (auth.status === 'loading')
+    return <Loading label={copy.access.restoring} />;
   if (auth.status === 'error')
     return (
-      <ErrorState message={auth.message} onRetry={() => void auth.restore()} />
+      <ErrorState
+        message={copy.access.unavailable}
+        onRetry={() => void auth.restore()}
+      />
     );
   if (!auth.session)
     return (
@@ -23,8 +29,8 @@ export function ProtectedRoute({ roles }: { roles: readonly AccountRole[] }) {
   if (!canAccessRole(auth.session, roles))
     return (
       <ErrorState
-        title="Access denied"
-        message="Your account does not have access to this area."
+        title={copy.access.deniedTitle}
+        message={copy.access.deniedBody}
       />
     );
   return <Outlet />;

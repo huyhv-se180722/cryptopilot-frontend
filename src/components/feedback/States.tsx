@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from 'react';
 import { Button } from '../ui/Button';
+import { useCopy } from '../../hooks/use-copy';
 
 export function Alert({
   title,
@@ -26,11 +27,12 @@ export function Warning({
     </Alert>
   );
 }
-export function Loading({ label = 'Loading…' }: { label?: string }) {
+export function Loading({ label }: { label?: string }) {
+  const copy = useCopy();
   return (
     <div className="feedback" role="status" aria-live="polite">
       <span className="spinner" aria-hidden="true" />
-      {label}
+      {label ?? copy.common.loading}
     </div>
   );
 }
@@ -49,7 +51,7 @@ export function EmptyState({
   );
 }
 export function ErrorState({
-  title = 'Something went wrong',
+  title,
   message,
   onRetry,
 }: {
@@ -57,13 +59,14 @@ export function ErrorState({
   message: string;
   onRetry?: () => void;
 }) {
+  const copy = useCopy();
   return (
     <div className="feedback" role="alert">
-      <h2>{title}</h2>
+      <h2>{title ?? copy.common.somethingWrong}</h2>
       <p>{message}</p>
       {onRetry && (
         <Button variant="secondary" onClick={onRetry}>
-          Try again
+          {copy.common.retry}
         </Button>
       )}
     </div>

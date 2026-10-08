@@ -1,18 +1,17 @@
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { PageHeader } from '../layout/PageHeader';
+import { useCopy } from '../../hooks/use-copy';
 
 export function RoutePlaceholder({ title }: { title: string }) {
+  const copy = useCopy();
   return (
     <section>
-      <PageHeader title={title} description="Crypto Trading Support System" />
+      <PageHeader title={title} description={copy.product.description} />
       <Card>
-        <Badge tone="info">Foundation</Badge>
-        <h2>Ready for feature development</h2>
-        <p>
-          This route is reserved. Its screen and backend integration will be
-          implemented in a dedicated feature branch.
-        </p>
+        <Badge tone="info">{copy.placeholder.badge}</Badge>
+        <h2>{copy.placeholder.title}</h2>
+        <p>{copy.placeholder.body}</p>
       </Card>
     </section>
   );

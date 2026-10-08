@@ -14,6 +14,7 @@ import { createServices } from './app/providers/create-services';
 import { AppProviders } from './app/providers/AppProviders';
 import { router } from './app/router/router';
 import { ErrorState } from './components/feedback/States';
+import { DEFAULT_LOCALE, resolveCopy } from './i18n/copy';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('Root element is missing.');
@@ -30,10 +31,11 @@ async function bootstrap() {
       </StrictMode>,
     );
   } catch {
+    const copy = resolveCopy(DEFAULT_LOCALE);
     root.render(
       <ErrorState
-        title="Configuration error"
-        message="Check the public environment variables and restart the application."
+        title={copy.bootstrap.configErrorTitle}
+        message={copy.bootstrap.configErrorBody}
       />,
     );
   }

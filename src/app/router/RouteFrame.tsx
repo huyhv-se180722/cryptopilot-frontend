@@ -1,28 +1,29 @@
 import { Link, Outlet } from 'react-router-dom';
 import { Warning } from '../../components/feedback/States';
 import { useIntegrationMode } from '../../hooks/use-integration-mode';
+import { useCopy } from '../../hooks/use-copy';
 
 /** Minimal route host; the application shell belongs to feature/app-shell. */
 export function RouteFrame() {
   const mode = useIntegrationMode();
+  const copy = useCopy();
   return (
     <>
       <a className="skip-link" href="#main-content">
-        Skip to content
+        {copy.common.skipToContent}
       </a>
       <div className="foundation-container">
         <Link className="wordmark" to="/">
-          CryptoPilot
+          {copy.product.name}
         </Link>
         {mode === 'development-fixtures' && (
-          <Warning title="Development fixtures enabled">
-            Isolated test data; no live backend connection.
+          <Warning title={copy.integration.fixturesTitle}>
+            {copy.integration.fixturesBody}
           </Warning>
         )}
         {mode === 'backend-pending' && (
-          <Warning title="Backend integration pending">
-            Routes and services are prepared. Live data and sign in are not
-            connected.
+          <Warning title={copy.integration.pendingTitle}>
+            {copy.integration.pendingBody}
           </Warning>
         )}
         <main id="main-content" tabIndex={-1}>

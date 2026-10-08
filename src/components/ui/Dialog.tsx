@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, type PropsWithChildren } from 'react';
 import { Button } from './Button';
+import { useCopy } from '../../hooks/use-copy';
 
 /** Native modal provides focus containment, inert background and Escape support. */
 export function Dialog({
@@ -12,6 +13,7 @@ export function Dialog({
   onOpenChange: (open: boolean) => void;
   title: string;
 }>) {
+  const copy = useCopy();
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   useEffect(() => {
@@ -36,7 +38,7 @@ export function Dialog({
       <div className="dialog-header">
         <h2 id={titleId}>{title}</h2>
         <Button variant="secondary" onClick={() => onOpenChange(false)}>
-          Close
+          {copy.common.close}
         </Button>
       </div>
       {children}
