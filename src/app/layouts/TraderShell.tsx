@@ -68,7 +68,7 @@ export function TraderShell() {
 
         <nav
           aria-label={copy.nav.primary}
-          className="hidden min-w-0 flex-1 items-center overflow-x-auto md:flex"
+          className="hidden min-w-0 flex-1 items-center overflow-x-auto lg:flex"
         >
           {traderNav.map((item) => {
             const Icon = item.icon;
@@ -76,9 +76,10 @@ export function TraderShell() {
               <NavLink
                 key={item.to}
                 to={item.to}
+                title={copy.nav[item.labelKey]}
                 className={({ isActive }) =>
                   classNames(
-                    'relative flex h-[52px] shrink-0 items-center gap-1.5 px-3 text-[12px] font-medium whitespace-nowrap no-underline',
+                    'relative flex h-[52px] shrink-0 items-center gap-1.5 px-2.5 text-[12px] font-medium whitespace-nowrap no-underline min-[1400px]:px-3',
                     isActive ? 'text-primary' : 'text-muted hover:text-fg-2',
                   )
                 }
@@ -90,7 +91,10 @@ export function TraderShell() {
                       aria-hidden="true"
                       className={isActive ? undefined : 'opacity-60'}
                     />
-                    {copy.nav[item.labelKey]}
+                    {/* Icons only until the labels fit (1400px); the name stays for screen readers. */}
+                    <span className="sr-only min-[1400px]:not-sr-only">
+                      {copy.nav[item.labelKey]}
+                    </span>
                     {isActive && (
                       <span
                         aria-hidden="true"
@@ -207,13 +211,13 @@ export function TraderShell() {
       <main
         id="main-content"
         tabIndex={-1}
-        className="flex-1 pb-24 outline-none md:pb-0"
+        className="flex-1 pb-24 outline-none lg:pb-0"
       >
         <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6">
           <Outlet />
         </div>
       </main>
-      <div className="pb-24 md:pb-0">
+      <div className="pb-24 lg:pb-0">
         <DisclaimerFooter />
       </div>
 
