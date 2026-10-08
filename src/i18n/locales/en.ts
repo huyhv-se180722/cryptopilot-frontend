@@ -20,7 +20,23 @@ export const en = {
     noRecords: 'No records available.',
   },
   messages: {
+    MSG01: 'The {field} field is required.',
+    MSG02: 'Please enter a valid email address.',
+    MSG03:
+      'Password must be 8-64 characters and include uppercase, lowercase letters and a digit.',
+    MSG04: 'This email is already registered.',
+    MSG05: 'Account created. Please check {email} to verify your account.',
+    MSG06: 'Your email has been verified. You can now log in.',
+    MSG07: 'This link is invalid or has expired.',
+    MSG08: 'Incorrect email or password. Please check again.',
+    MSG09:
+      'Too many failed attempts. Please try again after {minutes} minutes.',
     MSG10: 'Your account has been {status}. Please contact support.',
+    MSG11:
+      'Please verify your email before logging in. Resend verification email?',
+    MSG12: 'If the email is registered, a reset link has been sent.',
+    MSG13: 'Your password has been changed. Please log in again.',
+    MSG14: 'Saved successfully.',
     MSG27:
       'You have reached the limit of {max} {items} of the {plan} plan. Upgrade to increase the limit?',
     MSG29:
@@ -30,6 +46,7 @@ export const en = {
       'Information on CryptoPilot is for reference and education only and is not investment advice.',
     MSG43: 'Something went wrong. Please try again. (Ref: {code})',
     MSG44: 'Your session has expired. Please log in again.',
+    MSG46: 'Please wait {time} before requesting another verification email.',
   },
   integration: {
     fixturesTitle: 'Development fixtures enabled',
@@ -48,6 +65,13 @@ export const en = {
     render: 'The application could not render this view.',
     notFoundTitle: 'Page not found',
     notFoundBody: 'This route does not exist.',
+    notConfigured:
+      'This feature is not connected to the server yet. Please try again later.',
+    network: 'Unable to reach the server. Check your connection and try again.',
+    timeout: 'The server took too long to respond. Please try again.',
+    rateLimited:
+      'Too many requests. Please wait {seconds} seconds and try again.',
+    unknownReference: '—',
   },
   screens: {
     publicHome: 'Market overview',
