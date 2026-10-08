@@ -4,6 +4,7 @@ import { ServicesContext } from './services-context';
 import { AuthProvider } from './AuthProvider';
 import { ErrorBoundary } from '../../components/feedback/ErrorBoundary';
 import { I18nProvider } from '../../i18n/I18nProvider';
+import { ThemeProvider } from './ThemeProvider';
 
 export function AppProviders({
   services,
@@ -11,11 +12,13 @@ export function AppProviders({
 }: PropsWithChildren<{ services: Services }>) {
   return (
     <I18nProvider>
-      <ErrorBoundary>
-        <ServicesContext.Provider value={services}>
-          <AuthProvider>{children}</AuthProvider>
-        </ServicesContext.Provider>
-      </ErrorBoundary>
+      <ThemeProvider>
+        <ErrorBoundary>
+          <ServicesContext.Provider value={services}>
+            <AuthProvider>{children}</AuthProvider>
+          </ServicesContext.Provider>
+        </ErrorBoundary>
+      </ThemeProvider>
     </I18nProvider>
   );
 }

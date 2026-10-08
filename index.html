@@ -9,6 +9,21 @@
       content="CryptoPilot — Crypto Trading Support System"
     />
     <title>CryptoPilot</title>
+    <script>
+      // Apply the saved theme before first paint (ThemeProvider takes over after mount).
+      (function () {
+        var theme = 'light';
+        try {
+          var saved = localStorage.getItem('cp-theme');
+          if (saved === 'dark') theme = 'dark';
+          else if (saved === 'system')
+            theme = matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+        } catch (e) {}
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
