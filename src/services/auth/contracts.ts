@@ -38,4 +38,6 @@ export interface AuthService {
   forgotPassword(email: string): Promise<MessageResult>;
   resetPassword(request: ResetPasswordRequest): Promise<MessageResult>;
   logout(): Promise<void>;
+  /** Notifies when the server ends the session (renewal refused, MSG44). */
+  onSessionEnded?(listener: () => void): () => void;
 }
