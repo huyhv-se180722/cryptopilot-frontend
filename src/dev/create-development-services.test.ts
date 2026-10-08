@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createDevelopmentServices } from './create-development-services';
 import { createDevelopmentAuth } from './dev-auth';
+import { createDevelopmentMarket } from './dev-market';
 import { DEV_PASSWORD, DEV_TOKENS } from './fixtures/auth';
 import { createServices } from '../app/providers/create-services';
 
@@ -177,5 +178,49 @@ describe('development profile seam', () => {
       maxFuturesLeverage: 10,
     });
     expect(request).not.toHaveBeenCalled();
+  });
+});
+
+describe('development market seam', () => {
+  it('serves labelled pairs, decimal strings and MSG41 like the backend', async () => {
+    const { market } = createDevelopmentMarket(() => Date.UTC(2026, 9, 9));
+    const spot = await market.listPairs('spot');
+    const futures = await market.listPairs('futures');
+    expect(spot.length).toBeGreaterThan(futures.length);
+    expect(spot[0]?.baseAssetName).toContain('(fixture)');
+    const candles = await market.getCandles({
+      market: 'spot',
+      symbol: 'BTCUSDT',
+      timeframe: '1d',
+      limit: 90,
+    });
+    expect(candles).toHaveLength(90);
+    expect(candles[89]?.openTime).toBe('2026-10-08T00:00:00.000Z');
+    expect(candles[0]?.close).toMatch(/^\d+\.\d{2}$/);
+    expect(await market.getTicker('futures', 'BTCUSDT')).toMatchObject({
+      lastPrice: null,
+      fundingRate: '0.00010000',
+    });
+    await expect(market.getTicker('futures', 'ADAUSDT')).rejects.toMatchObject({
+      problem: { messageCode: 'MSG41' },
+    });
+  });
+
+  it('publishes the overview of each subscribed market until the last stops', async () => {
+    vi.useFakeTimers();
+    try {
+      const { marketFeed } = createDevelopmentMarket();
+      const listener = vi.fn();
+      const stop = marketFeed.subscribeOverview('futures', listener);
+      await vi.advanceTimersByTimeAsync(4_000);
+      expect(listener.mock.calls.length).toBeGreaterThanOrEqual(3);
+      expect(listener.mock.lastCall?.[0]).toMatchObject({ market: 'futures' });
+      stop();
+      const calls = listener.mock.calls.length;
+      await vi.advanceTimersByTimeAsync(4_000);
+      expect(listener).toHaveBeenCalledTimes(calls);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
