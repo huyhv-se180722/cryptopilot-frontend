@@ -10,7 +10,7 @@ import { errorText, fieldErrorText, messageText } from '../../../i18n/messages';
 import { emailSchema, type EmailForm } from '../schemas';
 import { useForgotPassword } from '../hooks/use-auth-actions';
 import { AuthHeading } from './AuthHeading';
-import { FormNotice } from './FormNotice';
+import { FormNotice } from '../../../components/feedback/FormNotice';
 import { StatusPanel } from './StatusPanel';
 
 /**

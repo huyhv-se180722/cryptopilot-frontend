@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from 'react';
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
-import { classNames } from '../../../utils/class-names';
+import { classNames } from '../../utils/class-names';
 
 type Tone = 'error' | 'success' | 'info';
 

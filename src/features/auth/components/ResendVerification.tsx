@@ -3,7 +3,7 @@ import { useCooldown } from '../../../hooks/use-cooldown';
 import { useCopy, formatCopy } from '../../../hooks/use-copy';
 import { errorText } from '../../../i18n/messages';
 import { useResendVerification } from '../hooks/use-auth-actions';
-import { FormNotice } from './FormNotice';
+import { FormNotice } from '../../../components/feedback/FormNotice';
 
 /** Resend action with the client-side 60 s cooldown (SRS 3.2.2, M-07). */
 export function ResendVerification({ email }: { email: string }) {

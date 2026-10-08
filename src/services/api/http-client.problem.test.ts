@@ -57,7 +57,7 @@ describe('HTTP problem details', () => {
         method: 'POST',
         body: {},
         decode,
-        skipUnauthorizedHandler: true,
+        anonymous: true,
       }),
     ).rejects.toMatchObject({ problem: { messageCode: 'MSG08' } });
     expect(onUnauthorized).not.toHaveBeenCalled();

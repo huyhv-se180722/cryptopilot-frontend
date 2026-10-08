@@ -119,3 +119,44 @@ export interface AdminLog {
   action: string;
   createdAt: ISODateTime;
 }
+
+/** Profile & Settings (SCR-07, SRS 3.2.5). */
+export type TradingStyle = 'SCALPING' | 'DAY' | 'SWING' | 'POSITION';
+export type RiskProfile = 'CONSERVATIVE' | 'BALANCED' | 'AGGRESSIVE';
+export interface UserProfile {
+  email: string;
+  displayName: string;
+  avatarUrl: string | null;
+  defaultCapital: Decimal | null;
+  defaultRiskPercent: Decimal | null;
+  tradingStyle: TradingStyle | null;
+  riskProfile: RiskProfile;
+  notifyEmail: boolean;
+  notifyPush: boolean;
+}
+/** Full replacement of the profile fields (fields left null are cleared). */
+export interface ProfileUpdate {
+  displayName: string;
+  defaultCapital: Decimal | null;
+  defaultRiskPercent: Decimal | null;
+  tradingStyle: TradingStyle | null;
+}
+/** Parameters of a risk profile (BR-66). */
+export interface RiskProfileParams {
+  riskProfile: RiskProfile;
+  riskPerTradePercent: Decimal;
+  maxFuturesLeverage: number;
+  maxTotalOpenRiskPercent: Decimal;
+}
+export interface RiskQuestion {
+  code: string;
+  group: 'CAPACITY' | 'ATTITUDE';
+  text: string;
+  options: readonly { code: string; text: string }[];
+}
+/** Questionnaire result: a suggestion only, nothing is saved (BR-67). */
+export interface RiskSuggestion {
+  capacityScore: number;
+  attitudeScore: number;
+  suggestedProfile: RiskProfile;
+}

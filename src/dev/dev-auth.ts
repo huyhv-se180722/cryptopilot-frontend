@@ -2,6 +2,7 @@ import type { AuthService } from '../services/auth/contracts';
 import { ServiceError } from '../services/api/errors';
 import type { ApiProblem } from '../services/api/problem';
 import type { Session } from '../types/domain';
+import { PASSWORD_PATTERN } from '../features/auth/password-policy';
 import {
   DEV_PASSWORD,
   DEV_TOKENS,
@@ -112,6 +113,22 @@ export function createDevelopmentAuth(): AuthService {
         refuse(400, 'TOKEN_INVALID_OR_EXPIRED', 'MSG07');
       current = null;
       return { messageCode: 'MSG13' };
+    },
+    async changePassword(change) {
+      await pause();
+      if (!current) refuse(401, 'AUTHENTICATION_REQUIRED', 'MSG44');
+      if (change.currentPassword !== DEV_PASSWORD)
+        refuse(400, 'CURRENT_PASSWORD_INCORRECT', 'MSG08');
+      if (!PASSWORD_PATTERN.test(change.newPassword))
+        refuse(400, 'PASSWORD_POLICY_VIOLATION', 'MSG03', {
+          fieldErrors: { newPassword: 'MSG03' },
+        });
+      if (change.newPassword !== change.confirmPassword)
+        refuse(400, 'VALIDATION_FAILED', 'MSG03', {
+          fieldErrors: { confirmPasswordMatching: 'MSG03' },
+        });
+      // The fixture password stays: the development sign-in documents it.
+      return { messageCode: 'MSG14' };
     },
     async logout() {
       current = null;

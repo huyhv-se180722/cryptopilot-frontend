@@ -2,6 +2,15 @@ import type { Environment } from '../config/env';
 import { createHttpClient } from '../../services/api/http-client';
 import type { Services } from '../../services/api/services';
 import { unconfiguredAuth } from '../../services/auth/unconfigured-auth';
+import {
+  createHttpAuthService,
+  createRefresher,
+} from '../../services/auth/http-auth';
+import { TokenSession } from '../../services/auth/token-session';
+import {
+  createHttpProfileService,
+  createPendingProfileService,
+} from '../../services/api/profile';
 import { createMarketService } from '../../services/api/market';
 import { createCoinAnalysisService } from '../../services/api/coin-analysis';
 import { createTradingPlanService } from '../../services/api/trading-plan';
@@ -14,11 +23,17 @@ import { createSubscriptionService } from '../../services/api/subscription';
 import { createAdminService } from '../../services/api/admin';
 
 export async function createServices(env: Environment): Promise<Services> {
-  const http = createHttpClient({ baseUrl: env.apiBaseUrl });
+  // The session renews through the same client it authorizes (anonymous call).
+  const tokens = new TokenSession(createRefresher(() => http));
+  const http = createHttpClient({ baseUrl: env.apiBaseUrl, session: tokens });
+  const connected = env.apiBaseUrl !== '';
   const services: Services = {
-    mode: 'backend-pending',
+    mode: connected ? 'backend' : 'backend-pending',
     http,
-    auth: unconfiguredAuth,
+    auth: connected ? createHttpAuthService(http, tokens) : unconfiguredAuth,
+    profile: connected
+      ? createHttpProfileService(http)
+      : createPendingProfileService(),
     market: createMarketService(),
     coinAnalysis: createCoinAnalysisService(),
     tradingPlan: createTradingPlanService(),

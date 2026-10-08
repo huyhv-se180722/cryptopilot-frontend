@@ -8,6 +8,7 @@ import type {
   JournalService,
   MarketService,
   NewsService,
+  ProfileService,
   SubscriptionService,
   TradingPlanService,
 } from './contracts';
@@ -17,6 +18,7 @@ export interface Services {
   mode: 'backend-pending' | 'development-fixtures' | 'backend';
   http: HttpClient;
   auth: AuthService;
+  profile: ProfileService;
   market: MarketService;
   coinAnalysis: CoinAnalysisService;
   tradingPlan: TradingPlanService;

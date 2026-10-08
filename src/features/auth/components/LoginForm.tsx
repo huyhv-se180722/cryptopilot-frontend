@@ -12,7 +12,7 @@ import { problemOf } from '../../../services/api/errors';
 import { loginSchema, type LoginForm as LoginValues } from '../schemas';
 import { useLogin } from '../hooks/use-auth-actions';
 import { AuthHeading } from './AuthHeading';
-import { FormNotice } from './FormNotice';
+import { FormNotice } from '../../../components/feedback/FormNotice';
 
 /**
  * SCR-04 (Figma Login). Refusals are shown inline without saying which
