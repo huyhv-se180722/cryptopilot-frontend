@@ -1,59 +1,232 @@
 @import 'tailwindcss';
 
-@theme {
-  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
-  --color-background: #080d17;
-  --color-surface: #101826;
-  --color-surface-raised: #172235;
-  --color-border: #29374c;
-  --color-foreground: #e6edf7;
-  --color-muted: #a1afc4;
-  --color-accent: #38bdf8;
-  --color-positive: #4ade80;
-  --color-negative: #fb7185;
-  --color-warning: #fbbf24;
+/*
+ * CryptoPilot semantic tokens, ported from the Figma Make prototype (ADR-013).
+ * Light is the default; dark applies with [data-theme='dark'] on <html>.
+ * Components use the Tailwind names from @theme below, never raw hex values.
+ */
+:root {
+  --cp-bg: #f5f7fa;
+  --cp-bg-alt: #edf1f7;
+  --cp-surface: #ffffff;
+  --cp-surface-alt: #f0f4fa;
+  --cp-raised: #edf1f7;
+  --cp-raised-hover: #e4eaf4;
+
+  --cp-border: #d9e0ea;
+  --cp-border-s: #c4cfde;
+
+  --cp-text: #17212f;
+  --cp-text-2: #2e4460;
+  --cp-muted: #526175;
+  --cp-muted-dim: #6b7e94;
+  --cp-muted-x: #8a9db5;
+
+  --cp-primary: #2563eb;
+  --cp-primary-bg: rgba(37, 99, 235, 0.1);
+  --cp-primary-dim: rgba(37, 99, 235, 0.25);
+  --cp-link: #1d4ed8;
+
+  --cp-positive: #087f5b;
+  --cp-positive-bg: rgba(8, 127, 91, 0.1);
+  --cp-positive-dim: rgba(8, 127, 91, 0.25);
+
+  --cp-negative: #c52d3a;
+  --cp-negative-bg: rgba(197, 45, 58, 0.1);
+  --cp-negative-dim: rgba(197, 45, 58, 0.25);
+
+  --cp-warning: #925400;
+  --cp-warning-bg: rgba(146, 84, 0, 0.1);
+  --cp-warning-dim: rgba(146, 84, 0, 0.25);
+
+  --cp-accent: #0891b2;
+  --cp-accent-bg: rgba(8, 145, 178, 0.1);
+  --cp-accent-dim: rgba(8, 145, 178, 0.25);
+
+  --cp-purple: #7c3aed;
+  --cp-purple-bg: rgba(124, 58, 237, 0.1);
+
+  --cp-shadow-panel: 0 1px 2px rgba(23, 33, 47, 0.06);
+  --cp-shadow-overlay: 0 24px 64px rgba(23, 33, 47, 0.18);
+  --cp-glow-primary: none;
+  --cp-glow-positive: none;
+  --cp-glow-negative: none;
+  --cp-glow-accent: none;
+  --cp-mesh-hero: none;
+  --cp-dock-bg: rgba(237, 241, 247, 0.92);
+  --cp-dock-border: #d9e0ea;
+  --cp-backdrop: rgba(23, 33, 47, 0.45);
+
+  color-scheme: light;
 }
 
-/* Provisional tokens from the written brief. Exact Figma values await source access. */
+[data-theme='dark'] {
+  --cp-bg: #030712;
+  --cp-bg-alt: #070d1a;
+  --cp-surface: #0d1424;
+  --cp-surface-alt: #091020;
+  --cp-raised: #131f35;
+  --cp-raised-hover: #1a2840;
+
+  --cp-border: rgba(255, 255, 255, 0.08);
+  --cp-border-s: rgba(255, 255, 255, 0.14);
+
+  --cp-text: #f9fafb;
+  --cp-text-2: #c1c9d8;
+  --cp-muted: #9ca3af;
+  --cp-muted-dim: #7b8498;
+  --cp-muted-x: #6b7280;
+
+  --cp-primary: #3b82f6;
+  --cp-primary-bg: rgba(59, 130, 246, 0.15);
+  --cp-primary-dim: rgba(59, 130, 246, 0.32);
+  --cp-link: #60a5fa;
+
+  --cp-positive: #10b981;
+  --cp-positive-bg: rgba(16, 185, 129, 0.15);
+  --cp-positive-dim: rgba(16, 185, 129, 0.32);
+
+  --cp-negative: #f43f5e;
+  --cp-negative-bg: rgba(244, 63, 94, 0.15);
+  --cp-negative-dim: rgba(244, 63, 94, 0.32);
+
+  --cp-warning: #ffbb33;
+  --cp-warning-bg: rgba(255, 187, 51, 0.12);
+  --cp-warning-dim: rgba(255, 187, 51, 0.28);
+
+  --cp-accent: #06b6d4;
+  --cp-accent-bg: rgba(6, 182, 212, 0.12);
+  --cp-accent-dim: rgba(6, 182, 212, 0.28);
+
+  --cp-purple: #b47eff;
+  --cp-purple-bg: rgba(180, 126, 255, 0.15);
+
+  --cp-shadow-panel:
+    0 4px 24px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --cp-shadow-overlay: 0 24px 64px rgba(0, 0, 0, 0.6);
+  --cp-glow-primary: 0 0 14px rgba(59, 130, 246, 0.3);
+  --cp-glow-positive:
+    0 0 14px rgba(16, 185, 129, 0.35), 0 0 3px rgba(16, 185, 129, 0.2);
+  --cp-glow-negative:
+    0 0 14px rgba(244, 63, 94, 0.35), 0 0 3px rgba(244, 63, 94, 0.2);
+  --cp-glow-accent:
+    0 0 18px rgba(6, 182, 212, 0.3), 0 0 4px rgba(6, 182, 212, 0.18);
+  --cp-mesh-hero:
+    radial-gradient(
+      ellipse 60% 50% at 50% -20%,
+      rgba(59, 130, 246, 0.18) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 40% 40% at 80% 10%,
+      rgba(6, 182, 212, 0.12) 0%,
+      transparent 60%
+    );
+  --cp-dock-bg: rgba(7, 13, 26, 0.82);
+  --cp-dock-border: rgba(255, 255, 255, 0.06);
+  --cp-backdrop: rgba(3, 7, 18, 0.75);
+
+  color-scheme: dark;
+}
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme inline {
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  --color-page: var(--cp-bg);
+  --color-page-alt: var(--cp-bg-alt);
+  --color-surface: var(--cp-surface);
+  --color-surface-alt: var(--cp-surface-alt);
+  --color-raised: var(--cp-raised);
+  --color-raised-hover: var(--cp-raised-hover);
+  --color-line: var(--cp-border);
+  --color-line-strong: var(--cp-border-s);
+  --color-fg: var(--cp-text);
+  --color-fg-2: var(--cp-text-2);
+  --color-muted: var(--cp-muted);
+  --color-muted-dim: var(--cp-muted-dim);
+  --color-muted-x: var(--cp-muted-x);
+  --color-primary: var(--cp-primary);
+  --color-primary-soft: var(--cp-primary-bg);
+  --color-primary-line: var(--cp-primary-dim);
+  --color-link: var(--cp-link);
+  --color-positive: var(--cp-positive);
+  --color-positive-soft: var(--cp-positive-bg);
+  --color-positive-line: var(--cp-positive-dim);
+  --color-negative: var(--cp-negative);
+  --color-negative-soft: var(--cp-negative-bg);
+  --color-negative-line: var(--cp-negative-dim);
+  --color-warning: var(--cp-warning);
+  --color-warning-soft: var(--cp-warning-bg);
+  --color-warning-line: var(--cp-warning-dim);
+  --color-accent: var(--cp-accent);
+  --color-accent-soft: var(--cp-accent-bg);
+  --color-accent-line: var(--cp-accent-dim);
+  --color-purple: var(--cp-purple);
+  --color-purple-soft: var(--cp-purple-bg);
+
+  --shadow-panel: var(--cp-shadow-panel);
+  --shadow-overlay: var(--cp-shadow-overlay);
+  --shadow-glow-primary: var(--cp-glow-primary);
+}
+
 @layer base {
-  :root {
-    color-scheme: dark;
-    font-family: var(--font-sans);
-    color: var(--color-foreground);
-    background: var(--color-background);
-    font-size: 14px;
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    transition-property:
+      background-color, border-color, color, fill, stroke, box-shadow, opacity;
+    transition-duration: 120ms;
+    transition-timing-function: ease;
+  }
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+  html {
+    background: var(--cp-bg);
   }
   body {
     margin: 0;
     min-width: 320px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--cp-text);
+    background: var(--cp-bg);
+    -webkit-font-smoothing: antialiased;
   }
-  h1 {
-    font-size: 1.75rem;
-    font-weight: 600;
-    letter-spacing: -0.035em;
+  [data-theme='dark'] body {
+    background-image: var(--cp-mesh-hero);
+    background-attachment: fixed;
   }
-  h2 {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-block: 1rem 0.5rem;
+  h1,
+  h2,
+  h3 {
+    margin: 0;
+    color: var(--cp-text);
   }
   p {
-    color: var(--color-muted);
-    line-height: 1.6;
+    margin: 0;
   }
   a {
-    color: var(--color-accent);
+    color: var(--cp-link);
     text-underline-offset: 3px;
   }
   :focus-visible {
-    outline: 2px solid var(--color-accent);
-    outline-offset: 3px;
+    outline: 2px solid var(--cp-primary);
+    outline-offset: 2px;
   }
   button,
   input,
-  select {
+  select,
+  textarea {
     font: inherit;
+    color: inherit;
   }
   button {
     cursor: pointer;
@@ -62,7 +235,29 @@
     cursor: not-allowed;
     opacity: 0.5;
   }
+  .font-mono,
+  td,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--cp-border-s);
+    border-radius: 2px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--cp-muted-dim);
+  }
 }
+
+/* Legacy foundation classes, re-pointed to the Figma tokens until the
+   primitives move to utility classes. */
 @layer components {
   .foundation-container {
     max-width: 1120px;
@@ -86,39 +281,29 @@
   }
   .card {
     padding: 16px;
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    background: var(--color-surface);
+    border: 1px solid var(--cp-border);
+    border-radius: 12px;
+    background: var(--cp-surface);
   }
   .button {
     min-height: 36px;
     padding: 8px 12px;
     border: 1px solid transparent;
-    border-radius: 6px;
+    border-radius: 8px;
     font-weight: 600;
-    transition: background-color 120ms;
   }
   .button-primary {
-    background: var(--color-accent);
-    color: #082035;
-  }
-  .button-primary:hover:not(:disabled) {
-    background: #7dd3fc;
+    background: var(--cp-primary);
+    color: #fff;
   }
   .button-secondary {
-    background: var(--color-surface-raised);
-    color: var(--color-foreground);
-    border-color: var(--color-border);
-  }
-  .button-secondary:hover:not(:disabled) {
-    background: #24354d;
+    background: var(--cp-raised);
+    color: var(--cp-text-2);
+    border-color: var(--cp-border-s);
   }
   .button-danger {
-    background: var(--color-negative);
-    color: #290916;
-  }
-  .button-danger:hover:not(:disabled) {
-    background: #fda4af;
+    background: var(--cp-negative);
+    color: #fff;
   }
   .field {
     display: grid;
@@ -132,41 +317,40 @@
     width: 100%;
     min-height: 36px;
     padding: 8px 10px;
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    background: var(--color-background);
-    color: var(--color-foreground);
+    border: 1px solid var(--cp-border-s);
+    border-radius: 8px;
+    background: var(--cp-surface);
   }
   .field input[aria-invalid='true'],
   .field select[aria-invalid='true'] {
-    border-color: var(--color-negative);
+    border-color: var(--cp-negative);
   }
   .field-error {
-    color: var(--color-negative);
+    color: var(--cp-negative);
     font-size: 0.85rem;
   }
   .badge {
     display: inline-flex;
     border: 1px solid currentColor;
-    border-radius: 4px;
-    padding: 2px 6px;
-    font-size: 0.75rem;
-    font-weight: 500;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
   }
   .tone-neutral {
-    color: var(--color-muted);
+    color: var(--cp-muted);
   }
   .tone-info {
-    color: var(--color-accent);
+    color: var(--cp-primary);
   }
   .tone-success {
-    color: var(--color-positive);
+    color: var(--cp-positive);
   }
   .tone-warning {
-    color: var(--color-warning);
+    color: var(--cp-warning);
   }
   .tone-danger {
-    color: var(--color-negative);
+    color: var(--cp-negative);
   }
   .status {
     display: inline-flex;
@@ -192,30 +376,33 @@
   }
   .table-scroll {
     overflow-x: auto;
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
+    border: 1px solid var(--cp-border);
+    border-radius: 12px;
   }
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.85rem;
+    font-size: 12px;
   }
   caption {
     text-align: left;
     padding: 12px;
-    color: var(--color-muted);
+    color: var(--cp-muted);
   }
   th,
   td {
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--color-border);
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--cp-border);
     text-align: left;
     white-space: nowrap;
   }
   th {
-    background: var(--color-surface);
-    color: var(--color-muted);
+    background: var(--cp-bg-alt);
+    color: var(--cp-muted-x);
+    font-size: 10px;
     font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
   }
   tbody tr:last-child td {
     border-bottom: 0;
@@ -224,18 +411,20 @@
     display: flex;
     overflow-x: auto;
     gap: 8px;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--cp-border);
     margin-bottom: 16px;
   }
   .tabs button {
     white-space: nowrap;
     padding: 10px 12px;
+    border: 0;
     border-bottom: 2px solid transparent;
-    color: var(--color-muted);
+    background: transparent;
+    color: var(--cp-muted);
   }
   .tabs button[aria-selected='true'] {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
+    border-color: var(--cp-primary);
+    color: var(--cp-primary);
   }
   .dialog {
     width: min(560px, calc(100vw - 32px));
@@ -243,13 +432,15 @@
     overflow: auto;
     margin: auto;
     padding: 24px;
-    color: var(--color-foreground);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
+    color: var(--cp-text);
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border-s);
+    border-radius: 16px;
+    box-shadow: var(--cp-shadow-overlay);
   }
   .dialog::backdrop {
-    background: rgb(0 0 0 / 70%);
+    background: var(--cp-backdrop);
+    backdrop-filter: blur(6px);
   }
   .dialog-header {
     display: flex;
@@ -258,15 +449,12 @@
     gap: 16px;
     margin-bottom: 16px;
   }
-  .dialog-header h2 {
-    margin: 0;
-  }
   .alert {
     padding: 12px 16px;
     border: 1px solid currentColor;
-    border-radius: 6px;
+    border-radius: 8px;
     margin-block: 12px;
-    background: var(--color-surface);
+    background: var(--cp-surface);
     font-size: 0.85rem;
   }
   .alert strong {
@@ -285,8 +473,8 @@
     width: 14px;
     height: 14px;
     margin-right: 8px;
-    border: 2px solid var(--color-border);
-    border-top-color: var(--color-accent);
+    border: 2px solid var(--cp-border);
+    border-top-color: var(--cp-primary);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
@@ -296,33 +484,36 @@
     left: 16px;
     z-index: 100;
     padding: 12px;
-    background: var(--color-surface);
+    background: var(--cp-surface);
   }
   .skip-link:focus {
     top: 12px;
   }
 }
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
+@keyframes pulse-led {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
 @media (pointer: coarse) {
-  .button,
-  .tabs button,
-  .field input,
-  .field select {
-    min-height: 44px;
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 }
-@media (max-width: 640px) {
-  .foundation-container {
-    padding: 16px;
-  }
-  .page-header {
-    align-items: flex-start;
-  }
-}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
