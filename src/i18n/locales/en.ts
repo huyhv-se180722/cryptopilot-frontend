@@ -315,6 +315,27 @@ export const en = {
     empty: 'No matching screen.',
     hint: 'Navigate with ↑↓ · Enter to select · Esc to close',
   },
+  chart: {
+    timeframeLabel: 'Timeframe',
+    itemsLabel: 'Overlays and panels',
+    sma20: 'SMA 20',
+    ema20: 'EMA 20',
+    ema50: 'EMA 50',
+    ema200: 'EMA 200',
+    bollinger: 'Bollinger 20, 2',
+    volume: 'Volume',
+    rsi: 'RSI 14',
+    macd: 'MACD 12, 26, 9',
+    forming: 'Forming candle, provisional',
+    chartLabel:
+      '{symbol} {timeframe} candlestick chart with the latest {count} closed candles',
+    empty: 'No closed candles yet.',
+    insufficient:
+      'Fewer than 200 closed candles: EMA 200 cannot be computed yet (insufficient data).',
+    backToMarkets: 'Markets',
+    pairUnavailable:
+      'This pair is not available on Spot. Choose another pair from the market list.',
+  },
   market: {
     tabsLabel: 'Market',
     spot: 'Spot',
