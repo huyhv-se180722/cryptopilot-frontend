@@ -1,4 +1,4 @@
-import { useId, type InputHTMLAttributes } from 'react';
+import { useId, type ComponentPropsWithRef } from 'react';
 import {
   fieldControlClass,
   fieldErrorClass,
@@ -6,7 +6,7 @@ import {
   fieldLabelClass,
 } from './field-styles';
 
-type Props = InputHTMLAttributes<HTMLInputElement> & {
+type Props = ComponentPropsWithRef<'input'> & {
   label: string;
   error?: string;
   hint?: string;
