@@ -7,7 +7,12 @@ import { PasswordInput } from '../../../components/ui/PasswordInput';
 import { Checkbox } from '../../../components/ui/Checkbox';
 import { Button } from '../../../components/ui/Button';
 import { useCopy } from '../../../hooks/use-copy';
-import { errorText, fieldErrorText } from '../../../i18n/messages';
+import {
+  errorText,
+  fieldErrorText,
+  isUnexpectedError,
+} from '../../../i18n/messages';
+import { useToast } from '../../../hooks/use-toast';
 import { problemOf } from '../../../services/api/errors';
 import { loginSchema, type LoginForm as LoginValues } from '../schemas';
 import { useLogin } from '../hooks/use-auth-actions';
@@ -21,6 +26,7 @@ import { FormNotice } from '../../../components/feedback/FormNotice';
 export function LoginForm() {
   const copy = useCopy();
   const login = useLogin();
+  const { show } = useToast();
   const {
     register,
     handleSubmit,
@@ -30,7 +36,10 @@ export function LoginForm() {
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '', rememberMe: false },
   });
-  const failure = login.state.status === 'error' ? login.state.error : null;
+  const error = login.state.status === 'error' ? login.state.error : null;
+  // MSG43 goes to a toast (SRS 5.3); the sign-in refusals stay inline.
+  const failure =
+    error !== null && !isUnexpectedError(copy, error) ? error : null;
   const unverified = problemOf(failure)?.code === 'EMAIL_NOT_VERIFIED';
   const locked = problemOf(failure)?.code === 'LOGIN_TEMPORARILY_LOCKED';
   const fieldError = (message: string | undefined, label: string) =>
@@ -61,7 +70,14 @@ export function LoginForm() {
       )}
       <form
         noValidate
-        onSubmit={handleSubmit((values) => void login.run(values))}
+        onSubmit={handleSubmit(async (values) => {
+          const result = await login.run(values);
+          if (
+            result.status === 'error' &&
+            isUnexpectedError(copy, result.error)
+          )
+            show({ tone: 'error', message: errorText(copy, result.error) });
+        })}
       >
         <Input
           {...register('email')}

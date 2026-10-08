@@ -6,6 +6,8 @@ import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
 import { buttonClassName } from '../../../components/ui/button-styles';
 import { useCopy } from '../../../hooks/use-copy';
+import { useFormFeedback } from '../../../hooks/use-form-feedback';
+import { useToast } from '../../../hooks/use-toast';
 import { errorText, fieldErrorText, messageText } from '../../../i18n/messages';
 import { emailSchema, type EmailForm } from '../schemas';
 import { useForgotPassword } from '../hooks/use-auth-actions';
@@ -14,12 +16,14 @@ import { FormNotice } from '../../../components/feedback/FormNotice';
 import { StatusPanel } from './StatusPanel';
 
 /**
- * SCR-05 (spec §1). Always answers MSG12 so the screen never reveals
- * whether an account exists (SRS 3.2.4).
+ * SCR-05. Always answers MSG12 (a toast, SRS 5.3) so the screen never
+ * reveals whether an account exists (SRS 3.2.4).
  */
 export function ForgotPasswordForm() {
   const copy = useCopy();
   const action = useForgotPassword();
+  const feedback = useFormFeedback();
+  const { show } = useToast();
   const {
     register,
     handleSubmit,
@@ -34,7 +38,7 @@ export function ForgotPasswordForm() {
       <StatusPanel
         tone="mail"
         title={copy.auth.forgotSentTitle}
-        message={messageText(copy, 'MSG12')}
+        message={copy.auth.forgotSentBody}
       >
         <Link
           to="/login"
@@ -52,14 +56,20 @@ export function ForgotPasswordForm() {
         title={copy.auth.forgotTitle}
         subtitle={copy.auth.forgotSubtitle}
       />
-      {action.state.status === 'error' && (
+      {feedback.inline && (
         <FormNotice tone="error">
-          {errorText(copy, action.state.error)}
+          {errorText(copy, feedback.inline.error)}
         </FormNotice>
       )}
       <form
         noValidate
-        onSubmit={handleSubmit((values) => void action.run(values.email))}
+        onSubmit={handleSubmit(async (values) => {
+          feedback.clear();
+          const result = await action.run(values.email);
+          if (result.status === 'success')
+            show({ tone: 'success', message: messageText(copy, 'MSG12') });
+          else if (result.status === 'error') feedback.failed(result.error);
+        })}
       >
         <Input
           {...register('email')}

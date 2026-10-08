@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
@@ -6,7 +5,8 @@ import { Button } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
 import { PasswordInput } from '../../../components/ui/PasswordInput';
 import { useCopy } from '../../../hooks/use-copy';
-import { errorText, fieldErrorText, messageText } from '../../../i18n/messages';
+import { useFormFeedback } from '../../../hooks/use-form-feedback';
+import { errorText, fieldErrorText } from '../../../i18n/messages';
 import { problemOf } from '../../../services/api/errors';
 import { FormNotice } from '../../../components/feedback/FormNotice';
 import { PasswordRules } from './PasswordRules';
@@ -31,9 +31,7 @@ export function ChangePasswordForm() {
   const copy = useCopy();
   const p = copy.profile;
   const action = useChangePassword();
-  const [banner, setBanner] = useState<
-    { tone: 'error'; error: unknown } | { tone: 'success' } | null
-  >(null);
+  const feedback = useFormFeedback();
   const {
     register,
     handleSubmit,
@@ -55,25 +53,24 @@ export function ChangePasswordForm() {
     <form
       noValidate
       onSubmit={handleSubmit(async (values) => {
-        setBanner(null);
+        feedback.clear();
         const result = await action.run(values);
         if (result.status === 'success') {
           reset(EMPTY);
-          setBanner({ tone: 'success' });
+          feedback.saved();
           return;
         }
         if (result.status !== 'error') return;
         if (problemOf(result.error)?.code === 'CURRENT_PASSWORD_INCORRECT')
           setError('currentPassword', { type: 'server', message: 'MSG08' });
         else if (!applyServerFieldErrors(result.error, FIELDS, setError))
-          setBanner({ tone: 'error', error: result.error });
+          feedback.failed(result.error);
       })}
     >
-      {banner?.tone === 'success' && (
-        <FormNotice tone="success">{messageText(copy, 'MSG14')}</FormNotice>
-      )}
-      {banner?.tone === 'error' && (
-        <FormNotice tone="error">{errorText(copy, banner.error)}</FormNotice>
+      {feedback.inline && (
+        <FormNotice tone="error">
+          {errorText(copy, feedback.inline.error)}
+        </FormNotice>
       )}
       <Card padding="lg" className="mb-5 max-w-xl">
         <SectionTitle>{p.securityTitle}</SectionTitle>

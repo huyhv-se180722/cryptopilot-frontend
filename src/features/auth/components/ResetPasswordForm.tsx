@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -7,6 +6,8 @@ import { PasswordInput } from '../../../components/ui/PasswordInput';
 import { Button } from '../../../components/ui/Button';
 import { buttonClassName } from '../../../components/ui/button-styles';
 import { useCopy } from '../../../hooks/use-copy';
+import { useFormFeedback } from '../../../hooks/use-form-feedback';
+import { useToast } from '../../../hooks/use-toast';
 import { errorText, fieldErrorText, messageText } from '../../../i18n/messages';
 import { problemOf } from '../../../services/api/errors';
 import {
@@ -21,11 +22,10 @@ import { PasswordRules } from './PasswordRules';
 import { StatusPanel } from './StatusPanel';
 
 const FIELDS = ['newPassword', 'confirmPassword'] as const;
-const REDIRECT_MS = 3000;
 
 /**
- * SCR-06 (spec §1). Sets a new password from the emailed link; success
- * revokes every session (MSG13) and returns to sign in.
+ * SCR-06. Sets a new password from the emailed link; success revokes
+ * every session, shows MSG13 (a toast, SRS 5.3) and returns to sign in.
  */
 export function ResetPasswordForm() {
   const copy = useCopy();
@@ -33,7 +33,8 @@ export function ResetPasswordForm() {
   const [params] = useSearchParams();
   const token = params.get('token') ?? '';
   const action = useResetPassword();
-  const [bannerError, setBannerError] = useState<unknown>(null);
+  const feedback = useFormFeedback();
+  const { show } = useToast();
   const {
     register,
     handleSubmit,
@@ -45,19 +46,10 @@ export function ResetPasswordForm() {
     defaultValues: { newPassword: '', confirmPassword: '' },
   });
   const password = useWatch({ control, name: 'newPassword' });
-  const done = action.state.status === 'success';
-
-  useEffect(() => {
-    if (!done) return;
-    const timer = setTimeout(
-      () => navigate('/login', { replace: true }),
-      REDIRECT_MS,
-    );
-    return () => clearTimeout(timer);
-  }, [done, navigate]);
 
   const invalidLink =
-    !token || problemOf(bannerError)?.code === 'TOKEN_INVALID_OR_EXPIRED';
+    !token ||
+    problemOf(feedback.inline?.error)?.code === 'TOKEN_INVALID_OR_EXPIRED';
   if (invalidLink)
     return (
       <StatusPanel
@@ -73,21 +65,6 @@ export function ResetPasswordForm() {
         </Link>
       </StatusPanel>
     );
-  if (done)
-    return (
-      <StatusPanel
-        tone="success"
-        title={copy.auth.resetDoneTitle}
-        message={messageText(copy, 'MSG13') + ' ' + copy.auth.redirecting}
-      >
-        <Link
-          to="/login"
-          className={buttonClassName('primary', 'lg', 'w-full')}
-        >
-          {copy.auth.goToLogin}
-        </Link>
-      </StatusPanel>
-    );
 
   const errorOf = (field: (typeof FIELDS)[number], label: string) => {
     const id = errors[field]?.message;
@@ -99,19 +76,24 @@ export function ResetPasswordForm() {
         title={copy.auth.resetTitle}
         subtitle={copy.auth.resetSubtitle}
       />
-      {bannerError !== null && (
-        <FormNotice tone="error">{errorText(copy, bannerError)}</FormNotice>
+      {feedback.inline && (
+        <FormNotice tone="error">
+          {errorText(copy, feedback.inline.error)}
+        </FormNotice>
       )}
       <form
         noValidate
         onSubmit={handleSubmit(async (values) => {
-          setBannerError(null);
+          feedback.clear();
           const result = await action.run({ token, ...values });
-          if (
+          if (result.status === 'success') {
+            show({ tone: 'success', message: messageText(copy, 'MSG13') });
+            navigate('/login', { replace: true });
+          } else if (
             result.status === 'error' &&
             !applyServerFieldErrors(result.error, FIELDS, setError)
           )
-            setBannerError(result.error);
+            feedback.failed(result.error);
         })}
       >
         <div className="mb-4">
