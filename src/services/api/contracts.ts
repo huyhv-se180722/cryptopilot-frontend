@@ -4,7 +4,11 @@ import type {
   CoinAnalysis,
   CommunityPost,
   JournalEntry,
-  MarketQuote,
+  Candle,
+  CandleTimeframe,
+  MarketOverview,
+  MarketPair,
+  MarketTicker,
   MarketType,
   NewsArticle,
   PriceAlert,
@@ -31,11 +35,42 @@ export interface ListResponse<T> {
 export interface ReadService<T> {
   list(request?: ListRequest): Promise<ListResponse<T>>;
 }
-export interface MarketRequest extends ListRequest {
-  marketType?: MarketType;
+export interface CandlesRequest {
+  market: MarketType;
+  symbol: string;
+  timeframe: CandleTimeframe;
+  limit: number;
+  signal?: AbortSignal;
 }
+/** Public market data (`/market/**`, SRS 3.3.1); no token needed. */
 export interface MarketService {
-  list(request?: MarketRequest): Promise<ListResponse<MarketQuote>>;
+  /** Every enabled pair of a market, in admin display order. */
+  listPairs(
+    market: MarketType,
+    signal?: AbortSignal,
+  ): Promise<readonly MarketPair[]>;
+  /** Closed candles, oldest first. */
+  getCandles(request: CandlesRequest): Promise<readonly Candle[]>;
+  /**
+   * Stored ticker snapshot (up to about a minute old) for the Delayed
+   * fallback (CR-09); null until the backend has one.
+   */
+  getTicker(
+    market: MarketType,
+    symbol: string,
+    signal?: AbortSignal,
+  ): Promise<MarketTicker | null>;
+}
+
+export type FeedStatus = 'connecting' | 'open' | 'closed' | 'unavailable';
+/** Realtime market topics over STOMP (TD 9); public, no token. */
+export interface MarketFeed {
+  status(): FeedStatus;
+  onStatus(listener: () => void): () => void;
+  subscribeOverview(
+    market: MarketType,
+    listener: (overview: MarketOverview) => void,
+  ): () => void;
 }
 export interface CoinAnalysisRequest {
   symbol: string;

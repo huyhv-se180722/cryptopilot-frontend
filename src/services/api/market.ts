@@ -1,7 +1,18 @@
-import type { MarketService } from './contracts';
+import type { MarketFeed, MarketService } from './contracts';
 import { integrationPending } from './errors';
 
-/** Replace with a validated HTTP adapter after backend contract approval. */
-export function createMarketService(): MarketService {
-  return { list: async () => integrationPending() };
+/** Used while no API base URL is configured. */
+export function createPendingMarketService(): MarketService {
+  return {
+    listPairs: async () => integrationPending(),
+    getCandles: async () => integrationPending(),
+    getTicker: async () => integrationPending(),
+  };
 }
+
+/** Used while no WebSocket URL is configured: never live, so screens show Delayed. */
+export const unavailableMarketFeed: MarketFeed = {
+  status: () => 'unavailable',
+  onStatus: () => () => undefined,
+  subscribeOverview: () => () => undefined,
+};

@@ -18,10 +18,6 @@ describe('development services', () => {
   it('stay behind the same contracts and never touch the network', async () => {
     const { services, request } = await devServices();
     expect(services.mode).toBe('development-fixtures');
-    expect(await services.market.list()).toEqual({
-      items: [],
-      nextCursor: null,
-    });
     await expect(services.journal.list()).rejects.toMatchObject({
       code: 'NOT_CONFIGURED',
     });
