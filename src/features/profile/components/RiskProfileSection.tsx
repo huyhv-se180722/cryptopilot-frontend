@@ -8,6 +8,7 @@ import { errorText, messageText } from '../../../i18n/messages';
 import { formatCopy } from '../../../i18n/copy';
 import type { RiskProfile, RiskProfileParams } from '../../../types/domain';
 import { classNames } from '../../../utils/class-names';
+import { toFixedDecimal } from '../../../utils/decimal-format';
 import { FormNotice } from '../../../components/feedback/FormNotice';
 import { useChooseRiskProfile } from '../hooks/use-profile';
 import { RiskQuestionnaireDialog } from './RiskQuestionnaireDialog';
@@ -73,7 +74,9 @@ export function RiskProfileSection({
         <div>
           <dt className="text-[11px] text-muted-x">{p.riskPerTrade}</dt>
           <dd className="font-mono text-sm text-fg-2">
-            {risk.riskPerTradePercent} %
+            {formatCopy(p.percentValue, {
+              value: toFixedDecimal(risk.riskPerTradePercent, 2),
+            })}
           </dd>
         </div>
         <div>
@@ -85,7 +88,9 @@ export function RiskProfileSection({
         <div>
           <dt className="text-[11px] text-muted-x">{p.maxOpenRisk}</dt>
           <dd className="font-mono text-sm text-fg-2">
-            {risk.maxTotalOpenRiskPercent} %
+            {formatCopy(p.percentValue, {
+              value: toFixedDecimal(risk.maxTotalOpenRiskPercent, 2),
+            })}
           </dd>
         </div>
       </dl>

@@ -137,6 +137,12 @@ describe('SCR-07 Profile tab', () => {
     );
   });
 
+  it('shows the risk parameters with two decimals (CR-02)', async () => {
+    await open(fakeProfile());
+    expect(await screen.findByText('0.50 %')).toBeTruthy();
+    expect(screen.getByText('2.00 %')).toBeTruthy();
+  });
+
   it('asks MSG48 before saving AGGRESSIVE and then confirms it', async () => {
     const profile = fakeProfile();
     await open(profile);
