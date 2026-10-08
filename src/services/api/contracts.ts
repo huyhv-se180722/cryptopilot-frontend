@@ -1,7 +1,6 @@
 import type {
   AdminLog,
   AiConversation,
-  CoinAnalysis,
   CommunityPost,
   JournalEntry,
   Candle,
@@ -11,6 +10,7 @@ import type {
   MarketPair,
   MarketTicker,
   MarketType,
+  PairAnalysis,
   NewsArticle,
   PriceAlert,
   ProfileUpdate,
@@ -72,6 +72,12 @@ export interface MarketFeed {
     market: MarketType,
     listener: (overview: MarketOverview) => void,
   ): () => void;
+  /** One pair's ticker, at most once a second (`/topic/ticker.*`). */
+  subscribeTicker(
+    market: MarketType,
+    symbol: string,
+    listener: (ticker: MarketTicker) => void,
+  ): () => void;
   /** Closed and forming candles of one series (`/topic/kline.*`). */
   subscribeKline(
     market: MarketType,
@@ -80,14 +86,14 @@ export interface MarketFeed {
     listener: (update: KlineUpdate) => void,
   ): () => void;
 }
-export interface CoinAnalysisRequest {
-  symbol: string;
-  marketType: MarketType;
-  timeframe: string;
-  signal?: AbortSignal;
-}
-export interface CoinAnalysisService {
-  get(request: CoinAnalysisRequest): Promise<CoinAnalysis>;
+/** `GET /analysis/{market}/{symbol}` (Trader; SRS 3.3.2, 3.3.3). */
+export interface AnalysisService {
+  get(
+    market: MarketType,
+    symbol: string,
+    timeframe: CandleTimeframe,
+    signal?: AbortSignal,
+  ): Promise<PairAnalysis>;
 }
 export type TradingPlanService = ReadService<TradingPlan>;
 export type JournalService = ReadService<JournalEntry>;

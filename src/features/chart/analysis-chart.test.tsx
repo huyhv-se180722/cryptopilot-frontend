@@ -83,6 +83,7 @@ function render(path = '/markets/spot/BTCUSDT', count = 260) {
     status: () => 'open',
     onStatus: () => () => undefined,
     subscribeOverview: () => () => undefined,
+    subscribeTicker: () => () => undefined,
     subscribeKline: (_m, _s, _t, listener) => {
       kline = listener;
       return () => undefined;

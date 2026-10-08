@@ -46,6 +46,7 @@ function setup(count: number) {
       return () => statusListeners.delete(listener);
     },
     subscribeOverview: () => () => undefined,
+    subscribeTicker: () => () => undefined,
     subscribeKline: (_m, _s, _t, listener) => {
       kline = listener;
       return () => {

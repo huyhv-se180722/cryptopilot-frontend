@@ -1,6 +1,6 @@
 import { Client, ReconnectionTimeMode } from '@stomp/stompjs';
 import type { FeedStatus, MarketFeed } from '../api/contracts';
-import { decodeKline, decodeOverview } from '../api/market-dto';
+import { decodeKline, decodeOverview, decodeTicker } from '../api/market-dto';
 
 /** The part of the STOMP client the feed uses; tests pass a fake. */
 export type StompConnection = Pick<
@@ -148,6 +148,12 @@ export function createStompMarketFeed(
       follow(
         '/topic/overview.' + market.toUpperCase(),
         decodeOverview,
+        listener,
+      ),
+    subscribeTicker: (market, symbol, listener) =>
+      follow(
+        `/topic/ticker.${market.toUpperCase()}.${symbol.toUpperCase()}`,
+        decodeTicker,
         listener,
       ),
     subscribeKline: (market, symbol, timeframe, listener) =>

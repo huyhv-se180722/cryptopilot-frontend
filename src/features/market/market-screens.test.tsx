@@ -58,6 +58,8 @@ const spotTicker = (
   symbol: base + 'USDT',
   sourceTime: new Date().toISOString(),
   lastPrice,
+  bestBid: null,
+  bestAsk: null,
   high24h: lastPrice,
   low24h: lastPrice,
   changePercent24h: change,
@@ -101,6 +103,7 @@ function fakeFeed(status: FeedStatus) {
   const feed: MarketFeed = {
     status: () => status,
     onStatus: () => () => undefined,
+    subscribeTicker: () => () => undefined,
     subscribeKline: () => () => undefined,
     subscribeOverview: (market, listener) => {
       listeners.set(market, listener);

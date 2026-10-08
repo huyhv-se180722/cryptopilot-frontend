@@ -3,7 +3,7 @@ import type {
   AdminService,
   AiService,
   AlertsService,
-  CoinAnalysisService,
+  AnalysisService,
   CommunityService,
   JournalService,
   MarketFeed,
@@ -22,7 +22,7 @@ export interface Services {
   profile: ProfileService;
   market: MarketService;
   marketFeed: MarketFeed;
-  coinAnalysis: CoinAnalysisService;
+  analysis: AnalysisService;
   tradingPlan: TradingPlanService;
   journal: JournalService;
   alerts: AlertsService;

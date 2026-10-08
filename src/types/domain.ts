@@ -71,6 +71,8 @@ export interface MarketTicker {
   /** Exchange event time (stream) or snapshot time (REST fallback). */
   sourceTime: ISODateTime;
   lastPrice: Decimal | null;
+  bestBid: Decimal | null;
+  bestAsk: Decimal | null;
   high24h: Decimal | null;
   low24h: Decimal | null;
   /** Already a percent, e.g. "1.25". */
@@ -114,12 +116,55 @@ export interface KlineUpdate {
   closed: boolean;
   candle: Candle;
 }
-export interface CoinAnalysis {
+/** Style preset the setup score is read with (D-53); its timeframe in the score. */
+export type SetupPreset = 'SCALPING' | 'DAY_TRADING' | 'SWING';
+
+/** Component scores 0–100 (BR-13); null where history is insufficient. */
+export interface ComponentScores {
+  formulaVersion: string | null;
+  trend: Decimal | null;
+  momentum: Decimal | null;
+  volume: Decimal | null;
+  level: Decimal | null;
+}
+
+export interface SetupScore {
+  /** 0–100 integer; null = insufficient data (never shown as 0). */
+  score: number | null;
+  preset: SetupPreset;
+  presetVersion: string;
+  /** The preset's timeframe, which may differ from the chart's. */
+  timeframe: CandleTimeframe;
+  openTime: ISODateTime | null;
+  components: ComponentScores;
+}
+
+export type IndicatorName =
+  | 'sma20'
+  | 'ema20'
+  | 'ema50'
+  | 'ema200'
+  | 'rsi14'
+  | 'macdLine'
+  | 'macdSignal'
+  | 'macdHistogram'
+  | 'bbUpper'
+  | 'bbMiddle'
+  | 'bbLower'
+  | 'volumeSma20';
+
+/** `GET /analysis/{market}/{symbol}` of one timeframe (UC-10). */
+export interface PairAnalysis {
   symbol: string;
-  marketType: MarketType;
-  timeframe: string;
-  observedAt: ISODateTime;
-  indicators: ReadonlyArray<{ name: string; value: Decimal | null }>;
+  market: MarketType;
+  timeframe: CandleTimeframe;
+  /** Candle the values belong to; null = no data yet. */
+  openTime: ISODateTime | null;
+  indicators: Readonly<Record<IndicatorName, Decimal | null>>;
+  /** BR-14 swing levels; null when none. */
+  nearestSupport: Decimal | null;
+  nearestResistance: Decimal | null;
+  setupScore: SetupScore;
 }
 export interface TradingPlan {
   id: string;

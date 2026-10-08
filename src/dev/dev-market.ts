@@ -1,4 +1,8 @@
-import type { MarketFeed, MarketService } from '../services/api/contracts';
+import type {
+  AnalysisService,
+  MarketFeed,
+  MarketService,
+} from '../services/api/contracts';
 import { ServiceError } from '../services/api/errors';
 import type {
   Candle,
@@ -52,6 +56,7 @@ function notEnabled(): never {
 export function createDevelopmentMarket(now: () => number = Date.now): {
   market: MarketService;
   marketFeed: MarketFeed;
+  analysis: AnalysisService;
 } {
   const random = generator(31);
   const prices = new Map<string, number>();
@@ -77,6 +82,8 @@ export function createDevelopmentMarket(now: () => number = Date.now): {
       symbol,
       sourceTime: time,
       lastPrice: null,
+      bestBid: null,
+      bestAsk: null,
       high24h: null,
       low24h: null,
       changePercent24h: null,
@@ -90,6 +97,8 @@ export function createDevelopmentMarket(now: () => number = Date.now): {
       return {
         ...base,
         lastPrice: fixed(price),
+        bestBid: fixed(price * 0.9999),
+        bestAsk: fixed(price * 1.0001),
         high24h: fixed(Math.max(price, open) * 1.012),
         low24h: fixed(Math.min(price, open) * 0.988),
         changePercent24h: (((price - open) / open) * 100).toFixed(3),
@@ -210,7 +219,91 @@ export function createDevelopmentMarket(now: () => number = Date.now): {
     }
   };
 
+  const tickerListeners = new Set<{
+    market: MarketType;
+    symbol: string;
+    listener: (ticker: MarketTicker) => void;
+  }>();
+  let tickerTimer: ReturnType<typeof setInterval> | undefined;
+  const publishTickers = () => {
+    step();
+    for (const entry of tickerListeners)
+      entry.listener(ticker(entry.market, entry.symbol));
+  };
+
+  /**
+   * Scripted results, not a re-implementation of BR-13 / BR-14: a score per
+   * pair, levels a few percent around the price, null indicators on 1d to
+   * show "Insufficient data".
+   */
+  const analysis: AnalysisService = {
+    async get(marketType, symbol, timeframe, signal) {
+      signal?.throwIfAborted();
+      const pair = symbol.toUpperCase();
+      if (!enabled(marketType, pair)) notEnabled();
+      const price = priceOf(pair);
+      const places = decimalsOf(devTickSize(pair));
+      const fixed = (value: number) => value.toFixed(places);
+      const short = timeframe === '1d';
+      const score = (pair.charCodeAt(0) * 7) % 101;
+      const value = (number: number) => (short ? null : fixed(number));
+      return {
+        symbol: pair,
+        market: marketType,
+        timeframe,
+        openTime: new Date(now() - 3_600_000).toISOString(),
+        indicators: {
+          sma20: value(price * 0.995),
+          ema20: value(price * 0.996),
+          ema50: value(price * 0.985),
+          ema200: value(price * 0.94),
+          rsi14: short ? null : '58.4',
+          macdLine: short ? null : '12.5',
+          macdSignal: short ? null : '9.1',
+          macdHistogram: short ? null : '3.4',
+          bbUpper: value(price * 1.02),
+          bbMiddle: value(price * 0.995),
+          bbLower: value(price * 0.97),
+          volumeSma20: short ? null : '7500',
+        },
+        nearestSupport: fixed(price * 0.97),
+        nearestResistance: fixed(price * 1.035),
+        setupScore: {
+          score: short ? null : score,
+          preset: 'DAY_TRADING',
+          presetVersion: 'v1',
+          timeframe: '1h',
+          openTime: new Date(now() - 3_600_000).toISOString(),
+          components: {
+            formulaVersion: 'v1',
+            trend: short ? null : '75.00',
+            momentum: short ? null : '60.00',
+            volume: short ? null : '55.00',
+            level: short ? null : '40.00',
+          },
+        },
+      };
+    },
+  };
+
   const marketFeed: MarketFeed = {
+    subscribeTicker(marketType, symbol, listener) {
+      const entry = {
+        market: marketType,
+        symbol: symbol.toUpperCase(),
+        listener,
+      };
+      tickerListeners.add(entry);
+      tickerTimer ??= setInterval(publishTickers, 1_000);
+      queueMicrotask(publishTickers);
+      return () => {
+        tickerListeners.delete(entry);
+        if (tickerListeners.size === 0 && tickerTimer !== undefined) {
+          clearInterval(tickerTimer);
+          tickerTimer = undefined;
+        }
+      };
+    },
     subscribeKline(marketType, symbol, timeframe, listener) {
       const entry = {
         market: marketType,
@@ -252,5 +345,5 @@ export function createDevelopmentMarket(now: () => number = Date.now): {
     },
   };
 
-  return { market, marketFeed };
+  return { market, marketFeed, analysis };
 }
