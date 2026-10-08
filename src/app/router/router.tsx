@@ -1,37 +1,69 @@
-import { createBrowserRouter } from 'react-router-dom';
-import { GuestPage } from '../../pages/guest/GuestPage';
-import { TraderPage } from '../../pages/trader/TraderPage';
-import { AdminPage } from '../../pages/admin/AdminPage';
+import { createBrowserRouter, type RouteObject } from 'react-router-dom';
 import { NotFoundPage } from '../../pages/NotFoundPage';
-import { ErrorState } from '../../components/feedback/States';
 import { ProtectedRoute } from './ProtectedRoute';
+import { GuestOnlyRoute } from './GuestOnlyRoute';
 import { RouteFrame } from './RouteFrame';
-import { guestRoutes, traderRoutes, adminRoutes } from './route-definitions';
+import { RouteError } from './RouteError';
+import { GuestShell } from '../layouts/GuestShell';
+import { AuthShell } from '../layouts/AuthShell';
+import { TraderShell } from '../layouts/TraderShell';
+import { AdminShell } from '../layouts/AdminShell';
+import {
+  adminRoutes,
+  guestOnlyRoutes,
+  publicRoutes,
+  toHandle,
+  traderRoutes,
+  type RouteDefinition,
+} from './route-definitions';
 
-export const router = createBrowserRouter([
+/** Screens load on demand; each feature branch swaps in its real page. */
+function screenRoute(route: RouteDefinition): RouteObject {
+  return {
+    path: route.path,
+    handle: toHandle(route),
+    lazy: async () => {
+      const { PlaceholderPage } = await import('../../pages/PlaceholderPage');
+      return { Component: PlaceholderPage };
+    },
+  };
+}
+
+export const routes: RouteObject[] = [
   {
     element: <RouteFrame />,
-    errorElement: <ErrorState message="This route could not be loaded." />,
+    errorElement: <RouteError />,
     children: [
-      ...guestRoutes.map(({ path, title }) => ({
-        path,
-        element: <GuestPage title={title} />,
-      })),
+      {
+        element: <GuestShell />,
+        children: [
+          ...publicRoutes.map(screenRoute),
+          { path: '*', element: <NotFoundPage /> },
+        ],
+      },
+      {
+        element: <GuestOnlyRoute />,
+        children: [
+          {
+            element: <AuthShell />,
+            children: guestOnlyRoutes.map(screenRoute),
+          },
+        ],
+      },
       {
         element: <ProtectedRoute roles={['Trader']} />,
-        children: traderRoutes.map(({ path, title }) => ({
-          path,
-          element: <TraderPage title={title} />,
-        })),
+        children: [
+          { element: <TraderShell />, children: traderRoutes.map(screenRoute) },
+        ],
       },
       {
         element: <ProtectedRoute roles={['Admin']} />,
-        children: adminRoutes.map(({ path, title }) => ({
-          path,
-          element: <AdminPage title={title} />,
-        })),
+        children: [
+          { element: <AdminShell />, children: adminRoutes.map(screenRoute) },
+        ],
       },
-      { path: '*', element: <NotFoundPage /> },
     ],
   },
-]);
+];
+
+export const router = createBrowserRouter(routes);

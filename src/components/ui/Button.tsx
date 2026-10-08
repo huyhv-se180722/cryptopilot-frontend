@@ -1,11 +1,18 @@
 import type { ButtonHTMLAttributes } from 'react';
-import { classNames } from '../../utils/class-names';
+import {
+  buttonClassName,
+  type ButtonSize,
+  type ButtonVariant,
+} from './button-styles';
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: 'primary' | 'secondary' | 'danger';
+  variant?: ButtonVariant;
+  size?: ButtonSize;
 };
+
 export function Button({
   variant = 'primary',
+  size = 'md',
   className,
   type = 'button',
   ...props
@@ -13,7 +20,7 @@ export function Button({
   return (
     <button
       type={type}
-      className={classNames('button', 'button-' + variant, className)}
+      className={buttonClassName(variant, size, className)}
       {...props}
     />
   );

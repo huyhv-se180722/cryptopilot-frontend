@@ -1,34 +1,29 @@
-import { Link, Outlet } from 'react-router-dom';
-import { Warning } from '../../components/feedback/States';
+import { Outlet } from 'react-router-dom';
+import { IntegrationBanner } from '../../components/layout/IntegrationBanner';
+import type { CSSProperties } from 'react';
+import { useCopy } from '../../hooks/use-copy';
 import { useIntegrationMode } from '../../hooks/use-integration-mode';
+import { DocumentTitle } from './DocumentTitle';
 
-/** Minimal route host; the application shell belongs to feature/app-shell. */
+/** Root route host: skip link, document title and integration status. */
 export function RouteFrame() {
-  const mode = useIntegrationMode();
+  const copy = useCopy();
+  const bannerShown = useIntegrationMode() !== 'backend';
+  // Shells subtract the status strip from full-height regions (admin sidebar).
+  const frameStyle = {
+    '--cp-banner-h': bannerShown ? '30px' : '0px',
+  } as CSSProperties;
   return (
-    <>
-      <a className="skip-link" href="#main-content">
-        Skip to content
+    <div style={frameStyle}>
+      <DocumentTitle />
+      <a
+        className="fixed -top-24 left-4 z-[100] rounded-lg bg-surface p-3 text-fg shadow-overlay focus:top-3"
+        href="#main-content"
+      >
+        {copy.common.skipToContent}
       </a>
-      <div className="foundation-container">
-        <Link className="wordmark" to="/">
-          CryptoPilot
-        </Link>
-        {mode === 'development-fixtures' && (
-          <Warning title="Development fixtures enabled">
-            Isolated test data; no live backend connection.
-          </Warning>
-        )}
-        {mode === 'backend-pending' && (
-          <Warning title="Backend integration pending">
-            Routes and services are prepared. Live data and sign in are not
-            connected.
-          </Warning>
-        )}
-        <main id="main-content" tabIndex={-1}>
-          <Outlet />
-        </main>
-      </div>
-    </>
+      <IntegrationBanner />
+      <Outlet />
+    </div>
   );
 }

@@ -3,12 +3,28 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#080d17" />
+    <meta name="theme-color" content="#f5f7fa" />
     <meta
       name="description"
       content="CryptoPilot — Crypto Trading Support System"
     />
+    <link rel="icon" type="image/png" href="/favicon.png" />
     <title>CryptoPilot</title>
+    <script>
+      // Apply the saved theme before first paint (ThemeProvider takes over after mount).
+      (function () {
+        var theme = 'light';
+        try {
+          var saved = localStorage.getItem('cp-theme');
+          if (saved === 'dark') theme = 'dark';
+          else if (saved === 'system')
+            theme = matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+        } catch (e) {}
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
