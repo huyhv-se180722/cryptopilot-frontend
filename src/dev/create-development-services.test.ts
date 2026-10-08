@@ -17,6 +17,7 @@ it('keeps empty market fixtures behind the same service contract without imperso
     services.auth.login({
       email: 'user@example.test',
       password: 'test-only-value',
+      rememberMe: false,
     }),
   ).rejects.toMatchObject({ code: 'NOT_CONFIGURED' });
   await expect(services.journal.list()).rejects.toMatchObject({
