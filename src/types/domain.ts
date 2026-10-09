@@ -126,7 +126,12 @@ export interface ComponentScores {
   momentum: Decimal | null;
   volume: Decimal | null;
   level: Decimal | null;
+  /** Futures only (BR-13); absent on Spot. */
+  derivatives?: Decimal | null;
 }
+
+/** Side whose evaluation gave the Futures score; not part of it (BR-13). */
+export type DominantSide = 'LONG' | 'SHORT' | 'NEUTRAL';
 
 export interface SetupScore {
   /** 0–100 integer; null = insufficient data (never shown as 0). */
@@ -137,6 +142,8 @@ export interface SetupScore {
   timeframe: CandleTimeframe;
   openTime: ISODateTime | null;
   components: ComponentScores;
+  /** Futures only; null when the score is insufficient. */
+  dominantSide?: DominantSide | null;
 }
 
 export type IndicatorName =
@@ -165,6 +172,50 @@ export interface PairAnalysis {
   nearestSupport: Decimal | null;
   nearestResistance: Decimal | null;
   setupScore: SetupScore;
+}
+
+/** A stored 5-minute open interest point (NSF-04, BR-10). */
+export interface OpenInterestPoint {
+  time: ISODateTime;
+  /** In contracts (base asset). */
+  openInterest: Decimal;
+  /** In the quote asset; null when the source gave none. */
+  openInterestValue: Decimal | null;
+}
+
+/** A stored 5-minute global long/short account ratio point (BR-10). */
+export interface LongShortPoint {
+  time: ISODateTime;
+  longShortRatio: Decimal;
+  /** Fractions of accounts, e.g. "0.6481". */
+  longAccountRatio: Decimal;
+  shortAccountRatio: Decimal;
+}
+
+/** A settled funding (BR-11): rate as a fraction at the source's instant. */
+export interface FundingSettlement {
+  fundingTime: ISODateTime;
+  fundingRate: Decimal;
+  markPrice: Decimal | null;
+}
+
+/**
+ * Futures metric series over `[from, to)`; sparse, no point assumed every
+ * 5 minutes. `availableFrom` is the earliest stored point of each series
+ * (null when none), used to state the available period (SRS 3.3.3).
+ */
+export interface FuturesMetrics {
+  symbol: string;
+  from: ISODateTime;
+  to: ISODateTime;
+  openInterest: readonly OpenInterestPoint[];
+  longShortRatio: readonly LongShortPoint[];
+  fundingSettlements: readonly FundingSettlement[];
+  availableFrom: {
+    openInterest: ISODateTime | null;
+    longShortRatio: ISODateTime | null;
+    fundingSettlements: ISODateTime | null;
+  };
 }
 export interface TradingPlan {
   id: string;

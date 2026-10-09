@@ -4,6 +4,7 @@ import { integrationPending } from './errors';
 import type { HttpClient } from './http-client';
 import {
   decodeCandles,
+  decodeFuturesMetrics,
   decodeFuturesStats,
   decodePairPage,
   decodeSpotStats,
@@ -15,6 +16,7 @@ export function createPendingMarketService(): MarketService {
     listPairs: async () => integrationPending(),
     getCandles: async () => integrationPending(),
     getTicker: async () => integrationPending(),
+    getFuturesMetrics: async () => integrationPending(),
   };
 }
 
@@ -67,6 +69,13 @@ export function createHttpMarketService(http: HttpClient): MarketService {
       http.request({
         path: `market/${market}/${encodeURIComponent(symbol)}/stats`,
         decode: market === 'spot' ? decodeSpotStats : decodeFuturesStats,
+        anonymous: true,
+        ...withSignal(signal),
+      }),
+    getFuturesMetrics: (symbol, from, signal) =>
+      http.request({
+        path: `market/futures/${encodeURIComponent(symbol)}/metrics?from=${encodeURIComponent(from)}`,
+        decode: decodeFuturesMetrics,
         anonymous: true,
         ...withSignal(signal),
       }),

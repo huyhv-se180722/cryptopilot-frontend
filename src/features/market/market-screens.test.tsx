@@ -94,6 +94,7 @@ function fakeMarket(): MarketService {
         : [pair('BTC', 'futures', 1)],
     ),
     getCandles: vi.fn(async () => CANDLES),
+    getFuturesMetrics: vi.fn(),
     getTicker: vi.fn(async () => null),
   };
 }

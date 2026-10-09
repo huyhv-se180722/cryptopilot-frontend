@@ -220,6 +220,76 @@ describe('HTTP market adapter', () => {
     ]);
   });
 
+  it('reads the futures metric series from a start instant', async () => {
+    const { market, urls, headers } = setup(() =>
+      json(200, {
+        symbol: 'BTCUSDT',
+        from: '2026-10-02T02:15:30Z',
+        to: '2026-10-03T02:15:30Z',
+        openInterest: [
+          {
+            time: '2026-10-02T02:20:00Z',
+            openInterest: '80911.004',
+            openInterestValue: null,
+          },
+        ],
+        longShortRatio: [
+          {
+            time: '2026-10-02T02:20:00Z',
+            longShortRatio: '1.7712',
+            longAccountRatio: '0.6391',
+            shortAccountRatio: '0.3609',
+          },
+        ],
+        fundingSettlements: [],
+        availableFrom: {
+          openInterest: '2026-10-02T12:00:00Z',
+          longShortRatio: '2026-10-02T12:00:00Z',
+          fundingSettlements: null,
+        },
+      }),
+    );
+    const metrics = await market.getFuturesMetrics(
+      'BTCUSDT',
+      '2026-10-02T02:15:30.000Z',
+    );
+    expect(metrics.openInterest[0]).toEqual({
+      time: '2026-10-02T02:20:00Z',
+      openInterest: '80911.004',
+      openInterestValue: null,
+    });
+    expect(metrics.longShortRatio[0]?.longAccountRatio).toBe('0.6391');
+    expect(metrics.availableFrom).toEqual({
+      openInterest: '2026-10-02T12:00:00Z',
+      longShortRatio: '2026-10-02T12:00:00Z',
+      fundingSettlements: null,
+    });
+    expect(urls[0]?.pathname).toBe('/api/v1/market/futures/BTCUSDT/metrics');
+    expect(urls[0]?.searchParams.get('from')).toBe('2026-10-02T02:15:30.000Z');
+    expect(headers[0]?.get('Authorization')).toBeNull();
+  });
+
+  it('rejects a metrics point without its value', async () => {
+    const { market } = setup(() =>
+      json(200, {
+        symbol: 'BTCUSDT',
+        from: '2026-10-02T02:15:30Z',
+        to: '2026-10-03T02:15:30Z',
+        openInterest: [{ time: '2026-10-02T02:20:00Z', openInterest: null }],
+        longShortRatio: [],
+        fundingSettlements: [],
+        availableFrom: {
+          openInterest: null,
+          longShortRatio: null,
+          fundingSettlements: null,
+        },
+      }),
+    );
+    await expect(
+      market.getFuturesMetrics('BTCUSDT', '2026-10-02T02:15:30Z'),
+    ).rejects.toMatchObject({ code: 'INVALID_RESPONSE' });
+  });
+
   it('keeps MSG41 for a pair that is not enabled', async () => {
     const { market } = setup(() =>
       json(404, { code: 'RESOURCE_NOT_FOUND', messageCode: 'MSG41' }),

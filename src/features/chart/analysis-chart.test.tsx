@@ -77,6 +77,7 @@ function render(path = '/markets/spot/BTCUSDT', count = 260) {
       },
     ]),
     getCandles: vi.fn(async () => candles(count)),
+    getFuturesMetrics: vi.fn(),
     getTicker: vi.fn(),
   };
   const marketFeed: MarketFeed = {

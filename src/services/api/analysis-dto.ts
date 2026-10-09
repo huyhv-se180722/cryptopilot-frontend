@@ -1,6 +1,7 @@
 import type {
   CandleTimeframe,
   ComponentScores,
+  DominantSide,
   IndicatorName,
   PairAnalysis,
   SetupPreset,
@@ -16,8 +17,9 @@ import {
 import { marketOf } from './market-dto';
 
 /**
- * Decoder of `GET /analysis/{market}/{symbol}` (SRS 3.3.2, checked against
- * `develop` @ 0d92def). Every value may be null: insufficient history.
+ * Decoder of `GET /analysis/{market}/{symbol}` (SRS 3.3.2, 3.3.3, checked
+ * against `develop` @ 0d92def). Every value may be null: insufficient
+ * history. Futures adds the derivatives component and the dominant side.
  */
 const INDICATORS: readonly IndicatorName[] = [
   'sma20',
@@ -35,6 +37,7 @@ const INDICATORS: readonly IndicatorName[] = [
 ];
 const PRESETS: readonly SetupPreset[] = ['SCALPING', 'DAY_TRADING', 'SWING'];
 const TIMEFRAMES: readonly CandleTimeframe[] = ['15m', '1h', '4h', '1d'];
+const SIDES: readonly DominantSide[] = ['LONG', 'SHORT', 'NEUTRAL'];
 
 function timeframeOf(value: unknown, name: string): CandleTimeframe {
   if (!TIMEFRAMES.includes(value as CandleTimeframe))
@@ -42,7 +45,12 @@ function timeframeOf(value: unknown, name: string): CandleTimeframe {
   return value as CandleTimeframe;
 }
 
-function components(value: unknown, name: string): ComponentScores {
+/** Futures adds the derivatives component (BR-13); Spot has no such key. */
+function components(
+  value: unknown,
+  name: string,
+  futures: boolean,
+): ComponentScores {
   const scores = record(value, name);
   return {
     formulaVersion: nullableText(scores.formulaVersion, 'formulaVersion'),
@@ -50,7 +58,17 @@ function components(value: unknown, name: string): ComponentScores {
     momentum: nullableDecimal(scores.momentum, 'momentum'),
     volume: nullableDecimal(scores.volume, 'volume'),
     level: nullableDecimal(scores.level, 'level'),
+    ...(futures
+      ? { derivatives: nullableDecimal(scores.derivatives, 'derivatives') }
+      : {}),
   };
+}
+
+function dominantSideOf(value: unknown): DominantSide | null {
+  if (value === null || value === undefined) return null;
+  if (!SIDES.includes(value as DominantSide))
+    throw new Error('dominantSide is not LONG, SHORT or NEUTRAL');
+  return value as DominantSide;
 }
 
 export function decodeAnalysis(body: unknown): PairAnalysis {
@@ -63,9 +81,11 @@ export function decodeAnalysis(body: unknown): PairAnalysis {
   const score = setup.score === null ? null : integer(setup.score, 'score');
   if (score !== null && (score < 0 || score > 100))
     throw new Error('score is outside 0-100');
+  const market = marketOf(value.market);
+  const futures = market === 'futures';
   return {
     symbol: text(value.symbol, 'symbol'),
-    market: marketOf(value.market),
+    market,
     timeframe: timeframeOf(value.timeframe, 'timeframe'),
     openTime: nullableInstant(value.openTime, 'openTime'),
     indicators: Object.fromEntries(
@@ -82,7 +102,12 @@ export function decodeAnalysis(body: unknown): PairAnalysis {
       presetVersion: text(setup.presetVersion, 'presetVersion'),
       timeframe: timeframeOf(setup.timeframe, 'setupScore.timeframe'),
       openTime: nullableInstant(setup.openTime, 'setupScore.openTime'),
-      components: components(setup.components, 'setupScore.components'),
+      components: components(
+        setup.components,
+        'setupScore.components',
+        futures,
+      ),
+      ...(futures ? { dominantSide: dominantSideOf(setup.dominantSide) } : {}),
     },
   };
 }

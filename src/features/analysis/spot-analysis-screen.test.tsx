@@ -137,6 +137,7 @@ async function open({
         quoteVolume: '630500',
       })),
     ),
+    getFuturesMetrics: vi.fn(),
     getTicker: vi.fn(async () => null),
   };
   const marketFeed: MarketFeed = {

@@ -7,6 +7,7 @@ import { ServiceError } from '../services/api/errors';
 import type {
   Candle,
   CandleTimeframe,
+  FuturesMetrics,
   KlineUpdate,
   MarketOverview,
   MarketTicker,
@@ -42,6 +43,9 @@ const TIMEFRAME_MS: Record<CandleTimeframe, number> = {
   '1d': DAY_MS,
 };
 const FUNDING_MS = 8 * 3_600_000;
+const METRIC_MS = 300_000;
+/** Pairs whose metrics start two days ago, to show the available period. */
+const RECENT_METRICS = new Set(['SOLUSDT', 'XRPUSDT']);
 
 function notEnabled(): never {
   throw new ServiceError('Development pair not enabled.', 'HTTP_ERROR', 404, {
@@ -163,6 +167,70 @@ export function createDevelopmentMarket(now: () => number = Date.now): {
       if (!enabled(marketType, symbol)) notEnabled();
       return ticker(marketType, symbol.toUpperCase());
     },
+    /**
+     * Sparse 5-minute points (about one in twenty missing) and an 8-hour
+     * settlement, scripted from a seeded walk; not market data.
+     */
+    async getFuturesMetrics(symbol, from, signal) {
+      signal?.throwIfAborted();
+      const pair = symbol.toUpperCase();
+      if (!enabled('futures', pair)) notEnabled();
+      const to = now();
+      const stored =
+        Math.floor(to / METRIC_MS) * METRIC_MS -
+        (RECENT_METRICS.has(pair) ? 2 : 30) * DAY_MS;
+      const walk = generator(pair.length * 104_729);
+      const price = priceOf(pair);
+      const first =
+        Math.ceil(Math.max(Date.parse(from), stored) / METRIC_MS) * METRIC_MS;
+      const openInterest: FuturesMetrics['openInterest'][number][] = [];
+      const longShortRatio: FuturesMetrics['longShortRatio'][number][] = [];
+      let contracts = 80_000;
+      let longs = 0.62;
+      for (let time = first; time < to; time += METRIC_MS) {
+        contracts *= 1 + (walk() - 0.5) * 0.004;
+        longs = Math.min(0.75, Math.max(0.4, longs + (walk() - 0.5) * 0.006));
+        if (walk() < 0.05) continue;
+        const instant = new Date(time).toISOString();
+        openInterest.push({
+          time: instant,
+          openInterest: contracts.toFixed(3),
+          openInterestValue: (contracts * price).toFixed(2),
+        });
+        longShortRatio.push({
+          time: instant,
+          longShortRatio: (longs / (1 - longs)).toFixed(4),
+          longAccountRatio: longs.toFixed(4),
+          shortAccountRatio: (1 - longs).toFixed(4),
+        });
+      }
+      const fundingSettlements: FuturesMetrics['fundingSettlements'][number][] =
+        [];
+      for (
+        let time = Math.ceil(first / FUNDING_MS) * FUNDING_MS;
+        time < to;
+        time += FUNDING_MS
+      )
+        fundingSettlements.push({
+          fundingTime: new Date(time).toISOString(),
+          fundingRate: ((walk() - 0.3) * 0.0002).toFixed(8),
+          markPrice: price.toFixed(decimalsOf(devTickSize(pair))),
+        });
+      const since = new Date(stored).toISOString();
+      return {
+        symbol: pair,
+        from,
+        to: new Date(to).toISOString(),
+        openInterest,
+        longShortRatio,
+        fundingSettlements,
+        availableFrom: {
+          openInterest: since,
+          longShortRatio: since,
+          fundingSettlements: since,
+        },
+      };
+    },
   };
 
   const listeners = new Map<
@@ -247,6 +315,7 @@ export function createDevelopmentMarket(now: () => number = Date.now): {
       const short = timeframe === '1d';
       const score = (pair.charCodeAt(0) * 7) % 101;
       const value = (number: number) => (short ? null : fixed(number));
+      const futures = marketType === 'futures';
       return {
         symbol: pair,
         market: marketType,
@@ -280,7 +349,11 @@ export function createDevelopmentMarket(now: () => number = Date.now): {
             momentum: short ? null : '60.00',
             volume: short ? null : '55.00',
             level: short ? null : '40.00',
+            ...(futures ? { derivatives: short ? null : '50.00' } : {}),
           },
+          ...(futures
+            ? { dominantSide: short ? null : score >= 50 ? 'LONG' : 'SHORT' }
+            : {}),
         },
       };
     },
