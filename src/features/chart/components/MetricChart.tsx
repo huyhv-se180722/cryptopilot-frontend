@@ -9,6 +9,8 @@ export interface MetricLine {
   colorToken: string;
   /** Left or right price scale, so two units can share the chart. */
   scale: 'left' | 'right';
+  /** Axis labels: compact (K / M / B) for amounts, 4 decimals for ratios. */
+  format: 'amount' | 'ratio';
   points: readonly { time: ISODateTime; value: Decimal }[];
 }
 
@@ -45,6 +47,10 @@ export function MetricChart({
         lineWidth: 2,
         priceScaleId: line.scale,
         priceLineVisible: false,
+        priceFormat:
+          line.format === 'amount'
+            ? { type: 'volume' as const }
+            : { type: 'price' as const, precision: 4, minMove: 0.0001 },
       });
       series.setData(
         line.points.map((point) => ({

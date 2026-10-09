@@ -185,7 +185,7 @@ export function createDevelopmentMarket(now: () => number = Date.now): {
         Math.ceil(Math.max(Date.parse(from), stored) / METRIC_MS) * METRIC_MS;
       const openInterest: FuturesMetrics['openInterest'][number][] = [];
       const longShortRatio: FuturesMetrics['longShortRatio'][number][] = [];
-      let contracts = 80_000;
+      let contracts = 5_000_000_000 / price;
       let longs = 0.62;
       for (let time = first; time < to; time += METRIC_MS) {
         contracts *= 1 + (walk() - 0.5) * 0.004;

@@ -35,6 +35,7 @@ function linesOf(metrics: FuturesMetrics, metric: Metric): MetricLine[] {
         id: 'ratio',
         colorToken: '--cp-primary',
         scale: 'right',
+        format: 'ratio',
         points: metrics.longShortRatio.map((point) => ({
           time: point.time,
           value: point.longShortRatio,
@@ -46,6 +47,7 @@ function linesOf(metrics: FuturesMetrics, metric: Metric): MetricLine[] {
       id: 'contracts',
       colorToken: '--cp-primary',
       scale: 'left',
+      format: 'amount',
       points: metrics.openInterest.map((point) => ({
         time: point.time,
         value: point.openInterest,
@@ -55,6 +57,7 @@ function linesOf(metrics: FuturesMetrics, metric: Metric): MetricLine[] {
       id: 'value',
       colorToken: '--cp-accent',
       scale: 'right',
+      format: 'amount',
       points: metrics.openInterest.flatMap((point) =>
         point.openInterestValue === null
           ? []
