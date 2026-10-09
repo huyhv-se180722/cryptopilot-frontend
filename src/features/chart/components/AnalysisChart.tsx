@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   CandlestickSeries,
-  ColorType,
   HistogramSeries,
   LineSeries,
   createChart,
@@ -35,16 +34,11 @@ import {
   type ChartIndicators,
 } from '../hooks/use-chart-series';
 import type { Series } from '../indicators/indicators';
+import { chartOptions, token, useThemeVersion } from './chart-theme';
 
 const TIMEFRAMES: readonly CandleTimeframe[] = ['15m', '1h', '4h', '1d'];
 /** Price pane 320px plus 110px per shown panel. */
 const HEIGHTS = ['h-[320px]', 'h-[430px]', 'h-[540px]', 'h-[650px]'] as const;
-
-function token(name: string) {
-  return getComputedStyle(document.documentElement)
-    .getPropertyValue(name)
-    .trim();
-}
 
 /** Which design token draws each line, so both themes follow. */
 const LINE_TOKENS = {
@@ -266,30 +260,6 @@ function build(
   return (data: Data) => writers.forEach((write) => write(data));
 }
 
-function chartOptions() {
-  return {
-    autoSize: true,
-    layout: {
-      background: { type: ColorType.Solid, color: 'transparent' },
-      textColor: token('--cp-muted'),
-      fontFamily: 'JetBrains Mono, ui-monospace, monospace',
-      fontSize: 11,
-      attributionLogo: false,
-      panes: { separatorColor: token('--cp-border') },
-    },
-    grid: {
-      vertLines: { color: token('--cp-border') },
-      horzLines: { color: token('--cp-border') },
-    },
-    rightPriceScale: { borderColor: token('--cp-border') },
-    timeScale: {
-      borderColor: token('--cp-border'),
-      timeVisible: true,
-      secondsVisible: false,
-    },
-  };
-}
-
 /**
  * SCR-10 chart (SRS 3.3.2, BR-12): timeframe 15m / 1h / 4h / 1d (default
  * 1h, BR-08), the latest 500 closed candles and the forming one drawn
@@ -324,16 +294,7 @@ export function AnalysisChart({
     '',
   );
   const places = decimalPlaces(tickSize);
-  const [theme, setTheme] = useState(0);
-
-  useEffect(() => {
-    const observer = new MutationObserver(() => setTheme((value) => value + 1));
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme'],
-    });
-    return () => observer.disconnect();
-  }, []);
+  const theme = useThemeVersion();
 
   // Declared before the rebuild so a rebuild writes the newest data.
   useEffect(() => {

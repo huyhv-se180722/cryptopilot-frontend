@@ -5,22 +5,36 @@ import { useFeature } from '../../../hooks/use-entitlement';
 import { formatCopy } from '../../../i18n/copy';
 import { messageText } from '../../../i18n/messages';
 import type { SetupScore } from '../../../types/domain';
+import { classNames } from '../../../utils/class-names';
 import { toFixedDecimal } from '../../../utils/decimal-format';
 
-const COMPONENTS = ['trend', 'momentum', 'volume', 'level'] as const;
+const COMPONENTS = [
+  'trend',
+  'momentum',
+  'volume',
+  'level',
+  'derivatives',
+] as const;
 const LABELS = {
   trend: 'componentTrend',
   momentum: 'componentMomentum',
   volume: 'componentVolume',
   level: 'componentLevel',
+  derivatives: 'componentDerivatives',
+} as const;
+const SIDE_TONE = {
+  LONG: 'border-positive-line text-positive',
+  SHORT: 'border-negative-line text-negative',
+  NEUTRAL: 'border-line text-muted',
 } as const;
 
 /**
- * SCR-10 setup score card (SRS 3.3.2, BR-13, D-53): the 0–100 score read
- * with the Trader's preset, the preset name, version and timeframe, and
- * the MSG42 disclaimer (BR-60). Component scores are for PRO and PREMIUM;
- * on FREE they are locked with MSG29 (CR-08). A null is "Insufficient
- * data", never 0.
+ * SCR-10 / SCR-11 setup score card (SRS 3.3.2, 3.3.3, BR-13, D-53): the
+ * 0–100 score read with the Trader's preset, the preset name, version and
+ * timeframe, and the MSG42 disclaimer (BR-60). Futures adds the
+ * derivatives component and shows the dominant side beside the score, not
+ * as part of it. Component scores are for PRO and PREMIUM; on FREE they
+ * are locked with MSG29 (CR-08). A null is "Insufficient data", never 0.
  */
 export function SetupScoreCard({ setup }: { setup: SetupScore }) {
   const copy = useCopy();
@@ -47,6 +61,17 @@ export function SetupScoreCard({ setup }: { setup: SetupScore }) {
               {score}
             </span>
             <span className="mb-1 text-xs text-muted-x">{a.scoreOutOf}</span>
+            {setup.dominantSide && (
+              <span
+                className={classNames(
+                  'mb-1 ml-auto rounded border px-1.5 py-0.5 text-[10px] font-semibold tracking-wider uppercase',
+                  SIDE_TONE[setup.dominantSide],
+                )}
+              >
+                <span className="sr-only">{a.dominantSide}: </span>
+                {a[`dominant${setup.dominantSide}`]}
+              </span>
+            )}
           </p>
           <div
             role="meter"
@@ -85,8 +110,10 @@ export function SetupScoreCard({ setup }: { setup: SetupScore }) {
         </div>
       ) : (
         <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
-          {COMPONENTS.map((name) => {
-            const value = setup.components[name];
+          {COMPONENTS.filter(
+            (name) => setup.components[name] !== undefined,
+          ).map((name) => {
+            const value = setup.components[name] ?? null;
             return (
               <div key={name} className="flex items-center justify-between">
                 <dt className="text-[11px] text-muted-dim">
