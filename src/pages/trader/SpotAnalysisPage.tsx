@@ -1,15 +1,113 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { ErrorState } from '../../components/feedback/States';
+import { NumericText } from '../../components/ui/NumericText';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useCopy } from '../../hooks/use-copy';
 import { errorText } from '../../i18n/messages';
+import { AnalysisActions } from '../../features/analysis/components/AnalysisActions';
+import { KeyLevels } from '../../features/analysis/components/KeyLevels';
+import { MarketStatsPanel } from '../../features/analysis/components/MarketStatsPanel';
+import { PairNews } from '../../features/analysis/components/PairNews';
+import { SetupScoreCard } from '../../features/analysis/components/SetupScoreCard';
+import { useLeaveDisabledPair } from '../../features/analysis/hooks/use-leave-disabled-pair';
+import { useLiveTicker } from '../../features/analysis/hooks/use-live-ticker';
+import { usePairAnalysis } from '../../features/analysis/hooks/use-pair-analysis';
 import { AnalysisChart } from '../../features/chart/components/AnalysisChart';
+import { FreshnessBadge } from '../../features/market/components/FreshnessBadge';
 import { useMarketPairs } from '../../features/market/hooks/use-market-data';
+import type { CandleTimeframe, MarketPair } from '../../types/domain';
+import { formatPrice, toFixedDecimal } from '../../utils/decimal-format';
+
+/** The analysis of an enabled Spot pair (rendered once the pair is known). */
+function SpotAnalysis({ pair }: { pair: MarketPair }) {
+  const copy = useCopy();
+  const [timeframe, setTimeframe] = useState<CandleTimeframe>('1h');
+  const analysis = usePairAnalysis('spot', pair.symbol, timeframe);
+  const { ticker, freshness } = useLiveTicker('spot', pair.symbol);
+  useLeaveDisabledPair(analysis.error);
+  const data = analysis.data;
+
+  return (
+    <>
+      <header className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-2">
+        <h1 className="text-lg font-semibold text-fg">
+          {pair.baseAsset ?? pair.symbol}
+          <span className="font-normal text-muted-dim">
+            /{pair.quoteAsset ?? ''}
+          </span>
+          <span className="ml-2 rounded border border-line px-1.5 align-middle text-[10px] font-semibold tracking-wider text-muted uppercase">
+            {copy.market.spot}
+          </span>
+        </h1>
+        {ticker?.lastPrice && (
+          <span className="flex items-baseline gap-2">
+            <NumericText
+              className="text-lg font-semibold text-fg"
+              value={formatPrice(ticker.lastPrice, pair.tickSize)}
+            />
+            {ticker.changePercent24h && (
+              <NumericText
+                signed
+                className="text-xs"
+                value={toFixedDecimal(ticker.changePercent24h, 2)}
+                suffix="%"
+              />
+            )}
+          </span>
+        )}
+        <span className="ml-auto">
+          <FreshnessBadge freshness={freshness} />
+        </span>
+      </header>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="flex min-w-0 flex-col gap-4">
+          <AnalysisChart
+            market="spot"
+            symbol={pair.symbol}
+            tickSize={pair.tickSize}
+            timeframe={timeframe}
+            onTimeframeChange={setTimeframe}
+            {...(data
+              ? {
+                  levels: {
+                    support: data.nearestSupport,
+                    resistance: data.nearestResistance,
+                  },
+                }
+              : {})}
+          />
+          <PairNews coin={pair.baseAsset ?? pair.symbol} />
+        </div>
+        <div className="flex flex-col gap-4">
+          {analysis.isPending ? (
+            <Skeleton className="h-64 w-full" />
+          ) : analysis.isError ? (
+            <ErrorState
+              message={errorText(copy, analysis.error)}
+              onRetry={() => void analysis.refetch()}
+            />
+          ) : (
+            <SetupScoreCard setup={analysis.data.setupScore} />
+          )}
+          <MarketStatsPanel ticker={ticker} tickSize={pair.tickSize} />
+          <KeyLevels
+            support={data?.nearestSupport ?? null}
+            resistance={data?.nearestResistance ?? null}
+            tickSize={pair.tickSize}
+          />
+          <AnalysisActions symbol={pair.symbol} />
+        </div>
+      </div>
+    </>
+  );
+}
 
 /**
- * SCR-10 Spot Pair Analysis (SRS 3.3.2): the pair header and the analysis
- * chart. The setup score card, statistics, levels and actions are T-033.
+ * SCR-10 Spot Pair Analysis (SRS 3.3.2, UC-10): live price, the analysis
+ * chart with BR-14 levels, the setup score card (preset, version,
+ * disclaimer), market statistics, key levels, actions and the coin's news.
  */
 export function SpotAnalysisPage() {
   const copy = useCopy();
@@ -43,22 +141,7 @@ export function SpotAnalysisPage() {
           {copy.chart.pairUnavailable}
         </p>
       ) : (
-        <>
-          <h1 className="mb-4 text-lg font-semibold text-fg">
-            {pair.baseAsset ?? pair.symbol}
-            <span className="font-normal text-muted-dim">
-              /{pair.quoteAsset ?? ''}
-            </span>
-            <span className="ml-2 rounded border border-line px-1.5 align-middle text-[10px] font-semibold tracking-wider text-muted uppercase">
-              {copy.market.spot}
-            </span>
-          </h1>
-          <AnalysisChart
-            market="spot"
-            symbol={pair.symbol}
-            tickSize={pair.tickSize}
-          />
-        </>
+        <SpotAnalysis key={pair.symbol} pair={pair} />
       )}
     </div>
   );

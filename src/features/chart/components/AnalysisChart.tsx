@@ -82,7 +82,18 @@ interface Data {
  * then one pane per shown panel (Volume, RSI, MACD). Returns a function
  * that writes the data into the series it created.
  */
-function build(chart: IChartApi, toggles: ChartToggles, places: number) {
+export interface PriceLevels {
+  support: string | null;
+  resistance: string | null;
+}
+
+function build(
+  chart: IChartApi,
+  toggles: ChartToggles,
+  places: number,
+  levels: PriceLevels | undefined,
+  labels: { support: string; resistance: string },
+) {
   const up = token('--cp-positive');
   const down = token('--cp-negative');
   const upDim = token('--cp-positive-dim');
@@ -105,6 +116,20 @@ function build(chart: IChartApi, toggles: ChartToggles, places: number) {
     borderVisible: false,
     priceFormat: { type: 'price', precision: places, minMove },
   });
+  // BR-14: nearest support and resistance as horizontal lines.
+  for (const [price, colour, title] of [
+    [levels?.support ?? null, up, labels.support],
+    [levels?.resistance ?? null, down, labels.resistance],
+  ] as const)
+    if (price !== null)
+      candles.createPriceLine({
+        price: Number(price),
+        color: colour,
+        lineWidth: 1,
+        lineStyle: 1,
+        axisLabelVisible: true,
+        title,
+      });
   writers.push(({ candles: closed, forming }) => {
     const bars: CandlestickData<UTCTimestamp>[] = closed.map((candle) => ({
       time: time(candle),
@@ -276,14 +301,19 @@ export function AnalysisChart({
   market,
   symbol,
   tickSize,
+  timeframe,
+  onTimeframeChange,
+  levels,
 }: {
   market: MarketType;
   symbol: string;
   tickSize: string | null;
+  timeframe: CandleTimeframe;
+  onTimeframeChange: (timeframe: CandleTimeframe) => void;
+  levels?: PriceLevels;
 }) {
   const copy = useCopy();
   const c = copy.chart;
-  const [timeframe, setTimeframe] = useState<CandleTimeframe>('1h');
   const { toggles, toggle } = useChartPreferences();
   const series = useChartSeries(market, symbol, timeframe);
   const container = useRef<HTMLDivElement>(null);
@@ -314,7 +344,10 @@ export function AnalysisChart({
   useEffect(() => {
     if (!ready || !container.current) return;
     const chart = createChart(container.current, chartOptions());
-    write.current = build(chart, toggles, places);
+    write.current = build(chart, toggles, places, levels, {
+      support: copy.analysis.support,
+      resistance: copy.analysis.resistance,
+    });
     write.current(latest.current);
     chart.timeScale().fitContent();
     return () => {
@@ -322,7 +355,7 @@ export function AnalysisChart({
       chart.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `toggles` is read through `togglesKey`.
-  }, [ready, togglesKey, places, theme]);
+  }, [ready, togglesKey, places, theme, levels?.support, levels?.resistance]);
 
   useEffect(() => {
     write.current?.({
@@ -345,7 +378,7 @@ export function AnalysisChart({
         <SegmentedControl
           label={c.timeframeLabel}
           value={timeframe}
-          onChange={setTimeframe}
+          onChange={onTimeframeChange}
           options={TIMEFRAMES.map((value) => ({ value, label: value }))}
         />
         <div

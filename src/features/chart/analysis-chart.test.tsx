@@ -62,7 +62,7 @@ const candles = (count: number): Candle[] =>
   }));
 
 function render(path = '/markets/spot/BTCUSDT', count = 260) {
-  let kline: ((update: KlineUpdate) => void) | null = null;
+  const klines = new Set<(update: KlineUpdate) => void>();
   const market: MarketService = {
     listPairs: vi.fn(async () => [
       {
@@ -85,8 +85,8 @@ function render(path = '/markets/spot/BTCUSDT', count = 260) {
     subscribeOverview: () => () => undefined,
     subscribeTicker: () => () => undefined,
     subscribeKline: (_m, _s, _t, listener) => {
-      kline = listener;
-      return () => undefined;
+      klines.add(listener);
+      return () => klines.delete(listener);
     },
   };
   const ready = renderRoutes(
@@ -95,7 +95,8 @@ function render(path = '/markets/spot/BTCUSDT', count = 260) {
     fakeAuth(),
     { market, marketFeed },
   );
-  const push = (update: KlineUpdate) => act(() => kline?.(update));
+  const push = (update: KlineUpdate) =>
+    act(() => klines.forEach((listener) => listener(update)));
   return { ready, market, push };
 }
 
