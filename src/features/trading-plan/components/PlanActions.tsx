@@ -8,15 +8,8 @@ import { buttonClassName } from '../../../components/ui/button-styles';
 import { useCopy } from '../../../hooks/use-copy';
 import { useToast } from '../../../hooks/use-toast';
 import { errorText, messageText } from '../../../i18n/messages';
-import { problemOf } from '../../../services/api/errors';
 import type { TradingPlan } from '../../../types/domain';
 import { usePlanActions } from '../hooks/use-plans';
-
-/** Answers after which the shown plan is out of date (another tab, a fill). */
-const STALE = new Set([
-  'TRADING_PLAN_STATUS_TRANSITION_INVALID',
-  'DATA_CONFLICT',
-]);
 
 /**
  * SCR-18 actions (SRS 3.5.3): Edit while DRAFT (SCR-17), Activate for a
@@ -29,38 +22,19 @@ export function PlanActions({ plan }: { plan: TradingPlan }) {
   const copy = useCopy();
   const p = copy.plan;
   const { show } = useToast();
-  const { activate, cancel, reload } = usePlanActions(plan.id);
+  const { activate, cancel, pending, error, errorCode } = usePlanActions(
+    plan.id,
+  );
   const [confirming, setConfirming] = useState(false);
-  const busy = activate.pending || cancel.pending;
-  const failed =
-    activate.state.status === 'error'
-      ? activate.state.error
-      : cancel.state.status === 'error'
-        ? cancel.state.error
-        : null;
-  const problem = problemOf(failed);
 
   async function onActivate() {
-    cancel.reset();
-    const result = await activate.run();
-    if (result.status === 'success')
+    if (await activate())
       show({ tone: 'success', message: messageText(copy, 'MSG19') });
-    else if (
-      result.status === 'error' &&
-      STALE.has(problemOf(result.error)?.code ?? '')
-    )
-      reload();
   }
 
   async function onCancel() {
-    activate.reset();
     setConfirming(false);
-    const result = await cancel.run();
-    if (
-      result.status === 'error' &&
-      STALE.has(problemOf(result.error)?.code ?? '')
-    )
-      reload();
+    await cancel();
   }
 
   const canCancel = plan.status === 'DRAFT' || plan.status === 'ACTIVE';
@@ -79,7 +53,7 @@ export function PlanActions({ plan }: { plan: TradingPlan }) {
         {plan.status === 'DRAFT' && (
           <Button
             onClick={() => void onActivate()}
-            disabled={busy}
+            disabled={pending}
             aria-describedby={
               plan.blocksActivation ? 'plan-blocked-note' : undefined
             }
@@ -92,7 +66,7 @@ export function PlanActions({ plan }: { plan: TradingPlan }) {
           <Button
             variant="danger"
             onClick={() => setConfirming(true)}
-            disabled={busy}
+            disabled={pending}
           >
             <X size={14} aria-hidden="true" />
             {p.cancel}
@@ -104,18 +78,18 @@ export function PlanActions({ plan }: { plan: TradingPlan }) {
           {messageText(copy, 'MSG18')}
         </p>
       )}
-      {failed !== null && (
+      {error !== null && (
         <Alert
           tone="danger"
-          title={errorText(copy, failed)}
+          title={errorText(copy, error)}
           className="mt-3 w-full"
         >
-          {problem?.code === 'PLAN_LIMIT_REACHED' && (
+          {errorCode === 'PLAN_LIMIT_REACHED' && (
             <Link to="/subscription" className="font-medium">
               {p.upgrade}
             </Link>
           )}
-          {problem?.code === 'TRADING_BLOCKING_WARNING' && p.blockedHint}
+          {errorCode === 'TRADING_BLOCKING_WARNING' && p.blockedHint}
         </Alert>
       )}
       <Dialog
