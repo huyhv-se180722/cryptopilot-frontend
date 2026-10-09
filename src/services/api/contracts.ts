@@ -13,6 +13,8 @@ import type {
   MarketTicker,
   MarketType,
   PairAnalysis,
+  PlanListQuery,
+  PlanPage,
   NewsArticle,
   PriceAlert,
   ProfileUpdate,
@@ -106,7 +108,18 @@ export interface AnalysisService {
     signal?: AbortSignal,
   ): Promise<PairAnalysis>;
 }
-export type TradingPlanService = ReadService<TradingPlan>;
+/**
+ * Trading plans of the signed-in Trader (`/plans/**`; SRS 3.5.2, 3.5.3).
+ * Create, edit and the live calculation belong to SCR-17.
+ */
+export interface TradingPlanService {
+  list(query: PlanListQuery, signal?: AbortSignal): Promise<PlanPage>;
+  get(id: string, signal?: AbortSignal): Promise<TradingPlan>;
+  /** DRAFT → ACTIVE after the server re-checks price, warnings and limit (UC-18). */
+  activate(id: string): Promise<TradingPlan>;
+  /** DRAFT or ACTIVE → CANCELLED (UC-19). */
+  cancel(id: string): Promise<TradingPlan>;
+}
 export type JournalService = ReadService<JournalEntry>;
 export type AlertsService = ReadService<PriceAlert>;
 export type CommunityService = ReadService<CommunityPost>;
