@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { createDevelopmentServices } from './create-development-services';
 import { createDevelopmentAuth } from './dev-auth';
 import { createDevelopmentMarket } from './dev-market';
-import { DEV_PASSWORD, DEV_TOKENS } from './fixtures/auth';
+import { createDevelopmentTradingPlan } from './dev-trading-plan';
+import { DEV_PASSWORD, DEV_TOKENS, devPrincipals } from './fixtures/auth';
+import type { Session } from '../types/domain';
 import { createServices } from '../app/providers/create-services';
 
 async function devServices() {
@@ -287,5 +289,62 @@ describe('development market seam', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('development plan seam', () => {
+  const free: Session = {
+    ...devPrincipals[0]!,
+    entitlements: {
+      tier: 'FREE',
+      features: [],
+      limits: { ACTIVE_PLAN_MAX: 3 },
+    },
+  };
+
+  it('filters by tab, market and period, newest first', async () => {
+    const plans = createDevelopmentTradingPlan(async () => free);
+    const drafts = await plans.list({ tab: 'DRAFT', page: 1, pageSize: 20 });
+    expect(drafts.items.map((row) => row.status)).toEqual([
+      'DRAFT',
+      'DRAFT',
+      'DRAFT',
+    ]);
+    const closed = await plans.list({
+      tab: 'CANCELLED_EXPIRED',
+      page: 1,
+      pageSize: 20,
+      from: new Date(Date.now() - 30 * 86_400_000).toISOString(),
+    });
+    expect(closed.items.map((row) => row.status)).toEqual(['CANCELLED']);
+    const futures = await plans.list({
+      tab: 'ACTIVE',
+      market: 'futures',
+      page: 1,
+      pageSize: 20,
+    });
+    expect(futures.total).toBe(1);
+  });
+
+  it('refuses like the backend: MSG18, MSG27, MSG43 and MSG41', async () => {
+    const plans = createDevelopmentTradingPlan(async () => free);
+    const draft = (n: number) => `0199a2c4-0000-7000-8000-00000000000${n}`;
+    await expect(plans.activate(draft(3))).rejects.toMatchObject({
+      problem: { messageCode: 'MSG18' },
+    });
+    expect((await plans.activate(draft(1))).status).toBe('ACTIVE');
+    await expect(plans.activate(draft(2))).rejects.toMatchObject({
+      problem: {
+        messageCode: 'MSG27',
+        messageArgs: ['3', 'active plans and open positions', 'FREE'],
+      },
+    });
+    await expect(plans.activate(draft(1))).rejects.toMatchObject({
+      problem: { code: 'TRADING_PLAN_STATUS_TRANSITION_INVALID' },
+    });
+    expect((await plans.cancel(draft(2))).status).toBe('CANCELLED');
+    await expect(plans.get('missing')).rejects.toMatchObject({
+      problem: { messageCode: 'MSG41' },
+    });
   });
 });
