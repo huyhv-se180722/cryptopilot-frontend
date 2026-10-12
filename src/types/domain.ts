@@ -91,14 +91,28 @@ export interface MarketOverview {
 
 export type CandleTimeframe = '15m' | '1h' | '4h' | '1d';
 
-/** A closed candle; prices stay decimal strings. */
+/** A candle; prices stay decimal strings. */
 export interface Candle {
   openTime: ISODateTime;
   open: Decimal;
   high: Decimal;
   low: Decimal;
   close: Decimal;
+  /** Volume in the base asset (the Volume panel and its SMA20, BR-12). */
+  baseVolume: Decimal;
   quoteVolume: Decimal;
+}
+
+/**
+ * A candle as the stream reports it (`/topic/kline.*`): `closed: false`
+ * is the forming candle, drawn as provisional (SRS 3.3.2).
+ */
+export interface KlineUpdate {
+  market: MarketType;
+  symbol: string;
+  timeframe: CandleTimeframe;
+  closed: boolean;
+  candle: Candle;
 }
 export interface CoinAnalysis {
   symbol: string;

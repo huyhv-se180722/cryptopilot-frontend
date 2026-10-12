@@ -1,7 +1,6 @@
 import { Client, ReconnectionTimeMode } from '@stomp/stompjs';
-import type { MarketOverview, MarketType } from '../../types/domain';
 import type { FeedStatus, MarketFeed } from '../api/contracts';
-import { decodeOverview } from '../api/market-dto';
+import { decodeKline, decodeOverview } from '../api/market-dto';
 
 /** The part of the STOMP client the feed uses; tests pass a fake. */
 export type StompConnection = Pick<
@@ -29,10 +28,7 @@ function createStompClient(url: string): StompConnection {
   });
 }
 
-type Listener = (overview: MarketOverview) => void;
-
-const destinationOf = (market: MarketType) =>
-  '/topic/overview.' + market.toUpperCase();
+type Listener = (body: unknown) => void;
 
 /**
  * Public market topics over one STOMP connection (`/ws`, no SockJS). The
@@ -62,13 +58,13 @@ export function createStompMarketFeed(
     active.set(
       destination,
       connection.subscribe(destination, (message) => {
-        let overview: MarketOverview;
+        let body: unknown;
         try {
-          overview = decodeOverview(JSON.parse(message.body));
+          body = JSON.parse(message.body);
         } catch {
           return;
         }
-        listeners.get(destination)?.forEach((listener) => listener(overview));
+        listeners.get(destination)?.forEach((listener) => listener(body));
       }),
     );
   };
@@ -104,6 +100,42 @@ export function createStompMarketFeed(
     void current?.deactivate();
   };
 
+  /** Adds a listener to a destination; bodies that do not decode are dropped. */
+  function follow<T>(
+    destination: string,
+    decode: (body: unknown) => T,
+    listener: (value: T) => void,
+  ): () => void {
+    const receive: Listener = (body) => {
+      let value: T;
+      try {
+        value = decode(body);
+      } catch {
+        return;
+      }
+      listener(value);
+    };
+    let set = listeners.get(destination);
+    if (!set) {
+      set = new Set();
+      listeners.set(destination, set);
+    }
+    set.add(receive);
+    open();
+    subscribeOnServer(destination);
+    let subscribed = true;
+    return () => {
+      if (!subscribed) return;
+      subscribed = false;
+      set.delete(receive);
+      if (set.size > 0) return;
+      listeners.delete(destination);
+      active.get(destination)?.unsubscribe();
+      active.delete(destination);
+      if (listeners.size === 0) close();
+    };
+  }
+
   return {
     status: () => status,
     onStatus(listener) {
@@ -112,27 +144,17 @@ export function createStompMarketFeed(
         statusListeners.delete(listener);
       };
     },
-    subscribeOverview(market, listener) {
-      const destination = destinationOf(market);
-      let set = listeners.get(destination);
-      if (!set) {
-        set = new Set();
-        listeners.set(destination, set);
-      }
-      set.add(listener);
-      open();
-      subscribeOnServer(destination);
-      let subscribed = true;
-      return () => {
-        if (!subscribed) return;
-        subscribed = false;
-        set.delete(listener);
-        if (set.size > 0) return;
-        listeners.delete(destination);
-        active.get(destination)?.unsubscribe();
-        active.delete(destination);
-        if (listeners.size === 0) close();
-      };
-    },
+    subscribeOverview: (market, listener) =>
+      follow(
+        '/topic/overview.' + market.toUpperCase(),
+        decodeOverview,
+        listener,
+      ),
+    subscribeKline: (market, symbol, timeframe, listener) =>
+      follow(
+        `/topic/kline.${market.toUpperCase()}.${symbol.toUpperCase()}.${timeframe}`,
+        decodeKline,
+        listener,
+      ),
   };
 }

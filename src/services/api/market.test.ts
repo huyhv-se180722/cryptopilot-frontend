@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createHttpClient } from './http-client';
 import { createHttpMarketService, createPendingMarketService } from './market';
-import { decodeOverview, decodePairPage, decodeTicker } from './market-dto';
+import {
+  decodeKline,
+  decodeOverview,
+  decodePairPage,
+  decodeTicker,
+} from './market-dto';
 
 /** Response shapes of the backend `/market/**` endpoints on develop @ 0d92def. */
 const pair = (symbol: string, displayOrder: number) => ({
@@ -76,6 +81,45 @@ describe('market decoders', () => {
       }).tickers[0]?.market,
     ).toBe('futures');
     expect(() => decodePairPage({ items: [{}], total: 1 })).toThrow();
+  });
+});
+
+describe('kline decoder', () => {
+  const KLINE = {
+    market: 'SPOT',
+    symbol: 'BTCUSDT',
+    timeframe: '1h',
+    openTime: '2026-10-03T02:00:00Z',
+    closeTime: '2026-10-03T02:59:59.999Z',
+    open: '63000.00',
+    high: '63100.00',
+    low: '62950.00',
+    close: '63050.00',
+    baseVolume: '120.5',
+    quoteVolume: '7597000.25',
+    closed: false,
+    sourceTime: '2026-10-03T02:15:04Z',
+  };
+  it('keeps the forming flag and the candle as decimal strings', () => {
+    expect(decodeKline(KLINE)).toEqual({
+      market: 'spot',
+      symbol: 'BTCUSDT',
+      timeframe: '1h',
+      closed: false,
+      candle: {
+        openTime: '2026-10-03T02:00:00Z',
+        open: '63000.00',
+        high: '63100.00',
+        low: '62950.00',
+        close: '63050.00',
+        baseVolume: '120.5',
+        quoteVolume: '7597000.25',
+      },
+    });
+  });
+  it('rejects an unknown timeframe or a missing flag', () => {
+    expect(() => decodeKline({ ...KLINE, timeframe: '5m' })).toThrow();
+    expect(() => decodeKline({ ...KLINE, closed: 'no' })).toThrow();
   });
 });
 
@@ -158,6 +202,7 @@ describe('HTTP market adapter', () => {
       high: '2',
       low: '0.5',
       close: '1.5',
+      baseVolume: '10',
       quoteVolume: '15',
     });
     expect(await market.getTicker('spot', 'BTCUSDT')).toBeNull();

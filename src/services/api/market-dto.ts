@@ -1,5 +1,7 @@
 import type {
   Candle,
+  CandleTimeframe,
+  KlineUpdate,
   MarketOverview,
   MarketPair,
   MarketTicker,
@@ -53,19 +55,43 @@ export function decodePairPage(body: unknown): PairPage {
   };
 }
 
+function decodeCandle(item: unknown, name: string): Candle {
+  const candle = record(item, name);
+  return {
+    openTime: instant(candle.openTime, 'openTime'),
+    open: decimal(candle.open, 'open'),
+    high: decimal(candle.high, 'high'),
+    low: decimal(candle.low, 'low'),
+    close: decimal(candle.close, 'close'),
+    baseVolume: decimal(candle.baseVolume, 'baseVolume'),
+    quoteVolume: decimal(candle.quoteVolume, 'quoteVolume'),
+  };
+}
+
 export function decodeCandles(body: unknown): readonly Candle[] {
   const value = record(body);
-  return list(value.candles, 'candles').map((item, index) => {
-    const candle = record(item, 'candles[' + index + ']');
-    return {
-      openTime: instant(candle.openTime, 'openTime'),
-      open: decimal(candle.open, 'open'),
-      high: decimal(candle.high, 'high'),
-      low: decimal(candle.low, 'low'),
-      close: decimal(candle.close, 'close'),
-      quoteVolume: decimal(candle.quoteVolume, 'quoteVolume'),
-    };
-  });
+  return list(value.candles, 'candles').map((item, index) =>
+    decodeCandle(item, 'candles[' + index + ']'),
+  );
+}
+
+const TIMEFRAMES: readonly CandleTimeframe[] = ['15m', '1h', '4h', '1d'];
+
+/** One message of `/topic/kline.{MARKET}.{SYMBOL}.{tf}`. */
+export function decodeKline(body: unknown): KlineUpdate {
+  const value = record(body, 'kline');
+  const timeframe = value.timeframe;
+  if (!TIMEFRAMES.includes(timeframe as CandleTimeframe))
+    throw new Error('timeframe is not 15m, 1h, 4h or 1d');
+  if (typeof value.closed !== 'boolean')
+    throw new Error('closed must be a boolean');
+  return {
+    market: marketOf(value.market),
+    symbol: text(value.symbol, 'symbol'),
+    timeframe: timeframe as CandleTimeframe,
+    closed: value.closed,
+    candle: decodeCandle(value, 'kline'),
+  };
 }
 
 /** One ticker of the stream (`/topic/ticker.*` and each overview item). */
