@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { PlanDetailPage } from '../../pages/trader/PlanDetailPage';
+import { PlanEditPage } from '../../pages/trader/PlanEditPage';
 import { PlansPage } from '../../pages/trader/PlansPage';
 import type { TradingPlanService } from '../../services/api/contracts';
 import { ServiceError } from '../../services/api/errors';
@@ -140,7 +141,11 @@ async function open(
 ) {
   const session: Session = { ...testTrader, entitlements: plan(tier) };
   await renderRoutes(
-    [page('/plans', <PlansPage />), page('/plans/:planId', <PlanDetailPage />)],
+    [
+      page('/plans', <PlansPage />),
+      page('/plans/:planId', <PlanDetailPage />),
+      page('/plans/:planId/edit', <PlanEditPage />),
+    ],
     path,
     fakeAuth({ restoreSession: async () => session }),
     { tradingPlan: service },
@@ -412,5 +417,217 @@ describe('SCR-18 plan detail (T-041)', () => {
         'This plan was not found. It may belong to another account.',
       ),
     ).toBeTruthy();
+  });
+});
+
+const SPOT_DRAFT: TradingPlan = {
+  ...PLAN,
+  market: 'spot',
+  direction: 'LONG',
+  entryPrice: '62000.000000000000',
+  stopLoss: '60000.000000000000',
+  takeProfit: '66000.000000000000',
+  leverage: null,
+  marginMode: null,
+  warnings: [],
+  snapshot: {
+    ...PLAN.snapshot,
+    initialMargin: null,
+    maintenanceMarginRateUsed: null,
+    estimatedLiquidationPrice: null,
+  },
+};
+
+describe('SCR-17 edit a draft plan (T-040)', () => {
+  const editPath = '/plans/' + SPOT_DRAFT.id + '/edit';
+  const calculation = (overrides: Partial<TradingPlan['snapshot']> = {}) => ({
+    entryPrice: '62000.00',
+    capital: '1000',
+    riskPercent: '1',
+    snapshot: { ...SPOT_DRAFT.snapshot, ...overrides },
+    warnings: [],
+    blocksActivation: false,
+  });
+
+  it('prefills the draft and recalculates on the server as the Trader types', async () => {
+    const service = fakePlans({
+      get: vi.fn(async () => SPOT_DRAFT),
+      calculate: vi.fn(async (_pair, inputs) =>
+        calculation({
+          riskAmount: inputs.capital === '2000' ? '20.00000000' : '10.00000000',
+        }),
+      ),
+    });
+    await open(editPath, service);
+    const capital = await screen.findByLabelText('Capital (USDT)');
+    expect((capital as HTMLInputElement).value).toBe('1000');
+    expect((screen.getByLabelText('Stop loss') as HTMLInputElement).value).toBe(
+      '60000',
+    );
+    const panel = within(
+      screen.getByRole('region', { name: 'Risk calculation' }),
+    );
+    expect(
+      (await panel.findByText('Risk (USDT)')).nextSibling?.textContent,
+    ).toBe('10.00');
+    const user = userEvent.setup();
+    await user.clear(capital);
+    await user.type(capital, '2000');
+    await waitFor(() =>
+      expect(panel.getByText('Risk (USDT)').nextSibling?.textContent).toBe(
+        '20.00',
+      ),
+    );
+    expect(vi.mocked(service.calculate).mock.calls.at(-1)?.[0]).toBe(
+      SPOT_DRAFT.pairId,
+    );
+    expect(vi.mocked(service.calculate).mock.calls.at(-1)?.[1]).toMatchObject({
+      market: 'spot',
+      direction: 'LONG',
+      capital: '2000',
+      leverage: null,
+    });
+  });
+
+  it('shows MSG16 under the stop loss and sends nothing while the order is wrong', async () => {
+    const service = fakePlans({ get: vi.fn(async () => SPOT_DRAFT) });
+    await open(editPath, service);
+    const stop = await screen.findByLabelText('Stop loss');
+    await waitFor(() => expect(service.calculate).toHaveBeenCalled());
+    vi.mocked(service.calculate).mockClear();
+    const user = userEvent.setup();
+    await user.clear(stop);
+    await user.type(stop, '63000');
+    expect(
+      await screen.findByText(
+        'For long positions: stop loss < entry price < take profit.',
+      ),
+    ).toBeTruthy();
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(service.calculate).not.toHaveBeenCalled();
+  });
+
+  it('saves as draft with MSG14 and returns to the plan', async () => {
+    const service = fakePlans({
+      get: vi.fn(async () => SPOT_DRAFT),
+      calculate: vi.fn(async () => calculation()),
+    });
+    await open(editPath, service);
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole('button', { name: 'Save as draft' }),
+    );
+    expect(await screen.findByText('Saved successfully.')).toBeTruthy();
+    expect(service.update).toHaveBeenCalledWith(
+      SPOT_DRAFT.id,
+      expect.objectContaining({ stopLoss: '60000', entryPrice: '62000' }),
+      false,
+    );
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Plan 0000a1b2' }),
+    ).toBeTruthy();
+  });
+
+  it('refuses activation with MSG27 and the plans link, nothing saved', async () => {
+    const service = fakePlans({
+      get: vi.fn(async () => SPOT_DRAFT),
+      calculate: vi.fn(async () => calculation()),
+      update: vi.fn(async () => {
+        throw refusal(409, 'PLAN_LIMIT_REACHED', 'MSG27', [
+          '3',
+          'active plans and open positions',
+          'FREE',
+        ]);
+      }),
+    });
+    await open(editPath, service);
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole('button', { name: 'Save and activate' }),
+    );
+    expect(
+      await screen.findByText(
+        'You have reached the limit of 3 active plans and open positions of the FREE plan. Upgrade to increase the limit?',
+      ),
+    ).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'View plans' })).toBeTruthy();
+    expect(vi.mocked(service.update).mock.calls[0]?.[2]).toBe(true);
+  });
+
+  it('disables activation while a blocking warning exists (MSG18)', async () => {
+    const service = fakePlans({
+      get: vi.fn(async () => SPOT_DRAFT),
+      calculate: vi.fn(async () => ({
+        ...calculation(),
+        warnings: [
+          {
+            type: 'INSUFFICIENT_CAPITAL' as const,
+            severity: 'BLOCKING' as const,
+          },
+        ],
+        blocksActivation: true,
+      })),
+    });
+    await open(editPath, service);
+    await waitFor(() =>
+      expect(
+        (
+          screen.getByRole('button', {
+            name: 'Save and activate',
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(true),
+    );
+    expect(
+      screen.getByText(
+        'This plan has blocking warnings and cannot be activated.',
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByText('Not enough capital for this position'),
+    ).toBeTruthy();
+  });
+
+  it('shows a server field error under its field', async () => {
+    const service = fakePlans({
+      get: vi.fn(async () => SPOT_DRAFT),
+      calculate: vi.fn(async () => {
+        throw new ServiceError('refused', 'HTTP_ERROR', 400, {
+          status: 400,
+          code: 'VALIDATION_FAILED',
+          messageCode: 'MSG01',
+          messageArgs: [],
+          fieldErrors: { takeProfit: 'MSG16' },
+        });
+      }),
+    });
+    await open(editPath, service);
+    expect(
+      await screen.findByText(
+        'For long positions: stop loss < entry price < take profit.',
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByLabelText('Take profit').getAttribute('aria-invalid'),
+    ).toBe('true');
+  });
+
+  it('keeps a plan that is not a draft read-only (BR-32)', async () => {
+    await open(
+      editPath,
+      fakePlans({
+        get: vi.fn(async () => ({
+          ...SPOT_DRAFT,
+          status: 'ACTIVE' as const,
+          editable: false,
+        })),
+      }),
+    );
+    expect(
+      await screen.findByText(
+        /Only draft plans can be edited\. This plan is active\./,
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Save as draft' })).toBeNull();
   });
 });
