@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMutation } from '../../../hooks/use-mutation';
 import { useServices } from '../../../hooks/use-services';
+import { problemOf } from '../../../services/api/errors';
 import type {
   SetupScore,
   WatchlistItem,
@@ -53,6 +54,17 @@ export function useWatchlistScores(symbols: readonly string[]) {
       return scores as ReadonlyMap<string, SetupScore>;
     },
   });
+}
+
+/**
+ * The alert count of a MSG26 refusal (every alert of the row, D-76), to
+ * show in the confirmation and send back; null for any other answer.
+ */
+export function confirmationCount(error: unknown): number | null {
+  const problem = problemOf(error);
+  if (problem?.messageCode !== 'MSG26') return null;
+  const count = Number(problem.messageArgs[1]);
+  return Number.isInteger(count) && count >= 0 ? count : null;
 }
 
 /** The positions that changed when `ordered` replaces the current order. */

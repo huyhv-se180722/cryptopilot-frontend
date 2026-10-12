@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-query';
 import { useMutation } from '../../../hooks/use-mutation';
 import { useServices } from '../../../hooks/use-services';
+import { problemOf } from '../../../services/api/errors';
 import type {
   Alert,
   AlertRule,
@@ -100,4 +101,20 @@ export function useAlertActions() {
       [alerts, refresh],
     ),
   );
+}
+
+/**
+ * What a refused action means for the screen: a plan limit (MSG27) or a
+ * feature outside the plan (MSG29) offer the plans page; an expired alert
+ * cannot be resumed and must be edited (`errors.expiresAt`).
+ */
+export function refusalKind(error: unknown): 'upgrade' | 'expired' | 'other' {
+  const problem = problemOf(error);
+  if (
+    problem?.code === 'PLAN_LIMIT_REACHED' ||
+    problem?.code === 'PLAN_FEATURE_NOT_INCLUDED'
+  )
+    return 'upgrade';
+  if (problem?.fieldErrors.expiresAt) return 'expired';
+  return 'other';
 }
