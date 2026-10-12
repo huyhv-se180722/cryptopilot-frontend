@@ -236,6 +236,19 @@ describe('development market seam', () => {
     }
   });
 
+  it('scripts an analysis with levels around the price and nulls on 1d', async () => {
+    const { analysis } = createDevelopmentMarket();
+    const hourly = await analysis.get('spot', 'BTCUSDT', '1h');
+    expect(hourly.setupScore.score).not.toBeNull();
+    expect(hourly.nearestSupport).toMatch(/^\d+\.\d{2}$/);
+    const daily = await analysis.get('spot', 'BTCUSDT', '1d');
+    expect(daily.setupScore.score).toBeNull();
+    expect(daily.indicators.ema200).toBeNull();
+    await expect(analysis.get('spot', 'NOPEUSDT', '1h')).rejects.toMatchObject({
+      problem: { messageCode: 'MSG41' },
+    });
+  });
+
   it('publishes the overview of each subscribed market until the last stops', async () => {
     vi.useFakeTimers();
     try {

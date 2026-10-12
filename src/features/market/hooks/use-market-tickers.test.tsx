@@ -23,6 +23,8 @@ const ticker = (
   symbol,
   sourceTime,
   lastPrice,
+  bestBid: null,
+  bestAsk: null,
   high24h: null,
   low24h: null,
   changePercent24h: null,
@@ -44,6 +46,7 @@ function controllableFeed(initial: FeedStatus) {
       statusListeners.add(listener);
       return () => statusListeners.delete(listener);
     },
+    subscribeTicker: () => () => undefined,
     subscribeKline: () => () => undefined,
     subscribeOverview: (_market, listener) => {
       listeners.add(listener);

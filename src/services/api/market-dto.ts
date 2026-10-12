@@ -102,6 +102,8 @@ export function decodeTicker(body: unknown): MarketTicker {
     symbol: text(value.symbol, 'symbol'),
     sourceTime: instant(value.sourceTime, 'sourceTime'),
     lastPrice: nullableDecimal(value.lastPrice, 'lastPrice'),
+    bestBid: nullableDecimal(value.bestBid, 'bestBid'),
+    bestAsk: nullableDecimal(value.bestAsk, 'bestAsk'),
     high24h: nullableDecimal(value.high24h, 'high24h'),
     low24h: nullableDecimal(value.low24h, 'low24h'),
     changePercent24h: nullableDecimal(
@@ -127,6 +129,8 @@ export function decodeOverview(body: unknown): MarketOverview {
 
 const absent = {
   lastPrice: null,
+  bestBid: null,
+  bestAsk: null,
   high24h: null,
   low24h: null,
   changePercent24h: null,
@@ -148,6 +152,8 @@ export function decodeSpotStats(body: unknown): MarketTicker | null {
     symbol: text(value.symbol, 'symbol'),
     sourceTime: instant(ticker.asOf, 'asOf'),
     lastPrice: nullableDecimal(ticker.lastPrice, 'lastPrice'),
+    bestBid: nullableDecimal(ticker.bestBid, 'bestBid'),
+    bestAsk: nullableDecimal(ticker.bestAsk, 'bestAsk'),
     high24h: nullableDecimal(ticker.high24h, 'high24h'),
     low24h: nullableDecimal(ticker.low24h, 'low24h'),
     changePercent24h: nullableDecimal(

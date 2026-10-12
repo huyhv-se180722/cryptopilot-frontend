@@ -108,3 +108,30 @@ export function compareDecimal(a: string, b: string): number {
   const right = y.whole + y.fraction.padEnd(width, '0');
   return left === right ? 0 : (left < right ? -1 : 1) * direction;
 }
+
+/** a − b of two decimal strings, exactly (e.g. the spread ask − bid). */
+export function subtractDecimal(a: string, b: string): string {
+  const parse = (value: string) => {
+    const match = DECIMAL.exec(value.trim());
+    if (!match || (!match[2] && !match[3])) return null;
+    return {
+      negative: match[1] === '-',
+      whole: match[2] || '0',
+      fraction: match[3] ?? '',
+    };
+  };
+  const x = parse(a);
+  const y = parse(b);
+  if (!x || !y) return a;
+  const places = Math.max(x.fraction.length, y.fraction.length);
+  const scaled = (n: NonNullable<typeof x>) =>
+    (n.negative ? -1n : 1n) * BigInt(n.whole + n.fraction.padEnd(places, '0'));
+  const difference = scaled(x) - scaled(y);
+  const negative = difference < 0n;
+  const digits = (negative ? -difference : difference)
+    .toString()
+    .padStart(places + 1, '0');
+  const whole = digits.slice(0, digits.length - places);
+  const fraction = places > 0 ? '.' + digits.slice(-places) : '';
+  return (negative ? '-' : '') + whole + fraction;
+}

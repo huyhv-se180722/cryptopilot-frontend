@@ -117,6 +117,24 @@ describe('STOMP market feed', () => {
     expect(second).toHaveBeenCalledTimes(1);
   });
 
+  it('routes a pair to its ticker topic', () => {
+    const { feed, fake, connected } = setup();
+    const listener = vi.fn();
+    feed.subscribeTicker('spot', 'btcusdt', listener);
+    connected();
+    expect([...fake.subscriptions.keys()]).toEqual([
+      '/topic/ticker.SPOT.BTCUSDT',
+    ]);
+    fake.send(
+      '/topic/ticker.SPOT.BTCUSDT',
+      JSON.stringify(OVERVIEW.tickers[0]),
+    );
+    expect(listener.mock.lastCall?.[0]).toMatchObject({
+      symbol: 'BTCUSDT',
+      lastPrice: '63000.01',
+    });
+  });
+
   it('routes a series to its kline topic', () => {
     const { feed, fake, connected } = setup();
     const listener = vi.fn();
