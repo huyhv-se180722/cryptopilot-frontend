@@ -241,11 +241,11 @@ export interface PlanWarning {
   severity: WarningSeverity;
 }
 
-/** Risk calculation stored with the plan (BR-31); Futures adds MMR and liquidation. */
+/** Risk calculation stored with the plan (BR-31); Futures adds margin, MMR and liquidation. */
 export interface PlanSnapshot {
   positionQuantity: Decimal;
   notionalValue: Decimal;
-  initialMargin: Decimal;
+  initialMargin: Decimal | null;
   maintenanceMarginRateUsed: Decimal | null;
   riskAmount: Decimal;
   rewardAmount: Decimal;

@@ -212,7 +212,7 @@ export function devPlanSeeds(now: number): TradingPlan[] {
       snapshot: {
         positionQuantity: seed.quantity,
         notionalValue: seed.notional,
-        initialMargin: seed.margin,
+        initialMargin: seed.market === 'futures' ? seed.margin : null,
         maintenanceMarginRateUsed: seed.market === 'futures' ? '0.004' : null,
         riskAmount: seed.risk,
         rewardAmount: seed.reward,

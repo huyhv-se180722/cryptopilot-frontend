@@ -111,7 +111,7 @@ function snapshot(value: unknown): PlanSnapshot {
   return {
     positionQuantity: decimal(s.positionQuantity, 'positionQuantity'),
     notionalValue: decimal(s.notionalValue, 'notionalValue'),
-    initialMargin: decimal(s.initialMargin, 'initialMargin'),
+    initialMargin: nullableDecimal(s.initialMargin, 'initialMargin'),
     maintenanceMarginRateUsed: nullableDecimal(
       s.maintenanceMarginRateUsed,
       'maintenanceMarginRateUsed',

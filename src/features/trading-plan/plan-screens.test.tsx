@@ -229,6 +229,31 @@ describe('SCR-16 plan list (T-041)', () => {
 });
 
 describe('SCR-18 plan detail (T-041)', () => {
+  it('leaves the Futures-only rows out of a Spot snapshot', async () => {
+    const spot: TradingPlan = {
+      ...PLAN,
+      market: 'spot',
+      leverage: null,
+      marginMode: null,
+      snapshot: {
+        ...PLAN.snapshot,
+        initialMargin: null,
+        maintenanceMarginRateUsed: null,
+        estimatedLiquidationPrice: null,
+      },
+    };
+    await open(
+      '/plans/' + PLAN.id,
+      fakePlans({ get: vi.fn(async () => spot) }),
+    );
+    const snapshot = within(
+      await screen.findByRole('region', { name: 'Calculation snapshot' }),
+    );
+    expect(snapshot.getByText('Risk (USDT)')).toBeTruthy();
+    expect(snapshot.queryByText('Initial margin (USDT)')).toBeNull();
+    expect(snapshot.queryByText('Est. liquidation price')).toBeNull();
+  });
+
   it('shows inputs, snapshot, warnings by severity and the status history', async () => {
     await open('/plans/' + PLAN.id);
     expect(

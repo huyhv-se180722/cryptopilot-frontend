@@ -93,17 +93,24 @@ export function PlanInputsPanel({ plan }: { plan: TradingPlan }) {
   );
 }
 
-/** The calculation stored with the plan (BR-31); Futures adds MMR and liquidation. */
+/** The calculation stored with the plan (BR-31); Futures adds margin, MMR and liquidation. */
 export function PlanSnapshotPanel({ plan }: { plan: TradingPlan }) {
   const p = useCopy().plan;
   const s = plan.snapshot;
   const rows: [string, ReactNode][] = [
     [p.quantity, <NumericText value={s.positionQuantity} />],
     [p.notional, <NumericText value={planAmount(s.notionalValue)} />],
-    [p.initialMargin, <NumericText value={planAmount(s.initialMargin)} />],
     [p.riskAmount, <NumericText value={planAmount(s.riskAmount)} />],
     [p.rewardAmount, <NumericText value={planAmount(s.rewardAmount)} />],
     [p.riskReward, <NumericText value={planRatio(s.riskRewardRatio)} />],
+    ...(s.initialMargin !== null
+      ? ([
+          [
+            p.initialMargin,
+            <NumericText value={planAmount(s.initialMargin)} />,
+          ],
+        ] as [string, ReactNode][])
+      : []),
     ...(s.maintenanceMarginRateUsed !== null
       ? ([
           [
