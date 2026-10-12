@@ -77,6 +77,8 @@ export interface MarketTicker {
   low24h: Decimal | null;
   /** Already a percent, e.g. "1.25". */
   changePercent24h: Decimal | null;
+  /** 24h volume in the base asset, e.g. BTC of BTCUSDT. */
+  baseVolume24h: Decimal | null;
   quoteVolume24h: Decimal | null;
   markPrice: Decimal | null;
   indexPrice: Decimal | null;

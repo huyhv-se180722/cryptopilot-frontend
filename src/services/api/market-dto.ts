@@ -114,6 +114,7 @@ export function decodeTicker(body: unknown): MarketTicker {
       value.changePercent24h,
       'changePercent24h',
     ),
+    baseVolume24h: nullableDecimal(value.baseVolume24h, 'baseVolume24h'),
     quoteVolume24h: nullableDecimal(value.quoteVolume24h, 'quoteVolume24h'),
     markPrice: nullableDecimal(value.markPrice, 'markPrice'),
     indexPrice: nullableDecimal(value.indexPrice, 'indexPrice'),
@@ -138,6 +139,7 @@ const absent = {
   high24h: null,
   low24h: null,
   changePercent24h: null,
+  baseVolume24h: null,
   quoteVolume24h: null,
   markPrice: null,
   indexPrice: null,
@@ -164,6 +166,7 @@ export function decodeSpotStats(body: unknown): MarketTicker | null {
       ticker.changePercent24h,
       'changePercent24h',
     ),
+    baseVolume24h: nullableDecimal(ticker.baseVolume24h, 'baseVolume24h'),
     quoteVolume24h: nullableDecimal(ticker.quoteVolume24h, 'quoteVolume24h'),
   };
 }

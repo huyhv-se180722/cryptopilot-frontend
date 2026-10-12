@@ -91,6 +91,7 @@ export function createDevelopmentMarket(now: () => number = Date.now): {
       high24h: null,
       low24h: null,
       changePercent24h: null,
+      baseVolume24h: null,
       quoteVolume24h: null,
       markPrice: null,
       indexPrice: null,
@@ -106,6 +107,7 @@ export function createDevelopmentMarket(now: () => number = Date.now): {
         high24h: fixed(Math.max(price, open) * 1.012),
         low24h: fixed(Math.min(price, open) * 0.988),
         changePercent24h: (((price - open) / open) * 100).toFixed(3),
+        baseVolume24h: '18234.11000000',
         quoteVolume24h: (price * 18_234.11).toFixed(2),
       };
     return {

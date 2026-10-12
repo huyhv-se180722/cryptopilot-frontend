@@ -94,6 +94,7 @@ const TICKER: MarketTicker = {
   high24h: '63950.00',
   low24h: '61820.50',
   changePercent24h: '1.254',
+  baseVolume24h: '17325.48210000',
   quoteVolume24h: '1139455120.42',
   markPrice: null,
   indexPrice: null,
