@@ -20,8 +20,9 @@ import {
   TradePanel,
 } from '../../features/paper-trading/components/TradePanel';
 import { TradeTickerStrip } from '../../features/paper-trading/components/TradeTickerStrip';
+import { useTradeTimeframe } from '../../features/paper-trading/hooks/use-trade-timeframe';
 import { useWatchlist } from '../../features/watchlist/hooks/use-watchlist';
-import type { CandleTimeframe, MarketPair } from '../../types/domain';
+import type { MarketPair } from '../../types/domain';
 import { classNames } from '../../utils/class-names';
 
 type PhoneRegion = 'chart' | 'book' | 'trades';
@@ -37,7 +38,7 @@ function TradeSpot({
   const copy = useCopy();
   const p = copy.paper;
   const navigate = useNavigate();
-  const [timeframe, setTimeframe] = useState<CandleTimeframe>('1h');
+  const [timeframe, setTimeframe] = useTradeTimeframe();
   const [region, setRegion] = useState<PhoneRegion>('chart');
   const [bottom, setBottom] = useState('open');
   const { ticker, freshness } = useLiveTicker('spot', pair.symbol);
@@ -101,6 +102,7 @@ function TradeSpot({
             tickSize={pair.tickSize}
             timeframe={timeframe}
             onTimeframeChange={setTimeframe}
+            extendable
           />
         </div>
         <div
