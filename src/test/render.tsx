@@ -1,5 +1,6 @@
 import { StrictMode, type ReactElement } from 'react';
 import { render } from '@testing-library/react';
+import { QueryClientProvider } from '@tanstack/react-query';
 import {
   createMemoryRouter,
   RouterProvider,
@@ -9,6 +10,7 @@ import { createServices } from '../app/providers/create-services';
 import { ServicesContext } from '../app/providers/services-context';
 import { AuthProvider } from '../app/providers/AuthProvider';
 import { ToastProvider } from '../app/providers/ToastProvider';
+import { createQueryClient } from '../app/providers/query-client';
 import { I18nProvider } from '../i18n/I18nProvider';
 import type { Services } from '../services/api/services';
 import type { AuthService } from '../services/auth/contracts';
@@ -61,11 +63,13 @@ export async function renderRoutes(
     <StrictMode>
       <I18nProvider>
         <ServicesContext.Provider value={{ ...base, ...overrides, auth }}>
-          <ToastProvider>
-            <AuthProvider>
-              <RouterProvider router={router} />
-            </AuthProvider>
-          </ToastProvider>
+          <QueryClientProvider client={createQueryClient()}>
+            <ToastProvider>
+              <AuthProvider>
+                <RouterProvider router={router} />
+              </AuthProvider>
+            </ToastProvider>
+          </QueryClientProvider>
         </ServicesContext.Provider>
       </I18nProvider>
     </StrictMode>,

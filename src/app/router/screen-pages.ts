@@ -4,6 +4,10 @@ type PageModule = () => Promise<{ Component: ComponentType }>;
 
 /** Routes whose real screen exists; every other route shows its placeholder. */
 export const screenPages: Readonly<Record<string, PageModule>> = {
+  '/': async () => ({
+    Component: (await import('../../pages/guest/PublicHomePage'))
+      .PublicHomePage,
+  }),
   '/login': async () => ({
     Component: (await import('../../pages/guest/LoginPage')).LoginPage,
   }),
@@ -21,6 +25,9 @@ export const screenPages: Readonly<Record<string, PageModule>> = {
   '/reset-password': async () => ({
     Component: (await import('../../pages/guest/ResetPasswordPage'))
       .ResetPasswordPage,
+  }),
+  '/markets': async () => ({
+    Component: (await import('../../pages/trader/MarketsPage')).MarketsPage,
   }),
   '/profile': async () => ({
     Component: (await import('../../pages/trader/ProfilePage')).ProfilePage,

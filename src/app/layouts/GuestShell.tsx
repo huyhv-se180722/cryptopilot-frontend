@@ -56,6 +56,7 @@ export function GuestShell() {
           <NavLink
             to="/"
             end
+            title={copy.nav.markets}
             className={({ isActive }) =>
               classNames(
                 navItemClass,
@@ -72,7 +73,10 @@ export function GuestShell() {
                   aria-hidden="true"
                   className="opacity-70"
                 />
-                {copy.nav.markets}
+                {/* Icons only from md to lg, where the header is tight. */}
+                <span className="sr-only lg:not-sr-only">
+                  {copy.nav.markets}
+                </span>
                 {isActive && (
                   <span
                     aria-hidden="true"
@@ -87,13 +91,14 @@ export function GuestShell() {
               key={feature}
               type="button"
               onClick={() => setGate(feature)}
+              title={label}
               className={classNames(
                 navItemClass,
                 'text-muted hover:bg-raised hover:text-fg-2',
               )}
             >
               <Icon size={14} aria-hidden="true" className="opacity-60" />
-              {label}
+              <span className="sr-only lg:not-sr-only">{label}</span>
               <Lock size={10} aria-hidden="true" className="text-muted-x" />
             </button>
           ))}

@@ -6,6 +6,7 @@ import type {
   CoinAnalysisService,
   CommunityService,
   JournalService,
+  MarketFeed,
   MarketService,
   NewsService,
   ProfileService,
@@ -20,6 +21,7 @@ export interface Services {
   auth: AuthService;
   profile: ProfileService;
   market: MarketService;
+  marketFeed: MarketFeed;
   coinAnalysis: CoinAnalysisService;
   tradingPlan: TradingPlanService;
   journal: JournalService;

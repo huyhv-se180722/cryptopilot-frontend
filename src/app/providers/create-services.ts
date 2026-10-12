@@ -11,7 +11,12 @@ import {
   createHttpProfileService,
   createPendingProfileService,
 } from '../../services/api/profile';
-import { createMarketService } from '../../services/api/market';
+import {
+  createHttpMarketService,
+  createPendingMarketService,
+  unavailableMarketFeed,
+} from '../../services/api/market';
+import { createStompMarketFeed } from '../../services/websocket/stomp-market-feed';
 import { createCoinAnalysisService } from '../../services/api/coin-analysis';
 import { createTradingPlanService } from '../../services/api/trading-plan';
 import { createJournalService } from '../../services/api/journal';
@@ -34,7 +39,12 @@ export async function createServices(env: Environment): Promise<Services> {
     profile: connected
       ? createHttpProfileService(http)
       : createPendingProfileService(),
-    market: createMarketService(),
+    market: connected
+      ? createHttpMarketService(http)
+      : createPendingMarketService(),
+    marketFeed: env.wsUrl
+      ? createStompMarketFeed(env.wsUrl)
+      : unavailableMarketFeed,
     coinAnalysis: createCoinAnalysisService(),
     tradingPlan: createTradingPlanService(),
     journal: createJournalService(),

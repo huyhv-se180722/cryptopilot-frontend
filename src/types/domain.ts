@@ -48,14 +48,57 @@ export interface Session {
   user: User;
   entitlements: Entitlements;
 }
-export interface MarketQuote {
+/** A pair enabled by Admin on one market, in admin display order (BR-07). */
+export interface MarketPair {
   symbol: string;
-  name: string;
-  marketType: MarketType;
-  price: Decimal;
-  changePercent24h: Decimal;
-  volume24h: Decimal;
-  observedAt: ISODateTime;
+  market: MarketType;
+  baseAsset: string | null;
+  quoteAsset: string | null;
+  baseAssetName: string | null;
+  logoUrl: string | null;
+  /** Price precision (CR-02); null until the exchange filters are synced. */
+  tickSize: Decimal | null;
+  displayOrder: number;
+}
+
+/**
+ * Latest ticker of a pair. Spot carries last price and 24h statistics;
+ * Futures carries mark, index and funding only (no 24h data, M-09).
+ */
+export interface MarketTicker {
+  market: MarketType;
+  symbol: string;
+  /** Exchange event time (stream) or snapshot time (REST fallback). */
+  sourceTime: ISODateTime;
+  lastPrice: Decimal | null;
+  high24h: Decimal | null;
+  low24h: Decimal | null;
+  /** Already a percent, e.g. "1.25". */
+  changePercent24h: Decimal | null;
+  quoteVolume24h: Decimal | null;
+  markPrice: Decimal | null;
+  indexPrice: Decimal | null;
+  /** A fraction: "0.0001" is 0.01 %. */
+  fundingRate: Decimal | null;
+  nextFundingTime: ISODateTime | null;
+}
+
+export interface MarketOverview {
+  market: MarketType;
+  serverTime: ISODateTime;
+  tickers: readonly MarketTicker[];
+}
+
+export type CandleTimeframe = '15m' | '1h' | '4h' | '1d';
+
+/** A closed candle; prices stay decimal strings. */
+export interface Candle {
+  openTime: ISODateTime;
+  open: Decimal;
+  high: Decimal;
+  low: Decimal;
+  close: Decimal;
+  quoteVolume: Decimal;
 }
 export interface CoinAnalysis {
   symbol: string;
