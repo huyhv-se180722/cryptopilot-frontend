@@ -38,8 +38,14 @@ vi.mock('lightweight-charts', () => ({
   createChart: () => ({
     addSeries: () => ({
       setData: vi.fn(),
-      createPriceLine: (line: { price: number; title: string }) =>
-        priceLines.push(line),
+      createPriceLine: (line: { price: number; title: string }) => {
+        priceLines.push(line);
+        return line;
+      },
+      removePriceLine: (line: { price: number; title: string }) => {
+        const at = priceLines.indexOf(line);
+        if (at >= 0) priceLines.splice(at, 1);
+      },
     }),
     panes: () => [0, 1, 2, 3].map(() => ({ setStretchFactor: vi.fn() })),
     timeScale: () => ({ fitContent: vi.fn() }),

@@ -6,6 +6,7 @@ import {
   createChart,
   type CandlestickData,
   type IChartApi,
+  type IPriceLine,
   type ISeriesApi,
   type SeriesType,
   type UTCTimestamp,
@@ -19,6 +20,7 @@ import { errorText } from '../../../i18n/messages';
 import type {
   Candle,
   CandleTimeframe,
+  Decimal,
   MarketType,
 } from '../../../types/domain';
 import { classNames } from '../../../utils/class-names';
@@ -81,13 +83,47 @@ export interface PriceLevels {
   resistance: string | null;
 }
 
-function build(
-  chart: IChartApi,
-  toggles: ChartToggles,
-  places: number,
-  levels: PriceLevels | undefined,
-  labels: { support: string; resistance: string },
-) {
+/** Which design token draws a price line, so both themes follow. */
+const TONE_TOKENS = {
+  positive: '--cp-positive',
+  negative: '--cp-negative',
+  neutral: '--cp-muted',
+  primary: '--cp-primary',
+  warning: '--cp-warning',
+} as const;
+
+/**
+ * A labelled horizontal line on the price pane: a BR-14 level, or later an
+ * order, an entry, a TP/SL or a liquidation price. `id` keeps it stable.
+ */
+export interface ChartPriceLine {
+  id: string;
+  price: Decimal;
+  label: string;
+  tone: keyof typeof TONE_TOKENS;
+  dashed?: boolean;
+}
+
+/** Replaces the lines drawn on `series` with `lines`; returns the new ones. */
+function drawPriceLines(
+  series: ISeriesApi<'Candlestick'>,
+  drawn: readonly IPriceLine[],
+  lines: readonly ChartPriceLine[],
+): IPriceLine[] {
+  drawn.forEach((line) => series.removePriceLine(line));
+  return lines.map((line) =>
+    series.createPriceLine({
+      price: Number(line.price),
+      color: token(TONE_TOKENS[line.tone]),
+      lineWidth: 1,
+      lineStyle: line.dashed === false ? 0 : 1,
+      axisLabelVisible: true,
+      title: line.label,
+    }),
+  );
+}
+
+function build(chart: IChartApi, toggles: ChartToggles, places: number) {
   const up = token('--cp-positive');
   const down = token('--cp-negative');
   const upDim = token('--cp-positive-dim');
@@ -110,20 +146,6 @@ function build(
     borderVisible: false,
     priceFormat: { type: 'price', precision: places, minMove },
   });
-  // BR-14: nearest support and resistance as horizontal lines.
-  for (const [price, colour, title] of [
-    [levels?.support ?? null, up, labels.support],
-    [levels?.resistance ?? null, down, labels.resistance],
-  ] as const)
-    if (price !== null)
-      candles.createPriceLine({
-        price: Number(price),
-        color: colour,
-        lineWidth: 1,
-        lineStyle: 1,
-        axisLabelVisible: true,
-        title,
-      });
   writers.push(({ candles: closed, forming }) => {
     const bars: CandlestickData<UTCTimestamp>[] = closed.map((candle) => ({
       time: time(candle),
@@ -257,7 +279,10 @@ function build(
   chart.panes()[0]?.setStretchFactor(3);
   for (const index of panes) chart.panes()[index]?.setStretchFactor(1);
 
-  return (data: Data) => writers.forEach((write) => write(data));
+  return {
+    write: (data: Data) => writers.forEach((write) => write(data)),
+    candles,
+  };
 }
 
 /**
@@ -265,7 +290,8 @@ function build(
  * 1h, BR-08), the latest 500 closed candles and the forming one drawn
  * faded as provisional; overlays SMA 20, EMA 20 / 50 / 200 and Bollinger;
  * panels Volume with its SMA 20, RSI 14 and MACD. Each item can be hidden,
- * and the choice is remembered on the device.
+ * and the choice is remembered on the device. `levels` (BR-14) and
+ * `priceLines` are drawn on the price pane and redrawn without a rebuild.
  */
 export function AnalysisChart({
   market,
@@ -274,6 +300,7 @@ export function AnalysisChart({
   timeframe,
   onTimeframeChange,
   levels,
+  priceLines,
 }: {
   market: MarketType;
   symbol: string;
@@ -281,6 +308,7 @@ export function AnalysisChart({
   timeframe: CandleTimeframe;
   onTimeframeChange: (timeframe: CandleTimeframe) => void;
   levels?: PriceLevels;
+  priceLines?: readonly ChartPriceLine[];
 }) {
   const copy = useCopy();
   const c = copy.chart;
@@ -295,28 +323,73 @@ export function AnalysisChart({
   );
   const places = decimalPlaces(tickSize);
   const theme = useThemeVersion();
+  const priceSeries = useRef<ISeriesApi<'Candlestick'> | null>(null);
+  const drawnLines = useRef<IPriceLine[]>([]);
+  // BR-14: nearest support and resistance, then the caller's own lines.
+  const lines: ChartPriceLine[] = [
+    ...(levels?.support
+      ? [
+          {
+            id: 'support',
+            price: levels.support,
+            label: copy.analysis.support,
+            tone: 'positive' as const,
+          },
+        ]
+      : []),
+    ...(levels?.resistance
+      ? [
+          {
+            id: 'resistance',
+            price: levels.resistance,
+            label: copy.analysis.resistance,
+            tone: 'negative' as const,
+          },
+        ]
+      : []),
+    ...(priceLines ?? []),
+  ];
+  const linesKey = lines
+    .map((line) =>
+      [line.id, line.price, line.label, line.tone, line.dashed].join(':'),
+    )
+    .join('|');
+  const latestLines = useRef(lines);
 
   // Declared before the rebuild so a rebuild writes the newest data.
   useEffect(() => {
     latest.current = series;
+    latestLines.current = lines;
   });
 
   // Rebuilt when the shown items, the precision or the theme change.
   useEffect(() => {
     if (!ready || !container.current) return;
     const chart = createChart(container.current, chartOptions());
-    write.current = build(chart, toggles, places, levels, {
-      support: copy.analysis.support,
-      resistance: copy.analysis.resistance,
-    });
+    const built = build(chart, toggles, places);
+    write.current = built.write;
+    priceSeries.current = built.candles;
+    drawnLines.current = drawPriceLines(built.candles, [], latestLines.current);
     write.current(latest.current);
     chart.timeScale().fitContent();
     return () => {
       write.current = null;
+      priceSeries.current = null;
+      drawnLines.current = [];
       chart.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `toggles` is read through `togglesKey`.
-  }, [ready, togglesKey, places, theme, levels?.support, levels?.resistance]);
+  }, [ready, togglesKey, places, theme]);
+
+  // Lines change often (orders, levels): redraw them on the same series.
+  useEffect(() => {
+    if (!priceSeries.current) return;
+    drawnLines.current = drawPriceLines(
+      priceSeries.current,
+      drawnLines.current,
+      latestLines.current,
+    );
+  }, [linesKey]);
 
   useEffect(() => {
     write.current?.({
