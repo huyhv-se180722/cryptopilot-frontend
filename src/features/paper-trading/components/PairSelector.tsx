@@ -233,8 +233,9 @@ function PairPanel({
     { key: 'change', label: m.colChange, end: true },
     { key: 'volume', label: m.colVolume, end: true },
   ];
+  // A phone keeps pair, last price and change (the exchange's mobile list).
   const grid =
-    'grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,0.8fr)] items-center gap-2';
+    'grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.8fr)] items-center gap-2 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,0.8fr)]';
 
   let empty: string | null = null;
   if (rows.length === 0)
@@ -338,7 +339,10 @@ function PairPanel({
               aria-label={formatCopy(p.sortBy, { column: column.label })}
               aria-pressed={sorted !== null}
               className={classNames(
-                'inline-flex min-w-0 items-center gap-1 uppercase hover:text-fg-2',
+                'min-w-0 items-center gap-1 uppercase hover:text-fg-2',
+                column.key === 'volume'
+                  ? 'hidden sm:inline-flex'
+                  : 'inline-flex',
                 column.end && 'justify-end',
                 sorted && 'text-fg-2',
               )}
@@ -408,7 +412,7 @@ function PairPanel({
                   m.noValue
                 )}
               </span>
-              <span className="truncate text-right text-muted">
+              <span className="hidden truncate text-right text-muted sm:block">
                 {ticker?.quoteVolume24h ? (
                   <NumericText value={compactDecimal(ticker.quoteVolume24h)} />
                 ) : (
