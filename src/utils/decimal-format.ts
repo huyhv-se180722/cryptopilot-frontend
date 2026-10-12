@@ -26,6 +26,19 @@ export function toFixedDecimal(value: string, places: number): string {
   return /^[0.]+$/.test(rounded) ? rounded : sign + rounded;
 }
 
+/**
+ * Drops trailing fraction zeros a database scale adds ("80000.000000000000"
+ * → "80000.00" with `minPlaces` 2) without rounding; keeps at least
+ * `minPlaces` digits. Input that is not a plain decimal comes back unchanged.
+ */
+export function trimDecimal(value: string, minPlaces: number): string {
+  const match = DECIMAL.exec(value.trim());
+  if (!match || (!match[2] && !match[3])) return value;
+  const whole = match[1] + (match[2] || '0');
+  const fraction = (match[3] ?? '').replace(/0+$/, '').padEnd(minPlaces, '0');
+  return fraction ? whole + '.' + fraction : whole;
+}
+
 /** Significant fraction digits of a step such as a tick size ("0.01000000" → 2). */
 export function decimalPlaces(step: string | null): number {
   const fraction = step?.split('.')[1]?.replace(/0+$/, '') ?? '';

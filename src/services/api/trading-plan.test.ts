@@ -86,6 +86,26 @@ describe('trading plan decoders', () => {
     ]);
   });
 
+  it('decodes a Spot snapshot without margin, MMR or liquidation', () => {
+    const plan = decodePlan({
+      ...PLAN,
+      market: 'SPOT',
+      leverage: null,
+      marginMode: null,
+      snapshot: {
+        ...PLAN.snapshot,
+        initialMargin: null,
+        maintenanceMarginRateUsed: null,
+        estimatedLiquidationPrice: null,
+      },
+    });
+    expect(plan.snapshot).toMatchObject({
+      initialMargin: null,
+      maintenanceMarginRateUsed: null,
+      estimatedLiquidationPrice: null,
+    });
+  });
+
   it('rejects an unknown status, warning or a missing snapshot value', () => {
     expect(() => decodePlan({ ...PLAN, status: 'OPEN' })).toThrow();
     expect(() =>

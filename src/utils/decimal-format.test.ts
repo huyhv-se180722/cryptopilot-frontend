@@ -9,6 +9,7 @@ import {
   shiftDecimal,
   subtractDecimal,
   toFixedDecimal,
+  trimDecimal,
 } from './decimal-format';
 
 describe('toFixedDecimal', () => {
@@ -34,6 +35,21 @@ describe('toFixedDecimal', () => {
   it('returns input that is not a plain decimal unchanged', () => {
     expect(toFixedDecimal('abc', 2)).toBe('abc');
     expect(toFixedDecimal('', 2)).toBe('');
+  });
+});
+
+describe('trimDecimal', () => {
+  it('drops the zeros a database scale adds, keeping a minimum', () => {
+    expect(trimDecimal('80000.000000000000', 2)).toBe('80000.00');
+    expect(trimDecimal('0.085110000000', 2)).toBe('0.08511');
+    expect(trimDecimal('0.005000000000', 0)).toBe('0.005');
+    expect(trimDecimal('12.000', 0)).toBe('12');
+    expect(trimDecimal('-1.50', 0)).toBe('-1.5');
+    expect(trimDecimal('7', 2)).toBe('7.00');
+  });
+  it('never rounds and returns input that is not a plain decimal unchanged', () => {
+    expect(trimDecimal('1.123456789012', 2)).toBe('1.123456789012');
+    expect(trimDecimal('abc', 2)).toBe('abc');
   });
 });
 

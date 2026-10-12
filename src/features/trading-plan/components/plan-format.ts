@@ -1,10 +1,18 @@
-import { groupThousands, toFixedDecimal } from '../../../utils/decimal-format';
+import {
+  groupThousands,
+  toFixedDecimal,
+  trimDecimal,
+} from '../../../utils/decimal-format';
 
 /**
- * Plan prices arrive rounded to the pair's tick by the server, so they are
- * shown at the scale they come in; amounts in USDT with 2 decimals.
+ * Plan prices arrive rounded to the pair's tick by the server but padded to
+ * the column scale ("80000.000000000000"), so the padding is dropped (at
+ * least 2 decimals; the tick itself needs the pair, FEQ-01); quantities keep
+ * their significant digits; amounts in USDT with 2 decimals.
  */
-export const planPrice = (value: string) => groupThousands(value);
+export const planPrice = (value: string) =>
+  groupThousands(trimDecimal(value, 2));
+export const planQuantity = (value: string) => trimDecimal(value, 0);
 export const planAmount = (value: string) =>
   groupThousands(toFixedDecimal(value, 2));
 export const planRatio = (value: string) => toFixedDecimal(value, 2);

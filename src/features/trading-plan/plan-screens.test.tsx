@@ -30,9 +30,9 @@ const ROW: TradingPlanSummary = {
   market: 'futures',
   direction: 'SHORT',
   entryType: 'LIMIT',
-  entryPrice: '62000.0',
-  stopLoss: '63000.0',
-  takeProfit: '59000.0',
+  entryPrice: '62000.000000000000',
+  stopLoss: '63000.000000000000',
+  takeProfit: '59000.000000000000',
   leverage: 5,
   riskAmount: '10.00000000',
   riskRewardRatio: '3.00000000',
@@ -48,9 +48,9 @@ const PLAN: TradingPlan = {
   market: 'futures',
   direction: 'SHORT',
   entryType: 'LIMIT',
-  entryPrice: '62000.0',
-  stopLoss: '63000.0',
-  takeProfit: '59000.0',
+  entryPrice: '62000.000000000000',
+  stopLoss: '63000.000000000000',
+  takeProfit: '59000.000000000000',
   capital: '1000',
   riskPercent: '1',
   leverage: 5,
@@ -60,14 +60,14 @@ const PLAN: TradingPlan = {
   status: 'DRAFT',
   editable: true,
   snapshot: {
-    positionQuantity: '0.010',
+    positionQuantity: '0.010000000000',
     notionalValue: '620.00000000',
     initialMargin: '124.00000000',
     maintenanceMarginRateUsed: '0.004',
     riskAmount: '10.00000000',
     rewardAmount: '30.00000000',
     riskRewardRatio: '3.00000000',
-    estimatedLiquidationPrice: '74103.1',
+    estimatedLiquidationPrice: '74103.100000000000',
   },
   warnings: [
     { type: 'HIGH_LEVERAGE', severity: 'WARNING' },
@@ -155,7 +155,7 @@ describe('SCR-16 plan list (T-041)', () => {
     const row = (await table.findByText('Short')).closest('tr') as HTMLElement;
     const cells = within(row);
     expect(cells.getByText('Futures · 5x')).toBeTruthy();
-    expect(cells.getByText('62,000.0')).toBeTruthy();
+    expect(cells.getByText('62,000.00')).toBeTruthy();
     expect(cells.getByText('3.00')).toBeTruthy();
     expect(cells.getByText('Draft')).toBeTruthy();
     expect(
@@ -229,6 +229,31 @@ describe('SCR-16 plan list (T-041)', () => {
 });
 
 describe('SCR-18 plan detail (T-041)', () => {
+  it('leaves the Futures-only rows out of a Spot snapshot', async () => {
+    const spot: TradingPlan = {
+      ...PLAN,
+      market: 'spot',
+      leverage: null,
+      marginMode: null,
+      snapshot: {
+        ...PLAN.snapshot,
+        initialMargin: null,
+        maintenanceMarginRateUsed: null,
+        estimatedLiquidationPrice: null,
+      },
+    };
+    await open(
+      '/plans/' + PLAN.id,
+      fakePlans({ get: vi.fn(async () => spot) }),
+    );
+    const snapshot = within(
+      await screen.findByRole('region', { name: 'Calculation snapshot' }),
+    );
+    expect(snapshot.getByText('Risk (USDT)')).toBeTruthy();
+    expect(snapshot.queryByText('Initial margin (USDT)')).toBeNull();
+    expect(snapshot.queryByText('Est. liquidation price')).toBeNull();
+  });
+
   it('shows inputs, snapshot, warnings by severity and the status history', async () => {
     await open('/plans/' + PLAN.id);
     expect(
@@ -236,7 +261,7 @@ describe('SCR-18 plan detail (T-041)', () => {
     ).toBeTruthy();
     const inputs = within(screen.getByRole('region', { name: 'Plan inputs' }));
     expect(inputs.getByText('Stop loss').nextSibling?.textContent).toBe(
-      '63,000.0',
+      '63,000.00',
     );
     expect(inputs.getByText('Leverage').nextSibling?.textContent).toBe('5x');
     expect(inputs.getByText('Retest of the range high.')).toBeTruthy();
@@ -251,7 +276,10 @@ describe('SCR-18 plan detail (T-041)', () => {
     ).toBe('0.40%');
     expect(
       snapshot.getByText('Est. liquidation price').nextSibling?.textContent,
-    ).toBe('74,103.1');
+    ).toBe('74,103.10');
+    expect(snapshot.getByText('Position size').nextSibling?.textContent).toBe(
+      '0.01',
+    );
     const warnings = within(screen.getByRole('region', { name: 'Warnings' }));
     expect(
       warnings.getByText('Warning: Leverage above your risk profile'),
