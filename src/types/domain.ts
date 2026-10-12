@@ -217,15 +217,105 @@ export interface FuturesMetrics {
     fundingSettlements: ISODateTime | null;
   };
 }
+/** Plan lifecycle (BR-32): DRAFT → ACTIVE | CANCELLED; ACTIVE → EXECUTED | CANCELLED | EXPIRED. */
+export type PlanStatus =
+  'DRAFT' | 'ACTIVE' | 'EXECUTED' | 'CANCELLED' | 'EXPIRED';
+/** SCR-16 tabs; the last one holds CANCELLED and EXPIRED. */
+export type PlanTab = 'DRAFT' | 'ACTIVE' | 'EXECUTED' | 'CANCELLED_EXPIRED';
+export type PlanDirection = 'LONG' | 'SHORT';
+export type PlanEntryType = 'LIMIT' | 'MARKET';
+export type WarningSeverity = 'INFO' | 'WARNING' | 'BLOCKING';
+/** BR-28, BR-29; the UI words each type itself. */
+export type PlanWarningType =
+  | 'INSUFFICIENT_CAPITAL'
+  | 'SL_BEYOND_LIQUIDATION'
+  | 'LOW_RR'
+  | 'OVERSIZED_POSITION'
+  | 'HIGH_LEVERAGE'
+  | 'TOTAL_OPEN_RISK'
+  | 'WIDE_STOP_LOSS'
+  | 'HIGH_FUNDING_RATE';
+
+export interface PlanWarning {
+  type: PlanWarningType;
+  severity: WarningSeverity;
+}
+
+/** Risk calculation stored with the plan (BR-31); Futures adds MMR and liquidation. */
+export interface PlanSnapshot {
+  positionQuantity: Decimal;
+  notionalValue: Decimal;
+  initialMargin: Decimal;
+  maintenanceMarginRateUsed: Decimal | null;
+  riskAmount: Decimal;
+  rewardAmount: Decimal;
+  riskRewardRatio: Decimal;
+  estimatedLiquidationPrice: Decimal | null;
+}
+
+/**
+ * A row of SCR-16. The pair is named by its id only: no symbol is returned
+ * yet (FEQ-01), and position status and P/L wait for the matching engine.
+ */
+export interface TradingPlanSummary {
+  id: string;
+  pairId: string;
+  market: MarketType;
+  direction: PlanDirection;
+  entryType: PlanEntryType;
+  entryPrice: Decimal;
+  stopLoss: Decimal;
+  takeProfit: Decimal;
+  /** Null on Spot. */
+  leverage: number | null;
+  riskAmount: Decimal;
+  riskRewardRatio: Decimal;
+  status: PlanStatus;
+  createdAt: ISODateTime;
+  activatedAt: ISODateTime | null;
+  expiresAt: ISODateTime | null;
+}
+
+/** SCR-18: inputs, snapshot, warnings and status history of one plan. */
 export interface TradingPlan {
   id: string;
-  symbol: string;
-  marketType: MarketType;
-  entry: Decimal;
-  stopLoss: Decimal | null;
+  pairId: string;
+  market: MarketType;
+  direction: PlanDirection;
+  entryType: PlanEntryType;
+  entryPrice: Decimal;
+  stopLoss: Decimal;
   takeProfit: Decimal;
   capital: Decimal;
-  leverage: Decimal;
+  riskPercent: Decimal;
+  leverage: number | null;
+  marginMode: 'ISOLATED' | null;
+  expiresAt: ISODateTime | null;
+  note: string | null;
+  status: PlanStatus;
+  /** True only for DRAFT. */
+  editable: boolean;
+  snapshot: PlanSnapshot;
+  warnings: readonly PlanWarning[];
+  blocksActivation: boolean;
+  /** Oldest first. */
+  statusHistory: readonly { status: PlanStatus; at: ISODateTime }[];
+}
+
+export interface PlanListQuery {
+  tab: PlanTab;
+  market?: MarketType;
+  /** Created at or after. */
+  from?: ISODateTime;
+  page: number;
+  pageSize: number;
+}
+
+export interface PlanPage {
+  items: readonly TradingPlanSummary[];
+  page: number;
+  pageSize: number;
+  total: number;
 }
 export interface JournalEntry {
   id: string;
