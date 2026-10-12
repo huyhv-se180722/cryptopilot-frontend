@@ -7,7 +7,7 @@ import { Dialog } from '../../../components/ui/Dialog';
 import { Input } from '../../../components/ui/Input';
 import { SegmentedControl } from '../../../components/ui/SegmentedControl';
 import { Select } from '../../../components/ui/Select';
-import { Switch } from '../../../components/ui/Switch';
+import { Checkbox } from '../../../components/ui/Checkbox';
 import { useCopy } from '../../../hooks/use-copy';
 import { useFeature } from '../../../hooks/use-entitlement';
 import { useToast } from '../../../hooks/use-toast';
@@ -460,55 +460,66 @@ function AlertForm({
           />
           <p className="mt-1 text-[11px] text-muted-dim">{a.modeHint}</p>
         </fieldset>
-        {draft.triggerMode === 'EVERY_TIME' && (
+        <div className="grid gap-4 sm:grid-cols-2">
           <Input
-            label={a.cooldownField}
-            inputMode="numeric"
-            autoComplete="off"
-            value={draft.cooldown}
-            onChange={(event) => change({ cooldown: event.target.value })}
-            error={errorOf('cooldownMinutes', a.cooldownField)}
+            label={a.expiryField}
+            type="datetime-local"
+            value={draft.expiry}
+            min={toLocalInput(new Date(now).toISOString())}
+            max={toLocalInput(
+              new Date(now + MAX_EXPIRY_DAYS * 86_400_000).toISOString(),
+            )}
+            onChange={(event) => change({ expiry: event.target.value })}
+            error={errorOf('expiresAt', a.expiryField)}
+            hint={a.expiryHint}
           />
-        )}
+          {draft.triggerMode === 'EVERY_TIME' && (
+            <Input
+              label={a.cooldownField}
+              inputMode="numeric"
+              autoComplete="off"
+              value={draft.cooldown}
+              onChange={(event) => change({ cooldown: event.target.value })}
+              error={errorOf('cooldownMinutes', a.cooldownField)}
+            />
+          )}
+        </div>
 
         <fieldset>
-          <legend className="text-xs font-medium text-fg-2">
+          <legend className="mb-2 text-xs font-medium text-fg-2">
             {a.channelsField}
           </legend>
-          <Switch label={a.inApp} description={a.inAppHint} checked disabled />
-          {(['notifyEmail', 'notifyPush'] as const).map((channel) => {
-            const off = locked('EXTERNAL_ALERT_CHANNELS');
-            return (
-              <Switch
-                key={channel}
-                label={channel === 'notifyEmail' ? a.email : a.push}
-                {...(off
-                  ? {
-                      description: formatCopy(a.locked, { plan: UPSELL_PLAN }),
-                    }
-                  : {})}
-                checked={draft[channel] && !off}
-                disabled={off}
-                onChange={(event) =>
-                  change({ [channel]: event.target.checked })
-                }
-              />
-            );
-          })}
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            <Checkbox label={a.inApp} title={a.inAppHint} checked disabled />
+            {(['notifyEmail', 'notifyPush'] as const).map((channel) => {
+              const off = locked('EXTERNAL_ALERT_CHANNELS');
+              const name = channel === 'notifyEmail' ? a.email : a.push;
+              return (
+                <Checkbox
+                  key={channel}
+                  label={
+                    off ? (
+                      <span className="inline-flex items-center gap-1">
+                        {name}
+                        <Lock size={10} aria-hidden="true" />
+                        <span className="text-muted-x">
+                          {formatCopy(a.locked, { plan: UPSELL_PLAN })}
+                        </span>
+                      </span>
+                    ) : (
+                      name
+                    )
+                  }
+                  checked={draft[channel] && !off}
+                  disabled={off}
+                  onChange={(event) =>
+                    change({ [channel]: event.target.checked })
+                  }
+                />
+              );
+            })}
+          </div>
         </fieldset>
-
-        <Input
-          label={a.expiryField}
-          type="datetime-local"
-          value={draft.expiry}
-          min={toLocalInput(new Date(now).toISOString())}
-          max={toLocalInput(
-            new Date(now + MAX_EXPIRY_DAYS * 86_400_000).toISOString(),
-          )}
-          onChange={(event) => change({ expiry: event.target.value })}
-          error={errorOf('expiresAt', a.expiryField)}
-          hint={a.expiryHint}
-        />
 
         {draft.type === 'INDICATOR' && (
           <p className="text-[11px] text-muted-dim">

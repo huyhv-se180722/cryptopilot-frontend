@@ -503,7 +503,7 @@ export const en = {
     delisted: 'Not listed',
     delistedHint:
       'This pair is no longer enabled. It stays here until you remove it and still counts toward your limit.',
-    score: 'Setup score',
+    score: 'Score',
     scoreTitle: 'Setup score, {preset} {version} · {timeframe}',
     scoreInsufficient: 'Insufficient data',
     activeAlerts: '{count} active',
