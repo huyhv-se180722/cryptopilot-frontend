@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from 'vitest';
-import { act, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { TradeSpotPage } from '../../pages/trader/TradeSpotPage';
 import type {
@@ -17,22 +17,65 @@ import type {
 } from '../../types/domain';
 import { fakeAuth, page, renderRoutes, testTrader } from '../../test/render';
 
+/** What the screen asks of the chart's time scale. */
+const view = vi.hoisted(() => ({
+  range: { from: 0, to: 0 },
+  set: [] as { from: number; to: number }[],
+  onRange: null as ((range: { from: number; to: number }) => void) | null,
+  bars: 0,
+}));
 vi.mock('lightweight-charts', () => ({
   CandlestickSeries: { name: 'candles' },
   LineSeries: { name: 'line' },
   HistogramSeries: { name: 'histogram' },
   ColorType: { Solid: 'solid' },
   createChart: () => ({
-    addSeries: () => ({
-      setData: vi.fn(),
+    addSeries: (definition: { name: string }) => ({
+      setData: (data: unknown[]) => {
+        if (definition.name === 'candles') view.bars = data.length;
+      },
       createPriceLine: vi.fn(),
       removePriceLine: vi.fn(),
     }),
     panes: () => [0, 1, 2, 3].map(() => ({ setStretchFactor: vi.fn() })),
-    timeScale: () => ({ fitContent: vi.fn() }),
+    timeScale: () => ({
+      fitContent: vi.fn(),
+      getVisibleLogicalRange: () => view.range,
+      setVisibleLogicalRange: (range: { from: number; to: number }) => {
+        view.range = range;
+        view.set.push(range);
+      },
+      subscribeVisibleLogicalRangeChange: (
+        listener: (range: { from: number; to: number }) => void,
+      ) => {
+        view.onRange = listener;
+      },
+      unsubscribeVisibleLogicalRangeChange: () => {
+        view.onRange = null;
+      },
+    }),
     remove: vi.fn(),
   }),
 }));
+
+const HOUR = 3_600_000;
+const START = Date.UTC(2026, 8, 1);
+const candleAt = (index: number) => ({
+  openTime: new Date(START + index * HOUR).toISOString(),
+  open: '100',
+  high: '101',
+  low: '99',
+  close: '100',
+  baseVolume: '10',
+  quoteVolume: '1000',
+});
+
+afterEach(() => {
+  window.localStorage.clear();
+  view.set.length = 0;
+  view.onRange = null;
+  view.bars = 0;
+});
 
 const pair = (
   symbol: string,
@@ -99,7 +142,14 @@ async function open(
   let overview: ((value: MarketOverview) => void) | null = null;
   const market: MarketService = {
     listPairs: vi.fn(async () => PAIRS),
-    getCandles: vi.fn(async () => []),
+    getCandles: vi.fn<MarketService['getCandles']>(
+      async ({ before, limit }) => {
+        const end = before ? (Date.parse(before) - START) / HOUR : 1000;
+        return Array.from({ length: limit }, (_, i) =>
+          candleAt(end - limit + i),
+        );
+      },
+    ),
     getFuturesMetrics: vi.fn(),
     getTicker: vi.fn(async () => null),
   };
@@ -137,6 +187,7 @@ async function open(
     },
   );
   return {
+    market,
     pushTicker: (value: MarketTicker) => act(() => live?.(value)),
     pushOverview: (tickers: MarketTicker[]) =>
       act(() =>
@@ -273,5 +324,58 @@ describe('Spot demo trading layout (TR-F1, D-86)', () => {
         .getByRole('link', { name: 'BTC/USDT' })
         .getAttribute('href'),
     ).toBe('/trade/spot/BTCUSDT');
+  });
+
+  it('remembers the timeframe on the device for every pair', async () => {
+    const user = userEvent.setup();
+    await open();
+    await user.click(await screen.findByRole('radio', { name: '4h' }));
+    expect(window.localStorage.getItem('cp-trade-timeframe')).toBe('4h');
+    cleanup();
+    await open('/trade/spot/ETHUSDT');
+    expect(
+      (await screen.findByRole('radio', { name: '4h' })).getAttribute(
+        'aria-checked',
+      ),
+    ).toBe('true');
+  });
+
+  it('opens on the latest bars and reads older candles at the start, keeping the view', async () => {
+    const { market } = await open();
+    await screen.findByRole('img', { name: /BTCUSDT 1h candlestick chart/ });
+    expect(view.set[0]).toEqual({ from: 850, to: 1005 });
+    // The Trader drags the chart to its start.
+    act(() => {
+      view.range = { from: 10, to: 160 };
+      view.onRange?.(view.range);
+    });
+    await waitFor(() =>
+      expect(market.getCandles).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          limit: 500,
+          before: candleAt(0).openTime,
+        }),
+      ),
+    );
+    await waitFor(() => expect(view.bars).toBe(1500));
+    // 500 bars went in front: the same candles stay in view.
+    expect(view.set.at(-1)).toEqual({ from: 510, to: 660 });
+  });
+
+  it('keeps Tab inside the pair list', async () => {
+    await open();
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Choose a pair (current: BTC/USDT)',
+      }),
+    );
+    const panel = screen.getByRole('dialog', { name: 'Spot pairs' });
+    for (let i = 0; i < 12; i += 1) {
+      await user.tab();
+      expect(panel.contains(document.activeElement)).toBe(true);
+    }
+    await user.tab({ shift: true });
+    expect(panel.contains(document.activeElement)).toBe(true);
   });
 });
