@@ -1,5 +1,7 @@
 import type {
+  PlanCalculation,
   PlanDirection,
+  PlanInputs,
   PlanEntryType,
   PlanPage,
   PlanSnapshot,
@@ -24,9 +26,11 @@ import {
 import { marketOf } from './market-dto';
 
 /**
- * Decoders for `/plans/**` (SRS 3.5.2, 3.5.3), checked against `develop`
- * @ 0d92def: `TradingPlanSummaryResponse`, `TradingPlanResponse`,
- * `PlanSnapshotResponse`, `PlanWarningResponse`, `StatusChangeResponse`.
+ * Decoders for `/plans/**` (SRS 3.5.1–3.5.3), checked against `develop`
+ * @ 233fcc8: `TradingPlanSummaryResponse`, `TradingPlanResponse`,
+ * `PlanSnapshotResponse`, `PlanWarningResponse`, `StatusChangeResponse`,
+ * `PlanCalculationResponse`, `CreateTradingPlanRequest`,
+ * `UpdateTradingPlanRequest`.
  */
 function oneOf<T extends string>(
   values: readonly T[],
@@ -158,5 +162,35 @@ export function decodePlan(body: unknown): TradingPlan {
         at: instant(change.at, 'statusHistory.at'),
       };
     }),
+  };
+}
+
+/** `POST /plans/calculate`: the risk panel of SCR-17 (`PlanCalculationResponse`). */
+export function decodeCalculation(body: unknown): PlanCalculation {
+  const value = record(body);
+  return {
+    entryPrice: decimal(value.entryPrice, 'entryPrice'),
+    capital: decimal(value.capital, 'capital'),
+    riskPercent: decimal(value.riskPercent, 'riskPercent'),
+    snapshot: snapshot(value.snapshot),
+    warnings: list(value.warnings, 'warnings').map(warning),
+    blocksActivation: flag(value.blocksActivation, 'blocksActivation'),
+  };
+}
+
+/** The inputs as `CreateTradingPlanRequest` / `UpdateTradingPlanRequest` take them. */
+export function encodePlanInputs(inputs: PlanInputs) {
+  return {
+    market: inputs.market.toUpperCase(),
+    direction: inputs.direction,
+    entryType: inputs.entryType,
+    entryPrice: inputs.entryPrice,
+    stopLoss: inputs.stopLoss,
+    takeProfit: inputs.takeProfit,
+    capital: inputs.capital,
+    riskPercent: inputs.riskPercent,
+    leverage: inputs.leverage,
+    expiresAt: inputs.expiresAt,
+    note: inputs.note,
   };
 }

@@ -1,7 +1,12 @@
 import type { TradingPlanService } from './contracts';
 import { integrationPending } from './errors';
 import type { HttpClient } from './http-client';
-import { decodePlan, decodePlanPage } from './trading-plan-dto';
+import {
+  decodeCalculation,
+  decodePlan,
+  decodePlanPage,
+  encodePlanInputs,
+} from './trading-plan-dto';
 
 /** Used while no API base URL is configured. */
 export function createPendingTradingPlanService(): TradingPlanService {
@@ -10,6 +15,8 @@ export function createPendingTradingPlanService(): TradingPlanService {
     get: async () => integrationPending(),
     activate: async () => integrationPending(),
     cancel: async () => integrationPending(),
+    calculate: async () => integrationPending(),
+    update: async () => integrationPending(),
   };
 }
 
@@ -54,6 +61,21 @@ export function createHttpTradingPlanService(
       http.request({
         path: planPath(id) + '/cancel',
         method: 'POST',
+        decode: decodePlan,
+      }),
+    calculate: (pairId, inputs, signal) =>
+      http.request({
+        path: 'plans/calculate',
+        method: 'POST',
+        body: { pairId, ...encodePlanInputs(inputs) },
+        decode: decodeCalculation,
+        ...withSignal(signal),
+      }),
+    update: (id, inputs, activate) =>
+      http.request({
+        path: planPath(id),
+        method: 'PUT',
+        body: { ...encodePlanInputs(inputs), activate },
         decode: decodePlan,
       }),
   };

@@ -4,7 +4,12 @@ import {
   createHttpTradingPlanService,
   createPendingTradingPlanService,
 } from './trading-plan';
-import { decodePlan, decodePlanPage } from './trading-plan-dto';
+import type { PlanInputs } from '../../types/domain';
+import {
+  decodeCalculation,
+  decodePlan,
+  decodePlanPage,
+} from './trading-plan-dto';
 
 /** Shapes of `GET /plans` and `GET /plans/{id}` on develop @ 0d92def. */
 const ROW = {
@@ -179,9 +184,99 @@ describe('HTTP trading plan adapter', () => {
     ]);
   });
 
+  it('calculates with the pair and saves a DRAFT with or without activation', async () => {
+    const inputs: PlanInputs = {
+      market: 'spot',
+      direction: 'LONG',
+      entryType: 'LIMIT',
+      entryPrice: '62000',
+      stopLoss: '60000',
+      takeProfit: '66000',
+      capital: '1000',
+      riskPercent: '1',
+      leverage: null,
+      expiresAt: null,
+      note: null,
+    };
+    const calc = setup({
+      entryPrice: '62000.00',
+      capital: '1000',
+      riskPercent: '1',
+      snapshot: { ...PLAN.snapshot, initialMargin: null },
+      warnings: [],
+      blocksActivation: false,
+    });
+    await calc.plans.calculate(PLAN.pairId, inputs);
+    expect(calc.calls[0]?.method).toBe('POST');
+    expect(calc.calls[0]?.url.pathname).toBe('/api/v1/plans/calculate');
+    const saved = setup(PLAN);
+    await saved.plans.update(PLAN.id, inputs, true);
+    expect(saved.calls[0]?.method).toBe('PUT');
+    expect(saved.calls[0]?.url.pathname).toBe('/api/v1/plans/' + PLAN.id);
+  });
+
   it('is pending while no API is configured', async () => {
     await expect(
       createPendingTradingPlanService().get('x'),
     ).rejects.toMatchObject({ code: 'NOT_CONFIGURED' });
+  });
+});
+
+describe('plan calculation', () => {
+  it('decodes the risk panel and sends the market in upper case', async () => {
+    const result = decodeCalculation({
+      entryPrice: '62000.00',
+      capital: '1000',
+      riskPercent: '1',
+      snapshot: { ...PLAN.snapshot, initialMargin: null },
+      warnings: [{ type: 'LOW_RR', severity: 'WARNING', message: 'dev text' }],
+      blocksActivation: false,
+    });
+    expect(result.snapshot.initialMargin).toBeNull();
+    expect(result.warnings).toEqual([{ type: 'LOW_RR', severity: 'WARNING' }]);
+    expect(() =>
+      decodeCalculation({ ...result, blocksActivation: 'no' }),
+    ).toThrow();
+
+    const bodies: unknown[] = [];
+    const http = createHttpClient({
+      baseUrl: 'https://api.example.test/api/v1',
+      fetcher: vi.fn<typeof fetch>(async (_input, init = {}) => {
+        bodies.push(JSON.parse(String(init.body)));
+        return new Response(JSON.stringify(PLAN), { status: 200 });
+      }),
+      session: { accessToken: () => 'token-1', refresh: async () => 'renewed' },
+    });
+    await createHttpTradingPlanService(http).update(
+      PLAN.id,
+      {
+        market: 'futures',
+        direction: 'SHORT',
+        entryType: 'MARKET',
+        entryPrice: null,
+        stopLoss: '63000',
+        takeProfit: '59000',
+        capital: null,
+        riskPercent: null,
+        leverage: 5,
+        expiresAt: null,
+        note: 'retest',
+      },
+      false,
+    );
+    expect(bodies[0]).toEqual({
+      market: 'FUTURES',
+      direction: 'SHORT',
+      entryType: 'MARKET',
+      entryPrice: null,
+      stopLoss: '63000',
+      takeProfit: '59000',
+      capital: null,
+      riskPercent: null,
+      leverage: 5,
+      expiresAt: null,
+      note: 'retest',
+      activate: false,
+    });
   });
 });

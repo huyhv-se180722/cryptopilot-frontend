@@ -4,7 +4,7 @@ import { createDevelopmentAuth } from './dev-auth';
 import { createDevelopmentMarket } from './dev-market';
 import { createDevelopmentTradingPlan } from './dev-trading-plan';
 import { DEV_PASSWORD, DEV_TOKENS, devPrincipals } from './fixtures/auth';
-import type { Session } from '../types/domain';
+import type { PlanInputs, Session } from '../types/domain';
 import { createServices } from '../app/providers/create-services';
 
 async function devServices() {
@@ -346,5 +346,69 @@ describe('development plan seam', () => {
     await expect(plans.get('missing')).rejects.toMatchObject({
       problem: { messageCode: 'MSG41' },
     });
+  });
+});
+
+describe('development plan editing (SCR-17)', () => {
+  const free: Session = {
+    ...devPrincipals[0]!,
+    entitlements: {
+      tier: 'FREE',
+      features: [],
+      limits: { ACTIVE_PLAN_MAX: 1 },
+    },
+  };
+  const btcDraft = '0199a2c4-0000-7000-8000-000000000001';
+  const inputs: PlanInputs = {
+    market: 'spot',
+    direction: 'LONG',
+    entryType: 'LIMIT',
+    entryPrice: '61000',
+    stopLoss: '59000',
+    takeProfit: '67000',
+    capital: '2000',
+    riskPercent: '1',
+    leverage: null,
+    expiresAt: null,
+    note: null,
+  };
+
+  it('scripts the calculation and refuses inputs like the backend', async () => {
+    const plans = createDevelopmentTradingPlan(async () => free);
+    const plan = await plans.get(btcDraft);
+    const result = await plans.calculate(plan.pairId, inputs);
+    expect(result.entryPrice).toBe('61000');
+    expect(result.snapshot).toEqual(plan.snapshot);
+    await expect(
+      plans.calculate(plan.pairId, { ...inputs, stopLoss: '62000' }),
+    ).rejects.toMatchObject({
+      problem: { fieldErrors: { stopLoss: 'MSG16' } },
+    });
+    await expect(
+      plans.calculate(plan.pairId, { ...inputs, riskPercent: '12' }),
+    ).rejects.toMatchObject({
+      problem: { fieldErrors: { riskPercent: 'MSG15' } },
+    });
+    await expect(
+      plans.calculate(plan.pairId, {
+        ...inputs,
+        market: 'futures',
+        leverage: 3,
+      }),
+    ).rejects.toMatchObject({
+      problem: { fieldErrors: { leverage: 'MSG15' } },
+    });
+  });
+
+  it('saves a draft, and saves nothing when activation is refused', async () => {
+    const plans = createDevelopmentTradingPlan(async () => free);
+    const saved = await plans.update(btcDraft, inputs, false);
+    expect(saved).toMatchObject({ status: 'DRAFT', capital: '2000' });
+    expect(saved.expiresAt).not.toBeNull();
+    // One ACTIVE plan in the seeds already fills ACTIVE_PLAN_MAX 1.
+    await expect(
+      plans.update(btcDraft, { ...inputs, capital: '3000' }, true),
+    ).rejects.toMatchObject({ problem: { messageCode: 'MSG27' } });
+    expect((await plans.get(btcDraft)).capital).toBe('2000');
   });
 });
