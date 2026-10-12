@@ -90,6 +90,46 @@ describe('analysis decoder', () => {
   });
 });
 
+/** Futures shape on develop @ 0d92def: derivatives and dominantSide added. */
+const FUTURES = {
+  ...SPOT,
+  market: 'FUTURES',
+  components: { ...SPOT.components, derivatives: '50.00' },
+  setupScore: {
+    ...SPOT.setupScore,
+    components: { ...SPOT.setupScore.components, derivatives: null },
+    dominantSide: 'SHORT',
+  },
+};
+
+describe('futures analysis decoder', () => {
+  it('keeps the derivatives component and the dominant side', () => {
+    const analysis = decodeAnalysis(FUTURES);
+    expect(analysis.market).toBe('futures');
+    expect(analysis.setupScore.dominantSide).toBe('SHORT');
+    expect(analysis.setupScore.components).toMatchObject({
+      trend: '75.00',
+      derivatives: null,
+    });
+    expect(
+      decodeAnalysis({
+        ...FUTURES,
+        setupScore: { ...FUTURES.setupScore, dominantSide: null },
+      }).setupScore.dominantSide,
+    ).toBeNull();
+    expect(decodeAnalysis(SPOT).setupScore).not.toHaveProperty('dominantSide');
+  });
+
+  it('rejects an unknown dominant side', () => {
+    expect(() =>
+      decodeAnalysis({
+        ...FUTURES,
+        setupScore: { ...FUTURES.setupScore, dominantSide: 'BOTH' },
+      }),
+    ).toThrow();
+  });
+});
+
 describe('HTTP analysis adapter', () => {
   it('asks with the bearer token and the chart timeframe', async () => {
     const calls: { url: URL; auth: string | null }[] = [];

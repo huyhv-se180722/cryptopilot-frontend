@@ -17,6 +17,7 @@ import {
   fractionToPercent,
   toFixedDecimal,
 } from '../../../utils/decimal-format';
+import { formatCountdown } from '../../../utils/countdown';
 
 type SortKey = 'order' | 'symbol' | 'price' | 'change' | 'volume' | 'funding';
 type Direction = 'asc' | 'desc';
@@ -52,13 +53,6 @@ function sortValue(row: Row, key: SortKey): string | null {
     default:
       return null;
   }
-}
-
-function countdown(until: string | null, now: number): string | null {
-  if (!until) return null;
-  const seconds = Math.max(0, Math.floor((Date.parse(until) - now) / 1000));
-  const pad = (value: number) => String(value).padStart(2, '0');
-  return `${pad(Math.floor(seconds / 3600))}:${pad(Math.floor(seconds / 60) % 60)}:${pad(seconds % 60)}`;
 }
 
 /**
@@ -249,7 +243,10 @@ export function MarketTable({
             numeric: true,
             from: 'md',
             cell: (row) => {
-              const left = countdown(row.ticker?.nextFundingTime ?? null, now);
+              const left = formatCountdown(
+                row.ticker?.nextFundingTime ?? null,
+                now,
+              );
               return left ? <NumericText value={left} /> : none;
             },
           },

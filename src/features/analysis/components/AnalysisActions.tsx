@@ -7,14 +7,22 @@ import { buttonClassName } from '../../../components/ui/button-styles';
 import { useCopy } from '../../../hooks/use-copy';
 import { usePlanLimit } from '../../../hooks/use-entitlement';
 import { messageText } from '../../../i18n/messages';
+import type { MarketType } from '../../../types/domain';
 
 /**
- * SCR-10 actions (SRS 3.3.2). Watchlist, alert and plan take the pair's id,
- * which no endpoint returns yet (FEQ-01): they stay disabled and say so.
+ * SCR-10 / SCR-11 actions (SRS 3.3.2, 3.3.3). Watchlist, alert and plan
+ * (pre-filled with the market) take the pair's id, which no endpoint
+ * returns yet (FEQ-01): they stay disabled and say so.
  * Ask AI is PRO and PREMIUM only: on a plan without AI questions it shows
  * MSG29; otherwise it opens SCR-29 with the pair.
  */
-export function AnalysisActions({ symbol }: { symbol: string }) {
+export function AnalysisActions({
+  market,
+  symbol,
+}: {
+  market: MarketType;
+  symbol: string;
+}) {
   const copy = useCopy();
   const a = copy.analysis;
   const aiQuota = usePlanLimit('AI_CHAT_DAILY');
@@ -59,7 +67,7 @@ export function AnalysisActions({ symbol }: { symbol: string }) {
           </Button>
         ) : (
           <Link
-            to={`/ai?symbol=${encodeURIComponent(symbol)}&market=spot`}
+            to={`/ai?symbol=${encodeURIComponent(symbol)}&market=${market}`}
             className={buttonClassName(
               'secondary',
               'md',

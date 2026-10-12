@@ -97,7 +97,7 @@ function SpotAnalysis({ pair }: { pair: MarketPair }) {
             resistance={data?.nearestResistance ?? null}
             tickSize={pair.tickSize}
           />
-          <AnalysisActions symbol={pair.symbol} />
+          <AnalysisActions market="spot" symbol={pair.symbol} />
         </div>
       </div>
     </>

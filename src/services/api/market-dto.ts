@@ -1,11 +1,15 @@
 import type {
   Candle,
   CandleTimeframe,
+  FundingSettlement,
+  FuturesMetrics,
   KlineUpdate,
+  LongShortPoint,
   MarketOverview,
   MarketPair,
   MarketTicker,
   MarketType,
+  OpenInterestPoint,
 } from '../../types/domain';
 import {
   decimal,
@@ -178,5 +182,68 @@ export function decodeFuturesStats(body: unknown): MarketTicker | null {
     indexPrice: nullableDecimal(price.indexPrice, 'indexPrice'),
     fundingRate: nullableDecimal(price.fundingRate, 'fundingRate'),
     nextFundingTime: nullableInstant(price.nextFundingTime, 'nextFundingTime'),
+  };
+}
+
+function openInterestPoint(value: unknown): OpenInterestPoint {
+  const point = record(value, 'openInterest');
+  return {
+    time: instant(point.time, 'time'),
+    openInterest: decimal(point.openInterest, 'openInterest'),
+    openInterestValue: nullableDecimal(
+      point.openInterestValue,
+      'openInterestValue',
+    ),
+  };
+}
+
+function longShortPoint(value: unknown): LongShortPoint {
+  const point = record(value, 'longShortRatio');
+  return {
+    time: instant(point.time, 'time'),
+    longShortRatio: decimal(point.longShortRatio, 'longShortRatio'),
+    longAccountRatio: decimal(point.longAccountRatio, 'longAccountRatio'),
+    shortAccountRatio: decimal(point.shortAccountRatio, 'shortAccountRatio'),
+  };
+}
+
+function fundingSettlement(value: unknown): FundingSettlement {
+  const point = record(value, 'fundingSettlement');
+  return {
+    fundingTime: instant(point.fundingTime, 'fundingTime'),
+    fundingRate: decimal(point.fundingRate, 'fundingRate'),
+    markPrice: nullableDecimal(point.markPrice, 'markPrice'),
+  };
+}
+
+/** `GET /market/futures/{symbol}/metrics` (SRS 3.3.3, BR-10, BR-11). */
+export function decodeFuturesMetrics(body: unknown): FuturesMetrics {
+  const value = record(body);
+  const available = record(value.availableFrom, 'availableFrom');
+  return {
+    symbol: text(value.symbol, 'symbol'),
+    from: instant(value.from, 'from'),
+    to: instant(value.to, 'to'),
+    openInterest: list(value.openInterest, 'openInterest').map(
+      openInterestPoint,
+    ),
+    longShortRatio: list(value.longShortRatio, 'longShortRatio').map(
+      longShortPoint,
+    ),
+    fundingSettlements: list(
+      value.fundingSettlements,
+      'fundingSettlements',
+    ).map(fundingSettlement),
+    availableFrom: {
+      openInterest: nullableInstant(available.openInterest, 'openInterest'),
+      longShortRatio: nullableInstant(
+        available.longShortRatio,
+        'longShortRatio',
+      ),
+      fundingSettlements: nullableInstant(
+        available.fundingSettlements,
+        'fundingSettlements',
+      ),
+    },
   };
 }

@@ -5,6 +5,8 @@ import type {
   JournalEntry,
   Candle,
   CandleTimeframe,
+  FuturesMetrics,
+  ISODateTime,
   KlineUpdate,
   MarketOverview,
   MarketPair,
@@ -61,6 +63,15 @@ export interface MarketService {
     symbol: string,
     signal?: AbortSignal,
   ): Promise<MarketTicker | null>;
+  /**
+   * Open interest, long/short ratio and settled funding series of a
+   * Futures pair from `from` to now (at most 7 days; SRS 3.3.3).
+   */
+  getFuturesMetrics(
+    symbol: string,
+    from: ISODateTime,
+    signal?: AbortSignal,
+  ): Promise<FuturesMetrics>;
 }
 
 export type FeedStatus = 'connecting' | 'open' | 'closed' | 'unavailable';

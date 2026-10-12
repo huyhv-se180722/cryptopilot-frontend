@@ -249,6 +249,28 @@ describe('development market seam', () => {
     });
   });
 
+  it('scripts sparse futures metrics and a dominant side, with MSG41 on Spot only pairs', async () => {
+    const now = Date.UTC(2026, 9, 9, 12, 2);
+    const { market, analysis } = createDevelopmentMarket(() => now);
+    const from = new Date(now - 7 * 86_400_000).toISOString();
+    const sol = await market.getFuturesMetrics('SOLUSDT', from);
+    expect(Date.parse(sol.availableFrom.openInterest ?? '')).toBeGreaterThan(
+      Date.parse(from),
+    );
+    expect(Date.parse(sol.openInterest[0]?.time ?? '')).toBeGreaterThanOrEqual(
+      Date.parse(sol.availableFrom.openInterest ?? ''),
+    );
+    // Sparse: some 5-minute points are missing.
+    expect(sol.openInterest.length).toBeLessThan(2 * 288);
+    expect(sol.openInterest[0]?.openInterest).toMatch(/^\d+\.\d{3}$/);
+    const futures = await analysis.get('futures', 'BTCUSDT', '1h');
+    expect(futures.setupScore.dominantSide).toMatch(/^(LONG|SHORT)$/);
+    expect(futures.setupScore.components.derivatives).toBe('50.00');
+    await expect(
+      market.getFuturesMetrics('ADAUSDT', from),
+    ).rejects.toMatchObject({ problem: { messageCode: 'MSG41' } });
+  });
+
   it('publishes the overview of each subscribed market until the last stops', async () => {
     vi.useFakeTimers();
     try {
