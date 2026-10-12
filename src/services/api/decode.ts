@@ -42,3 +42,16 @@ export function instant(value: unknown, name: string): string {
 export function nullableInstant(value: unknown, name: string): string | null {
   return value === null || value === undefined ? null : instant(value, name);
 }
+export function flag(value: unknown, name: string): boolean {
+  if (typeof value !== 'boolean') throw new Error(name + ' must be a boolean');
+  return value;
+}
+export function oneOf<T extends string>(
+  values: readonly T[],
+  value: unknown,
+  name: string,
+): T {
+  if (!values.includes(value as T))
+    throw new Error(name + ' is not one of ' + values.join(', '));
+  return value as T;
+}
