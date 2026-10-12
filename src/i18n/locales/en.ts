@@ -725,6 +725,7 @@ export const en = {
     rsi: 'RSI 14',
     macd: 'MACD 12, 26, 9',
     forming: 'Forming candle, provisional',
+    loadingOlder: 'Loading earlier candles…',
     chartLabel:
       '{symbol} {timeframe} candlestick chart with the latest {count} closed candles',
     empty: 'No closed candles yet.',

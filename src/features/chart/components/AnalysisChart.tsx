@@ -39,6 +39,10 @@ import type { Series } from '../indicators/indicators';
 import { chartOptions, token, useThemeVersion } from './chart-theme';
 
 const TIMEFRAMES: readonly CandleTimeframe[] = ['15m', '1h', '4h', '1d'];
+/** An extendable chart opens on the latest bars, like an exchange chart. */
+const OPENING_BARS = 150;
+/** Bars left of the view at which an extendable chart reads an older page. */
+const LOAD_MARGIN_BARS = 30;
 /** Price pane 320px plus 110px per shown panel. */
 const HEIGHTS = ['h-[320px]', 'h-[430px]', 'h-[540px]', 'h-[650px]'] as const;
 
@@ -292,6 +296,8 @@ function build(chart: IChartApi, toggles: ChartToggles, places: number) {
  * panels Volume with its SMA 20, RSI 14 and MACD. Each item can be hidden,
  * and the choice is remembered on the device. `levels` (BR-14) and
  * `priceLines` are drawn on the price pane and redrawn without a rebuild.
+ * `extendable` (trading screens) opens on the latest bars and reads older
+ * candles when dragged to its start, keeping the view in place.
  */
 export function AnalysisChart({
   market,
@@ -301,6 +307,7 @@ export function AnalysisChart({
   onTimeframeChange,
   levels,
   priceLines,
+  extendable = false,
 }: {
   market: MarketType;
   symbol: string;
@@ -309,11 +316,15 @@ export function AnalysisChart({
   onTimeframeChange: (timeframe: CandleTimeframe) => void;
   levels?: PriceLevels;
   priceLines?: readonly ChartPriceLine[];
+  extendable?: boolean;
 }) {
   const copy = useCopy();
   const c = copy.chart;
   const { toggles, toggle } = useChartPreferences();
-  const series = useChartSeries(market, symbol, timeframe);
+  const series = useChartSeries(market, symbol, timeframe, { extendable });
+  const chartApi = useRef<IChartApi | null>(null);
+  const loadOlder = useRef(series.loadOlder);
+  const firstShown = useRef<string | null>(null);
   const container = useRef<HTMLDivElement>(null);
   const write = useRef<((data: Data) => void) | null>(null);
   const latest = useRef<Data>(series);
@@ -360,6 +371,7 @@ export function AnalysisChart({
   useEffect(() => {
     latest.current = series;
     latestLines.current = lines;
+    loadOlder.current = series.loadOlder;
   });
 
   // Rebuilt when the shown items, the precision or the theme change.
@@ -371,15 +383,30 @@ export function AnalysisChart({
     priceSeries.current = built.candles;
     drawnLines.current = drawPriceLines(built.candles, [], latestLines.current);
     write.current(latest.current);
-    chart.timeScale().fitContent();
+    chartApi.current = chart;
+    firstShown.current = latest.current.candles[0]?.openTime ?? null;
+    const scale = chart.timeScale();
+    const onRange = (range: { from: number } | null) => {
+      if (range && range.from < LOAD_MARGIN_BARS) loadOlder.current?.();
+    };
+    if (extendable) {
+      const count = latest.current.candles.length;
+      scale.setVisibleLogicalRange({
+        from: Math.max(0, count - OPENING_BARS),
+        to: count + 5,
+      });
+      scale.subscribeVisibleLogicalRangeChange(onRange);
+    } else scale.fitContent();
     return () => {
+      if (extendable) scale.unsubscribeVisibleLogicalRangeChange(onRange);
       write.current = null;
+      chartApi.current = null;
       priceSeries.current = null;
       drawnLines.current = [];
       chart.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `toggles` is read through `togglesKey`.
-  }, [ready, togglesKey, places, theme]);
+  }, [ready, togglesKey, places, theme, extendable]);
 
   // Lines change often (orders, levels): redraw them on the same series.
   useEffect(() => {
@@ -392,12 +419,27 @@ export function AnalysisChart({
   }, [linesKey]);
 
   useEffect(() => {
+    const scale = extendable ? chartApi.current?.timeScale() : undefined;
+    const range = scale?.getVisibleLogicalRange() ?? null;
     write.current?.({
       candles: series.candles,
       forming: series.forming,
       indicators: series.indicators,
     });
-  }, [series.candles, series.forming, series.indicators]);
+    // Older candles were put in front: move the view by as many bars so
+    // what the Trader looks at stays where it was.
+    const before = firstShown.current;
+    firstShown.current = series.candles[0]?.openTime ?? null;
+    if (!extendable || !scale || !range || before === null) return;
+    const added = series.candles.findIndex(
+      (candle) => candle.openTime === before,
+    );
+    if (added > 0)
+      scale.setVisibleLogicalRange({
+        from: range.from + added,
+        to: range.to + added,
+      });
+  }, [series.candles, series.forming, series.indicators, extendable]);
 
   const panels = (['volume', 'rsi', 'macd'] as const).filter(
     (item) => toggles[item],
@@ -437,6 +479,11 @@ export function AnalysisChart({
             </button>
           ))}
         </div>
+        {series.loadingOlder && (
+          <span role="status" className="text-[11px] text-muted">
+            {c.loadingOlder}
+          </span>
+        )}
         {series.forming && (
           <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] text-muted">
             <span

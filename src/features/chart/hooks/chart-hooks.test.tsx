@@ -15,6 +15,7 @@ import type { Candle, KlineUpdate } from '../../../types/domain';
 import { useChartPreferences } from './use-chart-preferences';
 import {
   HISTORY_CANDLES,
+  OLDER_PAGE,
   VISIBLE_CANDLES,
   useChartSeries,
 } from './use-chart-series';
@@ -32,12 +33,18 @@ const candle = (index: number, close = 100 + index): Candle => ({
   quoteVolume: '1000',
 });
 
-function setup(count: number) {
+/** The backend stores candles from index `-oldest` on. */
+function setup(count: number, extendable = false, oldest = 700) {
   let status: FeedStatus = 'open';
   const statusListeners = new Set<() => void>();
   let kline: ((update: KlineUpdate) => void) | null = null;
-  const getCandles = vi.fn<MarketService['getCandles']>(async () =>
-    Array.from({ length: count }, (_, i) => candle(i)),
+  const getCandles = vi.fn<MarketService['getCandles']>(
+    async ({ before, limit }) => {
+      if (!before) return Array.from({ length: count }, (_, i) => candle(i));
+      const end = (Date.parse(before) - START) / HOUR;
+      const from = Math.max(-oldest, end - limit);
+      return Array.from({ length: end - from }, (_, i) => candle(from + i));
+    },
   );
   const feed: MarketFeed = {
     status: () => status,
@@ -64,9 +71,10 @@ function setup(count: number) {
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     </ServicesContext.Provider>
   );
-  const hook = renderHook(() => useChartSeries('spot', 'BTCUSDT', '1h'), {
-    wrapper,
-  });
+  const hook = renderHook(
+    () => useChartSeries('spot', 'BTCUSDT', '1h', { extendable }),
+    { wrapper },
+  );
   const push = (index: number, closed: boolean, close?: number) =>
     act(() =>
       kline?.({
@@ -113,6 +121,45 @@ describe('useChartSeries', () => {
     expect(hook.result.current.candles).toHaveLength(31);
     expect(hook.result.current.candles[30]?.close).toBe('141');
     expect(hook.result.current.indicators?.sma20).toHaveLength(31);
+  });
+
+  it('reads earlier pages on demand when extendable, until none is left', async () => {
+    const { hook, getCandles } = setup(HISTORY_CANDLES, true);
+    await waitFor(() => expect(hook.result.current.status).toBe('ready'));
+    expect(hook.result.current.candles).toHaveLength(HISTORY_CANDLES);
+    act(() => hook.result.current.loadOlder?.());
+    expect(hook.result.current.loadingOlder).toBe(true);
+    await waitFor(() =>
+      expect(hook.result.current.candles).toHaveLength(
+        HISTORY_CANDLES + OLDER_PAGE,
+      ),
+    );
+    expect(getCandles).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        limit: OLDER_PAGE,
+        before: candle(0).openTime,
+      }),
+    );
+    expect(hook.result.current.candles[0]?.openTime).toBe(
+      candle(-OLDER_PAGE).openTime,
+    );
+    expect(hook.result.current.indicators?.sma20).toHaveLength(
+      HISTORY_CANDLES + OLDER_PAGE,
+    );
+    // The next page is short (200 left): nothing older is asked for after it.
+    act(() => hook.result.current.loadOlder?.());
+    await waitFor(() =>
+      expect(hook.result.current.candles).toHaveLength(HISTORY_CANDLES + 700),
+    );
+    const calls = getCandles.mock.calls.length;
+    act(() => hook.result.current.loadOlder?.());
+    expect(getCandles).toHaveBeenCalledTimes(calls);
+  });
+
+  it('offers no earlier pages on the analysis screens (SRS 3.3.2)', async () => {
+    const { hook } = setup(HISTORY_CANDLES);
+    await waitFor(() => expect(hook.result.current.status).toBe('ready'));
+    expect(hook.result.current.loadOlder).toBeNull();
   });
 
   it('reads the history again after a reconnect', async () => {
