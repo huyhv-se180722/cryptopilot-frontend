@@ -150,6 +150,27 @@ export function PairSelector({
   );
 }
 
+const FOCUSABLE =
+  'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** Tab and Shift+Tab cycle inside the panel (a full-screen sheet on a phone). */
+function keepFocusInside(event: KeyboardEvent<HTMLElement>) {
+  // The phone-only close button is display:none on wider screens.
+  const items = [
+    ...event.currentTarget.querySelectorAll<HTMLElement>(FOCUSABLE),
+  ].filter((item) => getComputedStyle(item).display !== 'none');
+  const first = items[0];
+  const last = items[items.length - 1];
+  if (!first || !last) return;
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
 function PairPanel({
   pairs,
   tickers,
@@ -257,7 +278,7 @@ function PairPanel({
         if (event.key === 'Escape') {
           event.stopPropagation();
           onClose();
-        }
+        } else if (event.key === 'Tab') keepFocusInside(event);
       }}
       className="fixed inset-0 z-50 flex flex-col bg-surface p-4 sm:absolute sm:inset-auto sm:top-full sm:left-0 sm:mt-2 sm:h-auto sm:max-h-[520px] sm:w-[440px] sm:rounded-xl sm:border sm:border-line-strong sm:p-3 sm:shadow-overlay"
     >
