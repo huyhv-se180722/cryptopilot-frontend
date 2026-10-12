@@ -17,6 +17,7 @@ import type {
   MarketTicker,
   MarketType,
   PairAnalysis,
+  PaperAccount,
   PlanCalculation,
   PlanInputs,
   PlanListQuery,
@@ -164,6 +165,14 @@ export interface AlertsService {
   pause(id: string): Promise<Alert>;
   /** PAUSED → ACTIVE within the current plan's limits (BR-17, BR-64). */
   resume(id: string): Promise<Alert>;
+}
+/**
+ * Demo trading (`/paper/**`, D-86, Trader only): virtual funds, never an
+ * exchange. Grows with TR-F2…F5 (wallets, orders, positions).
+ */
+export interface PaperTradingService {
+  /** Opens the caller's account with its virtual funds, once; idempotent (TR-04). */
+  openAccount(signal?: AbortSignal): Promise<PaperAccount>;
 }
 export type JournalService = ReadService<JournalEntry>;
 export type CommunityService = ReadService<CommunityPost>;

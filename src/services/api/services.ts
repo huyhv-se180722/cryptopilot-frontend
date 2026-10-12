@@ -9,6 +9,7 @@ import type {
   MarketFeed,
   MarketService,
   NewsService,
+  PaperTradingService,
   ProfileService,
   SubscriptionService,
   TradingPlanService,
@@ -28,6 +29,7 @@ export interface Services {
   journal: JournalService;
   watchlist: WatchlistService;
   alerts: AlertsService;
+  paperTrading: PaperTradingService;
   community: CommunityService;
   news: NewsService;
   ai: AiService;

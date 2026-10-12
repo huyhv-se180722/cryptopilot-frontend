@@ -512,3 +512,14 @@ export interface RiskSuggestion {
   attitudeScore: number;
   suggestedProfile: RiskProfile;
 }
+
+/**
+ * Demo trading (D-86): the Trader's paper account, virtual funds only;
+ * nothing reaches an exchange. How Futures positions are held (Q-T4).
+ */
+export type PaperPositionMode = 'one-way' | 'hedge';
+export interface PaperAccount {
+  accountId: string;
+  positionMode: PaperPositionMode;
+  openedAt: ISODateTime;
+}
