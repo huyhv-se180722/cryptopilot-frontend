@@ -3,4 +3,5 @@ interface ImportMetaEnv {
   readonly VITE_API_BASE_URL?: string;
   readonly VITE_WS_URL?: string;
   readonly VITE_ENABLE_DEV_FIXTURES?: string;
+  readonly VITE_ENABLE_PAPER_TRADING?: string;
 }
