@@ -36,10 +36,13 @@ function setup(status: FeedStatus = 'open') {
       return () => klines.delete(tf);
     },
   };
+  // Fake-clock time of each read, to check a refresh is never early.
+  const readAt: number[] = [];
   // The score is read on 1h whatever the chart's timeframe (D-53).
   const get = vi.fn<AnalysisService['get']>(
-    async (market, symbol, timeframe) =>
-      ({
+    async (market, symbol, timeframe) => {
+      readAt.push(Date.now());
+      return {
         symbol,
         market,
         timeframe,
@@ -61,7 +64,8 @@ function setup(status: FeedStatus = 'open') {
             level: null,
           },
         },
-      }) as unknown as PairAnalysis,
+      } as unknown as PairAnalysis;
+    },
   );
   const getTicker = vi.fn(async (): Promise<MarketTicker> => ({
     market: 'spot',
@@ -111,6 +115,7 @@ function setup(status: FeedStatus = 'open') {
   return {
     wrapper,
     get,
+    readAt,
     getTicker,
     klines,
     close,
@@ -123,7 +128,7 @@ describe('usePairAnalysis', () => {
   afterEach(() => vi.useRealTimers());
 
   it('reads again 12 s after a closed candle of the chart or the score timeframe', async () => {
-    const { wrapper, get, klines, close } = setup();
+    const { wrapper, get, readAt, klines, close } = setup();
     const hook = renderHook(() => usePairAnalysis('spot', 'BTCUSDT', '4h'), {
       wrapper,
     });
@@ -134,10 +139,15 @@ describe('usePairAnalysis', () => {
     );
     expect(get).toHaveBeenCalledTimes(1);
     close('1h');
-    await act(() => vi.advanceTimersByTimeAsync(REFRESH_AFTER_CLOSE_MS - 1));
-    expect(get).toHaveBeenCalledTimes(1);
-    await act(() => vi.advanceTimersByTimeAsync(1));
+    const closedAt = Date.now();
+    // The fake clock also follows real time (shouldAdvanceTime), so a busy
+    // machine may move it on between two lines: assert the refresh is never
+    // early instead of counting calls at an exact instant.
+    await act(() => vi.advanceTimersByTimeAsync(REFRESH_AFTER_CLOSE_MS));
     await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
+    expect(readAt[1]! - closedAt).toBeGreaterThanOrEqual(
+      REFRESH_AFTER_CLOSE_MS,
+    );
   });
 
   it('ignores a forming candle', async () => {
