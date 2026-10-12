@@ -223,6 +223,13 @@ describe('HTTP market adapter', () => {
       timeframe: '1d',
       limit: 90,
     });
+    await market.getCandles({
+      market: 'spot',
+      symbol: 'BTCUSDT',
+      timeframe: '1h',
+      limit: 500,
+      before: '2026-10-02T00:00:00Z',
+    });
     expect(candles[0]).toEqual({
       openTime: '2026-10-02T00:00:00Z',
       open: '1',
@@ -242,6 +249,7 @@ describe('HTTP market adapter', () => {
     });
     expect(urls.map((url) => url.pathname + url.search)).toEqual([
       '/api/v1/market/spot/btcusdt/candles?tf=1d&limit=90',
+      '/api/v1/market/spot/BTCUSDT/candles?tf=1h&limit=500&to=2026-10-02T00%3A00%3A00Z',
       '/api/v1/market/spot/BTCUSDT/stats',
       '/api/v1/market/futures/BTCUSDT/stats',
     ]);

@@ -54,6 +54,8 @@ export interface CandlesRequest {
   symbol: string;
   timeframe: CandleTimeframe;
   limit: number;
+  /** Only candles opened before this instant (the backend's `to`). */
+  before?: ISODateTime;
   signal?: AbortSignal;
 }
 /** Public market data (`/market/**`, SRS 3.3.1); no token needed. */
