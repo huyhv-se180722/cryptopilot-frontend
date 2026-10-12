@@ -120,7 +120,15 @@ export function SetupScoreCard({ setup }: { setup: SetupScore }) {
                   {a[LABELS[name]]}
                 </dt>
                 <dd className="font-mono text-[11px] font-semibold text-fg-2 tabular-nums">
-                  {value === null ? a.insufficient : toFixedDecimal(value, 0)}
+                  {value === null ? (
+                    // A dash keeps the two-column grid on one line per component.
+                    <span title={a.insufficient}>
+                      <span aria-hidden="true">—</span>
+                      <span className="sr-only">{a.insufficient}</span>
+                    </span>
+                  ) : (
+                    toFixedDecimal(value, 0)
+                  )}
                 </dd>
               </div>
             );

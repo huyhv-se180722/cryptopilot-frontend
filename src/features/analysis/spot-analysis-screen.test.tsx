@@ -260,6 +260,26 @@ describe('SCR-10 Spot analysis (T-033)', () => {
     expect(card.queryByRole('meter')).toBeNull();
   });
 
+  it('shows a component without data as a dash named Insufficient data', async () => {
+    await open({
+      analysis: async () => ({
+        ...ANALYSIS,
+        setupScore: {
+          ...ANALYSIS.setupScore,
+          components: { ...ANALYSIS.setupScore.components, momentum: null },
+        },
+      }),
+    });
+    const card = within(
+      await screen.findByRole('region', { name: 'Setup score' }),
+    );
+    const value = card.getByText('Momentum').nextSibling as HTMLElement;
+    expect(value.textContent).toBe('—Insufficient data');
+    expect(within(value).getByText('—').getAttribute('aria-hidden')).toBe(
+      'true',
+    );
+  });
+
   it('returns to the market list when the pair is disabled (MSG41)', async () => {
     await open({
       analysis: async () => {
