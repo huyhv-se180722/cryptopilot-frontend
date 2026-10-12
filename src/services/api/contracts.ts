@@ -17,6 +17,8 @@ import type {
   MarketTicker,
   MarketType,
   PairAnalysis,
+  PlanCalculation,
+  PlanInputs,
   PlanListQuery,
   PlanPage,
   NewsArticle,
@@ -114,10 +116,7 @@ export interface AnalysisService {
     signal?: AbortSignal,
   ): Promise<PairAnalysis>;
 }
-/**
- * Trading plans of the signed-in Trader (`/plans/**`; SRS 3.5.2, 3.5.3).
- * Create, edit and the live calculation belong to SCR-17.
- */
+/** Trading plans of the signed-in Trader (`/plans/**`; SRS 3.5.1–3.5.3). */
 export interface TradingPlanService {
   list(query: PlanListQuery, signal?: AbortSignal): Promise<PlanPage>;
   get(id: string, signal?: AbortSignal): Promise<TradingPlan>;
@@ -125,6 +124,21 @@ export interface TradingPlanService {
   activate(id: string): Promise<TradingPlan>;
   /** DRAFT or ACTIVE → CANCELLED (UC-19). */
   cancel(id: string): Promise<TradingPlan>;
+  /** SCR-17 risk panel for the values entered; nothing is saved. */
+  calculate(
+    pairId: string,
+    inputs: PlanInputs,
+    signal?: AbortSignal,
+  ): Promise<PlanCalculation>;
+  /**
+   * Replaces a DRAFT's inputs (UC-17); with `activate` it is activated in the
+   * same request, and nothing is saved when activation is refused.
+   */
+  update(
+    id: string,
+    inputs: PlanInputs,
+    activate: boolean,
+  ): Promise<TradingPlan>;
 }
 /** The signed-in Trader's watchlist (`/watchlist/**`; SRS 3.4.1). */
 export interface WatchlistService {

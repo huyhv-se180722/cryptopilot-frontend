@@ -10,3 +10,8 @@ export function formatInstantUtc(value: string): string {
   const iso = new Date(value).toISOString();
   return `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`;
 }
+
+/** An instant as a `datetime-local` input value ("YYYY-MM-DDTHH:mm", device time zone). */
+export function toLocalInput(value: string): string {
+  return formatInstantLocal(value).replace(' ', 'T');
+}

@@ -302,6 +302,40 @@ export interface TradingPlan {
   statusHistory: readonly { status: PlanStatus; at: ISODateTime }[];
 }
 
+/**
+ * SCR-17 inputs (SRS 3.5.1, UC-16, UC-17). Editing replaces them whole;
+ * the pair never changes. Null leaves a value to the server's default
+ * (entry price for MARKET, capital and risk % from the profile, a 7-day
+ * expiry for LIMIT).
+ */
+export interface PlanInputs {
+  market: MarketType;
+  /** LONG only on Spot (BR-21). */
+  direction: PlanDirection;
+  entryType: PlanEntryType;
+  entryPrice: Decimal | null;
+  stopLoss: Decimal;
+  takeProfit: Decimal;
+  capital: Decimal | null;
+  riskPercent: Decimal | null;
+  /** Futures only; null on Spot. */
+  leverage: number | null;
+  expiresAt: ISODateTime | null;
+  note: string | null;
+}
+
+/** The live risk panel of SCR-17 (`POST /plans/calculate`); nothing is saved. */
+export interface PlanCalculation {
+  /** On the tick; for MARKET the current last price. */
+  entryPrice: Decimal;
+  /** After the profile defaults. */
+  capital: Decimal;
+  riskPercent: Decimal;
+  snapshot: PlanSnapshot;
+  warnings: readonly PlanWarning[];
+  blocksActivation: boolean;
+}
+
 export interface PlanListQuery {
   tab: PlanTab;
   market?: MarketType;

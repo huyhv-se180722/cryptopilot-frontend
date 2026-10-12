@@ -82,7 +82,10 @@ export function PlanDetailPage() {
               {plan.status === 'EXECUTED' && <PlanPositionPanel />}
             </div>
             <div className="flex flex-col gap-4">
-              <PlanWarningsPanel plan={plan} />
+              <PlanWarningsPanel
+                warnings={plan.warnings}
+                blocked={plan.blocksActivation && plan.status === 'DRAFT'}
+              />
               <PlanHistoryPanel plan={plan} />
             </div>
           </div>

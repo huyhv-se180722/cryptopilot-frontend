@@ -3,7 +3,11 @@ import { AlertTriangle, Clock } from 'lucide-react';
 import { NumericText } from '../../../components/ui/NumericText';
 import { useCopy } from '../../../hooks/use-copy';
 import { messageText } from '../../../i18n/messages';
-import type { TradingPlan } from '../../../types/domain';
+import type {
+  PlanSnapshot,
+  PlanWarning,
+  TradingPlan,
+} from '../../../types/domain';
 import { shiftDecimal, toFixedDecimal } from '../../../utils/decimal-format';
 import {
   formatInstantLocal,
@@ -12,13 +16,16 @@ import {
 import { PlanStatusBadge, SeverityBadge } from './PlanBadges';
 import { planAmount, planPrice, planQuantity, planRatio } from './plan-format';
 
-function Panel({
+export function Panel({
   id,
   title,
+  aside,
   children,
 }: {
   id: string;
   title: string;
+  /** Shown at the end of the title row (e.g. an updating mark). */
+  aside?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -26,20 +33,36 @@ function Panel({
       aria-labelledby={id}
       className="rounded-xl border border-line bg-surface p-4"
     >
-      <h2
-        id={id}
-        className="mb-3 text-[10px] font-semibold tracking-widest text-muted-x uppercase"
-      >
-        {title}
-      </h2>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h2
+          id={id}
+          className="text-[10px] font-semibold tracking-widest text-muted-x uppercase"
+        >
+          {title}
+        </h2>
+        {aside}
+      </div>
       {children}
     </section>
   );
 }
 
-function Rows({ rows }: { rows: readonly [string, ReactNode][] }) {
+function Rows({
+  rows,
+  single = false,
+}: {
+  rows: readonly [string, ReactNode][];
+  /** One column, for a narrow side panel. */
+  single?: boolean;
+}) {
   return (
-    <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+    <dl
+      className={
+        single
+          ? 'grid grid-cols-1 gap-y-2'
+          : 'grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2'
+      }
+    >
       {rows.map(([label, value]) => (
         <div
           key={label}
@@ -93,10 +116,18 @@ export function PlanInputsPanel({ plan }: { plan: TradingPlan }) {
   );
 }
 
-/** The calculation stored with the plan (BR-31); Futures adds margin, MMR and liquidation. */
-export function PlanSnapshotPanel({ plan }: { plan: TradingPlan }) {
+/**
+ * The calculation stored with the plan (BR-31) or the live one of SCR-17;
+ * Futures adds margin, MMR and liquidation.
+ */
+export function PlanSnapshotRows({
+  snapshot: s,
+  single = false,
+}: {
+  snapshot: PlanSnapshot;
+  single?: boolean;
+}) {
   const p = useCopy().plan;
-  const s = plan.snapshot;
   const rows: [string, ReactNode][] = [
     [p.quantity, <NumericText value={planQuantity(s.positionQuantity)} />],
     [p.notional, <NumericText value={planAmount(s.notionalValue)} />],
@@ -134,24 +165,36 @@ export function PlanSnapshotPanel({ plan }: { plan: TradingPlan }) {
         ] as [string, ReactNode][])
       : []),
   ];
+  return <Rows rows={rows} single={single} />;
+}
+
+export function PlanSnapshotPanel({ plan }: { plan: TradingPlan }) {
+  const p = useCopy().plan;
   return (
     <Panel id="plan-snapshot-title" title={p.snapshotTitle}>
-      <Rows rows={rows} />
+      <PlanSnapshotRows snapshot={plan.snapshot} />
     </Panel>
   );
 }
 
 /** Warnings with their severity (MSG17, BR-28, BR-29), worded by type. */
-export function PlanWarningsPanel({ plan }: { plan: TradingPlan }) {
+export function PlanWarningsPanel({
+  warnings,
+  blocked,
+}: {
+  warnings: readonly PlanWarning[];
+  /** Show the blocking hint (a DRAFT whose activation is blocked). */
+  blocked: boolean;
+}) {
   const copy = useCopy();
   const p = copy.plan;
   return (
     <Panel id="plan-warnings-title" title={p.warningsTitle}>
-      {plan.warnings.length === 0 ? (
+      {warnings.length === 0 ? (
         <p className="text-xs text-muted">{p.noWarnings}</p>
       ) : (
         <ul className="flex flex-col gap-2">
-          {plan.warnings.map((warning) => (
+          {warnings.map((warning) => (
             <li
               key={warning.type}
               className="flex items-start gap-2 text-xs text-fg-2"
@@ -168,7 +211,7 @@ export function PlanWarningsPanel({ plan }: { plan: TradingPlan }) {
           ))}
         </ul>
       )}
-      {plan.blocksActivation && plan.status === 'DRAFT' && (
+      {blocked && (
         <p className="mt-3 flex items-start gap-1.5 text-[11px] text-negative">
           <AlertTriangle
             size={12}
