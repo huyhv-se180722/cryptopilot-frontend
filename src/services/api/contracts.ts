@@ -1,6 +1,10 @@
 import type {
   AdminLog,
   AiConversation,
+  Alert,
+  AlertListQuery,
+  AlertPage,
+  AlertRule,
   CommunityPost,
   JournalEntry,
   Candle,
@@ -16,7 +20,6 @@ import type {
   PlanListQuery,
   PlanPage,
   NewsArticle,
-  PriceAlert,
   ProfileUpdate,
   RiskProfile,
   RiskProfileParams,
@@ -25,6 +28,9 @@ import type {
   UserProfile,
   SubscriptionPackage,
   TradingPlan,
+  Watchlist,
+  WatchlistItem,
+  WatchlistItemUpdate,
 } from '../../types/domain';
 
 /** UI-facing contracts only. Pagination and transport DTOs need backend agreement. */
@@ -120,8 +126,32 @@ export interface TradingPlanService {
   /** DRAFT or ACTIVE → CANCELLED (UC-19). */
   cancel(id: string): Promise<TradingPlan>;
 }
+/** The signed-in Trader's watchlist (`/watchlist/**`; SRS 3.4.1). */
+export interface WatchlistService {
+  get(signal?: AbortSignal): Promise<Watchlist>;
+  /** Appends a pair; the UI cannot name one until FEQ-01 gives pair ids. */
+  add(pairId: string): Promise<WatchlistItem>;
+  update(id: string, update: WatchlistItemUpdate): Promise<WatchlistItem>;
+  /**
+   * Removes the row and all its alerts (BR-16). Without `confirmedAlerts`
+   * the server refuses with MSG26 when the row has alerts; pass the `n` the
+   * Trader confirmed, and it refuses again if the count changed meanwhile.
+   */
+  remove(id: string, confirmedAlerts?: number): Promise<void>;
+}
+/** The signed-in Trader's alerts (`/alerts/**`; SRS 3.4.2, 3.4.3). */
+export interface AlertsService {
+  list(query: AlertListQuery, signal?: AbortSignal): Promise<AlertPage>;
+  /** ACTIVE at once; the pair joins the watchlist if needed (BR-16). */
+  create(pairId: string, rule: AlertRule): Promise<Alert>;
+  /** A TRIGGERED or EXPIRED alert becomes ACTIVE; a PAUSED one stays PAUSED. */
+  update(id: string, rule: AlertRule): Promise<Alert>;
+  remove(id: string): Promise<void>;
+  pause(id: string): Promise<Alert>;
+  /** PAUSED → ACTIVE within the current plan's limits (BR-17, BR-64). */
+  resume(id: string): Promise<Alert>;
+}
 export type JournalService = ReadService<JournalEntry>;
-export type AlertsService = ReadService<PriceAlert>;
 export type CommunityService = ReadService<CommunityPost>;
 export type NewsService = ReadService<NewsArticle>;
 export type AiService = ReadService<AiConversation>;

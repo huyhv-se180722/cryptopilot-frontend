@@ -3,8 +3,10 @@ import { createDevelopmentServices } from './create-development-services';
 import { createDevelopmentAuth } from './dev-auth';
 import { createDevelopmentMarket } from './dev-market';
 import { createDevelopmentTradingPlan } from './dev-trading-plan';
+import { createDevelopmentWatchlist } from './dev-watchlist';
+import { DEV_PAIR_IDS } from './fixtures/watchlist';
 import { DEV_PASSWORD, DEV_TOKENS, devPrincipals } from './fixtures/auth';
-import type { Session } from '../types/domain';
+import type { AlertRule, Session } from '../types/domain';
 import { createServices } from '../app/providers/create-services';
 
 async function devServices() {
@@ -346,5 +348,107 @@ describe('development plan seam', () => {
     await expect(plans.get('missing')).rejects.toMatchObject({
       problem: { messageCode: 'MSG41' },
     });
+  });
+});
+
+describe('development watchlist and alert seam', () => {
+  const free = devPrincipals[0]!;
+  const pro = devPrincipals.find(
+    (principal) =>
+      principal.entitlements !== 'unknown' &&
+      principal.entitlements.tier === 'PRO',
+  )!;
+  const price: AlertRule = {
+    market: 'spot',
+    type: 'PRICE',
+    indicator: null,
+    timeframe: null,
+    condition: 'GREATER_THAN',
+    threshold: '70000',
+    triggerMode: 'ONCE',
+    cooldownMinutes: null,
+    notifyEmail: false,
+    notifyPush: false,
+    expiresAt: null,
+  };
+
+  it('orders rows, counts ACTIVE alerts and reports the plan limit', async () => {
+    const { watchlist } = createDevelopmentWatchlist(async () => free);
+    const list = await watchlist.get();
+    expect(list.limit).toBe(5);
+    expect(list.items.map((item) => item.symbol)).toEqual([
+      'BTCUSDT',
+      'ETHUSDT',
+      'SOLUSDT',
+      'DOGEUSDT',
+      'MATICUSDT',
+    ]);
+    expect(list.items[0]?.activeAlerts).toBe(2);
+    const moved = await watchlist.update(list.items[4]!.id, {
+      sortOrder: 0,
+      label: ' ',
+    });
+    expect(moved.label).toBeNull();
+  });
+
+  it('asks MSG26 with every alert of the row before removing it (D-76)', async () => {
+    const { watchlist, alerts } = createDevelopmentWatchlist(async () => pro);
+    const eth = (await watchlist.get()).items[1]!;
+    await expect(watchlist.remove(eth.id)).rejects.toMatchObject({
+      problem: { messageCode: 'MSG26', messageArgs: ['ETHUSDT', '2'] },
+    });
+    await expect(watchlist.remove(eth.id, 1)).rejects.toMatchObject({
+      problem: { messageCode: 'MSG26' },
+    });
+    await watchlist.remove(eth.id, 2);
+    const left = await alerts.list({ page: 1, pageSize: 20 });
+    expect(left.items.some((alert) => alert.symbol === 'ETHUSDT')).toBe(false);
+  });
+
+  it('refuses alerts like the backend: fields, MSG29, MSG27, MSG43', async () => {
+    const { alerts } = createDevelopmentWatchlist(async () => free);
+    const btc = DEV_PAIR_IDS.BTCUSDT!;
+    await expect(
+      alerts.create(btc, { ...price, threshold: null, cooldownMinutes: 0 }),
+    ).rejects.toMatchObject({
+      problem: {
+        messageCode: 'MSG01',
+        fieldErrors: { threshold: 'MSG01', cooldownMinutes: 'MSG15' },
+      },
+    });
+    await expect(
+      alerts.create(btc, { ...price, notifyEmail: true }),
+    ).rejects.toMatchObject({
+      problem: { messageCode: 'MSG29', messageArgs: ['PRO'] },
+    });
+    await expect(alerts.create(btc, price)).rejects.toMatchObject({
+      problem: {
+        messageCode: 'MSG27',
+        messageArgs: ['3', 'active alerts', 'FREE'],
+      },
+    });
+    const paused = (
+      await alerts.list({ status: 'PAUSED', page: 1, pageSize: 20 })
+    ).items[0]!;
+    await expect(alerts.pause(paused.id)).rejects.toMatchObject({
+      problem: { code: 'ALERT_STATUS_TRANSITION_INVALID' },
+    });
+  });
+
+  it('re-activates a triggered alert on edit and keeps a paused one paused', async () => {
+    const { alerts } = createDevelopmentWatchlist(async () => pro);
+    const all = (await alerts.list({ page: 1, pageSize: 20 })).items;
+    const triggered = all.find((alert) => alert.status === 'TRIGGERED')!;
+    const paused = all.find((alert) => alert.status === 'PAUSED')!;
+    // The server sets 1h on the Futures indicators and refuses it back.
+    await expect(alerts.update(triggered.id, triggered)).rejects.toMatchObject({
+      problem: { fieldErrors: { timeframe: 'MSG01' } },
+    });
+    expect(
+      (await alerts.update(triggered.id, { ...triggered, timeframe: null }))
+        .status,
+    ).toBe('ACTIVE');
+    expect((await alerts.update(paused.id, paused)).status).toBe('PAUSED');
+    expect((await alerts.resume(paused.id)).status).toBe('ACTIVE');
   });
 });

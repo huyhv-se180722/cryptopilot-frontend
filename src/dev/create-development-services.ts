@@ -3,6 +3,7 @@ import { createDevelopmentAuth } from './dev-auth';
 import { createDevelopmentMarket } from './dev-market';
 import { createDevelopmentProfile } from './dev-profile';
 import { createDevelopmentTradingPlan } from './dev-trading-plan';
+import { createDevelopmentWatchlist } from './dev-watchlist';
 
 /** DEVELOPMENT ONLY. All unimplemented operations still fail explicitly. */
 export function createDevelopmentServices(base: Services): Services {
@@ -14,5 +15,6 @@ export function createDevelopmentServices(base: Services): Services {
     profile: createDevelopmentProfile(),
     ...createDevelopmentMarket(),
     tradingPlan: createDevelopmentTradingPlan(() => auth.restoreSession()),
+    ...createDevelopmentWatchlist(() => auth.restoreSession()),
   };
 }

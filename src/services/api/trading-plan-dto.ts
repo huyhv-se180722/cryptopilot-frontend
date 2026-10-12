@@ -12,12 +12,14 @@ import type {
 } from '../../types/domain';
 import {
   decimal,
+  flag,
   instant,
   integer,
   list,
   nullableDecimal,
   nullableInstant,
   nullableText,
+  oneOf,
   record,
   text,
 } from './decode';
@@ -28,16 +30,6 @@ import { marketOf } from './market-dto';
  * @ 0d92def: `TradingPlanSummaryResponse`, `TradingPlanResponse`,
  * `PlanSnapshotResponse`, `PlanWarningResponse`, `StatusChangeResponse`.
  */
-function oneOf<T extends string>(
-  values: readonly T[],
-  value: unknown,
-  name: string,
-): T {
-  if (!values.includes(value as T))
-    throw new Error(name + ' is not one of ' + values.join(', '));
-  return value as T;
-}
-
 const STATUSES: readonly PlanStatus[] = [
   'DRAFT',
   'ACTIVE',
@@ -61,11 +53,6 @@ const WARNING_TYPES: readonly PlanWarningType[] = [
 
 function nullableInteger(value: unknown, name: string): number | null {
   return value === null || value === undefined ? null : integer(value, name);
-}
-
-function flag(value: unknown, name: string): boolean {
-  if (typeof value !== 'boolean') throw new Error(name + ' must be a boolean');
-  return value;
 }
 
 function common(value: Record<string, unknown>) {

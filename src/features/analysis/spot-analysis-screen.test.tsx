@@ -5,9 +5,11 @@ import userEvent from '@testing-library/user-event';
 import { SpotAnalysisPage } from '../../pages/trader/SpotAnalysisPage';
 import { ServiceError } from '../../services/api/errors';
 import type {
+  AlertsService,
   AnalysisService,
   MarketFeed,
   MarketService,
+  WatchlistService,
 } from '../../services/api/contracts';
 import type {
   MarketTicker,
@@ -108,9 +110,13 @@ const plan = (tier: 'FREE' | 'PRO'): PlanEntitlements => ({
 async function open({
   tier = 'PRO' as 'FREE' | 'PRO',
   analysis = async () => ANALYSIS,
+  watchlist,
+  alerts,
 }: {
   tier?: 'FREE' | 'PRO';
   analysis?: AnalysisService['get'];
+  watchlist?: WatchlistService;
+  alerts?: AlertsService;
 } = {}) {
   let ticker: ((value: MarketTicker) => void) | null = null;
   const market: MarketService = {
@@ -158,7 +164,13 @@ async function open({
     ],
     '/markets/spot/BTCUSDT',
     fakeAuth({ restoreSession: async () => session }),
-    { market, marketFeed, analysis: { get: vi.fn(analysis) } },
+    {
+      market,
+      marketFeed,
+      analysis: { get: vi.fn(analysis) },
+      ...(watchlist ? { watchlist } : {}),
+      ...(alerts ? { alerts } : {}),
+    },
   );
   await screen.findByRole('heading', { level: 1 });
   return { push: (value: MarketTicker) => act(() => ticker?.(value)) };
@@ -242,6 +254,77 @@ describe('SCR-10 Spot analysis (T-033)', () => {
     expect(
       await screen.findByText(
         'This feature is not connected to the server yet. Please try again later.',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('creates an alert for a watched pair with the pair id of its row', async () => {
+    const pairId = '0199a0f0-1111-7aaa-8bbb-000000000001';
+    const create = vi.fn<AlertsService['create']>(async () => {
+      throw new ServiceError('refused', 'HTTP_ERROR', 403, {
+        status: 403,
+        code: 'PLAN_FEATURE_NOT_INCLUDED',
+        messageCode: 'MSG29',
+        messageArgs: ['PRO'],
+        fieldErrors: {},
+      });
+    });
+    await open({
+      watchlist: {
+        get: async () => ({
+          items: [
+            {
+              id: 'row-1',
+              pairId,
+              symbol: 'BTCUSDT',
+              spotListed: true,
+              futuresListed: true,
+              label: null,
+              note: null,
+              sortOrder: 0,
+              activeAlerts: 0,
+              addedAt: '2026-10-01T00:00:00Z',
+            },
+          ],
+          limit: 50,
+        }),
+        add: vi.fn(),
+        update: vi.fn(),
+        remove: vi.fn(),
+      },
+      alerts: {
+        list: vi.fn(),
+        create,
+        update: vi.fn(),
+        remove: vi.fn(),
+        pause: vi.fn(),
+        resume: vi.fn(),
+      },
+    });
+    const user = userEvent.setup();
+    expect(
+      (
+        (await screen.findByRole('button', {
+          name: 'In watchlist',
+        })) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    await user.click(screen.getByRole('button', { name: 'Create alert' }));
+    const dialog = within(screen.getByRole('dialog'));
+    await user.type(dialog.getByLabelText('Target price (USDT)'), '70000');
+    await user.click(screen.getByRole('button', { name: 'Save alert' }));
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+    expect(create.mock.calls[0]?.[0]).toBe(pairId);
+    expect(create.mock.calls[0]?.[1]).toMatchObject({
+      market: 'spot',
+      type: 'PRICE',
+      threshold: '70000',
+      indicator: null,
+      timeframe: null,
+    });
+    expect(
+      await dialog.findByText(
+        'This feature is available on the PRO plan or higher. View plans?',
       ),
     ).toBeTruthy();
   });

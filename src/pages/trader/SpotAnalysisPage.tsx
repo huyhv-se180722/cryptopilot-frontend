@@ -6,6 +6,10 @@ import { NumericText } from '../../components/ui/NumericText';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useCopy } from '../../hooks/use-copy';
 import { errorText } from '../../i18n/messages';
+import {
+  AlertDialog,
+  type AlertDialogTarget,
+} from '../../features/alerts/components/AlertDialog';
 import { AnalysisActions } from '../../features/analysis/components/AnalysisActions';
 import { KeyLevels } from '../../features/analysis/components/KeyLevels';
 import { MarketStatsPanel } from '../../features/analysis/components/MarketStatsPanel';
@@ -17,11 +21,17 @@ import { usePairAnalysis } from '../../features/analysis/hooks/use-pair-analysis
 import { AnalysisChart } from '../../features/chart/components/AnalysisChart';
 import { FreshnessBadge } from '../../features/market/components/FreshnessBadge';
 import { useMarketPairs } from '../../features/market/hooks/use-market-data';
+import { useWatchedPair } from '../../features/watchlist/hooks/use-watchlist';
 import type { CandleTimeframe, MarketPair } from '../../types/domain';
 import { formatPrice, toFixedDecimal } from '../../utils/decimal-format';
 
 /** The analysis of an enabled Spot pair (rendered once the pair is known). */
 function SpotAnalysis({ pair }: { pair: MarketPair }) {
+  // A watched pair's row carries its id, so an alert can be created (FEQ-01).
+  const watched = useWatchedPair(pair.symbol);
+  const [alertTarget, setAlertTarget] = useState<AlertDialogTarget | null>(
+    null,
+  );
   const copy = useCopy();
   const [timeframe, setTimeframe] = useState<CandleTimeframe>('1h');
   const analysis = usePairAnalysis('spot', pair.symbol, timeframe);
@@ -97,7 +107,26 @@ function SpotAnalysis({ pair }: { pair: MarketPair }) {
             resistance={data?.nearestResistance ?? null}
             tickSize={pair.tickSize}
           />
-          <AnalysisActions market="spot" symbol={pair.symbol} />
+          <AnalysisActions
+            market="spot"
+            symbol={pair.symbol}
+            watched={Boolean(watched)}
+            {...(watched
+              ? {
+                  onCreateAlert: () =>
+                    setAlertTarget({
+                      mode: 'create',
+                      pairs: [watched],
+                      pairId: watched.pairId,
+                      market: 'spot',
+                    }),
+                }
+              : {})}
+          />
+          <AlertDialog
+            target={alertTarget}
+            onClose={() => setAlertTarget(null)}
+          />
         </div>
       </div>
     </>
