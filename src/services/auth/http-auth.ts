@@ -16,7 +16,7 @@ const AUTH = 'auth/';
  * HTTP adapter for the backend auth module (`/api/v1/auth/*`, `/me/password`;
  * `/me/profile` for the signed-in identity).
  * Tokens stay in memory (`TokenSession`); a reload starts as a guest until
- * Q-38 settles where the refresh token may live in a browser.
+ * Q-44 settles where the refresh token may live in a browser.
  */
 export function createHttpAuthService(
   http: HttpClient,

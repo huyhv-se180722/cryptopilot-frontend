@@ -27,7 +27,7 @@ const browserTimers: Timers = {
 export const REFRESH_LEAD_MS = 60_000;
 
 /**
- * Holds the tokens of the current session in memory only (Q-38: no storage
+ * Holds the tokens of the current session in memory only (Q-44: no storage
  * until the backend offers an HttpOnly cookie). Refresh is single-flight:
  * presenting a refresh token twice makes the server revoke the session.
  */
