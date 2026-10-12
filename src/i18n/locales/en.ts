@@ -355,11 +355,14 @@ export const en = {
     support: 'Support',
     actionsTitle: 'Actions',
     addWatchlist: 'Add to watchlist',
+    inWatchlist: 'In watchlist',
     createAlert: 'Create alert',
     createPlan: 'Create trading plan',
     askAi: 'Ask AI',
     actionsPending:
       'Adding to the watchlist, alerts and plans from this screen is not connected yet.',
+    actionsPendingWatched:
+      'Adding to the watchlist and plans from this screen is not connected yet.',
     newsTitle: 'Latest {coin} news',
     futuresTitle: 'Mark price and funding',
     statMark: 'Mark price',

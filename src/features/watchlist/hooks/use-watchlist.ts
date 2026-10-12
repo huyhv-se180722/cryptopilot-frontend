@@ -20,6 +20,19 @@ export function useWatchlist() {
   });
 }
 
+/**
+ * The watchlist row of a pair, which carries the pair id the alert API
+ * needs (FEQ-01): null when the pair is not watched, undefined while the
+ * list is unknown.
+ */
+export function useWatchedPair(
+  symbol: string,
+): WatchlistItem | null | undefined {
+  const list = useWatchlist();
+  if (!list.data) return undefined;
+  return list.data.items.find((item) => item.symbol === symbol) ?? null;
+}
+
 /** Rows read at most this many at a time (120 API calls a minute, D-82). */
 const SCORE_CONCURRENCY = 4;
 

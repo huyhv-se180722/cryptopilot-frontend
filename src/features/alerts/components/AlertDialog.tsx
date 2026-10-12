@@ -45,7 +45,13 @@ import {
 
 export type AlertDialogTarget =
   /** New alert on one of the watched pairs (the pair id comes from the row). */
-  | { mode: 'create'; pairs: readonly WatchlistItem[]; pairId?: string }
+  | {
+      mode: 'create';
+      pairs: readonly WatchlistItem[];
+      pairId?: string;
+      /** Preferred market, e.g. the analysis screen's; used when listed. */
+      market?: MarketType;
+    }
   | { mode: 'edit'; alert: Alert; item?: WatchlistItem };
 
 /** The lowest tier with alert features (D-58; display only). */
@@ -183,7 +189,13 @@ function AlertForm({
   const [draft, setDraft] = useState<AlertDraft>(() =>
     target.mode === 'edit'
       ? draftOf(target.alert)
-      : newDraft(listedOn(item, 'spot') ? 'spot' : 'futures'),
+      : newDraft(
+          target.market && listedOn(item, target.market)
+            ? target.market
+            : listedOn(item, 'spot')
+              ? 'spot'
+              : 'futures',
+        ),
   );
   const [errors, setErrors] = useState<
     Partial<Record<AlertField, ClientError>>

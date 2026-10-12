@@ -11,25 +11,32 @@ import type { MarketType } from '../../../types/domain';
 
 /**
  * SCR-10 / SCR-11 actions (SRS 3.3.2, 3.3.3). Watchlist, alert and plan
- * (pre-filled with the market) take the pair's id, which no endpoint
- * returns yet (FEQ-01): they stay disabled and say so.
+ * (pre-filled with the market) take the pair's id, which no market endpoint
+ * returns yet (FEQ-01): they stay disabled and say so. A watched pair's id
+ * comes from its watchlist row, so Create alert works for it (SCR-14).
  * Ask AI is PRO and PREMIUM only: on a plan without AI questions it shows
  * MSG29; otherwise it opens SCR-29 with the pair.
  */
 export function AnalysisActions({
   market,
   symbol,
+  watched = false,
+  onCreateAlert,
 }: {
   market: MarketType;
   symbol: string;
+  /** The pair is in the Trader's watchlist. */
+  watched?: boolean;
+  /** Opens SCR-14 for a watched pair. */
+  onCreateAlert?: () => void;
 }) {
   const copy = useCopy();
   const a = copy.analysis;
   const aiQuota = usePlanLimit('AI_CHAT_DAILY');
   const [upsell, setUpsell] = useState(false);
   const blocked = [
-    { label: a.addWatchlist, icon: Star },
-    { label: a.createAlert, icon: Bell },
+    { label: watched ? a.inWatchlist : a.addWatchlist, icon: Star },
+    ...(onCreateAlert ? [] : [{ label: a.createAlert, icon: Bell }]),
     { label: a.createPlan, icon: ClipboardList },
   ];
   return (
@@ -56,6 +63,16 @@ export function AnalysisActions({
             {label}
           </Button>
         ))}
+        {onCreateAlert && (
+          <Button
+            variant="secondary"
+            className="justify-start"
+            onClick={onCreateAlert}
+          >
+            <Bell size={14} aria-hidden="true" />
+            {a.createAlert}
+          </Button>
+        )}
         {aiQuota === 0 ? (
           <Button
             variant="secondary"
@@ -80,7 +97,7 @@ export function AnalysisActions({
         )}
       </div>
       <p id="analysis-actions-note" className="mt-2 text-[11px] text-muted-dim">
-        {a.actionsPending}
+        {onCreateAlert ? a.actionsPendingWatched : a.actionsPending}
       </p>
       <Dialog
         open={upsell}
