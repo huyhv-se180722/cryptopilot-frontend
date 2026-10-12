@@ -10,6 +10,11 @@ const DAY = 24 * HOUR;
 const BTC_PAIR = '0199a0f0-1111-7aaa-8bbb-000000000001';
 const ETH_PAIR = '0199a0f0-1111-7aaa-8bbb-000000000002';
 const SOL_PAIR = '0199a0f0-1111-7aaa-8bbb-000000000004';
+/** Prices and quantities come padded to the backend column scale (12). */
+const scale12 = (value: string) => {
+  const [whole, fraction = ''] = value.split('.');
+  return `${whole}.${fraction.padEnd(12, '0')}`;
+};
 
 interface Seed {
   n: number;
@@ -195,9 +200,9 @@ export function devPlanSeeds(now: number): TradingPlan[] {
       market: seed.market,
       direction: seed.direction,
       entryType: seed.entryType,
-      entryPrice: seed.entry,
-      stopLoss: seed.stop,
-      takeProfit: seed.take,
+      entryPrice: scale12(seed.entry),
+      stopLoss: scale12(seed.stop),
+      takeProfit: scale12(seed.take),
       capital: '1000',
       riskPercent: '1',
       leverage: seed.leverage,
@@ -210,14 +215,16 @@ export function devPlanSeeds(now: number): TradingPlan[] {
       status,
       editable: status === 'DRAFT',
       snapshot: {
-        positionQuantity: seed.quantity,
+        positionQuantity: scale12(seed.quantity),
         notionalValue: seed.notional,
         initialMargin: seed.market === 'futures' ? seed.margin : null,
         maintenanceMarginRateUsed: seed.market === 'futures' ? '0.004' : null,
         riskAmount: seed.risk,
         rewardAmount: seed.reward,
         riskRewardRatio: seed.rr,
-        estimatedLiquidationPrice: seed.liquidation ?? null,
+        estimatedLiquidationPrice: seed.liquidation
+          ? scale12(seed.liquidation)
+          : null,
       },
       warnings,
       blocksActivation: warnings.some(

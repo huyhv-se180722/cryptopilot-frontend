@@ -10,7 +10,7 @@ import {
   formatInstantUtc,
 } from '../../../utils/instant-format';
 import { PlanStatusBadge, SeverityBadge } from './PlanBadges';
-import { planAmount, planPrice, planRatio } from './plan-format';
+import { planAmount, planPrice, planQuantity, planRatio } from './plan-format';
 
 function Panel({
   id,
@@ -98,7 +98,7 @@ export function PlanSnapshotPanel({ plan }: { plan: TradingPlan }) {
   const p = useCopy().plan;
   const s = plan.snapshot;
   const rows: [string, ReactNode][] = [
-    [p.quantity, <NumericText value={s.positionQuantity} />],
+    [p.quantity, <NumericText value={planQuantity(s.positionQuantity)} />],
     [p.notional, <NumericText value={planAmount(s.notionalValue)} />],
     [p.riskAmount, <NumericText value={planAmount(s.riskAmount)} />],
     [p.rewardAmount, <NumericText value={planAmount(s.rewardAmount)} />],
