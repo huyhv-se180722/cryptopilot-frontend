@@ -12,6 +12,7 @@ import type {
   ProfileService,
   SubscriptionService,
   TradingPlanService,
+  WatchlistService,
 } from './contracts';
 import type { HttpClient } from './http-client';
 
@@ -25,6 +26,7 @@ export interface Services {
   analysis: AnalysisService;
   tradingPlan: TradingPlanService;
   journal: JournalService;
+  watchlist: WatchlistService;
   alerts: AlertsService;
   community: CommunityService;
   news: NewsService;

@@ -26,7 +26,14 @@ import {
   createPendingTradingPlanService,
 } from '../../services/api/trading-plan';
 import { createJournalService } from '../../services/api/journal';
-import { createAlertsService } from '../../services/api/alerts';
+import {
+  createHttpAlertsService,
+  createPendingAlertsService,
+} from '../../services/api/alerts';
+import {
+  createHttpWatchlistService,
+  createPendingWatchlistService,
+} from '../../services/api/watchlist';
 import { createCommunityService } from '../../services/api/community';
 import { createNewsService } from '../../services/api/news';
 import { createAiService } from '../../services/api/ai';
@@ -58,7 +65,12 @@ export async function createServices(env: Environment): Promise<Services> {
       ? createHttpTradingPlanService(http)
       : createPendingTradingPlanService(),
     journal: createJournalService(),
-    alerts: createAlertsService(),
+    watchlist: connected
+      ? createHttpWatchlistService(http)
+      : createPendingWatchlistService(),
+    alerts: connected
+      ? createHttpAlertsService(http)
+      : createPendingAlertsService(),
     community: createCommunityService(),
     news: createNewsService(),
     ai: createAiService(),

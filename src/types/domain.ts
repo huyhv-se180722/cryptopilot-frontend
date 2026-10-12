@@ -324,12 +324,85 @@ export interface JournalEntry {
   notes: string;
   closedAt: ISODateTime;
 }
-export interface PriceAlert {
+/** A watched pair (SCR-12, SRS 3.4.1); prices and scores are not in the row (M-08). */
+export interface WatchlistItem {
   id: string;
+  pairId: string;
   symbol: string;
-  marketType: MarketType;
-  threshold: Decimal;
-  triggeredAt: ISODateTime | null;
+  /** Both false: an admin disabled the pair; kept, greyed and removable (Q-29). */
+  spotListed: boolean;
+  futuresListed: boolean;
+  label: string | null;
+  note: string | null;
+  sortOrder: number;
+  /** ACTIVE alerts only; MSG26 counts every alert of the row. */
+  activeAlerts: number;
+  addedAt: ISODateTime;
+}
+export interface Watchlist {
+  /** Ordered by `sortOrder`, then `addedAt`. */
+  items: readonly WatchlistItem[];
+  /** WATCHLIST_MAX of the caller's plan; null = unlimited. */
+  limit: number | null;
+}
+/** Absent = unchanged; an empty label or note clears it. */
+export interface WatchlistItemUpdate {
+  label?: string;
+  note?: string;
+  sortOrder?: number;
+}
+
+/** Alerts (SCR-13, SCR-14; SRS 3.4.2, 3.4.3, BR-17…BR-20). */
+export type AlertType = 'PRICE' | 'INDICATOR';
+export type AlertIndicator =
+  | 'RSI_14'
+  | 'MACD_CROSS'
+  | 'EMA_CROSS'
+  | 'FUNDING_RATE'
+  | 'OPEN_INTEREST_CHANGE';
+export type AlertCondition =
+  'CROSS_ABOVE' | 'CROSS_BELOW' | 'GREATER_THAN' | 'LESS_THAN';
+export type AlertTriggerMode = 'ONCE' | 'ONCE_PER_BAR' | 'EVERY_TIME';
+export type AlertStatus = 'ACTIVE' | 'PAUSED' | 'TRIGGERED' | 'EXPIRED';
+/** The rule a Trader enters; editing replaces it whole (the pair never changes). */
+export interface AlertRule {
+  market: MarketType;
+  type: AlertType;
+  indicator: AlertIndicator | null;
+  /** RSI_14, MACD_CROSS, EMA_CROSS; the server sets 1h for the Futures indicators. */
+  timeframe: CandleTimeframe | null;
+  condition: AlertCondition;
+  /** PRICE target (rounded to the tick by the server), RSI level or % change. */
+  threshold: Decimal | null;
+  triggerMode: AlertTriggerMode;
+  /** Minutes; EVERY_TIME needs at least 1 (BR-19). */
+  cooldownMinutes: number | null;
+  notifyEmail: boolean;
+  notifyPush: boolean;
+  /** At most 90 days ahead. */
+  expiresAt: ISODateTime | null;
+}
+export interface Alert extends AlertRule {
+  id: string;
+  watchlistId: string;
+  pairId: string;
+  symbol: string;
+  status: AlertStatus;
+  triggerCount: number;
+  lastTriggeredAt: ISODateTime | null;
+  createdAt: ISODateTime;
+}
+export interface AlertListQuery {
+  status?: AlertStatus;
+  type?: AlertType;
+  page: number;
+  pageSize: number;
+}
+export interface AlertPage {
+  items: readonly Alert[];
+  page: number;
+  pageSize: number;
+  total: number;
 }
 export interface CommunityPost {
   id: string;
