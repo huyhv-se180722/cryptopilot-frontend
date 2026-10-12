@@ -25,7 +25,6 @@ import type { CandleTimeframe, MarketPair } from '../../types/domain';
 import { classNames } from '../../utils/class-names';
 
 type PhoneRegion = 'chart' | 'book' | 'trades';
-type BottomTab = 'open' | 'orders' | 'trades' | 'funds';
 
 /** The trading workspace of one enabled Spot pair. */
 function TradeSpot({
@@ -40,7 +39,7 @@ function TradeSpot({
   const navigate = useNavigate();
   const [timeframe, setTimeframe] = useState<CandleTimeframe>('1h');
   const [region, setRegion] = useState<PhoneRegion>('chart');
-  const [bottom, setBottom] = useState<BottomTab>('open');
+  const [bottom, setBottom] = useState('open');
   const { ticker, freshness } = useLiveTicker('spot', pair.symbol);
   const symbols = useMemo(() => pairs.map((each) => each.symbol), [pairs]);
   const board = useMarketTickers('spot', symbols);
@@ -135,7 +134,7 @@ function TradeSpot({
         <Tabs
           label={p.ordersAndFunds}
           value={bottom}
-          onChange={(id) => setBottom(id as BottomTab)}
+          onChange={setBottom}
           items={(
             [
               ['open', p.openOrders],
