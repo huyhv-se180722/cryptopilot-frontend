@@ -131,38 +131,47 @@ export function createDevelopmentMarket(now: () => number = Date.now): {
       signal?.throwIfAborted();
       return devPairs(marketType);
     },
-    async getCandles({ market: marketType, symbol, timeframe, limit, signal }) {
+    async getCandles({
+      market: marketType,
+      symbol,
+      timeframe,
+      limit,
+      before,
+      signal,
+    }) {
       signal?.throwIfAborted();
       if (!enabled(marketType, symbol)) notEnabled();
-      const walk = generator(symbol.length * 7919);
-      const places = decimalsOf(devTickSize(symbol.toUpperCase()));
       const step = TIMEFRAME_MS[timeframe];
-      // The last closed candle ends where the forming one starts.
-      const current = Math.floor(now() / step) * step;
-      // A seeded walk, scaled so the last close meets the live price.
-      const bars: { open: number; high: number; low: number; close: number }[] =
-        [];
-      let close = 1;
-      for (let i = 0; i < limit; i += 1) {
-        const open = close;
-        close = open * (1 + (walk() - 0.48) * 0.05);
-        bars.push({
-          open,
-          close,
-          high: Math.max(open, close) * (1 + walk() * 0.02),
-          low: Math.min(open, close) * (1 - walk() * 0.02),
+      const places = decimalsOf(devTickSize(symbol.toUpperCase()));
+      const seed = symbol.length * 7919;
+      // Price is a fixed function of the candle index, so an earlier page
+      // (`before`) joins the later one; scaled so the latest closed candle
+      // meets the live price.
+      const level = (k: number) =>
+        Math.exp(
+          0.14 * Math.sin(k / 47 + seed) +
+            0.06 * Math.sin(k / 13) +
+            0.012 * (generator(seed + k)() - 0.5),
+        );
+      const latest = Math.floor(now() / step) - 1;
+      const scale = priceOf(symbol.toUpperCase()) / level(latest);
+      const last = before ? Math.ceil(Date.parse(before) / step) - 1 : latest;
+      const candles: Candle[] = [];
+      for (let k = last - limit + 1; k <= last; k += 1) {
+        const open = level(k - 1) * scale;
+        const close = level(k) * scale;
+        const wick = generator(seed * 31 + k);
+        candles.push({
+          openTime: new Date(k * step).toISOString(),
+          open: open.toFixed(places),
+          high: (Math.max(open, close) * (1 + wick() * 0.006)).toFixed(places),
+          low: (Math.min(open, close) * (1 - wick() * 0.006)).toFixed(places),
+          close: close.toFixed(places),
+          baseVolume: (7_500 * (0.6 + wick() * 0.8)).toFixed(4),
+          quoteVolume: (close * 7_500).toFixed(2),
         });
       }
-      const scale = priceOf(symbol.toUpperCase()) / close;
-      return bars.map((bar, index): Candle => ({
-        openTime: new Date(current - (limit - index) * step).toISOString(),
-        open: (bar.open * scale).toFixed(places),
-        high: (bar.high * scale).toFixed(places),
-        low: (bar.low * scale).toFixed(places),
-        close: (bar.close * scale).toFixed(places),
-        baseVolume: (7_500 * (0.6 + walk() * 0.8)).toFixed(4),
-        quoteVolume: (bar.close * scale * 7_500).toFixed(2),
-      }));
+      return candles;
     },
     async getTicker(marketType, symbol, signal) {
       signal?.throwIfAborted();
