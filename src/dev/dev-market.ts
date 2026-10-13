@@ -2,6 +2,7 @@ import type {
   AnalysisService,
   MarketFeed,
   MarketService,
+  TradingMarketService,
 } from '../services/api/contracts';
 import { ServiceError } from '../services/api/errors';
 import type {
@@ -11,7 +12,10 @@ import type {
   KlineUpdate,
   MarketOverview,
   MarketTicker,
+  MarketTrade,
   MarketType,
+  OrderBook,
+  OrderBookLevel,
 } from '../types/domain';
 import { devPairs, devStartPrice, devTickSize } from './fixtures/market';
 
@@ -61,6 +65,7 @@ export function createDevelopmentMarket(now: () => number = Date.now): {
   market: MarketService;
   marketFeed: MarketFeed;
   analysis: AnalysisService;
+  tradingMarket: TradingMarketService;
 } {
   const random = generator(31);
   const prices = new Map<string, number>();
@@ -429,5 +434,132 @@ export function createDevelopmentMarket(now: () => number = Date.now): {
     },
   };
 
-  return { market, marketFeed, analysis };
+  /**
+   * Depth and trades (TR-03) around the moving price: 20 levels a side a
+   * few ticks apart, a new book every 300 ms (the exchange sends depth20
+   * every 100 ms), and 0–3 trades every 250 ms. Quantities are larger for
+   * cheaper coins so totals look alike.
+   */
+  let updateId = 1_000;
+  let tradeId = 5_000;
+  function book(marketType: MarketType, symbol: string): OrderBook {
+    const price = priceOf(symbol);
+    const tick = Number(devTickSize(symbol));
+    const places = decimalsOf(devTickSize(symbol));
+    const unit = Math.max(1, 60_000 / price) ** 0.7;
+    const side = (direction: 1 | -1): OrderBookLevel[] => {
+      const levels: OrderBookLevel[] = [];
+      let level = Math.round(price / tick) * tick + direction * tick;
+      for (let i = 0; i < 20; i += 1) {
+        levels.push({
+          price: level.toFixed(places),
+          quantity: ((random() ** 2 * 2.5 + 0.002) * unit).toFixed(5),
+        });
+        level += direction * tick * (1 + Math.floor(random() * 3));
+      }
+      return levels;
+    };
+    updateId += 1;
+    return {
+      market: marketType,
+      symbol,
+      lastUpdateId: updateId,
+      receivedAt: new Date(now()).toISOString(),
+      bids: side(-1),
+      asks: side(1),
+    };
+  }
+  function trades(symbol: string, count: number): MarketTrade[] {
+    const price = priceOf(symbol);
+    const tick = Number(devTickSize(symbol));
+    const places = decimalsOf(devTickSize(symbol));
+    const unit = Math.max(1, 60_000 / price) ** 0.7;
+    return Array.from({ length: count }, () => {
+      const buyerMaker = random() < 0.5;
+      tradeId += 1;
+      return {
+        id: tradeId,
+        price: (
+          Math.round(price / tick) * tick +
+          (buyerMaker ? -1 : 1) * tick * Math.floor(random() * 2)
+        ).toFixed(places),
+        quantity: ((random() ** 3 * 1.5 + 0.0005) * unit).toFixed(5),
+        time: new Date(now()).toISOString(),
+        buyerMaker,
+      };
+    });
+  }
+  const depthListeners = new Set<{
+    market: MarketType;
+    symbol: string;
+    listener: (book: OrderBook) => void;
+  }>();
+  const tradeListeners = new Set<{
+    market: MarketType;
+    symbol: string;
+    listener: (trades: readonly MarketTrade[]) => void;
+  }>();
+  let depthTimer: ReturnType<typeof setInterval> | undefined;
+  let tradeTimer: ReturnType<typeof setInterval> | undefined;
+  const follow = <T extends { market: MarketType; symbol: string }>(
+    set: Set<T>,
+    entry: T,
+    start: () => void,
+    stop: () => void,
+  ) => {
+    if (!enabled(entry.market, entry.symbol)) return () => undefined;
+    set.add(entry);
+    start();
+    return () => {
+      set.delete(entry);
+      if (set.size === 0) stop();
+    };
+  };
+  const tradingMarket: TradingMarketService = {
+    async getDepth(marketType, symbol, signal) {
+      signal?.throwIfAborted();
+      if (!enabled(marketType, symbol)) notEnabled();
+      return book(marketType, symbol.toUpperCase());
+    },
+    async getTrades(marketType, symbol, limit, signal) {
+      signal?.throwIfAborted();
+      if (!enabled(marketType, symbol)) notEnabled();
+      return trades(symbol.toUpperCase(), limit).reverse();
+    },
+    subscribeDepth(marketType, symbol, listener) {
+      return follow(
+        depthListeners,
+        { market: marketType, symbol: symbol.toUpperCase(), listener },
+        () =>
+          (depthTimer ??= setInterval(() => {
+            // The price moves with the ticker; the book only follows it.
+            for (const entry of depthListeners)
+              entry.listener(book(entry.market, entry.symbol));
+          }, 300)),
+        () => {
+          clearInterval(depthTimer);
+          depthTimer = undefined;
+        },
+      );
+    },
+    subscribeTrades(marketType, symbol, listener) {
+      return follow(
+        tradeListeners,
+        { market: marketType, symbol: symbol.toUpperCase(), listener },
+        () =>
+          (tradeTimer ??= setInterval(() => {
+            for (const entry of tradeListeners) {
+              const count = Math.floor(random() * 4);
+              if (count > 0) entry.listener(trades(entry.symbol, count));
+            }
+          }, 250)),
+        () => {
+          clearInterval(tradeTimer);
+          tradeTimer = undefined;
+        },
+      );
+    },
+  };
+
+  return { market, marketFeed, analysis, tradingMarket };
 }

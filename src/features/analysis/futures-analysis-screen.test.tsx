@@ -122,6 +122,7 @@ async function open({
         baseAssetName: 'Bitcoin',
         logoUrl: null,
         tickSize: '0.10',
+        stepSize: '0.00001',
         displayOrder: 1,
       },
     ]),

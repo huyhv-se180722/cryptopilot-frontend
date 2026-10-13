@@ -10,6 +10,12 @@ import { useLiveTicker } from '../../features/analysis/hooks/use-live-ticker';
 import { AnalysisChart } from '../../features/chart/components/AnalysisChart';
 import { useMarketPairs } from '../../features/market/hooks/use-market-data';
 import { useMarketTickers } from '../../features/market/hooks/use-market-tickers';
+import {
+  useMarketTrades,
+  useOrderBook,
+} from '../../features/market/hooks/use-order-book';
+import { MarketTradesPanel } from '../../features/paper-trading/components/MarketTradesPanel';
+import { OrderBookPanel } from '../../features/paper-trading/components/OrderBookPanel';
 import { DemoTradingBanner } from '../../features/paper-trading/components/DemoTradingBanner';
 import {
   PairSelector,
@@ -42,6 +48,8 @@ function TradeSpot({
   const [region, setRegion] = useState<PhoneRegion>('chart');
   const [bottom, setBottom] = useState('open');
   const { ticker, freshness } = useLiveTicker('spot', pair.symbol);
+  const book = useOrderBook('spot', pair.symbol);
+  const trades = useMarketTrades('spot', pair.symbol);
   const symbols = useMemo(() => pairs.map((each) => each.symbol), [pairs]);
   const board = useMarketTickers('spot', symbols);
   const watchlist = useWatchlist();
@@ -111,19 +119,25 @@ function TradeSpot({
             'min-h-[320px] flex-col xl:col-start-1 xl:row-span-2 xl:row-start-1',
           )}
         >
-          <TradePanel title={p.orderBook} className="flex-1">
-            <ComingSoon text={p.soonOrderBook} />
-          </TradePanel>
+          <OrderBookPanel
+            pair={pair}
+            stream={book}
+            lastPrice={ticker?.lastPrice ?? null}
+            className="flex-1"
+          />
         </div>
         <div
           className={classNames(
             shown('trades'),
-            'min-h-[320px] flex-col xl:col-start-3 xl:row-span-2 xl:row-start-1',
+            // The list scrolls inside: 50 rows would outgrow the row.
+            'h-[560px] flex-col xl:col-start-3 xl:row-span-2 xl:row-start-1 xl:h-auto',
           )}
         >
-          <TradePanel title={p.marketTrades} className="flex-1">
-            <ComingSoon text={p.soonTrades} />
-          </TradePanel>
+          <MarketTradesPanel
+            pair={pair}
+            stream={trades}
+            className="min-h-0 flex-1"
+          />
         </div>
         <TradePanel
           title={p.orderForm}

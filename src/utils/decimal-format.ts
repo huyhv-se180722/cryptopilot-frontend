@@ -148,3 +148,12 @@ export function subtractDecimal(a: string, b: string): string {
   const fraction = places > 0 ? '.' + digits.slice(-places) : '';
   return (negative ? '-' : '') + whole + fraction;
 }
+
+/** a + b of two decimal strings, exactly (e.g. quantities of one level). */
+export function addDecimal(a: string, b: string): string {
+  const trimmed = b.trim().replace(/^\+/, '');
+  return subtractDecimal(
+    a,
+    trimmed.startsWith('-') ? trimmed.slice(1) : '-' + trimmed,
+  );
+}

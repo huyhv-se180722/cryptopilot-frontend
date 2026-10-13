@@ -52,6 +52,7 @@ export function decodePairPage(body: unknown): PairPage {
         baseAssetName: nullableText(pair.baseAssetName, 'baseAssetName'),
         logoUrl: nullableText(pair.logoUrl, 'logoUrl'),
         tickSize: nullableDecimal(pair.tickSize, 'tickSize'),
+        stepSize: nullableDecimal(pair.stepSize, 'stepSize'),
         displayOrder: integer(pair.displayOrder, 'displayOrder'),
       };
     }),

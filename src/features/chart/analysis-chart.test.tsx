@@ -84,6 +84,7 @@ const fakeMarket = (count: number): MarketService => ({
       baseAssetName: 'Bitcoin',
       logoUrl: null,
       tickSize: '0.01',
+      stepSize: '0.00001',
       displayOrder: 1,
     },
   ]),

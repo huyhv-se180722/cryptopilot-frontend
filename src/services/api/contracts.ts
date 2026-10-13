@@ -15,6 +15,8 @@ import type {
   MarketOverview,
   MarketPair,
   MarketTicker,
+  MarketTrade,
+  OrderBook,
   MarketType,
   PairAnalysis,
   PaperAccount,
@@ -108,6 +110,36 @@ export interface MarketFeed {
     symbol: string,
     timeframe: CandleTimeframe,
     listener: (update: KlineUpdate) => void,
+  ): () => void;
+}
+/**
+ * Order book and market trades of the trading screens (TR-03, public):
+ * `GET /market/{market}/{symbol}/depth` and `/trades`, then the topics
+ * `/topic/depth.*` (a whole newer book each time) and `/topic/trades.*`
+ * (the trades since the previous push, oldest first).
+ */
+export interface TradingMarketService {
+  getDepth(
+    market: MarketType,
+    symbol: string,
+    signal?: AbortSignal,
+  ): Promise<OrderBook>;
+  /** The latest trades, newest first (at most 50). */
+  getTrades(
+    market: MarketType,
+    symbol: string,
+    limit: number,
+    signal?: AbortSignal,
+  ): Promise<readonly MarketTrade[]>;
+  subscribeDepth(
+    market: MarketType,
+    symbol: string,
+    listener: (book: OrderBook) => void,
+  ): () => void;
+  subscribeTrades(
+    market: MarketType,
+    symbol: string,
+    listener: (trades: readonly MarketTrade[]) => void,
   ): () => void;
 }
 /** `GET /analysis/{market}/{symbol}` (Trader; SRS 3.3.2, 3.3.3). */

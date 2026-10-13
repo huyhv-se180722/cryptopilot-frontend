@@ -12,6 +12,7 @@ import type {
   PaperTradingService,
   ProfileService,
   SubscriptionService,
+  TradingMarketService,
   TradingPlanService,
   WatchlistService,
 } from './contracts';
@@ -24,6 +25,7 @@ export interface Services {
   profile: ProfileService;
   market: MarketService;
   marketFeed: MarketFeed;
+  tradingMarket: TradingMarketService;
   analysis: AnalysisService;
   tradingPlan: TradingPlanService;
   journal: JournalService;

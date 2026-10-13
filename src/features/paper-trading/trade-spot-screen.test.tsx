@@ -90,6 +90,7 @@ const pair = (
   baseAssetName,
   logoUrl: null,
   tickSize: '0.01',
+  stepSize: '0.00001',
   displayOrder,
 });
 const PAIRS = [
@@ -290,7 +291,10 @@ describe('Spot demo trading layout (TR-F1, D-86)', () => {
     expect(names()).toEqual(['SOL/USDT']);
     await user.click(screen.getByRole('radio', { name: 'USDT' }));
 
-    await user.type(screen.getByRole('combobox'), 'ethereum');
+    await user.type(
+      screen.getByRole('combobox', { name: 'Search pairs' }),
+      'ethereum',
+    );
     expect(names()).toEqual(['ETH/USDT']);
     await user.keyboard('{Enter}');
     expect(
@@ -308,7 +312,10 @@ describe('Spot demo trading layout (TR-F1, D-86)', () => {
       name: 'Choose a pair (current: BTC/USDT)',
     });
     await user.click(trigger);
-    await user.type(screen.getByRole('combobox'), 'zzz');
+    await user.type(
+      screen.getByRole('combobox', { name: 'Search pairs' }),
+      'zzz',
+    );
     expect(screen.getByText('No results found.')).toBeTruthy();
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('listbox')).toBeNull();

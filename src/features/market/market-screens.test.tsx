@@ -46,6 +46,7 @@ const pair = (
     base === 'BTC' ? 'Bitcoin' : base === 'ETH' ? 'Ethereum' : null,
   logoUrl: null,
   tickSize: '0.01000000',
+  stepSize: '0.00001',
   displayOrder,
 });
 
