@@ -123,6 +123,7 @@ async function open({
         logoUrl: null,
         tickSize: '0.10',
         stepSize: '0.00001',
+        minNotional: '5',
         displayOrder: 1,
       },
     ]),

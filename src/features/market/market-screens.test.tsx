@@ -47,6 +47,7 @@ const pair = (
   logoUrl: null,
   tickSize: '0.01000000',
   stepSize: '0.00001',
+  minNotional: '5',
   displayOrder,
 });
 

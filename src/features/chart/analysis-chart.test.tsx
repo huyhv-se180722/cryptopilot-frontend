@@ -85,6 +85,7 @@ const fakeMarket = (count: number): MarketService => ({
       logoUrl: null,
       tickSize: '0.01',
       stepSize: '0.00001',
+      minNotional: '5',
       displayOrder: 1,
     },
   ]),

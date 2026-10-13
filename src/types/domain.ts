@@ -60,6 +60,8 @@ export interface MarketPair {
   tickSize: Decimal | null;
   /** Quantity increment; null until the exchange filters are synced. */
   stepSize: Decimal | null;
+  /** Smallest order value in the quote asset; null until the filters are synced. */
+  minNotional: Decimal | null;
   displayOrder: number;
 }
 
