@@ -18,7 +18,7 @@ import {
 import { ErrorState } from '../../../components/feedback/States';
 import { SegmentedControl } from '../../../components/ui/SegmentedControl';
 import { Skeleton } from '../../../components/ui/Skeleton';
-import { useCopy } from '../../../hooks/use-copy';
+import { useCopy, useLocale } from '../../../hooks/use-copy';
 import { formatCopy } from '../../../i18n/copy';
 import { errorText } from '../../../i18n/messages';
 import type {
@@ -374,6 +374,7 @@ export function AnalysisChart({
   extendable?: boolean;
 }) {
   const copy = useCopy();
+  const locale = useLocale();
   const c = copy.chart;
   const { toggles, toggle } = useChartPreferences();
   const series = useChartSeries(market, symbol, timeframe, { extendable });
@@ -446,10 +447,10 @@ export function AnalysisChart({
     loadOlder.current = series.loadOlder;
   });
 
-  // Rebuilt when the shown items, the precision or the theme change.
+  // Rebuilt when the shown items, the precision, the theme or the locale change.
   useEffect(() => {
     if (!ready || !container.current) return;
-    const chart = createChart(container.current, chartOptions());
+    const chart = createChart(container.current, chartOptions(locale));
     const built = build(chart, toggles, places, time);
     write.current = built.write;
     updateForming.current = built.updateForming;
@@ -484,7 +485,7 @@ export function AnalysisChart({
       chart.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `toggles` is read through `togglesKey`.
-  }, [ready, togglesKey, places, theme, extendable, time]);
+  }, [ready, togglesKey, places, theme, extendable, time, locale]);
 
   // Lines change often (orders, levels): redraw them on the same series.
   useEffect(() => {

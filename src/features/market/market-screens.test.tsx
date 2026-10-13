@@ -21,16 +21,23 @@ import { fakeAuth, page, renderRoutes } from '../../test/render';
 
 const chart = vi.hoisted(() => ({
   setData: vi.fn(),
+  locales: [] as (string | undefined)[],
 }));
 vi.mock('lightweight-charts', () => ({
   CandlestickSeries: {},
   ColorType: { Solid: 'solid' },
-  createChart: () => ({
-    addSeries: () => ({ setData: chart.setData, applyOptions: vi.fn() }),
-    applyOptions: vi.fn(),
-    timeScale: () => ({ fitContent: vi.fn() }),
-    remove: vi.fn(),
-  }),
+  createChart: (
+    _container: unknown,
+    options: { localization?: { locale?: string } },
+  ) => {
+    chart.locales.push(options.localization?.locale);
+    return {
+      addSeries: () => ({ setData: chart.setData, applyOptions: vi.fn() }),
+      applyOptions: vi.fn(),
+      timeScale: () => ({ fitContent: vi.fn() }),
+      remove: vi.fn(),
+    };
+  },
 }));
 
 const pair = (
@@ -253,6 +260,8 @@ describe('SCR-01 Public Home', () => {
         expect.objectContaining({ close: 63000.01 }),
       ]),
     );
+    // Month names on the axis in the interface language, not the browser's.
+    expect(new Set(chart.locales)).toEqual(new Set(['en']));
     expect(
       screen.getByRole('link', {
         name: 'Create a free account for the full analysis',

@@ -1,8 +1,9 @@
+import { useMemo } from 'react';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { ErrorState } from '../../../components/feedback/States';
 import { NumericText } from '../../../components/ui/NumericText';
 import { Skeleton } from '../../../components/ui/Skeleton';
-import { useCopy } from '../../../hooks/use-copy';
+import { useCopy, useLocale } from '../../../hooks/use-copy';
 import { formatCopy } from '../../../i18n/copy';
 import { errorText } from '../../../i18n/messages';
 import { ServiceError } from '../../../services/api/errors';
@@ -15,12 +16,12 @@ import { LatencyDot } from './LatencyDot';
 import { PickRow } from './OrderBookPanel';
 import { TradePanel } from './TradePanel';
 
-const time = new Intl.DateTimeFormat(undefined, {
+const TIME: Intl.DateTimeFormatOptions = {
   hour: '2-digit',
   minute: '2-digit',
   second: '2-digit',
   hour12: false,
-});
+};
 
 /**
  * Latest market trades of the trading screen (B market trades, plan
@@ -41,6 +42,8 @@ export function MarketTradesPanel({
 }) {
   const copy = useCopy();
   const p = copy.paper;
+  const locale = useLocale();
+  const time = useMemo(() => new Intl.DateTimeFormat(locale, TIME), [locale]);
   const pending =
     stream.error instanceof ServiceError &&
     stream.error.code === 'NOT_CONFIGURED';

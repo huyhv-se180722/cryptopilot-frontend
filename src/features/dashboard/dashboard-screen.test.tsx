@@ -2,6 +2,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { Locale } from '../../i18n/copy';
+import { I18nProvider } from '../../i18n/I18nProvider';
 import { DashboardPage } from '../../pages/trader/DashboardPage';
 import type {
   MarketFeed,
@@ -114,7 +116,7 @@ const entitlements: PlanEntitlements = {
   limits: { ACTIVE_PLAN_MAX: 5, WATCHLIST_MAX: 10 },
 };
 
-async function open() {
+async function open(locale: Locale = 'en') {
   let overview: ((value: MarketOverview) => void) | null = null;
   const market: MarketService = {
     listPairs: vi.fn(async () => PAIRS),
@@ -157,7 +159,14 @@ async function open() {
   };
   const session: Session = { ...testTrader, entitlements };
   await renderRoutes(
-    [page('/dashboard', <DashboardPage />)],
+    [
+      page(
+        '/dashboard',
+        <I18nProvider locale={locale}>
+          <DashboardPage />
+        </I18nProvider>,
+      ),
+    ],
     '/dashboard',
     fakeAuth({ restoreSession: async () => session }),
     { market, marketFeed, tradingPlan, watchlist },
@@ -176,6 +185,19 @@ async function open() {
 }
 
 describe('SCR-08 Trader dashboard (T-111)', () => {
+  it('dates the header in the interface language, not the browser one', async () => {
+    // The date follows the interface's locale: Vietnamese copy (the 'vi'
+    // stub) gets "14 thg 10, 2026", English copy "Oct 14, 2026", whatever
+    // language the browser runs in.
+    await open('vi');
+    const date = new Intl.DateTimeFormat('vi', { dateStyle: 'medium' }).format(
+      new Date(),
+    );
+    expect(
+      await screen.findByText((text) => text.startsWith(`${date} · `)),
+    ).toBeTruthy();
+  });
+
   it('counts active plans, open positions and watched pairs against the plan limits', async () => {
     await open();
     await screen.findByRole('heading', { level: 1, name: 'Overview' });

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { LineSeries, createChart } from 'lightweight-charts';
-import { useCopy } from '../../../hooks/use-copy';
+import { useCopy, useLocale } from '../../../hooks/use-copy';
 import { formatCopy } from '../../../i18n/copy';
 import type { Decimal, ISODateTime } from '../../../types/domain';
 import { chartOptions, token, useThemeVersion } from './chart-theme';
@@ -32,6 +32,7 @@ export function MetricChart({
   lines: readonly MetricLine[];
 }) {
   const copy = useCopy();
+  const locale = useLocale();
   const container = useRef<HTMLDivElement>(null);
   const theme = useThemeVersion();
   const offset = chartOffsetSeconds('intraday');
@@ -39,7 +40,7 @@ export function MetricChart({
   useEffect(() => {
     if (!container.current) return;
     const left = lines.some((line) => line.scale === 'left');
-    const options = chartOptions();
+    const options = chartOptions(locale);
     const chart = createChart(container.current, {
       ...options,
       leftPriceScale: {
@@ -67,7 +68,7 @@ export function MetricChart({
     }
     chart.timeScale().fitContent();
     return () => chart.remove();
-  }, [lines, theme, offset]);
+  }, [lines, theme, offset, locale]);
 
   return (
     <>

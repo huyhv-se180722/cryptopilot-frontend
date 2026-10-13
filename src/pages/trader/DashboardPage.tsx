@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { StatCard } from '../../components/layout/StatCard';
 import { buttonClassName } from '../../components/ui/button-styles';
-import { useCopy } from '../../hooks/use-copy';
+import { useCopy, useLocale } from '../../hooks/use-copy';
 import { usePlanLimit, usePlanTier } from '../../hooks/use-entitlement';
 import { formatCopy } from '../../i18n/copy';
 import {
@@ -18,8 +18,6 @@ import { useMarketPairs } from '../../features/market/hooks/use-market-data';
 import { useMarketTickers } from '../../features/market/hooks/use-market-tickers';
 import { usePlanCount } from '../../features/trading-plan/hooks/use-plans';
 import { useWatchlist } from '../../features/watchlist/hooks/use-watchlist';
-
-const today = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
 
 /** "3 / 5" with a plan limit, "3" without; `none` until the count is known. */
 function counted(
@@ -42,6 +40,12 @@ function counted(
  */
 export function DashboardPage() {
   const copy = useCopy();
+  const locale = useLocale();
+  // In the interface's language, as the rest of the header (A-43).
+  const today = useMemo(
+    () => new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }),
+    [locale],
+  );
   const d = copy.dashboard;
   const none = copy.market.noValue;
   const pairs = useMarketPairs('spot');

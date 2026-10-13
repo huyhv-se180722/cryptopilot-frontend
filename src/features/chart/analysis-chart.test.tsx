@@ -25,6 +25,7 @@ const drawn = vi.hoisted(() => ({
   charts: 0,
   lines: [] as { price: number; title: string; lineStyle: number }[],
   markers: [] as { time: number; shape: string; text?: string }[],
+  locales: [] as (string | undefined)[],
 }));
 vi.mock('lightweight-charts', () => {
   const kind = (name: string) => ({ name });
@@ -38,8 +39,12 @@ vi.mock('lightweight-charts', () => {
         drawn.markers = markers;
       },
     }),
-    createChart: () => {
+    createChart: (
+      _container: unknown,
+      options?: { localization?: { locale?: string } },
+    ) => {
       drawn.charts += 1;
+      drawn.locales.push(options?.localization?.locale);
       const own: typeof drawn.series = [];
       return {
         addSeries: (
@@ -156,6 +161,8 @@ afterEach(() => {
   drawn.lines.length = 0;
   drawn.markers = [];
   drawn.charts = 0;
+  drawn.locales.length = 0;
+  vi.restoreAllMocks();
 });
 
 describe('SCR-10 analysis chart (T-032)', () => {
@@ -281,6 +288,17 @@ describe('SCR-10 analysis chart (T-032)', () => {
     await userEvent.click(screen.getByRole('radio', { name: '1d' }));
     await waitFor(() => expect(first()).toBe(start));
     expect(screen.getByText('Times in UTC')).toBeTruthy();
+  });
+
+  it('names months in the interface language, never the browser one', async () => {
+    // Left alone, the chart library takes the browser's language: a
+    // Vietnamese browser wrote "Tháng 8" on the axis among English copy.
+    vi.spyOn(navigator, 'language', 'get').mockReturnValue('vi-VN');
+    const { ready } = render();
+    await ready;
+    await screen.findByRole('img');
+    expect(drawn.locales.length).toBeGreaterThan(0);
+    expect(new Set(drawn.locales)).toEqual(new Set(['en']));
   });
 
   it('draws price lines and redraws them without rebuilding the chart', async () => {

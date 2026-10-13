@@ -6,4 +6,13 @@ export function useCopy() {
   return useContext(I18nContext).copy;
 }
 
+/**
+ * The active locale ('en' or 'vi', valid language tags). Dates and charts
+ * format with it, so they read in the interface's language (A-43) and
+ * never in the browser's.
+ */
+export function useLocale() {
+  return useContext(I18nContext).locale;
+}
+
 export { formatCopy } from '../i18n/copy';
