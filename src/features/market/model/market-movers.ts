@@ -122,15 +122,26 @@ const NEAREST = 0.3;
 const FARTHEST = 0.82;
 
 /**
- * Where each mover sits on the radar: rising pairs on the right (60°–150°
- * from north, clockwise) and falling pairs at the upper left (280°–350°),
- * clear of the cards laid over the top-right and bottom-left corners; the
- * bigger its 24h move against the biggest one shown, the farther from the
- * centre.
+ * Arcs of the radar, in degrees from north, clockwise. Wide: the cards lie
+ * over the top-right and bottom-left corners, so rising pairs keep to the
+ * right (60°–150°) and falling ones to the upper left (280°–350°). Narrow:
+ * the cards sit under the radar, so each side takes its whole half and the
+ * labels have room on a small screen.
+ */
+const ARCS = {
+  wide: { rising: [60, 150], falling: [280, 350] },
+  narrow: { rising: [30, 150], falling: [210, 330] },
+} as const;
+
+/**
+ * Where each mover sits on the radar: rising pairs on the right, falling
+ * ones on the left (see `ARCS`); the bigger its 24h move against the
+ * biggest one shown, the farther from the centre.
  */
 export function radarPoints(
   gainers: readonly PairQuote[],
   losers: readonly PairQuote[],
+  layout: keyof typeof ARCS = 'wide',
 ): RadarPoint[] {
   const size = (row: PairQuote) =>
     Math.abs(Number(row.ticker.changePercent24h ?? '0'));
@@ -156,8 +167,10 @@ export function radarPoints(
         y: 50 - 100 * reach * Math.cos(angle),
       };
     });
+  const [risingFrom, risingTo] = ARCS[layout].rising;
+  const [fallingFrom, fallingTo] = ARCS[layout].falling;
   return [
-    ...place(gainers, 'rising', 60, 150),
-    ...place(losers, 'falling', 280, 350),
+    ...place(gainers, 'rising', risingFrom, risingTo),
+    ...place(losers, 'falling', fallingFrom, fallingTo),
   ];
 }

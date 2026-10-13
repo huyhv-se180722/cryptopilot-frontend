@@ -122,5 +122,19 @@ describe('market movers (public home hero)', () => {
     expect(reach('BTC')).toBeLessThan(reach('SOL'));
     expect(reach('DOGE')).toBeGreaterThan(reach('ETH'));
     expect(radarPoints([], [])).toEqual([]);
+    // On a narrow screen the two sides spread over their whole halves:
+    // the falling pairs sit farther apart than on a wide one.
+    const spread = (layout: 'wide' | 'narrow') => {
+      const falling = radarPoints(gainers, losers, layout).filter(
+        (point) => point.side === 'falling',
+      );
+      return Math.hypot(
+        falling[0]!.x - falling[2]!.x,
+        falling[0]!.y - falling[2]!.y,
+      );
+    };
+    expect(spread('narrow')).toBeGreaterThan(spread('wide'));
+    for (const point of radarPoints(gainers, losers, 'narrow'))
+      expect(point.side === 'rising' ? point.x > 50 : point.x < 50).toBe(true);
   });
 });

@@ -1,4 +1,5 @@
 import { useCopy } from '../../../hooks/use-copy';
+import { useMediaQuery } from '../../../hooks/use-media-query';
 import { formatCopy } from '../../../i18n/copy';
 import type { MarketPair } from '../../../types/domain';
 import { classNames } from '../../../utils/class-names';
@@ -30,6 +31,8 @@ export function HeroRadar({
   const copy = useCopy();
   const m = copy.market;
   const { gainers, losers } = topMovers(board.all, board.tickers, 3);
+  // From lg the cards lie over the radar's corners (see the classes below).
+  const wide = useMediaQuery('(min-width: 1024px)');
   const feed = {
     live: m.radarFeedLive,
     delayed: m.radarFeedDelayed,
@@ -53,7 +56,7 @@ export function HeroRadar({
       </div>
       <div className="relative">
         <MarketRadar
-          points={radarPoints(gainers, losers)}
+          points={radarPoints(gainers, losers, wide ? 'wide' : 'narrow')}
           onSelect={onSelect}
         />
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:contents">
