@@ -630,7 +630,8 @@ export interface PlacePaperOrder {
   market: MarketType;
   side: OrderSide;
   type: 'MARKET' | 'LIMIT';
-  timeInForce?: 'GTC' | 'IOC' | 'FOK';
+  /** GTX: post-only, expires instead of taking liquidity on arrival. */
+  timeInForce?: 'GTC' | 'IOC' | 'FOK' | 'GTX';
   price?: Decimal;
   quantity?: Decimal;
   quoteOrderQty?: Decimal;

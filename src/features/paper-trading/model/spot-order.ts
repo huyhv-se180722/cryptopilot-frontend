@@ -18,7 +18,7 @@ import {
 export interface SpotOrderDraft {
   side: OrderSide;
   type: 'LIMIT' | 'MARKET';
-  timeInForce: 'GTC' | 'IOC' | 'FOK';
+  timeInForce: 'GTC' | 'IOC' | 'FOK' | 'GTX';
   price: string;
   amount: string;
   total: string;

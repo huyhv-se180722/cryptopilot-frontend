@@ -157,13 +157,18 @@ export function SpotOrderForm({
       sent.current = null;
       setShown(false);
       setDraft((current) => ({ ...current, amount: '', total: '' }));
-      toast.show({
-        tone: 'success',
-        message: formatCopy(p.placed, {
-          side: buy ? p.sideBUY : p.sideSELL,
-          status: p[`status${result.data.status}`].toLowerCase(),
-        }),
-      });
+      // A post-only order that would take liquidity expires at once (GTX).
+      toast.show(
+        result.data.statusReason === 'POST_ONLY_WOULD_TAKE'
+          ? { tone: 'info', message: p.postOnlyExpired }
+          : {
+              tone: 'success',
+              message: formatCopy(p.placed, {
+                side: buy ? p.sideBUY : p.sideSELL,
+                status: p[`status${result.data.status}`].toLowerCase(),
+              }),
+            },
+      );
       return;
     }
     if (result.status !== 'error') return;
@@ -348,6 +353,7 @@ export function SpotOrderForm({
           <option value="GTC">{p.tifGTC}</option>
           <option value="IOC">{p.tifIOC}</option>
           <option value="FOK">{p.tifFOK}</option>
+          <option value="GTX">{p.tifGTX}</option>
         </Select>
       )}
 
