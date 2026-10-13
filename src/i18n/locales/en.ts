@@ -972,7 +972,7 @@ export const en = {
     radarCenterBottom: 'SPOT · 24H',
     radarNode: '{pair} {change}% in 24h. Open its chart.',
     radarLegend:
-      'Rising pairs on the right, falling at the upper left; the farther from the centre, the bigger the 24h move.',
+      'Rising pairs on the right, falling on the left; the farther from the centre, the bigger the 24h move.',
     breadthTitle: 'Market breadth',
     breadthRising: 'Rising',
     breadthFalling: 'Falling',
