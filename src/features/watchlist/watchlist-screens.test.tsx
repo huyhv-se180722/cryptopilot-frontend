@@ -104,6 +104,19 @@ const OI_ALERT: Alert = {
   status: 'PAUSED',
 };
 
+const FUNDING_ALERT: Alert = {
+  ...OI_ALERT,
+  id: 'alert-3',
+  pairId: 'pair-1',
+  watchlistId: 'row-1',
+  symbol: 'DOGEUSDT',
+  indicator: 'FUNDING_RATE',
+  condition: 'LESS_THAN',
+  // Stored as a fraction: -0.005 %.
+  threshold: '-0.000050000000',
+  status: 'ACTIVE',
+};
+
 function fakeWatchlist(overrides: Partial<WatchlistService> = {}) {
   const service: WatchlistService = {
     get: vi.fn(async () => ({ items: ROWS, limit: 5 })),
@@ -118,10 +131,10 @@ function fakeWatchlist(overrides: Partial<WatchlistService> = {}) {
 function fakeAlerts(overrides: Partial<AlertsService> = {}) {
   const service: AlertsService = {
     list: vi.fn(async (query) => ({
-      items: [ALERT, OI_ALERT],
+      items: [ALERT, OI_ALERT, FUNDING_ALERT],
       page: query.page,
       pageSize: 20,
-      total: 2,
+      total: 3,
     })),
     create: vi.fn(async () => ALERT),
     update: vi.fn(async () => ALERT),
@@ -324,23 +337,50 @@ describe('SCR-14 alert dialog (T-059)', () => {
     ).toBe(true);
   });
 
-  it('checks the RSI range and offers no funding rate until Q-30', async () => {
+  it('checks the RSI range', async () => {
     const { alerts, user } = await open('/watchlist');
     await user.click(
       await screen.findByRole('button', { name: 'Create alert for BTC/USDT' }),
     );
     const dialog = within(await screen.findByRole('dialog'));
     await user.click(dialog.getByRole('radio', { name: 'Indicator' }));
-    const funding = dialog.getByRole('option', {
-      name: /Funding rate/,
-    }) as HTMLOptionElement;
-    expect(funding.disabled).toBe(true);
     await user.type(dialog.getByLabelText('RSI level'), '120');
     await user.click(screen.getByRole('button', { name: 'Save alert' }));
     expect(
       await dialog.findByText('RSI level must be between 0 and 100.'),
     ).toBeTruthy();
     expect(alerts.create).not.toHaveBeenCalled();
+  });
+
+  it('takes a funding rate threshold in percent and sends a fraction (D-100)', async () => {
+    const { alerts, user } = await open('/watchlist');
+    await user.click(
+      await screen.findByRole('button', { name: 'Create alert for ETH/USDT' }),
+    );
+    const dialog = within(await screen.findByRole('dialog'));
+    await user.click(dialog.getByRole('radio', { name: 'Futures' }));
+    await user.click(dialog.getByRole('radio', { name: 'Indicator' }));
+    await user.selectOptions(
+      dialog.getByLabelText('Indicator'),
+      'FUNDING_RATE',
+    );
+    await user.selectOptions(
+      dialog.getByLabelText('Condition'),
+      'GREATER_THAN',
+    );
+    await user.type(dialog.getByLabelText('Funding rate (%)'), '0.01');
+    await user.click(screen.getByRole('button', { name: 'Save alert' }));
+    expect(await screen.findByText('Saved successfully.')).toBeTruthy();
+    expect(alerts.create).toHaveBeenCalledWith(
+      'pair-3',
+      expect.objectContaining({
+        market: 'futures',
+        indicator: 'FUNDING_RATE',
+        timeframe: null,
+        condition: 'GREATER_THAN',
+        threshold: '0.0001',
+      }),
+    );
   });
 
   it('edits a Futures indicator alert without sending the server-set timeframe', async () => {
@@ -387,6 +427,7 @@ describe('SCR-13 alert list (T-059)', () => {
     expect(
       table.getByText('Open interest change (1h) · Greater than 5%'),
     ).toBeTruthy();
+    expect(table.getByText('Funding rate · Less than -0.005%')).toBeTruthy();
     expect(table.getByText('Paused')).toBeTruthy();
     await user.selectOptions(screen.getByLabelText('Status'), 'PAUSED');
     await waitFor(() =>

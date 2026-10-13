@@ -31,7 +31,6 @@ import {
   INDICATORS,
   MAX_EXPIRY_DAYS,
   MODES,
-  PENDING_INDICATORS,
   TIMEFRAMES,
   draftOf,
   newDraft,
@@ -67,7 +66,8 @@ function listedOn(item: WatchlistItem | undefined, market: MarketType) {
  * the fields the combination takes, trigger mode with cooldown (BR-19),
  * channels and an optional expiry within 90 days. On FREE, INDICATOR,
  * Futures and the e-mail / push channels show a lock and MSG29 (CR-08);
- * the server decides in the end. FUNDING_RATE waits for Q-30.
+ * the server decides in the end. FUNDING_RATE is typed in percent and
+ * sent as a fraction (D-100).
  */
 export function AlertDialog({
   target,
@@ -279,7 +279,9 @@ function AlertForm({
       ? a.priceField
       : shape.indicator === 'RSI_14'
         ? a.rsiField
-        : a.percentField;
+        : shape.indicator === 'FUNDING_RATE'
+          ? a.fundingField
+          : a.percentField;
 
   return (
     <form id={id} onSubmit={(event) => void submit(event)} noValidate>
@@ -394,15 +396,11 @@ function AlertForm({
                   key={indicator}
                   value={indicator}
                   disabled={
-                    PENDING_INDICATORS.has(indicator) ||
-                    (FUTURES_INDICATORS.has(indicator) &&
-                      draft.market !== 'futures')
+                    FUTURES_INDICATORS.has(indicator) &&
+                    draft.market !== 'futures'
                   }
                 >
                   {a[`indicator${indicator}`]}
-                  {PENDING_INDICATORS.has(indicator)
-                    ? ` (${a.fundingPending})`
-                    : ''}
                 </option>
               ))}
             </Select>

@@ -1,6 +1,7 @@
 import type { Copy } from '../../../i18n/locales/en';
 import type { AlertRule } from '../../../types/domain';
 import { groupThousands, trimDecimal } from '../../../utils/decimal-format';
+import { multiply } from '../../../utils/decimal-math';
 
 /**
  * The rule in words for SCR-13 and the delete confirmation, e.g.
@@ -21,6 +22,9 @@ export function conditionText(copy: Copy, rule: AlertRule): string {
   }
   if (indicator === 'OPEN_INTEREST_CHANGE')
     return `${a.indicatorOPEN_INTEREST_CHANGE} · ${condition} ${value}%`;
+  // Stored as a fraction, shown in percent (D-100).
+  if (indicator === 'FUNDING_RATE' && rule.threshold)
+    return `${a.indicatorFUNDING_RATE} · ${condition} ${trimDecimal(multiply(rule.threshold, '100'), 0)}%`;
   const name = indicator ? a[`indicator${indicator}`] : '';
   return `${name}${rule.timeframe ? ` ${rule.timeframe}` : ''} · ${condition} ${value}`;
 }
