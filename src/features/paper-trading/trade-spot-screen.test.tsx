@@ -90,6 +90,7 @@ const pair = (
   baseAssetName,
   logoUrl: null,
   tickSize: '0.01',
+  stepSize: '0.00001',
   displayOrder,
 });
 const PAIRS = [

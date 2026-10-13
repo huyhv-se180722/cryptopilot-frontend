@@ -58,6 +58,8 @@ export interface MarketPair {
   logoUrl: string | null;
   /** Price precision (CR-02); null until the exchange filters are synced. */
   tickSize: Decimal | null;
+  /** Quantity increment; null until the exchange filters are synced. */
+  stepSize: Decimal | null;
   displayOrder: number;
 }
 

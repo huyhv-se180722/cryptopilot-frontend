@@ -168,6 +168,10 @@ describe('HTTP market adapter', () => {
     const pairs = await market.listPairs('spot');
     expect(pairs).toHaveLength(101);
     expect(pairs[0]?.symbol).toBe('BTCUSDT');
+    expect(pairs[0]).toMatchObject({
+      tickSize: '0.01000000',
+      stepSize: '0.00001',
+    });
     expect(urls.map((url) => url.search)).toEqual([
       '?market=spot&page=1&pageSize=100',
       '?market=spot&page=2&pageSize=100',
