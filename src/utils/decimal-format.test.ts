@@ -7,6 +7,7 @@ import {
   fractionToPercent,
   groupThousands,
   shiftDecimal,
+  addDecimal,
   subtractDecimal,
   toFixedDecimal,
   trimDecimal,
@@ -98,6 +99,18 @@ describe('subtractDecimal', () => {
     expect(subtractDecimal('-1.5', '-2')).toBe('0.5');
     expect(subtractDecimal('99999999999999999999.99999999', '0.00000001')).toBe(
       '99999999999999999999.99999998',
+    );
+  });
+});
+
+describe('addDecimal', () => {
+  it('adds exactly whatever the scales and signs', () => {
+    expect(addDecimal('0.1', '0.2')).toBe('0.3');
+    expect(addDecimal('1.25000', '0.75')).toBe('2.00000');
+    expect(addDecimal('-1.5', '0.5')).toBe('-1.0');
+    expect(addDecimal('12', '-12.00')).toBe('0.00');
+    expect(addDecimal('99999999999999999.99', '0.01')).toBe(
+      '100000000000000000.00',
     );
   });
 });
