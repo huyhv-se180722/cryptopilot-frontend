@@ -367,6 +367,36 @@
   }
 }
 
+/*
+ * SCR-01 radar: the beam turns once every 8 s round the radar's centre
+ * (200, 200 in its 400 × 400 view box) and each mover's ring pings; both
+ * stand still under reduced motion.
+ */
+.radar-sweep {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+  animation: radar-sweep 8s linear infinite;
+}
+.radar-ping {
+  animation: radar-ping 2.8s ease-out infinite;
+}
+
+@keyframes radar-sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes radar-ping {
+  from {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
 @keyframes pulse-led {
   0%,
   100% {

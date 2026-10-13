@@ -1,161 +1,106 @@
+import { Link } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { NumericText } from '../../../components/ui/NumericText';
 import { useCopy } from '../../../hooks/use-copy';
 import { formatCopy } from '../../../i18n/copy';
-import type { MarketPair } from '../../../types/domain';
+import { classNames } from '../../../utils/class-names';
 import { formatPrice, toFixedDecimal } from '../../../utils/decimal-format';
 import type { MarketBoardData } from '../hooks/use-market-board';
 import { usePairCandles } from '../hooks/use-market-data';
-import {
-  featuredPair,
-  topMovers,
-  type PairQuote,
-} from '../model/market-movers';
+import { featuredPair } from '../model/market-movers';
 import { FreshnessBadge } from './FreshnessBadge';
 import { PairChart } from './PairChart';
 
-/** One mover: a button that opens the pair's chart below. */
-function MoverRow({
-  row,
-  onSelect,
-}: {
-  row: PairQuote;
-  onSelect: (pair: MarketPair) => void;
-}) {
-  const { pair, ticker } = row;
-  return (
-    <li>
-      <button
-        type="button"
-        onClick={() => onSelect(pair)}
-        className="flex w-full items-center gap-2 rounded-lg border border-line bg-raised px-2.5 py-2 text-left transition-colors hover:border-primary-line hover:bg-raised-hover pointer-coarse:py-3"
-      >
-        <span className="text-[11px] font-semibold text-fg">
-          {pair.baseAsset ?? pair.symbol}
-        </span>
-        {ticker.lastPrice && (
-          <NumericText
-            className="ml-auto text-[11px] text-fg-2"
-            value={formatPrice(ticker.lastPrice, pair.tickSize)}
-          />
-        )}
-        <NumericText
-          signed
-          className="w-14 text-right text-[11px] font-semibold"
-          value={toFixedDecimal(ticker.changePercent24h ?? '0', 2)}
-          suffix="%"
-        />
-      </button>
-    </li>
-  );
-}
-
 /**
- * SCR-01 hero panel, in place of the prototype's animated "AI Market
- * Radar" (which showed invented signals): the Spot market as it is, from
- * the backend. BTC/USDT (or the most traded pair) with its live price,
- * 24h change and 1d chart, then the largest 24h rises and falls; a mover
- * opens its basic chart in the list's preview, as a row of the list does.
+ * SCR-01 hero card at the radar's bottom left, in place of the
+ * prototype's "AI Market Insight" card (a trade setup with entry, TP and
+ * SL, which reads as investment advice and needs the Trader-only setup
+ * score): BTC/USDT (or the most traded pair) as it is now, its live price,
+ * 24h change and 1d chart, and the way to analyse it with an account.
  */
 export function HeroMarketCard({
   board,
-  onSelect,
+  className,
 }: {
   board: MarketBoardData;
-  onSelect: (pair: MarketPair) => void;
+  className?: string;
 }) {
   const copy = useCopy();
   const m = copy.market;
   const pair = featuredPair(board.all, board.tickers);
   const ticker = pair ? board.tickers.get(pair.symbol) : undefined;
   const candles = usePairCandles('spot', pair?.symbol ?? null);
-  const { gainers, losers } = topMovers(board.all, board.tickers, 3);
 
   return (
     <section
       aria-label={m.heroCardTitle}
-      className="overflow-hidden rounded-2xl border border-line bg-surface shadow-lg shadow-black/5 dark:shadow-black/40"
+      className={classNames(
+        'rounded-2xl border border-line bg-surface/95 p-3.5 shadow-xl shadow-black/10 backdrop-blur dark:shadow-black/50',
+        className,
+      )}
     >
-      <div className="flex items-center gap-2 border-b border-line px-4 py-2.5">
-        <span className="font-mono text-[10px] font-bold tracking-widest text-muted-dim uppercase">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h2 className="font-mono text-[9px] font-semibold tracking-widest text-muted-dim uppercase">
           {m.heroCardTitle}
-        </span>
-        <span className="ml-auto">
-          <FreshnessBadge freshness={board.freshness} />
-        </span>
+        </h2>
+        <FreshnessBadge freshness={board.freshness} />
       </div>
-
       {board.pairs.isPending ? (
-        <Skeleton className="m-4 h-56" />
+        <Skeleton className="h-36" />
       ) : pair ? (
-        <div className="px-4 pt-3">
-          <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h2 className="text-sm font-semibold text-fg">
-              {pair.baseAsset ?? pair.symbol}
-              <span className="font-normal text-muted-dim">
-                /{pair.quoteAsset ?? ''} · {m.spot}
-              </span>
-            </h2>
-            {ticker?.lastPrice && (
-              <NumericText
-                className="text-lg font-semibold text-fg"
-                value={formatPrice(ticker.lastPrice, pair.tickSize)}
-              />
-            )}
+        <>
+          <div className="mb-2 flex items-start justify-between gap-2">
+            <div>
+              <p className="text-xs font-bold text-fg">
+                {pair.baseAsset ?? pair.symbol}
+                <span className="font-normal text-muted-dim">
+                  {' '}
+                  / {pair.quoteAsset ?? ''}
+                </span>
+              </p>
+              {ticker?.lastPrice && (
+                <NumericText
+                  className="block text-xl leading-tight font-bold text-fg"
+                  value={formatPrice(ticker.lastPrice, pair.tickSize)}
+                />
+              )}
+            </div>
             {ticker?.changePercent24h && (
-              <NumericText
-                signed
-                className="text-xs"
-                value={toFixedDecimal(ticker.changePercent24h, 2)}
-                suffix="% 24h"
-              />
+              <span className="rounded-md bg-raised px-2 py-1">
+                <NumericText
+                  signed
+                  className="text-xs font-bold"
+                  value={toFixedDecimal(ticker.changePercent24h, 2)}
+                  suffix="%"
+                />
+              </span>
             )}
           </div>
           {candles.isPending ? (
-            <Skeleton className="h-40 w-full" />
+            <Skeleton className="h-24 w-full" />
           ) : candles.data && candles.data.length > 0 ? (
             <PairChart
               candles={candles.data}
               tickSize={pair.tickSize}
               label={formatCopy(m.chartLabel, { symbol: pair.symbol })}
-              className="h-40 w-full"
+              className="h-24 w-full"
               lastClose={false}
             />
           ) : (
-            <p className="flex h-40 items-center justify-center text-xs text-muted">
+            <p className="flex h-24 items-center justify-center text-xs text-muted">
               {m.chartEmpty}
             </p>
           )}
-        </div>
+          <Link
+            to="/register"
+            className="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-primary-line bg-primary-soft py-2 text-[11px] font-semibold text-primary no-underline hover:bg-primary/15"
+          >
+            {m.heroCardCta}
+            <ChevronRight size={11} aria-hidden="true" />
+          </Link>
+        </>
       ) : null}
-
-      {(gainers.length > 0 || losers.length > 0) && (
-        <div className="grid grid-cols-1 gap-3 px-4 py-3 sm:grid-cols-2">
-          {[
-            { title: m.heroGainers, rows: gainers },
-            { title: m.heroLosers, rows: losers },
-          ].map((list) => (
-            <div key={list.title}>
-              <h3 className="mb-1.5 text-[10px] font-semibold tracking-wider text-muted-dim uppercase">
-                {list.title}
-              </h3>
-              <ul className="flex flex-col gap-1.5">
-                {list.rows.map((row) => (
-                  <MoverRow
-                    key={row.pair.symbol}
-                    row={row}
-                    onSelect={onSelect}
-                  />
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <p className="border-t border-line px-4 py-2 text-[10px] text-muted-x">
-        {m.heroCardNote}
-      </p>
     </section>
   );
 }

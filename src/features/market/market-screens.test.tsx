@@ -288,25 +288,51 @@ describe('SCR-01 Public Home', () => {
     ]);
     expect(screen.queryByText(/signal/i)).toBeNull();
 
-    // BTC/USDT live, then the largest rises and falls of the day.
-    const hero = within(screen.getByRole('region', { name: 'Live market' }));
-    // The featured price, and BTC again among the gainers.
-    expect(await hero.findAllByText('63,000.01')).toHaveLength(2);
-    expect(hero.getByText('+1.25% 24h')).toBeTruthy();
+    // The radar of the day's biggest moves: rising pairs on the right,
+    // falling at the upper left, each a button named with its change.
+    const radar = within(
+      screen.getByRole('region', {
+        name: 'Biggest 24h moves of the Spot pairs',
+      }),
+    );
+    expect(await radar.findByText('3 Spot pairs monitored')).toBeTruthy();
+    expect(radar.getByText('Market data · live')).toBeTruthy();
+    const node = (name: string) =>
+      radar.getByRole('button', { name: `${name} in 24h. Open its chart.` });
+    const left = (name: string) => parseFloat(node(name).style.left);
+    expect(left('SOL/USDT +5.31%')).toBeGreaterThan(50);
+    expect(left('BTC/USDT +1.25%')).toBeGreaterThan(50);
+    expect(left('ETH/USDT -0.62%')).toBeLessThan(50);
+
+    // The two cards over its corners, from the same live tickers.
+    const live = within(radar.getByRole('region', { name: 'Live market' }));
+    expect(await live.findByText('63,000.01')).toBeTruthy();
+    expect(live.getByText('+1.25%')).toBeTruthy();
     expect(
-      await hero.findByRole('img', {
+      await live.findByRole('img', {
         name: 'Daily price chart of BTCUSDT, last 90 closed days',
       }),
     ).toBeTruthy();
-    const list = (title: string) =>
-      within(hero.getByRole('heading', { name: title }).parentElement!)
-        .getAllByRole('button')
-        .map((button) => button.textContent);
-    expect(list('Top gainers · 24h')).toEqual([
-      'SOL147.22+5.31%',
-      'BTC63,000.01+1.25%',
-    ]);
-    expect(list('Top losers · 24h')).toEqual(['ETH2,441.80-0.62%']);
+    expect(
+      live
+        .getByRole('link', { name: /Analyze with a free account/ })
+        .getAttribute('href'),
+    ).toBe('/register');
+    const breadth = within(
+      radar.getByRole('region', { name: 'Market breadth' }),
+    );
+    const figure = (term: string) =>
+      breadth.getByText(term, { selector: 'dt' }).nextElementSibling
+        ?.textContent;
+    expect(figure('Rising')).toBe('2');
+    expect(figure('Falling')).toBe('1');
+    // 900M + 500M + 700M USDT.
+    expect(figure('Spot volume 24h')).toBe('2.10B');
+    expect(
+      breadth
+        .getByRole('meter', { name: 'Share rising' })
+        .getAttribute('aria-valuenow'),
+    ).toBe('67');
 
     // The running tape: every pair once for assistive tech (the second,
     // looping copy is hidden), and a button to stop it.
@@ -346,8 +372,8 @@ describe('SCR-01 Public Home', () => {
       'ETH/USDT2,441.80-0.62%',
     ]);
 
-    // A mover opens its basic chart in the list's preview.
-    await userEvent.click(hero.getByRole('button', { name: /^SOL/ }));
+    // A point of the radar opens its basic chart in the list's preview.
+    await userEvent.click(node('SOL/USDT +5.31%'));
     expect(
       await screen.findByRole('img', {
         name: 'Daily price chart of SOLUSDT, last 90 closed days',

@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { buttonClassName } from '../../components/ui/button-styles';
 import { useCopy } from '../../hooks/use-copy';
-import { HeroMarketCard } from '../../features/market/components/HeroMarketCard';
+import { HeroRadar } from '../../features/market/components/HeroRadar';
 import { MarketBoard } from '../../features/market/components/MarketBoard';
 import { MarketPulse } from '../../features/market/components/MarketPulse';
 import { PairPreview } from '../../features/market/components/PairPreview';
@@ -25,9 +25,10 @@ const marketOf = (value: string | null): MarketType =>
  * SCR-01 Public Home (SRS 3.3.1): the Figma landing hero, then the Spot /
  * Futures list with live prices and the selected pair's basic 1d chart.
  * The hero keeps the prototype's layout and look with the product's own
- * content: what CryptoPilot does (no "signals"), and on the right the
- * live Spot market from the backend instead of an animated radar of
- * invented events. The MSG42 disclaimer is in the guest shell footer.
+ * content: what CryptoPilot does (no "signals"), and on the right its
+ * radar drawn from the live Spot market (the day's biggest moves) with
+ * two cards of live figures, instead of invented events and a trade
+ * setup. The MSG42 disclaimer is in the guest shell footer.
  */
 export function PublicHomePage() {
   const copy = useCopy();
@@ -119,7 +120,7 @@ export function PublicHomePage() {
             ))}
           </ul>
         </div>
-        <HeroMarketCard board={spot} onSelect={show} />
+        <HeroRadar board={spot} onSelect={show} />
       </section>
 
       <MarketPulse board={spot} onSelect={show} />

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { MarketPair, MarketTicker } from '../../../types/domain';
-import { byVolume, featuredPair, topMovers } from './market-movers';
+import {
+  RADAR_OUTER,
+  breadth,
+  byVolume,
+  featuredPair,
+  radarPoints,
+  topMovers,
+} from './market-movers';
 
 const pair = (base: string, displayOrder: number): MarketPair => ({
   symbol: base + 'USDT',
@@ -83,5 +90,37 @@ describe('market movers (public home hero)', () => {
       'BTC',
     ]);
     expect(few.losers.map((row) => row.pair.baseAsset)).toEqual(['ADA', 'ETH']);
+  });
+
+  it('sums up the market: rising and falling pairs, their share, the volume', () => {
+    expect(breadth(PAIRS, TICKERS)).toEqual({
+      rising: 3,
+      falling: 3,
+      risingShare: 50,
+      // 36,490,000 + 1,320,000,000 + … + 33,780,000, exactly.
+      volume: '2707710000',
+    });
+    expect(breadth([], TICKERS)).toEqual({
+      rising: 0,
+      falling: 0,
+      risingShare: null,
+      volume: null,
+    });
+  });
+
+  it('puts rising pairs right and falling pairs left, farther for bigger moves', () => {
+    const { gainers, losers } = topMovers(PAIRS, TICKERS, 3);
+    const points = radarPoints(gainers, losers);
+    const at = (base: string) =>
+      points.find((point) => point.pair.baseAsset === base)!;
+    const reach = (base: string) =>
+      Math.hypot(at(base).x - 50, at(base).y - 50) / 100;
+    for (const point of points)
+      expect(point.side === 'rising' ? point.x > 50 : point.x < 50).toBe(true);
+    // SOL (+4.20 %) moved most: it sits farthest, inside the outer ring.
+    expect(reach('SOL')).toBeCloseTo(RADAR_OUTER * 0.82, 5);
+    expect(reach('BTC')).toBeLessThan(reach('SOL'));
+    expect(reach('DOGE')).toBeGreaterThan(reach('ETH'));
+    expect(radarPoints([], [])).toEqual([]);
   });
 });
