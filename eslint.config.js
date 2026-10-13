@@ -27,6 +27,7 @@ export default tseslint.config(
     ignores: [
       'src/dev/**',
       'src/**/*.test.ts',
+      'src/**/*.test.tsx',
       'src/app/providers/create-services.ts',
     ],
     rules: {
