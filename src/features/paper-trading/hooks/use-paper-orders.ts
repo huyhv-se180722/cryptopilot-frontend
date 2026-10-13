@@ -6,7 +6,12 @@ import {
 } from '@tanstack/react-query';
 import { useMutation } from '../../../hooks/use-mutation';
 import { useServices } from '../../../hooks/use-services';
-import type { PaperWalletType, PlacePaperOrder } from '../../../types/domain';
+import type {
+  PaperLedgerQuery,
+  PaperOrderStatus,
+  PaperWalletType,
+  PlacePaperOrder,
+} from '../../../types/domain';
 import { usePaperAccount } from './use-paper-account';
 
 const PAPER_KEY = ['paper', 'data'] as const;
@@ -45,23 +50,34 @@ export function useOpenOrders(pairId: string | null) {
   });
 }
 
-const historyQuery = (pairId: string | null, page: number) => ({
-  ...(pairId ? { pairId } : {}),
+/** Filters of the order and trade histories; absent means every value. */
+export interface HistoryFilter {
+  pairId: string | null;
+  /** Order history only. */
+  status?: PaperOrderStatus | undefined;
+  /** Placed / traded at or after, ISO 8601 UTC. */
+  from?: string | undefined;
+}
+
+const historyQuery = (filter: HistoryFilter, page: number) => ({
+  ...(filter.pairId ? { pairId: filter.pairId } : {}),
+  ...(filter.status ? { status: filter.status } : {}),
+  ...(filter.from ? { from: filter.from } : {}),
   page,
   pageSize: PAPER_PAGE_SIZE,
 });
 
-/** One page of the order history, newest first (read while its tab shows). */
+/** One page of the order history, newest first (read while it shows). */
 export function useOrderHistory(
-  pairId: string | null,
+  filter: HistoryFilter,
   page: number,
   enabled: boolean,
 ) {
   const { paperTrading } = useServices();
   return useQuery({
-    queryKey: [...PAPER_KEY, 'orders', pairId, page],
+    queryKey: [...PAPER_KEY, 'orders', filter, page],
     queryFn: ({ signal }) =>
-      paperTrading.orders(historyQuery(pairId, page), signal),
+      paperTrading.orders(historyQuery(filter, page), signal),
     enabled: useAccountReady() && enabled,
     refetchInterval: PAPER_REFRESH_MS,
     placeholderData: keepPreviousData,
@@ -70,17 +86,44 @@ export function useOrderHistory(
 
 /** One page of the fills (trade history), newest first. */
 export function useFillHistory(
-  pairId: string | null,
+  filter: HistoryFilter,
   page: number,
   enabled: boolean,
 ) {
   const { paperTrading } = useServices();
   return useQuery({
-    queryKey: [...PAPER_KEY, 'fills', pairId, page],
+    queryKey: [...PAPER_KEY, 'fills', filter, page],
     queryFn: ({ signal }) =>
-      paperTrading.fills(historyQuery(pairId, page), signal),
+      paperTrading.fills(
+        historyQuery({ ...filter, status: undefined }, page),
+        signal,
+      ),
     enabled: useAccountReady() && enabled,
     refetchInterval: PAPER_REFRESH_MS,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** One page of the transaction history (every balance change), newest first. */
+export function useLedger(query: PaperLedgerQuery, enabled: boolean) {
+  const { paperTrading } = useServices();
+  return useQuery({
+    queryKey: [...PAPER_KEY, 'ledger', query],
+    queryFn: ({ signal }) => paperTrading.ledger(query, signal),
+    enabled: useAccountReady() && enabled,
+    refetchInterval: PAPER_REFRESH_MS,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** One page of the transfers between the wallets, newest first. */
+export function useTransfers(page: number, enabled: boolean) {
+  const { paperTrading } = useServices();
+  return useQuery({
+    queryKey: [...PAPER_KEY, 'transfers', page],
+    queryFn: ({ signal }) =>
+      paperTrading.transfers({ page, pageSize: PAPER_PAGE_SIZE }, signal),
+    enabled: useAccountReady() && enabled,
     placeholderData: keepPreviousData,
   });
 }
