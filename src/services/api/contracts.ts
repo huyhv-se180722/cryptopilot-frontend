@@ -20,6 +20,14 @@ import type {
   MarketType,
   PairAnalysis,
   PaperAccount,
+  PaperFill,
+  PaperHistoryQuery,
+  PaperOrder,
+  PaperPage,
+  PaperTransfer,
+  PaperWallet,
+  PaperWalletType,
+  PlacePaperOrder,
   PlanCalculation,
   PlanInputs,
   PlanListQuery,
@@ -207,6 +215,39 @@ export interface AlertsService {
 export interface PaperTradingService {
   /** Opens the caller's account with its virtual funds, once; idempotent (TR-04). */
   openAccount(signal?: AbortSignal): Promise<PaperAccount>;
+  /** One wallet with its balances valued in USDT and BTC (TR-04). */
+  getWallet(
+    wallet: PaperWalletType,
+    signal?: AbortSignal,
+  ): Promise<PaperWallet>;
+  /** Moves USDT out of `from` into the other wallet, once per `clientTransferId`. */
+  transfer(transfer: {
+    asset: 'USDT';
+    from: PaperWalletType;
+    amount: string;
+    clientTransferId: string;
+  }): Promise<PaperTransfer>;
+  /** Places a Spot MARKET or LIMIT order, once per `clientOrderId` (TR-06). */
+  placeOrder(order: PlacePaperOrder): Promise<PaperOrder>;
+  /** Cancels a working order and releases what it locked. */
+  cancelOrder(orderId: string): Promise<PaperOrder>;
+  /** Cancels every working order on one pair. */
+  cancelAll(pairId: string): Promise<readonly PaperOrder[]>;
+  /** Working orders, newest first; every pair when `pairId` is null (TR-07). */
+  openOrders(
+    pairId: string | null,
+    signal?: AbortSignal,
+  ): Promise<readonly PaperOrder[]>;
+  /** Order history, newest first. */
+  orders(
+    query: PaperHistoryQuery,
+    signal?: AbortSignal,
+  ): Promise<PaperPage<PaperOrder>>;
+  /** Trade history (every fill), newest first. */
+  fills(
+    query: PaperHistoryQuery,
+    signal?: AbortSignal,
+  ): Promise<PaperPage<PaperFill>>;
 }
 export type JournalService = ReadService<JournalEntry>;
 export type CommunityService = ReadService<CommunityPost>;

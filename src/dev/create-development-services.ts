@@ -9,14 +9,18 @@ import { createDevelopmentWatchlist } from './dev-watchlist';
 /** DEVELOPMENT ONLY. All unimplemented operations still fail explicitly. */
 export function createDevelopmentServices(base: Services): Services {
   const auth = createDevelopmentAuth();
+  const market = createDevelopmentMarket();
   return {
     ...base,
     mode: 'development-fixtures',
     auth,
     profile: createDevelopmentProfile(),
-    ...createDevelopmentMarket(),
+    ...market,
     tradingPlan: createDevelopmentTradingPlan(() => auth.restoreSession()),
     ...createDevelopmentWatchlist(() => auth.restoreSession()),
-    ...createDevelopmentPaperTrading(() => auth.restoreSession()),
+    ...createDevelopmentPaperTrading(
+      () => auth.restoreSession(),
+      market.market,
+    ),
   };
 }
