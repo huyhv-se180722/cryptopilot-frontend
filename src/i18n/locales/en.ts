@@ -750,6 +750,7 @@ export const en = {
     tifGTC: 'GTC · Good till cancelled',
     tifIOC: 'IOC · Immediate or cancel',
     tifFOK: 'FOK · Fill or kill',
+    tifGTX: 'Post only · Maker only',
     available: 'Available',
     shareLabel: 'Share of the available balance',
     sharePercent: '{percent}%',
@@ -766,6 +767,8 @@ export const en = {
     needPairId:
       'Add this pair to your watchlist to trade it here: demo orders name a pair by an id the market list does not give yet.',
     placed: '{side} order {status}.',
+    postOnlyExpired:
+      'Post-only order expired: at this price it would have filled at once as a taker.',
     statusNEW: 'Open',
     statusPENDING_NEW: 'Pending',
     statusPARTIALLY_FILLED: 'Partially filled',

@@ -69,7 +69,8 @@ const symbolOf = (pairId: string) =>
  * once with the Q-T5 grant; MARKET orders fill at the development last
  * price as taker; a LIMIT that crosses fills at once, otherwise it waits,
  * locks its funds and fills as maker when the price reaches it (checked
- * every second); IOC / FOK that cannot fill expire. Fees are the default
+ * every second); IOC / FOK that cannot fill expire, and so does a
+ * post-only (GTX) order that would fill at once. Fees are the default
  * 0.1 % taken in the asset received. Refusals use the backend's codes:
  * MSG44, MSG41, MSG01 / MSG15 field errors, PAPER_INSUFFICIENT_BALANCE,
  * PAPER_ORDER_NOT_OPEN (MSG43). A reload starts again.
@@ -409,9 +410,26 @@ export function createDevelopmentPaperTrading(
         closedAt: null,
       };
       orders.set(order.orderId, order);
+      // Post-only (GTX): an order that would take liquidity expires instead.
+      if (
+        limit &&
+        order.timeInForce === 'GTX' &&
+        crosses(request.side, price, last)
+      ) {
+        funds.locked = subtract(funds.locked, need);
+        funds.free = add(funds.free, need);
+        const expired = {
+          ...order,
+          status: 'EXPIRED' as const,
+          statusReason: 'POST_ONLY_WOULD_TAKE',
+          closedAt: at(),
+        };
+        orders.set(order.orderId, expired);
+        return expired;
+      }
       if (!limit || crosses(request.side, price, last))
         return execute(order, pair, last, quantity, 'TAKER', need);
-      if (order.timeInForce !== 'GTC') {
+      if (order.timeInForce === 'IOC' || order.timeInForce === 'FOK') {
         funds.locked = subtract(funds.locked, need);
         funds.free = add(funds.free, need);
         const expired = {

@@ -218,6 +218,26 @@ describe('Spot demo orders (TR-F3)', () => {
     );
   });
 
+  it('expires a post-only order that would fill at once, and keeps one that waits', async () => {
+    const { form, user } = await open();
+    const tif = within(form).getByRole('combobox', { name: /Time in force/ });
+    await user.selectOptions(tif, 'GTX');
+    // Above the last price 60,000: a buy would take liquidity.
+    await user.type(field(form, /Price/), '61000');
+    await user.type(field(form, /Amount/), '0.01');
+    await user.click(within(form).getByRole('button', { name: 'Buy BTC' }));
+    expect(
+      await screen.findByText(
+        'Post-only order expired: at this price it would have filled at once as a taker.',
+      ),
+    ).toBeTruthy();
+    await user.clear(field(form, /Price/));
+    await user.type(field(form, /Price/), '59000');
+    await user.type(field(form, /Amount/), '0.01');
+    await user.click(within(form).getByRole('button', { name: 'Buy BTC' }));
+    expect(await screen.findByText('Buy order open.')).toBeTruthy();
+  });
+
   it('takes a price selected in the order book', async () => {
     const { form, user } = await open();
     await user.click(
