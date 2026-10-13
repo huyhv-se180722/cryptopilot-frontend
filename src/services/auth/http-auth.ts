@@ -1,3 +1,4 @@
+import { ServiceError } from '../api/errors';
 import type { HttpClient } from '../api/http-client';
 import type { Session } from '../../types/domain';
 import type { AuthService } from './contracts';
@@ -8,6 +9,7 @@ import {
   subjectOf,
   type DecodedSession,
 } from './auth-dto';
+import { memorySessionStore, type SessionStore } from './session-store';
 import type { TokenSession } from './token-session';
 
 const AUTH = 'auth/';
@@ -15,14 +17,19 @@ const AUTH = 'auth/';
 /**
  * HTTP adapter for the backend auth module (`/api/v1/auth/*`, `/me/password`;
  * `/me/profile` for the signed-in identity).
- * Tokens stay in memory (`TokenSession`); a reload starts as a guest until
- * Q-44 settles where the refresh token may live in a browser.
+ * Tokens stay in memory (`TokenSession`); the refresh token and the email
+ * are also kept in `store` (the tab's sessionStorage, D-102), so a reload
+ * resumes the session with one `POST /auth/refresh`.
  */
 export function createHttpAuthService(
   http: HttpClient,
   tokens: TokenSession,
+  store: SessionStore = memorySessionStore,
 ): AuthService {
   let current: Session | null = null;
+  // One resume at a time: two starts presenting the same refresh token
+  // would look like reuse to the server, which then ends the session.
+  let resuming: Promise<Session | null> | null = null;
   tokens.onEnded(() => {
     current = null;
   });
@@ -41,6 +48,7 @@ export function createHttpAuthService(
     email: string,
   ): Promise<Session> {
     tokens.set(decoded.tokens);
+    store.saveEmail(email);
     try {
       const id = subjectOf(decoded.tokens.accessToken);
       // `/me/profile` is Trader-only (403 for an Admin, SRS 3.1.3).
@@ -63,9 +71,40 @@ export function createHttpAuthService(
     }
   }
 
+  /** A reload: resume from the refresh token this tab kept (D-102). */
+  async function resume(): Promise<Session | null> {
+    const saved = store.read();
+    if (!saved) return null;
+    if (!(Date.parse(saved.refreshTokenExpiresAt) > Date.now())) {
+      store.clear();
+      return null;
+    }
+    let decoded: DecodedSession;
+    try {
+      decoded = await post(
+        'refresh',
+        { refreshToken: saved.refreshToken },
+        decodeSession,
+      );
+    } catch (error) {
+      // Refused (revoked, reused): forget it. Unreachable: keep it for
+      // the next start and report that restoring failed.
+      if (error instanceof ServiceError && error.code === 'HTTP_ERROR') {
+        store.clear();
+        return null;
+      }
+      throw error;
+    }
+    return openSession(decoded, saved.email);
+  }
+
   return {
     async restoreSession() {
-      return tokens.hasTokens() ? current : null;
+      if (tokens.hasTokens()) return current;
+      resuming ??= resume().finally(() => {
+        resuming = null;
+      });
+      return resuming;
     },
     async login({ email, password, rememberMe }) {
       const decoded = await post(

@@ -6,6 +6,7 @@ import {
   createHttpAuthService,
   createRefresher,
 } from '../../services/auth/http-auth';
+import { browserSessionStore } from '../../services/auth/session-store';
 import { TokenSession } from '../../services/auth/token-session';
 import {
   createHttpProfileService,
@@ -51,7 +52,13 @@ import { createAdminService } from '../../services/api/admin';
 
 export async function createServices(env: Environment): Promise<Services> {
   // The session renews through the same client it authorizes (anonymous call).
-  const tokens = new TokenSession(createRefresher(() => http));
+  // The refresh token survives a reload in the tab's sessionStorage (D-102).
+  const store = browserSessionStore();
+  const tokens = new TokenSession(
+    createRefresher(() => http),
+    undefined,
+    store,
+  );
   const http = createHttpClient({ baseUrl: env.apiBaseUrl, session: tokens });
   const connected = env.apiBaseUrl !== '';
   const stomp = env.wsUrl ? createStompMarketFeed(env.wsUrl) : null;
@@ -61,7 +68,9 @@ export async function createServices(env: Environment): Promise<Services> {
   const services: Services = {
     mode: connected ? 'backend' : 'backend-pending',
     http,
-    auth: connected ? createHttpAuthService(http, tokens) : unconfiguredAuth,
+    auth: connected
+      ? createHttpAuthService(http, tokens, store)
+      : unconfiguredAuth,
     profile: connected
       ? createHttpProfileService(http)
       : createPendingProfileService(),
