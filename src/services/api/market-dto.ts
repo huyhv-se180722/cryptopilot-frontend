@@ -8,11 +8,15 @@ import type {
   MarketOverview,
   MarketPair,
   MarketTicker,
+  MarketTrade,
   MarketType,
   OpenInterestPoint,
+  OrderBook,
+  OrderBookLevel,
 } from '../../types/domain';
 import {
   decimal,
+  flag,
   instant,
   integer,
   list,
@@ -251,4 +255,54 @@ export function decodeFuturesMetrics(body: unknown): FuturesMetrics {
       ),
     },
   };
+}
+
+/** `[price, quantity]` as the exchange sends a level, decimals as strings. */
+function decodeLevel(item: unknown, index: number): OrderBookLevel {
+  const pair = list(item, 'level[' + index + ']');
+  if (pair.length !== 2) throw new Error('a level must be [price, quantity]');
+  return {
+    price: decimal(pair[0], 'price'),
+    quantity: decimal(pair[1], 'quantity'),
+  };
+}
+
+/**
+ * `DepthResponse` (TR-03): `GET /market/{market}/{symbol}/depth` and
+ * `/topic/depth.*`. Empty sides and no `lastUpdateId` when no current
+ * depth is held.
+ */
+export function decodeDepth(body: unknown): OrderBook {
+  const value = record(body, 'depth');
+  return {
+    market: marketOf(value.market),
+    symbol: text(value.symbol, 'symbol'),
+    lastUpdateId:
+      value.lastUpdateId === null || value.lastUpdateId === undefined
+        ? null
+        : integer(value.lastUpdateId, 'lastUpdateId'),
+    receivedAt: instant(value.receivedAt, 'receivedAt'),
+    bids: list(value.bids, 'bids').map(decodeLevel),
+    asks: list(value.asks, 'asks').map(decodeLevel),
+  };
+}
+
+function decodeMarketTrade(item: unknown): MarketTrade {
+  const value = record(item, 'trade');
+  return {
+    id: integer(value.id, 'id'),
+    price: decimal(value.price, 'price'),
+    quantity: decimal(value.quantity, 'quantity'),
+    time: instant(value.time, 'time'),
+    buyerMaker: flag(value.buyerMaker, 'buyerMaker'),
+  };
+}
+
+/**
+ * `MarketTradesResponse` (TR-03): the REST read lists the latest trades
+ * newest first; each topic push lists the new ones oldest first.
+ */
+export function decodeMarketTrades(body: unknown): readonly MarketTrade[] {
+  const value = record(body, 'trades');
+  return list(value.trades, 'trades').map(decodeMarketTrade);
 }

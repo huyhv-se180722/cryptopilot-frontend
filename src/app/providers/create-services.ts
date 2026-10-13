@@ -17,7 +17,11 @@ import {
   unavailableMarketFeed,
 } from '../../services/api/market';
 import { createStompMarketFeed } from '../../services/websocket/stomp-market-feed';
-import { createPendingTradingMarketService } from '../../services/api/trading-market';
+import {
+  createHttpTradingMarketService,
+  createPendingTradingMarketService,
+} from '../../services/api/trading-market';
+import { paperTradingEnabled } from '../config/features';
 import {
   createHttpAnalysisService,
   createPendingAnalysisService,
@@ -35,7 +39,10 @@ import {
   createHttpWatchlistService,
   createPendingWatchlistService,
 } from '../../services/api/watchlist';
-import { createPendingPaperTradingService } from '../../services/api/paper-trading';
+import {
+  createHttpPaperTradingService,
+  createPendingPaperTradingService,
+} from '../../services/api/paper-trading';
 import { createCommunityService } from '../../services/api/community';
 import { createNewsService } from '../../services/api/news';
 import { createAiService } from '../../services/api/ai';
@@ -47,6 +54,10 @@ export async function createServices(env: Environment): Promise<Services> {
   const tokens = new TokenSession(createRefresher(() => http));
   const http = createHttpClient({ baseUrl: env.apiBaseUrl, session: tokens });
   const connected = env.apiBaseUrl !== '';
+  const stomp = env.wsUrl ? createStompMarketFeed(env.wsUrl) : null;
+  // Demo trading talks to the backend only while its flag is on (D-94,
+  // D-97): the flag says the backend has the paper module.
+  const paper = paperTradingEnabled && connected;
   const services: Services = {
     mode: connected ? 'backend' : 'backend-pending',
     http,
@@ -57,10 +68,10 @@ export async function createServices(env: Environment): Promise<Services> {
     market: connected
       ? createHttpMarketService(http)
       : createPendingMarketService(),
-    marketFeed: env.wsUrl
-      ? createStompMarketFeed(env.wsUrl)
-      : unavailableMarketFeed,
-    tradingMarket: createPendingTradingMarketService(),
+    marketFeed: stomp ?? unavailableMarketFeed,
+    tradingMarket: paper
+      ? createHttpTradingMarketService(http, stomp)
+      : createPendingTradingMarketService(),
     analysis: connected
       ? createHttpAnalysisService(http)
       : createPendingAnalysisService(),
@@ -74,7 +85,9 @@ export async function createServices(env: Environment): Promise<Services> {
     alerts: connected
       ? createHttpAlertsService(http)
       : createPendingAlertsService(),
-    paperTrading: createPendingPaperTradingService(),
+    paperTrading: paper
+      ? createHttpPaperTradingService(http)
+      : createPendingPaperTradingService(),
     community: createCommunityService(),
     news: createNewsService(),
     ai: createAiService(),

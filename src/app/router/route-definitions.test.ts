@@ -69,6 +69,8 @@ describe('route definitions', () => {
     expect(paperRoutes.map((route) => [route.path, route.screen])).toEqual([
       ['/trade/spot', 'D-86'],
       ['/trade/spot/:symbol', 'D-86'],
+      ['/trade/wallet', 'D-86'],
+      ['/trade/orders', 'D-86'],
     ]);
     const others = [...publicRoutes, ...guestOnlyRoutes, ...traderRoutes];
     expect(others.some((route) => route.path.startsWith('/trade'))).toBe(false);

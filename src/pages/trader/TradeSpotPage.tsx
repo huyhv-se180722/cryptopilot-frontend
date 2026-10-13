@@ -16,6 +16,7 @@ import {
 import { MarketTradesPanel } from '../../features/paper-trading/components/MarketTradesPanel';
 import { OrderBookPanel } from '../../features/paper-trading/components/OrderBookPanel';
 import { DemoTradingBanner } from '../../features/paper-trading/components/DemoTradingBanner';
+import { PaperNav } from '../../features/paper-trading/components/PaperNav';
 import {
   PairSelector,
   type FavoritePairs,
@@ -204,6 +205,7 @@ export function TradeSpotPage() {
   return (
     <div className="w-full">
       <DemoTradingBanner />
+      <PaperNav />
       {pairs.isPending ? (
         <Skeleton className="h-[560px] w-full" />
       ) : pairs.isError ? (

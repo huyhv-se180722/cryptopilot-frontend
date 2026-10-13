@@ -645,6 +645,43 @@ export interface PaperPage<T> {
 export interface PaperHistoryQuery {
   /** One pair; every pair when absent. */
   pairId?: string;
+  /** Order history only: one status. */
+  status?: PaperOrderStatus;
+  /** At or after / before, ISO 8601 UTC. */
+  from?: ISODateTime;
+  to?: ISODateTime;
+  page: number;
+  pageSize: number;
+}
+/** What changed a paper balance (TR-04 ledger). */
+export type PaperLedgerType =
+  | 'INITIAL_GRANT'
+  | 'TRADE'
+  | 'FEE'
+  | 'REALIZED_PNL'
+  | 'FUNDING_FEE'
+  | 'TRANSFER'
+  | 'LIQUIDATION_FEE';
+/** One change of a balance: the transaction history. */
+export interface PaperLedgerEntry {
+  entryId: string;
+  wallet: PaperWalletType;
+  asset: string;
+  type: PaperLedgerType;
+  /** Signed: negative leaves the balance. */
+  amount: Decimal;
+  /** The balance's total after it. */
+  balanceAfter: Decimal;
+  refType:
+    'ORDER' | 'FILL' | 'POSITION' | 'TRANSFER' | 'FUNDING' | 'ACCOUNT' | null;
+  refId: string | null;
+  createdAt: ISODateTime;
+}
+export interface PaperLedgerQuery {
+  wallet?: PaperWalletType;
+  type?: PaperLedgerType;
+  from?: ISODateTime;
+  to?: ISODateTime;
   page: number;
   pageSize: number;
 }

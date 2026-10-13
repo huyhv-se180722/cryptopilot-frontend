@@ -78,6 +78,8 @@ export const traderRoutes = [
 export const paperRoutes = [
   { path: '/trade/spot', screen: 'D-86', titleKey: 'tradeSpot' },
   { path: '/trade/spot/:symbol', screen: 'D-86', titleKey: 'tradeSpot' },
+  { path: '/trade/wallet', screen: 'D-86', titleKey: 'tradeWallet' },
+  { path: '/trade/orders', screen: 'D-86', titleKey: 'tradeOrders' },
 ] as const satisfies readonly RouteDefinition[];
 
 export const adminRoutes = [

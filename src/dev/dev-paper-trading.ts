@@ -9,6 +9,7 @@ import type {
   PaperAccount,
   PaperBalance,
   PaperFill,
+  PaperLedgerEntry,
   PaperOrder,
   PaperPage,
   PaperTransfer,
@@ -86,6 +87,7 @@ export function createDevelopmentPaperTrading(
   const orders = new Map<string, PaperOrder>();
   const fills: PaperFill[] = [];
   const transfers = new Map<string, PaperTransfer>();
+  const ledger: PaperLedgerEntry[] = [];
   let sequence = 0;
   let matcher: ReturnType<typeof setInterval> | undefined;
   const id = (prefix: string) => `${prefix}-${(++sequence).toString(16)}`;
@@ -106,6 +108,30 @@ export function createDevelopmentPaperTrading(
     }
     return row;
   };
+  /** One balance change, newest first, with the total after it. */
+  const record = (
+    wallet: PaperWalletType,
+    asset: string,
+    type: PaperLedgerEntry['type'],
+    amount: string,
+    refType: PaperLedgerEntry['refType'],
+    refId: string | null,
+  ) => {
+    const row = holding(wallet, asset);
+    ledger.unshift({
+      entryId: id('entry'),
+      wallet,
+      asset,
+      type,
+      amount,
+      balanceAfter: add(row.free, row.locked),
+      refType,
+      refId,
+      createdAt: at(),
+    });
+  };
+  const within = (time: string, query: { from?: string; to?: string }) =>
+    (!query.from || time >= query.from) && (!query.to || time < query.to);
   const lastPrice = async (symbol: string) => {
     const ticker = await market.getTicker('spot', symbol);
     if (!ticker?.lastPrice) refuse(503, 'PRICE_UNAVAILABLE', 'MSG43');
@@ -143,8 +169,19 @@ export function createDevelopmentPaperTrading(
       baseRow.locked = subtract(baseRow.locked, quantity);
       quoteRow.free = add(quoteRow.free, subtract(quote, fee));
     }
+    const fillId = id('fill');
+    record('SPOT', QUOTE, 'TRADE', buy ? '-' + quote : quote, 'FILL', fillId);
+    record(
+      'SPOT',
+      base,
+      'TRADE',
+      buy ? quantity : '-' + quantity,
+      'FILL',
+      fillId,
+    );
+    record('SPOT', buy ? base : QUOTE, 'FEE', '-' + fee, 'FILL', fillId);
     fills.unshift({
-      fillId: id('fill'),
+      fillId,
       orderId: order.orderId,
       pairId: order.pairId,
       symbol: order.symbol,
@@ -218,8 +255,10 @@ export function createDevelopmentPaperTrading(
           openedAt: at(),
         };
         for (const wallet of ['SPOT', 'FUTURES'] as const)
-          for (const [asset, amount] of Object.entries(GRANT[wallet]))
+          for (const [asset, amount] of Object.entries(GRANT[wallet])) {
             holding(wallet, asset).free = amount;
+            record(wallet, asset, 'INITIAL_GRANT', amount, 'ACCOUNT', null);
+          }
       }
       return account;
     },
@@ -271,8 +310,11 @@ export function createDevelopmentPaperTrading(
       source.free = subtract(source.free, amount);
       const target = holding(to, asset);
       target.free = add(target.free, amount);
+      const transferId = id('transfer');
+      record(from, asset, 'TRANSFER', '-' + amount, 'TRANSFER', transferId);
+      record(to, asset, 'TRANSFER', amount, 'TRANSFER', transferId);
       const transfer = {
-        transferId: id('transfer'),
+        transferId,
         clientTransferId,
         asset,
         from,
@@ -282,6 +324,26 @@ export function createDevelopmentPaperTrading(
       };
       transfers.set(clientTransferId, transfer);
       return transfer;
+    },
+
+    async transfers(query, signal) {
+      signal?.throwIfAborted();
+      await opened();
+      return page([...transfers.values()].reverse(), query);
+    },
+
+    async ledger(query, signal) {
+      signal?.throwIfAborted();
+      await opened();
+      return page(
+        ledger.filter(
+          (entry) =>
+            (!query.wallet || entry.wallet === query.wallet) &&
+            (!query.type || entry.type === query.type) &&
+            within(entry.createdAt, query),
+        ),
+        query,
+      );
     },
 
     async placeOrder(request: PlacePaperOrder) {
@@ -413,7 +475,12 @@ export function createDevelopmentPaperTrading(
       signal?.throwIfAborted();
       await opened();
       const rows = [...orders.values()]
-        .filter((order) => !query.pairId || order.pairId === query.pairId)
+        .filter(
+          (order) =>
+            (!query.pairId || order.pairId === query.pairId) &&
+            (!query.status || order.status === query.status) &&
+            within(order.placedAt, query),
+        )
         .reverse();
       return page(rows, query);
     },
@@ -422,7 +489,11 @@ export function createDevelopmentPaperTrading(
       signal?.throwIfAborted();
       await opened();
       return page(
-        fills.filter((fill) => !query.pairId || fill.pairId === query.pairId),
+        fills.filter(
+          (fill) =>
+            (!query.pairId || fill.pairId === query.pairId) &&
+            within(fill.tradedAt, query),
+        ),
         query,
       );
     },

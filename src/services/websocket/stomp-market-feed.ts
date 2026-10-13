@@ -37,10 +37,22 @@ type Listener = (body: unknown) => void;
  * subscribed again after a reconnect. Bodies that fail decoding are
  * dropped.
  */
+/**
+ * Any other public topic on the same connection, decoded on arrival; the
+ * TR-03 depth and trades topics use it (D-97).
+ */
+export interface StompTopics {
+  subscribeTopic<T>(
+    destination: string,
+    decode: (body: unknown) => T,
+    listener: (value: T) => void,
+  ): () => void;
+}
+
 export function createStompMarketFeed(
   url: string,
   connect: (url: string) => StompConnection = createStompClient,
-): MarketFeed {
+): MarketFeed & StompTopics {
   let connection: StompConnection | null = null;
   let status: FeedStatus = 'closed';
   const statusListeners = new Set<() => void>();
@@ -137,6 +149,7 @@ export function createStompMarketFeed(
   }
 
   return {
+    subscribeTopic: follow,
     status: () => status,
     onStatus(listener) {
       statusListeners.add(listener);
