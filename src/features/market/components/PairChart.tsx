@@ -57,12 +57,19 @@ export function PairChart({
   tickSize,
   label,
   className = 'h-64 w-full sm:h-72',
+  lastClose = true,
 }: {
   candles: readonly Candle[];
   tickSize: string | null;
   label: string;
   /** Size of the chart box (the hero uses a compact one). */
   className?: string;
+  /**
+   * The last closed day's price on the axis. The hero hides it: its live
+   * price stands beside the chart, and yesterday's close next to it reads
+   * as a second, different price.
+   */
+  lastClose?: boolean;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const chart = useRef<IChartApi | null>(null);
@@ -77,13 +84,17 @@ export function PairChart({
       handleScale: false,
     });
     chart.current = created;
-    series.current = created.addSeries(CandlestickSeries, seriesColors());
+    series.current = created.addSeries(CandlestickSeries, {
+      ...seriesColors(),
+      lastValueVisible: lastClose,
+      priceLineVisible: lastClose,
+    });
     return () => {
       created.remove();
       chart.current = null;
       series.current = null;
     };
-  }, []);
+  }, [lastClose]);
 
   // The theme provider writes `data-theme` on <html>; repaint from tokens.
   useEffect(() => {

@@ -119,6 +119,7 @@ export function HeroMarketCard({
               tickSize={pair.tickSize}
               label={formatCopy(m.chartLabel, { symbol: pair.symbol })}
               className="h-40 w-full"
+              lastClose={false}
             />
           ) : (
             <p className="flex h-40 items-center justify-center text-xs text-muted">
