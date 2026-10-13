@@ -28,8 +28,9 @@ const stepOf = (power: number) =>
   power < 0 ? '0.' + '0'.repeat(-power - 1) + '1' : '1' + '0'.repeat(power);
 
 /**
- * The price groups an exchange offers in its order book: the tick, then
- * 10×, 100× and 1000× it. A tick that is not a power of ten is offered
+ * The price groups the order book offers: the tick and 10× it (D-98). The
+ * backend streams 20 levels a side, too narrow for 100× or 1000× to show
+ * more than a row or two. A tick that is not a power of ten is offered
  * alone (no grouping).
  */
 export function groupSteps(tickSize: Decimal | null): Decimal[] {
@@ -37,7 +38,7 @@ export function groupSteps(tickSize: Decimal | null): Decimal[] {
   const tick = normalize(tickSize);
   if (!POWER_OF_TEN.test(tick)) return [tick];
   const power = exponent(tick);
-  return [0, 1, 2, 3].map((n) => stepOf(power + n));
+  return [0, 1].map((n) => stepOf(power + n));
 }
 
 /**
