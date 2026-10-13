@@ -5,6 +5,7 @@ import {
   breadth,
   byVolume,
   featuredPair,
+  radarLabelBox,
   radarPoints,
   topMovers,
 } from './market-movers';
@@ -136,5 +137,48 @@ describe('market movers (public home hero)', () => {
     expect(spread('narrow')).toBeGreaterThan(spread('wide'));
     for (const point of radarPoints(gainers, losers, 'narrow'))
       expect(point.side === 'rising' ? point.x > 50 : point.x < 50).toBe(true);
+  });
+
+  it('gives a crowded smaller move the nearest free place on its line', () => {
+    // A big and a tiny move on neighbouring lines, then two tiny ones.
+    const tickers = new Map(
+      [
+        ticker('ARB', '1.22', '1'),
+        ticker('XRP', '0.29', '1'),
+        ticker('UNI', '2.50', '1'),
+        ticker('LTC', '-0.05', '1'),
+        ticker('ADA', '-0.04', '1'),
+        ticker('DOGE', '-2.60', '1'),
+      ].map((each) => [each.symbol, each]),
+    );
+    const pairs = ['ARB', 'XRP', 'UNI', 'LTC', 'ADA', 'DOGE'].map(pair);
+    const { gainers, losers } = topMovers(pairs, tickers, 3);
+    const distance = (point: { x: number; y: number }) =>
+      Math.hypot(point.x - 50, point.y - 50);
+    for (const layout of ['wide', 'narrow'] as const) {
+      const points = radarPoints(gainers, losers, layout);
+      const boxes = points.map((point) => radarLabelBox(point, layout));
+      for (let i = 0; i < boxes.length; i++)
+        for (let j = i + 1; j < boxes.length; j++) {
+          const a = boxes[i]!;
+          const b = boxes[j]!;
+          const touch =
+            a.left < b.right &&
+            b.left < a.right &&
+            a.top < b.bottom &&
+            b.top < a.bottom;
+          expect(touch, `${layout}: ${i} × ${j}`).toBe(false);
+        }
+      // Each stays on its own side, and the biggest move farthest out.
+      for (const point of points)
+        expect(point.side === 'rising' ? point.x > 50 : point.x < 50).toBe(
+          true,
+        );
+      const biggest = points.find((point) => point.pair.symbol === 'DOGEUSDT');
+      expect(Math.max(...points.map(distance))).toBeCloseTo(
+        distance(biggest!),
+        9,
+      );
+    }
   });
 });
