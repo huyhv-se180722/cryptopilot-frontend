@@ -788,6 +788,8 @@ export const en = {
     byTotalAmount: '{total} {asset} total',
     cancelOrder: 'Cancel',
     cancelOrderLabel: 'Cancel order {id}',
+    chartOrders: 'Orders',
+    chartOrderTitle: '{side} {quantity}',
     cancelAll: 'Cancel all',
     thisPairOnly: 'This pair only',
     noOpenOrders: 'No open orders.',

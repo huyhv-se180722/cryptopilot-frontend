@@ -1,13 +1,17 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { X } from 'lucide-react';
 import {
   CandlestickSeries,
   HistogramSeries,
   LineSeries,
   createChart,
+  createSeriesMarkers,
   type CandlestickData,
   type IChartApi,
   type IPriceLine,
   type ISeriesApi,
+  type ISeriesMarkersPluginApi,
+  type Time,
   type SeriesType,
   type UTCTimestamp,
 } from 'lightweight-charts';
@@ -37,6 +41,15 @@ import {
 } from '../hooks/use-chart-series';
 import type { Series } from '../indicators/indicators';
 import { chartOptions, token, useThemeVersion } from './chart-theme';
+import {
+  TONE_TOKENS,
+  barTime,
+  placeMarkers,
+  type ChartMarker,
+  type ChartTone,
+} from './chart-markers';
+
+export type { ChartMarker } from './chart-markers';
 
 const TIMEFRAMES: readonly CandleTimeframe[] = ['15m', '1h', '4h', '1d'];
 /** An extendable chart opens on the latest bars, like an exchange chart. */
@@ -59,8 +72,7 @@ const LINE_TOKENS = {
   macdSignal: '--cp-warning',
 } as const;
 
-const time = (candle: Candle) =>
-  (Date.parse(candle.openTime) / 1000) as UTCTimestamp;
+const time = barTime;
 
 function line(candles: readonly Candle[], values: Series) {
   return candles.map((candle, i) => {
@@ -87,15 +99,6 @@ export interface PriceLevels {
   resistance: string | null;
 }
 
-/** Which design token draws a price line, so both themes follow. */
-const TONE_TOKENS = {
-  positive: '--cp-positive',
-  negative: '--cp-negative',
-  neutral: '--cp-muted',
-  primary: '--cp-primary',
-  warning: '--cp-warning',
-} as const;
-
 /**
  * A labelled horizontal line on the price pane: a BR-14 level, or later an
  * order, an entry, a TP/SL or a liquidation price. `id` keeps it stable.
@@ -104,9 +107,43 @@ export interface ChartPriceLine {
   id: string;
   price: Decimal;
   label: string;
-  tone: keyof typeof TONE_TOKENS;
+  tone: ChartTone;
   dashed?: boolean;
+  /**
+   * A button for the line, e.g. cancel an order. The line's label then
+   * shows as a chip at the pane's left edge with the button in it (as the
+   * exchange charts do), instead of beside the axis.
+   */
+  action?: ChartLineAction;
 }
+export interface ChartLineAction {
+  /** Accessible name and tooltip of the button. */
+  label: string;
+  onSelect: () => void;
+  disabled?: boolean;
+}
+
+/** A caller's item in the chart's toggle group, styled as the indicators. */
+export interface ChartExtraItem {
+  id: string;
+  label: string;
+  pressed: boolean;
+  onToggle: () => void;
+}
+
+/** Where a line's chip sits: its y on the price pane. */
+interface Anchor {
+  id: string;
+  y: number;
+}
+
+const CHIP_TONES: Record<ChartTone, string> = {
+  positive: 'border-positive-line text-positive',
+  negative: 'border-negative-line text-negative',
+  neutral: 'border-line text-muted',
+  primary: 'border-primary-line text-primary',
+  warning: 'border-warning-line text-warning',
+};
 
 /** Replaces the lines drawn on `series` with `lines`; returns the new ones. */
 function drawPriceLines(
@@ -122,7 +159,8 @@ function drawPriceLines(
       lineWidth: 1,
       lineStyle: line.dashed === false ? 0 : 1,
       axisLabelVisible: true,
-      title: line.label,
+      // A line with an action carries its label in its chip.
+      title: line.action ? '' : line.label,
     }),
   );
 }
@@ -307,6 +345,8 @@ export function AnalysisChart({
   onTimeframeChange,
   levels,
   priceLines,
+  markers,
+  extraItems,
   extendable = false,
 }: {
   market: MarketType;
@@ -316,6 +356,8 @@ export function AnalysisChart({
   onTimeframeChange: (timeframe: CandleTimeframe) => void;
   levels?: PriceLevels;
   priceLines?: readonly ChartPriceLine[];
+  markers?: readonly ChartMarker[];
+  extraItems?: readonly ChartExtraItem[];
   extendable?: boolean;
 }) {
   const copy = useCopy();
@@ -366,11 +408,19 @@ export function AnalysisChart({
     )
     .join('|');
   const latestLines = useRef(lines);
+  const markersApi = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
+  const markersKey = (markers ?? [])
+    .map((marker) => [marker.id, marker.time, marker.direction].join(':'))
+    .join('|');
+  const latestMarkers = useRef(markers ?? []);
+  const hasActions = lines.some((line) => line.action);
+  const [anchors, setAnchors] = useState<readonly Anchor[]>([]);
 
   // Declared before the rebuild so a rebuild writes the newest data.
   useEffect(() => {
     latest.current = series;
     latestLines.current = lines;
+    latestMarkers.current = markers ?? [];
     loadOlder.current = series.loadOlder;
   });
 
@@ -382,6 +432,7 @@ export function AnalysisChart({
     write.current = built.write;
     priceSeries.current = built.candles;
     drawnLines.current = drawPriceLines(built.candles, [], latestLines.current);
+    markersApi.current = createSeriesMarkers(built.candles, []);
     write.current(latest.current);
     chartApi.current = chart;
     firstShown.current = latest.current.candles[0]?.openTime ?? null;
@@ -403,6 +454,7 @@ export function AnalysisChart({
       chartApi.current = null;
       priceSeries.current = null;
       drawnLines.current = [];
+      markersApi.current = null;
       chart.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `toggles` is read through `togglesKey`.
@@ -417,6 +469,61 @@ export function AnalysisChart({
       latestLines.current,
     );
   }, [linesKey]);
+
+  // Markers sit on bars: placed again when they, the bars or the chart change.
+  const firstOpen = series.candles[0]?.openTime;
+  const formingOpen = series.forming?.openTime;
+  const barCount = series.candles.length;
+  useEffect(() => {
+    const { candles, forming } = latest.current;
+    markersApi.current?.setMarkers(
+      placeMarkers(
+        latestMarkers.current,
+        forming ? [...candles, forming] : candles,
+        (tone) => token(TONE_TOKENS[tone]),
+      ),
+    );
+  }, [
+    markersKey,
+    firstOpen,
+    formingOpen,
+    barCount,
+    ready,
+    togglesKey,
+    places,
+    theme,
+  ]);
+
+  // A line's chip follows its price while the Trader pans and zooms. The
+  // chart has no event for a price scale change, so the chips are placed
+  // each frame, and React renders only when one moved.
+  useEffect(() => {
+    if (!hasActions) return;
+    let frame = 0;
+    let shown = '';
+    const place = () => {
+      const chart = chartApi.current;
+      const candles = priceSeries.current;
+      const next: Anchor[] = [];
+      if (chart && candles) {
+        const height = chart.panes()[0]?.getHeight() ?? 0;
+        for (const line of latestLines.current) {
+          if (!line.action) continue;
+          const y = candles.priceToCoordinate(Number(line.price));
+          if (y !== null && y >= 0 && y <= height)
+            next.push({ id: line.id, y: Math.round(y) });
+        }
+      }
+      const key = next.map((at) => `${at.id}:${at.y}`).join('|');
+      if (key !== shown) {
+        shown = key;
+        setAnchors(next);
+      }
+      frame = requestAnimationFrame(place);
+    };
+    frame = requestAnimationFrame(place);
+    return () => cancelAnimationFrame(frame);
+  }, [hasActions]);
 
   useEffect(() => {
     const scale = extendable ? chartApi.current?.timeScale() : undefined;
@@ -478,6 +585,22 @@ export function AnalysisChart({
               {c[item]}
             </button>
           ))}
+          {extraItems?.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              aria-pressed={item.pressed}
+              onClick={item.onToggle}
+              className={classNames(
+                'h-7 rounded-full border px-2.5 text-[11px] font-medium pointer-coarse:h-9',
+                item.pressed
+                  ? 'border-primary-line bg-primary-soft text-primary'
+                  : 'border-line text-muted hover:text-fg-2',
+              )}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
         {series.loadingOlder && (
           <span role="status" className="text-[11px] text-muted">
@@ -507,16 +630,44 @@ export function AnalysisChart({
         </p>
       ) : (
         <>
-          <div
-            ref={container}
-            role="img"
-            aria-label={formatCopy(c.chartLabel, {
-              symbol,
-              timeframe,
-              count: series.candles.length,
+          <div className="relative">
+            <div
+              ref={container}
+              role="img"
+              aria-label={formatCopy(c.chartLabel, {
+                symbol,
+                timeframe,
+                count: series.candles.length,
+              })}
+              className={classNames('w-full', HEIGHTS[panels])}
+            />
+            {(hasActions ? anchors : []).map((anchor) => {
+              const line = lines.find((each) => each.id === anchor.id);
+              const action = line?.action;
+              return line && action ? (
+                <div
+                  key={anchor.id}
+                  style={{ top: anchor.y }}
+                  className={classNames(
+                    'absolute left-2 z-10 inline-flex -translate-y-1/2 items-center gap-1 rounded border bg-surface pl-1.5 font-mono text-[11px] leading-none',
+                    CHIP_TONES[line.tone],
+                  )}
+                >
+                  <span className="py-1">{line.label}</span>
+                  <button
+                    type="button"
+                    aria-label={action.label}
+                    title={action.label}
+                    disabled={action.disabled}
+                    onClick={action.onSelect}
+                    className="inline-flex h-5 w-5 items-center justify-center border-l border-inherit text-muted hover:text-fg disabled:opacity-50 pointer-coarse:h-8 pointer-coarse:w-8"
+                  >
+                    <X size={12} aria-hidden="true" />
+                  </button>
+                </div>
+              ) : null;
             })}
-            className={classNames('w-full', HEIGHTS[panels])}
-          />
+          </div>
           {series.candles.length < 200 && toggles.ema200 && (
             <p className="mt-2 text-[11px] text-muted-dim">{c.insufficient}</p>
           )}

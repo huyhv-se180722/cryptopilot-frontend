@@ -14,6 +14,7 @@ const drawn = vi.hoisted(() => ({
   series: [] as { kind: string; pane: number; data: unknown[] }[],
   charts: 0,
   lines: [] as { price: number; title: string; lineStyle: number }[],
+  markers: [] as { time: number; shape: string; text?: string }[],
 }));
 vi.mock('lightweight-charts', () => {
   const kind = (name: string) => ({ name });
@@ -22,6 +23,11 @@ vi.mock('lightweight-charts', () => {
     LineSeries: kind('line'),
     HistogramSeries: kind('histogram'),
     ColorType: { Solid: 'solid' },
+    createSeriesMarkers: () => ({
+      setMarkers: (markers: typeof drawn.markers) => {
+        drawn.markers = markers;
+      },
+    }),
     createChart: () => {
       drawn.charts += 1;
       const own: typeof drawn.series = [];
@@ -47,9 +53,15 @@ vi.mock('lightweight-charts', () => {
               const at = drawn.lines.indexOf(line);
               if (at >= 0) drawn.lines.splice(at, 1);
             },
+            // 1 px per price unit from 62,100 down, so 62,000 sits at y 100.
+            priceToCoordinate: (price: number) => 62_100 - price,
           };
         },
-        panes: () => [0, 1, 2, 3].map(() => ({ setStretchFactor: vi.fn() })),
+        panes: () =>
+          [0, 1, 2, 3].map(() => ({
+            setStretchFactor: vi.fn(),
+            getHeight: () => 320,
+          })),
         timeScale: () => ({ fitContent: vi.fn() }),
         remove: () => {
           own.forEach((entry) => {
@@ -122,6 +134,7 @@ afterEach(() => {
   window.localStorage.clear();
   drawn.series.length = 0;
   drawn.lines.length = 0;
+  drawn.markers = [];
   drawn.charts = 0;
 });
 
@@ -258,5 +271,98 @@ describe('SCR-10 analysis chart (T-032)', () => {
     );
     expect(drawn.lines[1]?.lineStyle).toBe(0);
     expect(drawn.charts).toBe(charts);
+  });
+
+  it('puts a line action at its price, and markers on the bar of their time', async () => {
+    const cancel = vi.fn();
+    const onToggle = vi.fn();
+    const start = Date.UTC(2026, 9, 1);
+    await renderRoutes(
+      [
+        page(
+          '/chart',
+          <AnalysisChart
+            market="spot"
+            symbol="BTCUSDT"
+            tickSize="0.01"
+            timeframe="1h"
+            onTimeframeChange={() => undefined}
+            priceLines={[
+              {
+                id: 'order-1',
+                price: '62000.00',
+                label: 'Buy 0.01',
+                tone: 'positive',
+                action: { label: 'Cancel order 1', onSelect: cancel },
+              },
+              // Above the pane (y < 0): no button.
+              {
+                id: 'order-2',
+                price: '70000.00',
+                label: 'Sell 0.01',
+                tone: 'negative',
+                action: { label: 'Cancel order 2', onSelect: cancel },
+              },
+            ]}
+            markers={[
+              // 30 minutes into the third bar, then before the first bar.
+              {
+                id: 'fill-1',
+                time: new Date(start + 2.5 * HOUR).toISOString(),
+                direction: 'down',
+                tone: 'negative',
+              },
+              {
+                id: 'fill-0',
+                time: new Date(start - HOUR).toISOString(),
+                direction: 'up',
+                tone: 'positive',
+              },
+              {
+                id: 'fill-2',
+                time: new Date(start + HOUR).toISOString(),
+                direction: 'up',
+                tone: 'positive',
+                text: 'B',
+              },
+            ]}
+            extraItems={[
+              { id: 'orders', label: 'Orders', pressed: true, onToggle },
+            ]}
+          />,
+        ),
+      ],
+      '/chart',
+      fakeAuth(),
+      { market: fakeMarket(260) },
+    );
+    const button = await screen.findByRole('button', {
+      name: 'Cancel order 1',
+    });
+    // The label moves from the axis into the chip that holds the button.
+    expect(button.parentElement?.style.top).toBe('100px');
+    expect(button.parentElement?.textContent).toBe('Buy 0.01');
+    expect(drawn.lines.find((line) => line.price === 62000)?.title).toBe('');
+    expect(screen.queryByRole('button', { name: 'Cancel order 2' })).toBeNull();
+    await userEvent.click(button);
+    expect(cancel).toHaveBeenCalledTimes(1);
+
+    await waitFor(() => expect(drawn.markers).toHaveLength(2));
+    expect(drawn.markers).toEqual([
+      expect.objectContaining({
+        time: (start + HOUR) / 1000,
+        shape: 'arrowUp',
+        text: 'B',
+      }),
+      expect.objectContaining({
+        time: (start + 2 * HOUR) / 1000,
+        shape: 'arrowDown',
+      }),
+    ]);
+
+    const toggle = screen.getByRole('button', { name: 'Orders' });
+    expect(toggle.getAttribute('aria-pressed')).toBe('true');
+    await userEvent.click(toggle);
+    expect(onToggle).toHaveBeenCalledTimes(1);
   });
 });

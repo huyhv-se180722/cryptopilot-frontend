@@ -28,6 +28,7 @@ import {
 } from '../../features/paper-trading/components/SpotOrderForm';
 import { TradePanel } from '../../features/paper-trading/components/TradePanel';
 import { TradeTickerStrip } from '../../features/paper-trading/components/TradeTickerStrip';
+import { useChartOrders } from '../../features/paper-trading/hooks/use-chart-orders';
 import { usePaperAccount } from '../../features/paper-trading/hooks/use-paper-account';
 import { usePaperWallet } from '../../features/paper-trading/hooks/use-paper-orders';
 import { useTradeTimeframe } from '../../features/paper-trading/hooks/use-trade-timeframe';
@@ -58,6 +59,7 @@ function TradeSpot({
   // Demo orders name the pair by id, which only a watchlist row carries
   // until the market list gives it (FEQ-01).
   const pairId = useWatchedPair(pair.symbol)?.pairId ?? null;
+  const chartOrders = useChartOrders(pair, pairId);
   const spot = usePaperWallet('SPOT');
   const account = usePaperAccount();
   const balance = (asset: string) =>
@@ -131,6 +133,9 @@ function TradeSpot({
             tickSize={pair.tickSize}
             timeframe={timeframe}
             onTimeframeChange={setTimeframe}
+            priceLines={chartOrders.lines}
+            markers={chartOrders.markers}
+            extraItems={[chartOrders.toggle]}
             extendable
           />
         </div>

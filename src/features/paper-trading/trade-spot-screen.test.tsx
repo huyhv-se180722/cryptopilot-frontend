@@ -26,6 +26,7 @@ const view = vi.hoisted(() => ({
   bars: 0,
 }));
 vi.mock('lightweight-charts', () => ({
+  createSeriesMarkers: () => ({ setMarkers: vi.fn() }),
   CandlestickSeries: { name: 'candles' },
   LineSeries: { name: 'line' },
   HistogramSeries: { name: 'histogram' },
