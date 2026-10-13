@@ -523,3 +523,30 @@ export interface PaperAccount {
   positionMode: PaperPositionMode;
   openedAt: ISODateTime;
 }
+
+/** One level of an order book: a price and the base quantity resting there. */
+export interface OrderBookLevel {
+  price: Decimal;
+  quantity: Decimal;
+}
+/**
+ * The top levels of a pair's book (TR-03, exchange depth20): bids highest
+ * first, asks lowest first. A newer `lastUpdateId` replaces an older book;
+ * both sides are empty and the id null when no current depth is held.
+ */
+export interface OrderBook {
+  market: MarketType;
+  symbol: string;
+  lastUpdateId: number | null;
+  receivedAt: ISODateTime;
+  bids: readonly OrderBookLevel[];
+  asks: readonly OrderBookLevel[];
+}
+/** One aggregated market trade; `buyerMaker` means the taker sold. */
+export interface MarketTrade {
+  id: number;
+  price: Decimal;
+  quantity: Decimal;
+  time: ISODateTime;
+  buyerMaker: boolean;
+}
