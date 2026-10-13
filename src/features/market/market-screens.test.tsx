@@ -234,11 +234,12 @@ describe('SCR-01 Public Home', () => {
       await screen.findByText('Select a pair to see its daily chart.'),
     ).toBeTruthy();
     await userEvent.click(await screen.findByRole('button', { name: /^BTC/ }));
+    // One in the hero's live market card, one in the list's preview.
     expect(
-      await screen.findByRole('img', {
+      await screen.findAllByRole('img', {
         name: 'Daily price chart of BTCUSDT, last 90 closed days',
       }),
-    ).toBeTruthy();
+    ).toHaveLength(2);
     expect(market.getCandles).toHaveBeenCalledWith(
       expect.objectContaining({
         market: 'spot',
@@ -257,6 +258,149 @@ describe('SCR-01 Public Home', () => {
         name: 'Create a free account for the full analysis',
       }),
     ).toBeTruthy();
+  });
+
+  it('shows what the product does and the live Spot market in the hero', async () => {
+    const market = fakeMarket();
+    const { feed, publish } = fakeFeed('open');
+    const scrolled = vi.fn();
+    Element.prototype.scrollIntoView = scrolled;
+    await renderRoutes([page('/', <PublicHomePage />)], '/', fakeAuth(), {
+      market,
+      marketFeed: feed,
+    });
+    publish('spot', [
+      { ...spotTicker('BTC', '63000.01', '1.25'), quoteVolume24h: '900000000' },
+      { ...spotTicker('ETH', '2441.80', '-0.62'), quoteVolume24h: '500000000' },
+      { ...spotTicker('SOL', '147.22', '5.31'), quoteVolume24h: '700000000' },
+    ]);
+
+    // Decision support and paper trading, as the SRS overview puts it:
+    // nothing reads as trading for real on CryptoPilot.
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
+      'See the Market.Plan With Data.Practice Risk-Free.',
+    );
+    expect(screen.getByText('Decision support · Paper trading')).toBeTruthy();
+    expect(screen.getByText(/No real orders, no funds held\./)).toBeTruthy();
+
+    // The product's own capabilities, never "signals".
+    const chips = within(
+      screen.getByRole('list', { name: 'What CryptoPilot does' }),
+    );
+    expect(chips.getAllByRole('listitem').map((li) => li.textContent)).toEqual([
+      'Technical analysis & setup score',
+      'Risk-calculated trading plans',
+      'Watchlist & alerts',
+      'Simulated execution & journal',
+      'AI assistant',
+    ]);
+    expect(screen.queryByText(/signal/i)).toBeNull();
+
+    // The radar of the day's biggest moves: rising pairs on the right,
+    // falling at the upper left, each a button named with its change.
+    const radar = within(
+      screen.getByRole('region', {
+        name: 'Biggest 24h moves of the Spot pairs',
+      }),
+    );
+    expect(radar.getByText('Market data · live')).toBeTruthy();
+    // The points appear once the pairs and their tickers are in.
+    await radar.findByRole('button', { name: /^SOL\/USDT/ });
+    const node = (name: string) =>
+      radar.getByRole('button', { name: `${name} in 24h. Open its chart.` });
+    const left = (name: string) => parseFloat(node(name).style.left);
+    expect(left('SOL/USDT +5.31%')).toBeGreaterThan(50);
+    expect(left('BTC/USDT +1.25%')).toBeGreaterThan(50);
+    expect(left('ETH/USDT -0.62%')).toBeLessThan(50);
+
+    // The two cards over its corners, from the same live tickers.
+    const live = within(radar.getByRole('region', { name: 'Live market' }));
+    expect(await live.findByText('63,000.01')).toBeTruthy();
+    expect(live.getByText('+1.25%')).toBeTruthy();
+    expect(
+      await live.findByRole('img', {
+        name: 'Daily price chart of BTCUSDT, last 90 closed days',
+      }),
+    ).toBeTruthy();
+    expect(
+      live
+        .getByRole('link', { name: /Analyze with a free account/ })
+        .getAttribute('href'),
+    ).toBe('/register');
+    const breadth = within(
+      radar.getByRole('region', { name: 'Market breadth' }),
+    );
+    const figure = (term: string) =>
+      breadth.getByText(term, { selector: 'dt' }).nextElementSibling
+        ?.textContent;
+    expect(figure('Rising')).toBe('2');
+    expect(figure('Falling')).toBe('1');
+    // 900M + 500M + 700M USDT.
+    expect(figure('Spot volume 24h')).toBe('2.10B');
+    expect(
+      breadth
+        .getByRole('meter', { name: 'Share rising' })
+        .getAttribute('aria-valuenow'),
+    ).toBe('67');
+
+    // The running tape: every pair once for assistive tech (the second,
+    // looping copy is hidden), and a button to stop it.
+    const tape = screen.getByRole('region', {
+      name: 'Live prices of the Spot pairs',
+    });
+    const lists = tape.querySelectorAll('ul');
+    expect(lists).toHaveLength(2);
+    expect(lists[1]?.getAttribute('aria-hidden')).toBe('true');
+    expect(
+      [...lists[0]!.querySelectorAll('li')].map((li) => li.textContent),
+    ).toEqual([
+      'BTC/USDT63,000.01+1.25%',
+      'ETH/USDT2,441.80-0.62%',
+      'SOL/USDT147.22+5.31%',
+    ]);
+    const stop = screen.getByRole('button', {
+      name: 'Pause the running prices',
+    });
+    await userEvent.click(stop);
+    expect(tape.getAttribute('data-paused')).toBe('true');
+    expect(stop.getAttribute('aria-pressed')).toBe('true');
+    expect(stop.getAttribute('aria-label')).toBe('Run the prices again');
+
+    // The most traded pairs, by 24h quote volume.
+    const pulse = within(
+      screen.getByRole('region', { name: 'Live market pulse' }),
+    );
+    expect(
+      pulse
+        .getAllByRole('button')
+        .filter((button) => button.textContent?.includes('/'))
+        .map((button) => button.textContent),
+    ).toEqual([
+      'BTC/USDT63,000.01+1.25%',
+      'SOL/USDT147.22+5.31%',
+      'ETH/USDT2,441.80-0.62%',
+    ]);
+
+    // A point of the radar opens its basic chart in the list's preview.
+    await userEvent.click(node('SOL/USDT +5.31%'));
+    expect(
+      await screen.findByRole('img', {
+        name: 'Daily price chart of SOLUSDT, last 90 closed days',
+      }),
+    ).toBeTruthy();
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Explore live markets' }),
+    );
+    expect(scrolled).toHaveBeenCalledWith({
+      behavior: 'smooth',
+      block: 'start',
+    });
+    expect(
+      screen
+        .getByRole('link', { name: /Start analyzing free/ })
+        .getAttribute('href'),
+    ).toBe('/register');
   });
 
   it('says the market data is not connected while no API is configured', async () => {

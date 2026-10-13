@@ -256,6 +256,147 @@
   }
 }
 
+/*
+ * SCR-01 hero backdrop, dark theme only (the prototype's dot grid and two
+ * ambient lights, indigo behind the copy and emerald behind the market
+ * card), from the theme tokens; the body's mesh gives the rest.
+ */
+.hero-ambient {
+  position: absolute;
+  inset: -1.5rem 0 0;
+  z-index: -1;
+  display: none;
+  overflow: hidden;
+  pointer-events: none;
+}
+[data-theme='dark'] .hero-ambient {
+  display: block;
+  background-image: radial-gradient(
+    color-mix(in oklab, var(--cp-border) 90%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, black, transparent);
+}
+.hero-ambient::before,
+.hero-ambient::after {
+  content: '';
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+  animation: hero-light 10s ease-in-out infinite;
+}
+.hero-ambient::before {
+  top: -12rem;
+  left: 5%;
+  width: 40rem;
+  height: 40rem;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--cp-primary) 14%, transparent),
+    transparent
+  );
+}
+.hero-ambient::after {
+  top: 0;
+  right: 5%;
+  width: 30rem;
+  height: 30rem;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--cp-positive) 10%, transparent),
+    transparent
+  );
+  animation-duration: 12s;
+  animation-delay: 1.5s;
+}
+
+@keyframes hero-light {
+  0%,
+  100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+/*
+ * SCR-01 ticker tape (the prototype's running strip, with live prices):
+ * two copies of the list side by side scroll by one copy and loop. It
+ * stops while pointed at or focused, and with its pause button
+ * (WCAG 2.2.2); under reduced motion it stands still and scrolls by hand.
+ */
+.ticker-tape {
+  overflow: hidden;
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 3%,
+    black 97%,
+    transparent
+  );
+}
+.ticker-tape-track {
+  display: flex;
+  width: max-content;
+  animation: ticker-tape var(--tape-duration, 40s) linear infinite;
+}
+.ticker-tape:hover .ticker-tape-track,
+.ticker-tape:focus-within .ticker-tape-track,
+.ticker-tape[data-paused='true'] .ticker-tape-track {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ticker-tape {
+    overflow-x: auto;
+  }
+  .ticker-tape-copy {
+    display: none;
+  }
+}
+
+@keyframes ticker-tape {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/*
+ * SCR-01 radar: the beam turns once every 8 s round the radar's centre
+ * (200, 200 in its 400 × 400 view box) and each mover's ring pings; both
+ * stand still under reduced motion.
+ */
+.radar-sweep {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+  animation: radar-sweep 8s linear infinite;
+}
+.radar-ping {
+  animation: radar-ping 2.8s ease-out infinite;
+}
+
+@keyframes radar-sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes radar-ping {
+  from {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
 @keyframes pulse-led {
   0%,
   100% {
