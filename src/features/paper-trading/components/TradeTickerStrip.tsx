@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { Badge } from '../../../components/ui/Badge';
 import { NumericText } from '../../../components/ui/NumericText';
@@ -8,33 +8,12 @@ import type { MarketPair, MarketTicker } from '../../../types/domain';
 import { classNames } from '../../../utils/class-names';
 import {
   compactDecimal,
-  compareDecimal,
   formatPrice,
   toFixedDecimal,
 } from '../../../utils/decimal-format';
 import { FreshnessBadge } from '../../market/components/FreshnessBadge';
 import type { FeedFreshness } from '../../market/hooks/use-market-tickers';
-
-type Direction = 'up' | 'down' | null;
-
-/** The last price and whether it moved up or down on the latest tick. */
-function useTickDirection(price: string | null): Direction {
-  const [state, setState] = useState<{ price: string | null; dir: Direction }>({
-    price,
-    dir: null,
-  });
-  if (state.price !== price) {
-    const order =
-      state.price !== null && price !== null
-        ? compareDecimal(price, state.price)
-        : 0;
-    setState({
-      price,
-      dir: order > 0 ? 'up' : order < 0 ? 'down' : state.dir,
-    });
-  }
-  return state.dir;
-}
+import { useTickDirection } from '../hooks/use-tick-direction';
 
 function Stat({ label, children }: { label: string; children: ReactNode }) {
   return (
