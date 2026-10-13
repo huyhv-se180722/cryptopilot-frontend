@@ -8,6 +8,10 @@ import type { MarketFeed, MarketService } from '../../services/api/contracts';
 import type { Candle, KlineUpdate } from '../../types/domain';
 import { fakeAuth, page, renderRoutes } from '../../test/render';
 import { AnalysisChart, type ChartPriceLine } from './components/AnalysisChart';
+import { chartOffsetSeconds, zoneLabel } from './components/chart-time';
+
+/** An hourly chart is drawn in local time, shifted by this from UTC. */
+const LOCAL = chartOffsetSeconds('1h');
 
 /** Records what the page asks the chart library to draw. */
 const drawn = vi.hoisted(() => ({
@@ -230,7 +234,7 @@ describe('SCR-10 analysis chart (T-032)', () => {
     kline('103', false);
     await waitFor(() => expect(series().updates).toHaveLength(3));
     expect(series().updates[2]).toMatchObject({
-      time: Date.parse(forming.openTime) / 1000,
+      time: Date.parse(forming.openTime) / 1000 + LOCAL,
       close: 103,
       color: expect.any(String),
     });
@@ -258,6 +262,25 @@ describe('SCR-10 analysis chart (T-032)', () => {
     expect((await screen.findByRole('alert')).textContent).toContain(
       'This pair is not available on Spot.',
     );
+  });
+
+  it('draws intraday candles in local time and daily ones in UTC, and says which', async () => {
+    const { ready } = render();
+    await ready;
+    await screen.findByRole('img');
+    const first = () =>
+      (
+        drawn.series.find((s) => s.kind === 'candles')?.data as {
+          time: number;
+        }[]
+      )[0]?.time;
+    const start = Date.UTC(2026, 9, 1) / 1000;
+    expect(first()).toBe(start + LOCAL);
+    expect(screen.getByText('Times in ' + zoneLabel(LOCAL))).toBeTruthy();
+
+    await userEvent.click(screen.getByRole('radio', { name: '1d' }));
+    await waitFor(() => expect(first()).toBe(start));
+    expect(screen.getByText('Times in UTC')).toBeTruthy();
   });
 
   it('draws price lines and redraws them without rebuilding the chart', async () => {
@@ -387,12 +410,12 @@ describe('SCR-10 analysis chart (T-032)', () => {
     await waitFor(() => expect(drawn.markers).toHaveLength(2));
     expect(drawn.markers).toEqual([
       expect.objectContaining({
-        time: (start + HOUR) / 1000,
+        time: (start + HOUR) / 1000 + LOCAL,
         shape: 'arrowUp',
         text: 'B',
       }),
       expect.objectContaining({
-        time: (start + 2 * HOUR) / 1000,
+        time: (start + 2 * HOUR) / 1000 + LOCAL,
         shape: 'arrowDown',
       }),
     ]);

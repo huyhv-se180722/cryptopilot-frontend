@@ -23,10 +23,6 @@ export interface ChartMarker {
   text?: string;
 }
 
-/** A candle's time on the chart's axis (UTC seconds). */
-export const barTime = (candle: Candle) =>
-  (Date.parse(candle.openTime) / 1000) as UTCTimestamp;
-
 /**
  * The markers placed on the bar whose period contains their time (the
  * last bar opened at or before it), sorted by time as the chart needs.
@@ -35,6 +31,7 @@ export function placeMarkers(
   markers: readonly ChartMarker[],
   bars: readonly Candle[],
   color: (tone: ChartTone) => string,
+  timeOf: (bar: Candle) => UTCTimestamp,
 ): SeriesMarker<Time>[] {
   const opens = bars.map((bar) => Date.parse(bar.openTime));
   return markers
@@ -55,7 +52,7 @@ export function placeMarkers(
       const up = marker.direction === 'up';
       const placed: SeriesMarker<UTCTimestamp> = {
         id: marker.id,
-        time: barTime(bar),
+        time: timeOf(bar),
         position: up ? 'belowBar' : 'aboveBar',
         shape: up ? 'arrowUp' : 'arrowDown',
         color: color(marker.tone),
