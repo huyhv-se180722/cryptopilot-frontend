@@ -57,12 +57,17 @@ export function usePlanList({ tab, page, market, periodDays }: PlanListFilter) {
  * before the matching engine fills a plan.
  */
 export function useActivePlanCount(enabled: boolean) {
+  return usePlanCount('ACTIVE', enabled);
+}
+
+/** How many plans a tab holds: the total of a one-row page. */
+export function usePlanCount(tab: PlanTab, enabled = true) {
   const { tradingPlan } = useServices();
   return useQuery({
-    queryKey: [...LIST_KEY, 'active-count'],
+    queryKey: [...LIST_KEY, 'count', tab],
     queryFn: ({ signal }) =>
       tradingPlan
-        .list({ tab: 'ACTIVE', page: 1, pageSize: 1 }, signal)
+        .list({ tab, page: 1, pageSize: 1 }, signal)
         .then((page) => page.total),
     enabled,
   });
