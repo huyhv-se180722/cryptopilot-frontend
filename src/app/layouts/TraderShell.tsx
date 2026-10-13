@@ -79,7 +79,10 @@ export function TraderShell() {
                 title={copy.nav[item.labelKey]}
                 className={({ isActive }) =>
                   classNames(
-                    'relative flex h-[52px] shrink-0 items-center gap-1.5 px-2.5 text-[12px] font-medium whitespace-nowrap no-underline min-[1400px]:px-3',
+                    // Eleven entries with the demo Trade one: from 1400px the
+                    // labels fit only with tighter padding (and the search
+                    // trigger without its text) until 2xl gives room again.
+                    'relative flex h-[52px] shrink-0 items-center gap-1.5 px-2.5 text-[12px] font-medium whitespace-nowrap no-underline min-[1400px]:px-2 2xl:px-3',
                     isActive ? 'text-primary' : 'text-muted hover:text-fg-2',
                   )
                 }
@@ -116,7 +119,7 @@ export function TraderShell() {
             className="flex items-center gap-2 rounded-lg border border-line bg-raised px-2.5 py-1.5 text-muted-x hover:border-line-strong hover:text-muted-dim"
           >
             <Search size={11} aria-hidden="true" />
-            <span className="hidden text-[11px] sm:block">
+            <span className="hidden text-[11px] sm:block min-[1400px]:max-2xl:sr-only">
               {copy.palette.trigger}
             </span>
             <kbd className="hidden items-center gap-0.5 rounded border border-line bg-surface px-1.5 font-mono text-[10px] sm:inline-flex">
