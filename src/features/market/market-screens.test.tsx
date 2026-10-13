@@ -278,7 +278,7 @@ describe('SCR-01 Public Home', () => {
     // Decision support and paper trading, as the SRS overview puts it:
     // nothing reads as trading for real on CryptoPilot.
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
-      'See the Market.Plan With Data.Practice in Simulation.',
+      'See the Market.Plan With Data.Practice Risk-Free.',
     );
     expect(screen.getByText('Decision support · Paper trading')).toBeTruthy();
     expect(
