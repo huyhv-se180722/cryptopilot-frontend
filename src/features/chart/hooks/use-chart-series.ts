@@ -56,6 +56,9 @@ export interface ChartSeries {
   loadingOlder: boolean;
 }
 
+/** One shared empty list, so a memo keyed on it does not rerun. */
+const NO_CANDLES: readonly Candle[] = [];
+
 const after = (a: Candle, b: Candle | undefined) =>
   !b || Date.parse(a.openTime) > Date.parse(b.openTime);
 
@@ -161,17 +164,18 @@ export function useChartSeries(
   const { refetch } = history;
   useOnFeedOpen(() => void refetch());
 
+  // Closed candles only: the forming one moves every couple of seconds and
+  // must not recompute the list, nor the indicator series drawn from it.
+  const liveClosed = live.key === key ? live.closed : NO_CANDLES;
   const all = useMemo(() => {
     const stored = history.data ?? [];
     const last = stored[stored.length - 1];
-    const newer = (live.key === key ? live.closed : []).filter((candle) =>
-      after(candle, last),
-    );
+    const newer = liveClosed.filter((candle) => after(candle, last));
     const earlier = older.key === key ? older.candles : [];
     return earlier.length > 0
       ? merge(earlier, stored, newer)
       : [...stored, ...newer];
-  }, [history.data, live, older, key]);
+  }, [history.data, liveClosed, older, key]);
 
   const first = all[0];
   const canLoad =
@@ -254,11 +258,16 @@ export function useChartSeries(
       ? live.forming
       : null;
 
+  const candles = useMemo(
+    () => (extendable ? all : all.slice(-VISIBLE_CANDLES)),
+    [all, extendable],
+  );
+
   return {
     status: history.isPending ? 'loading' : history.isError ? 'error' : 'ready',
     error: history.error,
     retry: () => void refetch(),
-    candles: extendable ? all : all.slice(-VISIBLE_CANDLES),
+    candles,
     forming,
     indicators,
     loadOlder: extendable ? loadOlder : null,

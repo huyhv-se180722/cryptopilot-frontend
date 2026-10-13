@@ -188,6 +188,20 @@ function build(chart: IChartApi, toggles: ChartToggles, places: number) {
     borderVisible: false,
     priceFormat: { type: 'price', precision: places, minMove },
   });
+  // Provisional (SRS 3.3.2): the forming candle is drawn faded.
+  const formingBar = (forming: Candle): CandlestickData<UTCTimestamp> => {
+    const colour =
+      Number(forming.close) >= Number(forming.open) ? upDim : downDim;
+    return {
+      time: time(forming),
+      open: Number(forming.open),
+      high: Number(forming.high),
+      low: Number(forming.low),
+      close: Number(forming.close),
+      color: colour,
+      wickColor: colour,
+    };
+  };
   writers.push(({ candles: closed, forming }) => {
     const bars: CandlestickData<UTCTimestamp>[] = closed.map((candle) => ({
       time: time(candle),
@@ -196,20 +210,7 @@ function build(chart: IChartApi, toggles: ChartToggles, places: number) {
       low: Number(candle.low),
       close: Number(candle.close),
     }));
-    if (forming) {
-      const rising = Number(forming.close) >= Number(forming.open);
-      // Provisional (SRS 3.3.2): the forming candle is drawn faded.
-      const colour = rising ? upDim : downDim;
-      bars.push({
-        time: time(forming),
-        open: Number(forming.open),
-        high: Number(forming.high),
-        low: Number(forming.low),
-        close: Number(forming.close),
-        color: colour,
-        wickColor: colour,
-      });
-    }
+    if (forming) bars.push(formingBar(forming));
     candles.setData(bars);
   });
 
@@ -323,6 +324,12 @@ function build(chart: IChartApi, toggles: ChartToggles, places: number) {
 
   return {
     write: (data: Data) => writers.forEach((write) => write(data)),
+    /**
+     * Only the forming candle moved: change that bar alone (the library
+     * replaces its last bar at the same time, or appends a later one); the
+     * indicators and panels are drawn from closed candles and stay.
+     */
+    updateForming: (forming: Candle) => candles.update(formingBar(forming)),
     candles,
   };
 }
@@ -369,6 +376,9 @@ export function AnalysisChart({
   const firstShown = useRef<string | null>(null);
   const container = useRef<HTMLDivElement>(null);
   const write = useRef<((data: Data) => void) | null>(null);
+  const updateForming = useRef<((forming: Candle) => void) | null>(null);
+  /** What the series hold, to tell a forming-only change from a new list. */
+  const written = useRef<Pick<Data, 'candles' | 'indicators'> | null>(null);
   const latest = useRef<Data>(series);
   const ready = series.status === 'ready';
   const togglesKey = CHART_ITEMS.map((item) => (toggles[item] ? 1 : 0)).join(
@@ -430,10 +440,12 @@ export function AnalysisChart({
     const chart = createChart(container.current, chartOptions());
     const built = build(chart, toggles, places);
     write.current = built.write;
+    updateForming.current = built.updateForming;
     priceSeries.current = built.candles;
     drawnLines.current = drawPriceLines(built.candles, [], latestLines.current);
     markersApi.current = createSeriesMarkers(built.candles, []);
     write.current(latest.current);
+    written.current = latest.current;
     chartApi.current = chart;
     firstShown.current = latest.current.candles[0]?.openTime ?? null;
     const scale = chart.timeScale();
@@ -451,6 +463,8 @@ export function AnalysisChart({
     return () => {
       if (extendable) scale.unsubscribeVisibleLogicalRangeChange(onRange);
       write.current = null;
+      updateForming.current = null;
+      written.current = null;
       chartApi.current = null;
       priceSeries.current = null;
       drawnLines.current = [];
@@ -526,6 +540,23 @@ export function AnalysisChart({
   }, [hasActions]);
 
   useEffect(() => {
+    // The forming candle moves every couple of seconds: when nothing else
+    // changed, update that one bar instead of writing every series again.
+    const held = written.current;
+    if (
+      held &&
+      series.forming &&
+      updateForming.current &&
+      held.candles === series.candles &&
+      held.indicators === series.indicators
+    ) {
+      try {
+        updateForming.current(series.forming);
+        return;
+      } catch {
+        // A bar older than the last one cannot be updated: write it all.
+      }
+    }
     const scale = extendable ? chartApi.current?.timeScale() : undefined;
     const range = scale?.getVisibleLogicalRange() ?? null;
     write.current?.({
@@ -533,6 +564,11 @@ export function AnalysisChart({
       forming: series.forming,
       indicators: series.indicators,
     });
+    if (write.current)
+      written.current = {
+        candles: series.candles,
+        indicators: series.indicators,
+      };
     // Older candles were put in front: move the view by as many bars so
     // what the Trader looks at stays where it was.
     const before = firstShown.current;
