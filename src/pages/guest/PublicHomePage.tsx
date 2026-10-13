@@ -15,6 +15,7 @@ import { HeroRadar } from '../../features/market/components/HeroRadar';
 import { MarketBoard } from '../../features/market/components/MarketBoard';
 import { MarketPulse } from '../../features/market/components/MarketPulse';
 import { PairPreview } from '../../features/market/components/PairPreview';
+import { TickerTape } from '../../features/market/components/TickerTape';
 import { useMarketBoard } from '../../features/market/hooks/use-market-board';
 import type { MarketPair, MarketType } from '../../types/domain';
 
@@ -67,6 +68,10 @@ export function PublicHomePage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl">
+      <TickerTape
+        board={spot}
+        className="mb-6 rounded-xl border border-line bg-surface"
+      />
       <section className="relative isolate mb-6 grid grid-cols-1 items-center gap-10 pt-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)] lg:gap-12 lg:pt-6">
         <div aria-hidden="true" className="hero-ambient" />
         <div className="flex flex-col">

@@ -2,6 +2,7 @@ import { useState, type CSSProperties } from 'react';
 import { Pause, Play } from 'lucide-react';
 import { NumericText } from '../../../components/ui/NumericText';
 import { useCopy } from '../../../hooks/use-copy';
+import { classNames } from '../../../utils/class-names';
 import { formatPrice, toFixedDecimal } from '../../../utils/decimal-format';
 import type { MarketBoardData } from '../hooks/use-market-board';
 
@@ -9,12 +10,19 @@ import type { MarketBoardData } from '../hooks/use-market-board';
 const SECONDS_PER_PAIR = 4;
 
 /**
- * SCR-01 running strip, as an exchange's ticker tape: every enabled Spot
+ * SCR-01 running strip at the top of the page, so it shows on the first
+ * screen of any size, as an exchange's ticker tape: every enabled Spot
  * pair with its live price and 24h change, scrolling without end. Prices
  * change in place each second without restarting the run. The prototype's
  * strip ran invented events ("breakout detected"); this one runs prices.
  */
-export function TickerTape({ board }: { board: MarketBoardData }) {
+export function TickerTape({
+  board,
+  className,
+}: {
+  board: MarketBoardData;
+  className?: string;
+}) {
   const copy = useCopy();
   const m = copy.market;
   const [paused, setPaused] = useState(false);
@@ -65,7 +73,12 @@ export function TickerTape({ board }: { board: MarketBoardData }) {
   );
 
   return (
-    <div className="flex items-center gap-2 border-b border-line py-2 pr-3 pl-5">
+    <div
+      className={classNames(
+        'flex items-center gap-2 py-2 pr-3 pl-5',
+        className,
+      )}
+    >
       <div
         role="region"
         aria-label={m.tapeLabel}
