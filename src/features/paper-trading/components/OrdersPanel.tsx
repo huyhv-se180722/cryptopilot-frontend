@@ -7,8 +7,6 @@ import { Tabs } from '../../../components/ui/Tabs';
 import { buttonClassName } from '../../../components/ui/button-styles';
 import { useCopy } from '../../../hooks/use-copy';
 import { formatCopy } from '../../../i18n/copy';
-import { errorText } from '../../../i18n/messages';
-import { problemOf } from '../../../services/api/errors';
 import type { MarketPair, PaperOrder } from '../../../types/domain';
 import { groupThousands, toFixedDecimal } from '../../../utils/decimal-format';
 import {
@@ -18,6 +16,7 @@ import {
   usePaperActions,
   usePaperWallet,
 } from '../hooks/use-paper-orders';
+import { paperErrorText } from '../model/paper-errors';
 import { TradePanel } from './TradePanel';
 import { usePaperColumns } from '../hooks/use-paper-columns';
 import { PaperPager, PaperQueryState } from './paper-tables';
@@ -70,12 +69,7 @@ export function OrdersPanel({
   const mine = <T extends { symbol: string }>(rows: readonly T[]) =>
     onlyThis ? rows.filter((row) => row.symbol === pair.symbol) : rows;
 
-  const failed = (error: unknown) => {
-    const code = problemOf(error)?.code;
-    setNotice(
-      code === 'PAPER_ORDER_NOT_OPEN' ? p.orderNotOpen : errorText(copy, error),
-    );
-  };
+  const failed = (error: unknown) => setNotice(paperErrorText(copy, error));
   const cancelCell = (row: PaperOrder) => (
     <button
       type="button"
