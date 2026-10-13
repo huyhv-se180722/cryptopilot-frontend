@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createHttpClient, type HttpClient } from '../api/http-client';
 import { createHttpAuthService, createRefresher } from './http-auth';
+import { browserSessionStore, type SessionStore } from './session-store';
 import { TokenSession } from './token-session';
 import { decodeSession, subjectOf } from './auth-dto';
 
@@ -27,7 +28,22 @@ const json = (status: number, body?: unknown) =>
 
 type Route = (init: RequestInit) => Response | Promise<Response>;
 
-function setup(routes: Record<string, Route>) {
+/** A Storage over a map, standing in for the tab's sessionStorage. */
+function fakeStorage(): Storage {
+  const items = new Map<string, string>();
+  return {
+    get length() {
+      return items.size;
+    },
+    clear: () => items.clear(),
+    getItem: (key) => items.get(key) ?? null,
+    key: (index) => [...items.keys()][index] ?? null,
+    removeItem: (key) => void items.delete(key),
+    setItem: (key, value) => void items.set(key, value),
+  };
+}
+
+function setup(routes: Record<string, Route>, store?: SessionStore) {
   const calls: { path: string; init: RequestInit }[] = [];
   const fetcher = vi.fn<typeof fetch>(async (input, init = {}) => {
     const path = new URL(String(input)).pathname.replace('/api/v1/', '');
@@ -40,6 +56,8 @@ function setup(routes: Record<string, Route>) {
   const holder: { http?: HttpClient } = {};
   const tokens = new TokenSession(
     createRefresher(() => holder.http as HttpClient),
+    undefined,
+    store,
   );
   const http = createHttpClient({
     baseUrl: 'https://api.example.test/api/v1',
@@ -47,7 +65,7 @@ function setup(routes: Record<string, Route>) {
     session: tokens,
   });
   holder.http = http;
-  return { auth: createHttpAuthService(http, tokens), tokens, calls };
+  return { auth: createHttpAuthService(http, tokens, store), tokens, calls };
 }
 const body = (init: RequestInit) =>
   JSON.parse(String(init.body)) as Record<string, unknown>;
@@ -191,6 +209,135 @@ describe('HTTP auth adapter', () => {
     expect(body(calls.at(-1)!.init)).toEqual({ refreshToken: 'refresh-1' });
     expect(tokens.hasTokens()).toBe(false);
     expect(await auth.restoreSession()).toBeNull();
+  });
+
+  it('keeps the refresh token in the tab and resumes after a reload (D-102)', async () => {
+    const storage = fakeStorage();
+    const profile = () =>
+      json(200, { email: 'a@b.test', displayName: 'A', avatarUrl: null });
+    const first = setup(
+      {
+        'auth/login': () => json(200, sessionBody(1)),
+        'me/profile': profile,
+      },
+      browserSessionStore(() => storage),
+    );
+    await first.auth.login({
+      email: 'a@b.test',
+      password: 'x',
+      rememberMe: false,
+    });
+    const kept = JSON.parse(storage.getItem('cp-session') ?? '{}') as Record<
+      string,
+      string
+    >;
+    expect(kept).toEqual({
+      refreshToken: 'refresh-1',
+      refreshTokenExpiresAt: LATER,
+      email: 'a@b.test',
+    });
+    expect(JSON.stringify(kept)).not.toContain(sessionBody(1).accessToken);
+
+    // A new page in the same tab: nothing in memory, the token in storage.
+    const reload = setup(
+      {
+        'auth/refresh': () => json(200, sessionBody(2)),
+        'me/profile': profile,
+      },
+      browserSessionStore(() => storage),
+    );
+    const session = await reload.auth.restoreSession();
+    expect(session?.user.email).toBe('a@b.test');
+    expect(body(reload.calls[0]!.init)).toEqual({ refreshToken: 'refresh-1' });
+    expect(storage.getItem('cp-session')).toContain('refresh-2');
+
+    // A start that restores twice at once (React's strict mode does)
+    // presents the stored token once: twice would read as reuse.
+    const twice = setup(
+      {
+        'auth/refresh': () => json(200, sessionBody(3)),
+        'me/profile': profile,
+      },
+      browserSessionStore(() => storage),
+    );
+    const [a, b] = await Promise.all([
+      twice.auth.restoreSession(),
+      twice.auth.restoreSession(),
+    ]);
+    expect(a).toBe(b);
+    expect(
+      twice.calls.filter((call) => call.path === 'auth/refresh'),
+    ).toHaveLength(1);
+
+    await twice.auth.logout().catch(() => undefined);
+    expect(storage.getItem('cp-session')).toBeNull();
+  });
+
+  it('forgets a refused or expired stored token and keeps it when offline', async () => {
+    const saved = (expiresAt = LATER) => {
+      const storage = fakeStorage();
+      storage.setItem(
+        'cp-session',
+        JSON.stringify({
+          refreshToken: 'refresh-9',
+          refreshTokenExpiresAt: expiresAt,
+          email: 'a@b.test',
+        }),
+      );
+      return storage;
+    };
+    const refused = saved();
+    const one = setup(
+      {
+        'auth/refresh': () =>
+          json(401, { code: 'SESSION_EXPIRED', messageCode: 'MSG44' }),
+      },
+      browserSessionStore(() => refused),
+    );
+    expect(await one.auth.restoreSession()).toBeNull();
+    expect(refused.getItem('cp-session')).toBeNull();
+
+    const expired = saved('2020-01-01T00:00:00Z');
+    const two = setup(
+      {},
+      browserSessionStore(() => expired),
+    );
+    expect(await two.auth.restoreSession()).toBeNull();
+    expect(two.calls).toHaveLength(0);
+    expect(expired.getItem('cp-session')).toBeNull();
+
+    const offline = saved();
+    const three = setup(
+      {
+        'auth/refresh': () => {
+          throw new TypeError('offline');
+        },
+      },
+      browserSessionStore(() => offline),
+    );
+    await expect(three.auth.restoreSession()).rejects.toMatchObject({
+      code: 'NETWORK_ERROR',
+    });
+    expect(offline.getItem('cp-session')).toContain('refresh-9');
+  });
+
+  it('keeps nothing when the browser refuses storage', async () => {
+    const blocked = () => {
+      throw new DOMException('denied', 'SecurityError');
+    };
+    const { auth } = setup(
+      {
+        'auth/login': () => json(200, sessionBody(1)),
+        'me/profile': () => json(200, { email: 'a@b.test', displayName: 'A' }),
+      },
+      browserSessionStore(blocked),
+    );
+    const session = await auth.login({
+      email: 'a@b.test',
+      password: 'x',
+      rememberMe: false,
+    });
+    expect(session.user.email).toBe('a@b.test');
   });
 
   it('changes the password with the bearer token and keeps the session', async () => {

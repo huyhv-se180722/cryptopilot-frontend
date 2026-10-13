@@ -1,4 +1,5 @@
 import { ServiceError } from '../api/errors';
+import { memorySessionStore, type SessionStore } from './session-store';
 
 /** Tokens of one sign-in, as the backend issues them (TECHNICAL_DESIGN 7.15). */
 export interface TokenPair {
@@ -27,9 +28,11 @@ const browserTimers: Timers = {
 export const REFRESH_LEAD_MS = 60_000;
 
 /**
- * Holds the tokens of the current session in memory only (Q-44: no storage
- * until the backend offers an HttpOnly cookie). Refresh is single-flight:
- * presenting a refresh token twice makes the server revoke the session.
+ * Holds the tokens of the current session in memory, and hands the refresh
+ * token to `store` on every sign-in and rotation so a reload can resume
+ * (D-102: the tab's sessionStorage; the access token is never stored).
+ * Refresh is single-flight: presenting a refresh token twice makes the
+ * server revoke the session.
  */
 export class TokenSession {
   private tokens: TokenPair | null = null;
@@ -40,6 +43,7 @@ export class TokenSession {
   constructor(
     private readonly renew: (refreshToken: string) => Promise<TokenPair>,
     private readonly timers: Timers = browserTimers,
+    private readonly store: SessionStore = memorySessionStore,
   ) {}
 
   accessToken(): string | null {
@@ -57,6 +61,7 @@ export class TokenSession {
   /** Store a new pair (sign-in or rotation) and schedule the next renewal. */
   set(pair: TokenPair): void {
     this.tokens = pair;
+    this.store.saveTokens(pair.refreshToken, pair.refreshTokenExpiresAt);
     this.schedule();
   }
 
@@ -90,6 +95,7 @@ export class TokenSession {
   /** Local sign-out: forget the tokens without reporting an expiry. */
   clear(): void {
     this.tokens = null;
+    this.store.clear();
     this.cancelTimer();
   }
 
