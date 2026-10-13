@@ -532,7 +532,7 @@ export function createDevelopmentMarket(now: () => number = Date.now): {
         { market: marketType, symbol: symbol.toUpperCase(), listener },
         () =>
           (depthTimer ??= setInterval(() => {
-            step();
+            // The price moves with the ticker; the book only follows it.
             for (const entry of depthListeners)
               entry.listener(book(entry.market, entry.symbol));
           }, 300)),
