@@ -26,6 +26,9 @@ export const screenPages: Readonly<Record<string, PageModule>> = {
     Component: (await import('../../pages/guest/ResetPasswordPage'))
       .ResetPasswordPage,
   }),
+  '/dashboard': async () => ({
+    Component: (await import('../../pages/trader/DashboardPage')).DashboardPage,
+  }),
   '/markets': async () => ({
     Component: (await import('../../pages/trader/MarketsPage')).MarketsPage,
   }),
