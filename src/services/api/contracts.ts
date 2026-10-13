@@ -22,6 +22,8 @@ import type {
   PaperAccount,
   PaperFill,
   PaperHistoryQuery,
+  PaperLedgerEntry,
+  PaperLedgerQuery,
   PaperOrder,
   PaperPage,
   PaperTransfer,
@@ -227,6 +229,16 @@ export interface PaperTradingService {
     amount: string;
     clientTransferId: string;
   }): Promise<PaperTransfer>;
+  /** Transfers between the wallets, newest first. */
+  transfers(
+    query: { page: number; pageSize: number },
+    signal?: AbortSignal,
+  ): Promise<PaperPage<PaperTransfer>>;
+  /** Every balance change (transaction history), newest first. */
+  ledger(
+    query: PaperLedgerQuery,
+    signal?: AbortSignal,
+  ): Promise<PaperPage<PaperLedgerEntry>>;
   /** Places a Spot MARKET or LIMIT order, once per `clientOrderId` (TR-06). */
   placeOrder(order: PlacePaperOrder): Promise<PaperOrder>;
   /** Cancels a working order and releases what it locked. */
