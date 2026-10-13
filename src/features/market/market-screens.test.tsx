@@ -275,6 +275,18 @@ describe('SCR-01 Public Home', () => {
       { ...spotTicker('SOL', '147.22', '5.31'), quoteVolume24h: '700000000' },
     ]);
 
+    // Decision support and paper trading, as the SRS overview puts it:
+    // nothing reads as trading for real on CryptoPilot.
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
+      'See the Market.Plan With Data.Practice in Simulation.',
+    );
+    expect(screen.getByText('Decision support · Paper trading')).toBeTruthy();
+    expect(
+      screen.getByText(
+        /it never places real orders, connects to your exchange account or holds your funds/,
+      ),
+    ).toBeTruthy();
+
     // The product's own capabilities, never "signals".
     const chips = within(
       screen.getByRole('list', { name: 'What CryptoPilot does' }),

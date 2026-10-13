@@ -25,7 +25,10 @@ const marketOf = (value: string | null): MarketType =>
  * SCR-01 Public Home (SRS 3.3.1): the Figma landing hero, then the Spot /
  * Futures list with live prices and the selected pair's basic 1d chart.
  * The hero keeps the prototype's layout and look with the product's own
- * content: what CryptoPilot does (no "signals"), and on the right its
+ * content, worded as the SRS overview does (a decision-support and
+ * paper-trading system: analyze, plan, practice in simulation, review;
+ * no real orders, no exchange account, no funds held; no "signals"),
+ * and on the right its
  * radar drawn from the live Spot market (the day's biggest moves) with
  * two cards of live figures, instead of invented events and a trade
  * setup. The MSG42 disclaimer is in the guest shell footer.
