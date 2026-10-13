@@ -53,6 +53,7 @@ export function decodePairPage(body: unknown): PairPage {
         logoUrl: nullableText(pair.logoUrl, 'logoUrl'),
         tickSize: nullableDecimal(pair.tickSize, 'tickSize'),
         stepSize: nullableDecimal(pair.stepSize, 'stepSize'),
+        minNotional: nullableDecimal(pair.minNotional, 'minNotional'),
         displayOrder: integer(pair.displayOrder, 'displayOrder'),
       };
     }),

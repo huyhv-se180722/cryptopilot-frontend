@@ -15,6 +15,7 @@ import type {
   MarketTicker,
   WatchlistItem,
 } from '../../types/domain';
+import { createPendingPaperTradingService } from '../../services/api/paper-trading';
 import { fakeAuth, page, renderRoutes, testTrader } from '../../test/render';
 
 /** What the screen asks of the chart's time scale. */
@@ -91,6 +92,7 @@ const pair = (
   logoUrl: null,
   tickSize: '0.01',
   stepSize: '0.00001',
+  minNotional: '5',
   displayOrder,
 });
 const PAIRS = [
@@ -229,6 +231,7 @@ describe('Spot demo trading layout (TR-F1, D-86)', () => {
 
   it('opens the demo account once and says it is ready', async () => {
     const paperTrading: PaperTradingService = {
+      ...createPendingPaperTradingService(),
       openAccount: vi.fn(async () => ({
         accountId: 'a-1',
         positionMode: 'one-way' as const,

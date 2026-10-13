@@ -60,6 +60,8 @@ export interface MarketPair {
   tickSize: Decimal | null;
   /** Quantity increment; null until the exchange filters are synced. */
   stepSize: Decimal | null;
+  /** Smallest order value in the quote asset; null until the filters are synced. */
+  minNotional: Decimal | null;
   displayOrder: number;
 }
 
@@ -524,6 +526,127 @@ export interface PaperAccount {
   accountId: string;
   positionMode: PaperPositionMode;
   openedAt: ISODateTime;
+}
+
+/** A paper wallet: Spot holds coins, Futures USDT only (USDⓈ-M, TR-04). */
+export type PaperWalletType = 'SPOT' | 'FUTURES';
+export interface PaperBalance {
+  coinId: string;
+  asset: string;
+  free: Decimal;
+  /** Held by working orders. */
+  locked: Decimal;
+  total: Decimal;
+  /** Valued at the Spot last price; null without a current price. */
+  usdtValue: Decimal | null;
+}
+export interface PaperWallet {
+  wallet: PaperWalletType;
+  /** Largest value first. */
+  balances: readonly PaperBalance[];
+  estimatedUsdt: Decimal;
+  estimatedBtc: Decimal | null;
+  /** False when some balance had no price, so the estimates leave it out. */
+  complete: boolean;
+}
+export interface PaperTransfer {
+  transferId: string;
+  clientTransferId: string;
+  asset: string;
+  from: PaperWalletType;
+  to: PaperWalletType;
+  amount: Decimal;
+  transferredAt: ISODateTime;
+}
+export type OrderSide = 'BUY' | 'SELL';
+/** Every type the backend knows; the Spot form places MARKET and LIMIT. */
+export type PaperOrderType =
+  | 'MARKET'
+  | 'LIMIT'
+  | 'STOP_MARKET'
+  | 'STOP_LIMIT'
+  | 'TAKE_PROFIT_MARKET'
+  | 'TAKE_PROFIT_LIMIT'
+  | 'TRAILING_STOP_MARKET'
+  | 'TRAILING_STOP_LIMIT';
+export type TimeInForce = 'GTC' | 'IOC' | 'FOK' | 'GTX';
+export type PaperOrderStatus =
+  | 'NEW'
+  | 'PENDING_NEW'
+  | 'PARTIALLY_FILLED'
+  | 'FILLED'
+  | 'CANCELED'
+  | 'EXPIRED'
+  | 'REJECTED';
+export interface PaperOrder {
+  orderId: string;
+  clientOrderId: string;
+  pairId: string;
+  symbol: string;
+  market: MarketType;
+  side: OrderSide;
+  type: PaperOrderType;
+  timeInForce: TimeInForce | null;
+  /** LIMIT only. */
+  price: Decimal | null;
+  /** Null for a MARKET buy by total. */
+  quantity: Decimal | null;
+  /** MARKET buy by total only: what it spends. */
+  quoteOrderQty: Decimal | null;
+  executedQuantity: Decimal;
+  /** What the executions cost or brought, before fees. */
+  cumQuote: Decimal;
+  avgPrice: Decimal | null;
+  status: PaperOrderStatus;
+  /** Why it ended other than by filling, e.g. IOC_NOT_FILLABLE. */
+  statusReason: string | null;
+  placedAt: ISODateTime;
+  closedAt: ISODateTime | null;
+}
+export interface PaperFill {
+  fillId: string;
+  orderId: string;
+  pairId: string;
+  symbol: string;
+  market: MarketType;
+  side: OrderSide;
+  price: Decimal;
+  quantity: Decimal;
+  quoteAmount: Decimal;
+  fee: Decimal;
+  feeAsset: string;
+  liquidity: 'MAKER' | 'TAKER';
+  /** REPLAY: decided by candles replayed after a restart (Q-T6). */
+  source: 'LIVE' | 'REPLAY';
+  tradedAt: ISODateTime;
+}
+/**
+ * A Spot order to place (TR-06). LIMIT: price and quantity, GTC unless IOC
+ * or FOK. MARKET: quantity, or for a BUY the quote amount to spend. The
+ * `clientOrderId` is the idempotency key: keep it when sending again.
+ */
+export interface PlacePaperOrder {
+  pairId: string;
+  market: MarketType;
+  side: OrderSide;
+  type: 'MARKET' | 'LIMIT';
+  timeInForce?: 'GTC' | 'IOC' | 'FOK';
+  price?: Decimal;
+  quantity?: Decimal;
+  quoteOrderQty?: Decimal;
+  clientOrderId: string;
+}
+export interface PaperPage<T> {
+  items: readonly T[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+export interface PaperHistoryQuery {
+  /** One pair; every pair when absent. */
+  pairId?: string;
+  page: number;
+  pageSize: number;
 }
 
 /** One level of an order book: a price and the base quantity resting there. */

@@ -2,8 +2,8 @@ import type { PropsWithChildren, ReactNode } from 'react';
 import { classNames } from '../../../utils/class-names';
 
 /**
- * One region of the trading screen: a titled surface. The order book,
- * trades, order form and the bottom panel fill theirs in TR-F2 and TR-F3.
+ * One region of the trading screen: a titled surface with optional
+ * controls at the right of its title.
  */
 export function TradePanel({
   title,
@@ -32,14 +32,5 @@ export function TradePanel({
       </div>
       {children}
     </section>
-  );
-}
-
-/** What a region will hold once its backend feed is merged. */
-export function ComingSoon({ text }: { text: string }) {
-  return (
-    <p className="flex flex-1 items-center justify-center px-2 py-8 text-center text-xs text-muted-dim">
-      {text}
-    </p>
   );
 }

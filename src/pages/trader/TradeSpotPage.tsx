@@ -3,7 +3,6 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { ErrorState } from '../../components/feedback/States';
 import { SegmentedControl } from '../../components/ui/SegmentedControl';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { Tabs } from '../../components/ui/Tabs';
 import { useCopy } from '../../hooks/use-copy';
 import { errorText } from '../../i18n/messages';
 import { useLiveTicker } from '../../features/analysis/hooks/use-live-ticker';
@@ -21,14 +20,20 @@ import {
   PairSelector,
   type FavoritePairs,
 } from '../../features/paper-trading/components/PairSelector';
+import { OrdersPanel } from '../../features/paper-trading/components/OrdersPanel';
 import {
-  ComingSoon,
-  TradePanel,
-} from '../../features/paper-trading/components/TradePanel';
+  SpotOrderForm,
+  type PickedPrice,
+} from '../../features/paper-trading/components/SpotOrderForm';
+import { TradePanel } from '../../features/paper-trading/components/TradePanel';
 import { TradeTickerStrip } from '../../features/paper-trading/components/TradeTickerStrip';
+import { usePaperWallet } from '../../features/paper-trading/hooks/use-paper-orders';
 import { useTradeTimeframe } from '../../features/paper-trading/hooks/use-trade-timeframe';
-import { useWatchlist } from '../../features/watchlist/hooks/use-watchlist';
-import type { MarketPair } from '../../types/domain';
+import {
+  useWatchedPair,
+  useWatchlist,
+} from '../../features/watchlist/hooks/use-watchlist';
+import type { Decimal, MarketPair } from '../../types/domain';
 import { classNames } from '../../utils/class-names';
 
 type PhoneRegion = 'chart' | 'book' | 'trades';
@@ -46,7 +51,20 @@ function TradeSpot({
   const navigate = useNavigate();
   const [timeframe, setTimeframe] = useTradeTimeframe();
   const [region, setRegion] = useState<PhoneRegion>('chart');
-  const [bottom, setBottom] = useState('open');
+  const [picked, setPicked] = useState<PickedPrice | null>(null);
+  const pick = (price: Decimal) => setPicked({ price, at: Date.now() });
+  // Demo orders name the pair by id, which only a watchlist row carries
+  // until the market list gives it (FEQ-01).
+  const pairId = useWatchedPair(pair.symbol)?.pairId ?? null;
+  const spot = usePaperWallet('SPOT');
+  const balance = (asset: string) =>
+    spot.data?.balances.find((row) => row.asset === asset)?.free ?? '0';
+  const funds = spot.data
+    ? {
+        quote: balance(pair.quoteAsset ?? ''),
+        base: balance(pair.baseAsset ?? ''),
+      }
+    : null;
   const { ticker, freshness } = useLiveTicker('spot', pair.symbol);
   const book = useOrderBook('spot', pair.symbol);
   const trades = useMarketTrades('spot', pair.symbol);
@@ -123,6 +141,7 @@ function TradeSpot({
             pair={pair}
             stream={book}
             lastPrice={ticker?.lastPrice ?? null}
+            onPickPrice={pick}
             className="flex-1"
           />
         </div>
@@ -136,6 +155,7 @@ function TradeSpot({
           <MarketTradesPanel
             pair={pair}
             stream={trades}
+            onPickPrice={pick}
             className="min-h-0 flex-1"
           />
         </div>
@@ -143,28 +163,17 @@ function TradeSpot({
           title={p.orderForm}
           className="md:col-span-2 xl:col-span-1 xl:col-start-2 xl:row-start-2"
         >
-          <ComingSoon text={p.soonForm} />
+          <SpotOrderForm
+            key={pair.symbol}
+            pair={pair}
+            pairId={pairId}
+            lastPrice={ticker?.lastPrice ?? null}
+            picked={picked}
+            funds={funds}
+          />
         </TradePanel>
       </div>
-      <TradePanel title={p.ordersAndFunds} className="mt-2">
-        <Tabs
-          label={p.ordersAndFunds}
-          value={bottom}
-          onChange={setBottom}
-          items={(
-            [
-              ['open', p.openOrders],
-              ['orders', p.orderHistory],
-              ['trades', p.tradeHistory],
-              ['funds', p.funds],
-            ] as const
-          ).map(([id, label]) => ({
-            id,
-            label,
-            panel: <ComingSoon text={p.soonPanel} />,
-          }))}
-        />
-      </TradePanel>
+      <OrdersPanel pair={pair} pairId={pairId} pairs={pairs} />
     </>
   );
 }

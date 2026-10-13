@@ -171,6 +171,7 @@ describe('HTTP market adapter', () => {
     expect(pairs[0]).toMatchObject({
       tickSize: '0.01000000',
       stepSize: '0.00001',
+      minNotional: '5',
     });
     expect(urls.map((url) => url.search)).toEqual([
       '?market=spot&page=1&pageSize=100',

@@ -81,6 +81,7 @@ export function devPairs(market: MarketType): readonly MarketPair[] {
     logoUrl: null,
     tickSize: seed.tickSize,
     stepSize: seed.stepSize,
+    minNotional: '5',
     displayOrder: index + 1,
   }));
 }
