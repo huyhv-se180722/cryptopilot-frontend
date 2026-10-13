@@ -303,8 +303,9 @@ describe('SCR-01 Public Home', () => {
         name: 'Biggest 24h moves of the Spot pairs',
       }),
     );
-    expect(await radar.findByText('3 Spot pairs monitored')).toBeTruthy();
     expect(radar.getByText('Market data · live')).toBeTruthy();
+    // The points appear once the pairs and their tickers are in.
+    await radar.findByRole('button', { name: /^SOL\/USDT/ });
     const node = (name: string) =>
       radar.getByRole('button', { name: `${name} in 24h. Open its chart.` });
     const left = (name: string) => parseFloat(node(name).style.left);

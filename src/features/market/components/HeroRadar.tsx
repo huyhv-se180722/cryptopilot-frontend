@@ -1,6 +1,5 @@
 import { useCopy } from '../../../hooks/use-copy';
 import { useMediaQuery } from '../../../hooks/use-media-query';
-import { formatCopy } from '../../../i18n/copy';
 import type { MarketPair } from '../../../types/domain';
 import { classNames } from '../../../utils/class-names';
 import type { MarketBoardData } from '../hooks/use-market-board';
@@ -41,18 +40,15 @@ export function HeroRadar({
 
   return (
     <section aria-label={m.radarLabel} className="min-w-0">
-      <div className="mb-3 flex items-center justify-between gap-3 px-1 font-mono text-[10px] tracking-wider text-muted-dim uppercase">
-        <span>{formatCopy(m.radarMonitored, { count: board.all.length })}</span>
-        <span className="flex items-center gap-1.5">
-          <span
-            aria-hidden="true"
-            className={classNames(
-              'size-1.5 rounded-full',
-              FEED_DOT[board.freshness],
-            )}
-          />
-          {feed}
-        </span>
+      <div className="mb-2 flex items-center justify-end gap-1.5 px-1 font-mono text-[10px] tracking-wider text-muted-dim uppercase">
+        <span
+          aria-hidden="true"
+          className={classNames(
+            'size-1.5 rounded-full',
+            FEED_DOT[board.freshness],
+          )}
+        />
+        {feed}
       </div>
       <div className="relative">
         <MarketRadar
@@ -70,9 +66,6 @@ export function HeroRadar({
           />
         </div>
       </div>
-      <p className="mt-3 text-center text-[11px] text-muted-dim">
-        {m.radarLegend}
-      </p>
     </section>
   );
 }
