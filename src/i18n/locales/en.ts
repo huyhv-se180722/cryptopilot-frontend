@@ -660,7 +660,7 @@ export const en = {
     priceHint: 'Rounded to the pair’s tick size.',
     rsiField: 'RSI level',
     percentField: 'Change over 1 hour (%)',
-    fundingPending: 'not available yet',
+    fundingField: 'Funding rate (%)',
     triggerField: 'Trigger',
     cooldownField: 'Cooldown (minutes)',
     channelsField: 'Channels',

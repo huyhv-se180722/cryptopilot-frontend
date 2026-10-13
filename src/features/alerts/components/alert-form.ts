@@ -8,6 +8,7 @@ import type {
   CandleTimeframe,
   MarketType,
 } from '../../../types/domain';
+import { divide, multiply } from '../../../utils/decimal-math';
 
 /**
  * SCR-14 form model (SRS 3.4.2, BR-19, BR-20) and the client mirror of
@@ -76,10 +77,14 @@ export const FUTURES_INDICATORS: ReadonlySet<AlertIndicator> = new Set([
   'FUNDING_RATE',
   'OPEN_INTEREST_CHANGE',
 ]);
-/** The threshold unit is undecided (Q-30): not offered until answered. */
-export const PENDING_INDICATORS: ReadonlySet<AlertIndicator> = new Set([
-  'FUNDING_RATE',
-]);
+/**
+ * D-100: a FUNDING_RATE threshold is typed and shown in percent (0.01 %)
+ * and stored as the fraction the market module returns (0.0001). Up to 10
+ * decimals in percent keep the stored value within the server's 12.
+ */
+export const FUNDING_PLACES = 10;
+const toFraction = (percent: string) => divide(percent, '100', 12);
+const toPercent = (fraction: string) => multiply(fraction, '100');
 const LINE_CROSSES: ReadonlySet<AlertIndicator> = new Set([
   'MACD_CROSS',
   'EMA_CROSS',
@@ -140,7 +145,11 @@ export function draftOf(alert: Alert): AlertDraft {
         ? alert.timeframe
         : '1h',
     condition: alert.condition,
-    threshold: editable(alert.threshold),
+    threshold: editable(
+      alert.indicator === 'FUNDING_RATE' && alert.threshold !== null
+        ? toPercent(alert.threshold)
+        : alert.threshold,
+    ),
     triggerMode: alert.triggerMode,
     cooldown:
       alert.cooldownMinutes === null ? '' : String(alert.cooldownMinutes),
@@ -168,6 +177,11 @@ export function toRule(
     else if (!DECIMAL.test(threshold)) errors.threshold = { kind: 'number' };
     else if (shape.indicator === null && Number(threshold) <= 0)
       errors.threshold = { kind: 'positive' };
+    else if (
+      shape.indicator === 'FUNDING_RATE' &&
+      (threshold.split('.')[1]?.length ?? 0) > FUNDING_PLACES
+    )
+      errors.threshold = { kind: 'number' };
     else if (
       shape.indicator === 'RSI_14' &&
       (Number(threshold) < 0 || Number(threshold) > 100)
@@ -202,7 +216,11 @@ export function toRule(
       indicator: shape.indicator,
       timeframe: shape.timeframe ? draft.timeframe : null,
       condition: draft.condition,
-      threshold: shape.threshold ? threshold : null,
+      threshold: !shape.threshold
+        ? null
+        : shape.indicator === 'FUNDING_RATE'
+          ? toFraction(threshold)
+          : threshold,
       triggerMode: draft.triggerMode,
       cooldownMinutes: cooldown,
       notifyEmail: draft.notifyEmail,
