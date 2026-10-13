@@ -109,7 +109,11 @@ export interface ChartPriceLine {
   label: string;
   tone: ChartTone;
   dashed?: boolean;
-  /** A button at the line's right end, e.g. cancel an order. */
+  /**
+   * A button for the line, e.g. cancel an order. The line's label then
+   * shows as a chip at the pane's left edge with the button in it (as the
+   * exchange charts do), instead of beside the axis.
+   */
   action?: ChartLineAction;
 }
 export interface ChartLineAction {
@@ -127,12 +131,19 @@ export interface ChartExtraItem {
   onToggle: () => void;
 }
 
-/** Where a line's button sits: its y on the price pane, left of the axis. */
+/** Where a line's chip sits: its y on the price pane. */
 interface Anchor {
   id: string;
   y: number;
-  right: number;
 }
+
+const CHIP_TONES: Record<ChartTone, string> = {
+  positive: 'border-positive-line text-positive',
+  negative: 'border-negative-line text-negative',
+  neutral: 'border-line text-muted',
+  primary: 'border-primary-line text-primary',
+  warning: 'border-warning-line text-warning',
+};
 
 /** Replaces the lines drawn on `series` with `lines`; returns the new ones. */
 function drawPriceLines(
@@ -148,7 +159,8 @@ function drawPriceLines(
       lineWidth: 1,
       lineStyle: line.dashed === false ? 0 : 1,
       axisLabelVisible: true,
-      title: line.label,
+      // A line with an action carries its label in its chip.
+      title: line.action ? '' : line.label,
     }),
   );
 }
@@ -482,8 +494,8 @@ export function AnalysisChart({
     theme,
   ]);
 
-  // A line's button follows its price while the Trader pans and zooms. The
-  // chart has no event for a price scale change, so the buttons are placed
+  // A line's chip follows its price while the Trader pans and zooms. The
+  // chart has no event for a price scale change, so the chips are placed
   // each frame, and React renders only when one moved.
   useEffect(() => {
     if (!hasActions) return;
@@ -495,15 +507,14 @@ export function AnalysisChart({
       const next: Anchor[] = [];
       if (chart && candles) {
         const height = chart.panes()[0]?.getHeight() ?? 0;
-        const right = chart.priceScale('right').width();
         for (const line of latestLines.current) {
           if (!line.action) continue;
           const y = candles.priceToCoordinate(Number(line.price));
           if (y !== null && y >= 0 && y <= height)
-            next.push({ id: line.id, y: Math.round(y), right });
+            next.push({ id: line.id, y: Math.round(y) });
         }
       }
-      const key = next.map((at) => `${at.id}:${at.y}:${at.right}`).join('|');
+      const key = next.map((at) => `${at.id}:${at.y}`).join('|');
       if (key !== shown) {
         shown = key;
         setAnchors(next);
@@ -631,22 +642,29 @@ export function AnalysisChart({
               className={classNames('w-full', HEIGHTS[panels])}
             />
             {(hasActions ? anchors : []).map((anchor) => {
-              const action = lines.find(
-                (line) => line.id === anchor.id,
-              )?.action;
-              return action ? (
-                <button
+              const line = lines.find((each) => each.id === anchor.id);
+              const action = line?.action;
+              return line && action ? (
+                <div
                   key={anchor.id}
-                  type="button"
-                  aria-label={action.label}
-                  title={action.label}
-                  disabled={action.disabled}
-                  onClick={action.onSelect}
-                  style={{ top: anchor.y, right: anchor.right + 4 }}
-                  className="absolute z-10 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded border border-line bg-raised text-muted hover:text-fg disabled:opacity-50 pointer-coarse:h-8 pointer-coarse:w-8"
+                  style={{ top: anchor.y }}
+                  className={classNames(
+                    'absolute left-2 z-10 inline-flex -translate-y-1/2 items-center gap-1 rounded border bg-surface pl-1.5 font-mono text-[11px] leading-none',
+                    CHIP_TONES[line.tone],
+                  )}
                 >
-                  <X size={12} aria-hidden="true" />
-                </button>
+                  <span className="py-1">{line.label}</span>
+                  <button
+                    type="button"
+                    aria-label={action.label}
+                    title={action.label}
+                    disabled={action.disabled}
+                    onClick={action.onSelect}
+                    className="inline-flex h-5 w-5 items-center justify-center border-l border-inherit text-muted hover:text-fg disabled:opacity-50 pointer-coarse:h-8 pointer-coarse:w-8"
+                  >
+                    <X size={12} aria-hidden="true" />
+                  </button>
+                </div>
               ) : null;
             })}
           </div>

@@ -57,7 +57,6 @@ vi.mock('lightweight-charts', () => {
             priceToCoordinate: (price: number) => 62_100 - price,
           };
         },
-        priceScale: () => ({ width: () => 60 }),
         panes: () =>
           [0, 1, 2, 3].map(() => ({
             setStretchFactor: vi.fn(),
@@ -340,8 +339,10 @@ describe('SCR-10 analysis chart (T-032)', () => {
     const button = await screen.findByRole('button', {
       name: 'Cancel order 1',
     });
-    expect(button.style.top).toBe('100px');
-    expect(button.style.right).toBe('64px');
+    // The label moves from the axis into the chip that holds the button.
+    expect(button.parentElement?.style.top).toBe('100px');
+    expect(button.parentElement?.textContent).toBe('Buy 0.01');
+    expect(drawn.lines.find((line) => line.price === 62000)?.title).toBe('');
     expect(screen.queryByRole('button', { name: 'Cancel order 2' })).toBeNull();
     await userEvent.click(button);
     expect(cancel).toHaveBeenCalledTimes(1);
