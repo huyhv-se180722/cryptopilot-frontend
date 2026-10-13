@@ -1,5 +1,11 @@
 import type { Decimal, OrderBookLevel } from '../../../types/domain';
-import { addDecimal, compareDecimal } from '../../../utils/decimal-format';
+import {
+  addDecimal,
+  compareDecimal,
+  decimalPlaces,
+  groupThousands,
+  toFixedDecimal,
+} from '../../../utils/decimal-format';
 
 /** One shown row: a price (or price group), its quantity and the running total. */
 export interface BookRow {
@@ -81,4 +87,11 @@ export function groupLevels(
     total = addDecimal(total, row.quantity);
     return { ...row, cumulative: total };
   });
+}
+
+/** A quantity at the pair's step, grouped for reading. */
+export function formatQuantity(value: Decimal, stepSize: Decimal | null) {
+  return groupThousands(
+    stepSize ? toFixedDecimal(value, decimalPlaces(stepSize)) : value,
+  );
 }
