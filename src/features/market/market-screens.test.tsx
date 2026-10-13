@@ -234,11 +234,12 @@ describe('SCR-01 Public Home', () => {
       await screen.findByText('Select a pair to see its daily chart.'),
     ).toBeTruthy();
     await userEvent.click(await screen.findByRole('button', { name: /^BTC/ }));
+    // One in the hero's live market card, one in the list's preview.
     expect(
-      await screen.findByRole('img', {
+      await screen.findAllByRole('img', {
         name: 'Daily price chart of BTCUSDT, last 90 closed days',
       }),
-    ).toBeTruthy();
+    ).toHaveLength(2);
     expect(market.getCandles).toHaveBeenCalledWith(
       expect.objectContaining({
         market: 'spot',
@@ -257,6 +258,88 @@ describe('SCR-01 Public Home', () => {
         name: 'Create a free account for the full analysis',
       }),
     ).toBeTruthy();
+  });
+
+  it('shows what the product does and the live Spot market in the hero', async () => {
+    const market = fakeMarket();
+    const { feed, publish } = fakeFeed('open');
+    const scrolled = vi.fn();
+    Element.prototype.scrollIntoView = scrolled;
+    await renderRoutes([page('/', <PublicHomePage />)], '/', fakeAuth(), {
+      market,
+      marketFeed: feed,
+    });
+    publish('spot', [
+      { ...spotTicker('BTC', '63000.01', '1.25'), quoteVolume24h: '900000000' },
+      { ...spotTicker('ETH', '2441.80', '-0.62'), quoteVolume24h: '500000000' },
+      { ...spotTicker('SOL', '147.22', '5.31'), quoteVolume24h: '700000000' },
+    ]);
+
+    // The product's own capabilities, never "signals".
+    const chips = within(
+      screen.getByRole('list', { name: 'What CryptoPilot does' }),
+    );
+    expect(chips.getAllByRole('listitem').map((li) => li.textContent)).toEqual([
+      'Technical analysis & setup score',
+      'Risk-calculated trading plans',
+      'Watchlist & alerts',
+      'Simulated execution & journal',
+      'AI assistant',
+    ]);
+    expect(screen.queryByText(/signal/i)).toBeNull();
+
+    // BTC/USDT live, then the largest rises and falls of the day.
+    const hero = within(screen.getByRole('region', { name: 'Live market' }));
+    // The featured price, and BTC again among the gainers.
+    expect(await hero.findAllByText('63,000.01')).toHaveLength(2);
+    expect(hero.getByText('+1.25% 24h')).toBeTruthy();
+    expect(
+      await hero.findByRole('img', {
+        name: 'Daily price chart of BTCUSDT, last 90 closed days',
+      }),
+    ).toBeTruthy();
+    const list = (title: string) =>
+      within(hero.getByRole('heading', { name: title }).parentElement!)
+        .getAllByRole('button')
+        .map((button) => button.textContent);
+    expect(list('Top gainers · 24h')).toEqual([
+      'SOL147.22+5.31%',
+      'BTC63,000.01+1.25%',
+    ]);
+    expect(list('Top losers · 24h')).toEqual(['ETH2,441.80-0.62%']);
+
+    // The most traded pairs, by 24h quote volume.
+    const pulse = within(
+      screen.getByRole('region', { name: 'Market pulse · most traded in 24h' }),
+    );
+    expect(
+      pulse.getAllByRole('button').map((button) => button.textContent),
+    ).toEqual([
+      'BTC/USDT63,000.01+1.25%',
+      'SOL/USDT147.22+5.31%',
+      'ETH/USDT2,441.80-0.62%',
+    ]);
+
+    // A mover opens its basic chart in the list's preview.
+    await userEvent.click(hero.getByRole('button', { name: /^SOL/ }));
+    expect(
+      await screen.findByRole('img', {
+        name: 'Daily price chart of SOLUSDT, last 90 closed days',
+      }),
+    ).toBeTruthy();
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Explore live markets' }),
+    );
+    expect(scrolled).toHaveBeenCalledWith({
+      behavior: 'smooth',
+      block: 'start',
+    });
+    expect(
+      screen
+        .getByRole('link', { name: /Start analyzing free/ })
+        .getAttribute('href'),
+    ).toBe('/register');
   });
 
   it('says the market data is not connected while no API is configured', async () => {

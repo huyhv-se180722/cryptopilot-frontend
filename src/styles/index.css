@@ -256,6 +256,73 @@
   }
 }
 
+/*
+ * SCR-01 hero backdrop, dark theme only (the prototype's dot grid and two
+ * ambient lights, indigo behind the copy and emerald behind the market
+ * card), from the theme tokens; the body's mesh gives the rest.
+ */
+.hero-ambient {
+  position: absolute;
+  inset: -1.5rem 0 0;
+  z-index: -1;
+  display: none;
+  overflow: hidden;
+  pointer-events: none;
+}
+[data-theme='dark'] .hero-ambient {
+  display: block;
+  background-image: radial-gradient(
+    color-mix(in oklab, var(--cp-border) 90%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, black, transparent);
+}
+.hero-ambient::before,
+.hero-ambient::after {
+  content: '';
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+  animation: hero-light 10s ease-in-out infinite;
+}
+.hero-ambient::before {
+  top: -12rem;
+  left: 5%;
+  width: 40rem;
+  height: 40rem;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--cp-primary) 14%, transparent),
+    transparent
+  );
+}
+.hero-ambient::after {
+  top: 0;
+  right: 5%;
+  width: 30rem;
+  height: 30rem;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--cp-positive) 10%, transparent),
+    transparent
+  );
+  animation-duration: 12s;
+  animation-delay: 1.5s;
+}
+
+@keyframes hero-light {
+  0%,
+  100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
 @keyframes pulse-led {
   0%,
   100% {

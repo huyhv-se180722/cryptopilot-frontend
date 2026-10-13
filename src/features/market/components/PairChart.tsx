@@ -56,10 +56,13 @@ export function PairChart({
   candles,
   tickSize,
   label,
+  className = 'h-64 w-full sm:h-72',
 }: {
   candles: readonly Candle[];
   tickSize: string | null;
   label: string;
+  /** Size of the chart box (the hero uses a compact one). */
+  className?: string;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const chart = useRef<IChartApi | null>(null);
@@ -117,11 +120,6 @@ export function PairChart({
   }, [candles, tickSize]);
 
   return (
-    <div
-      ref={container}
-      role="img"
-      aria-label={label}
-      className="h-64 w-full sm:h-72"
-    />
+    <div ref={container} role="img" aria-label={label} className={className} />
   );
 }
