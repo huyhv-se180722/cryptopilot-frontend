@@ -41,7 +41,7 @@ export function MarketRadar({
   const hub = `${id}-hub`;
 
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-[540px]">
+    <div className="relative mx-auto aspect-square w-full max-w-[480px]">
       <svg
         viewBox={`0 0 ${BOX} ${BOX}`}
         aria-hidden="true"

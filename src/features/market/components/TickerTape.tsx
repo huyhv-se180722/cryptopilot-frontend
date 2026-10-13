@@ -10,17 +10,20 @@ import type { MarketBoardData } from '../hooks/use-market-board';
 const SECONDS_PER_PAIR = 4;
 
 /**
- * SCR-01 running strip at the top of the page, so it shows on the first
- * screen of any size, as an exchange's ticker tape: every enabled Spot
+ * SCR-01 running strip of the market pulse, as an exchange's ticker
+ * tape: every enabled Spot
  * pair with its live price and 24h change, scrolling without end. Prices
  * change in place each second without restarting the run. The prototype's
  * strip ran invented events ("breakout detected"); this one runs prices.
  */
 export function TickerTape({
   board,
+  label,
   className,
 }: {
   board: MarketBoardData;
+  /** A live title before the tape (its section's name). */
+  label?: string;
   className?: string;
 }) {
   const copy = useCopy();
@@ -79,6 +82,15 @@ export function TickerTape({
         className,
       )}
     >
+      {label && (
+        <span className="flex shrink-0 items-center gap-1.5 border-r border-line pr-3 font-mono text-[10px] font-bold tracking-widest text-muted-dim uppercase">
+          <span
+            aria-hidden="true"
+            className="size-1.5 rounded-full bg-primary motion-safe:animate-[pulse-led_1.8s_ease-in-out_infinite]"
+          />
+          <span className="hidden sm:inline">{label}</span>
+        </span>
+      )}
       <div
         role="region"
         aria-label={m.tapeLabel}

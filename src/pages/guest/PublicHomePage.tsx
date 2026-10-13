@@ -15,7 +15,6 @@ import { HeroRadar } from '../../features/market/components/HeroRadar';
 import { MarketBoard } from '../../features/market/components/MarketBoard';
 import { MarketPulse } from '../../features/market/components/MarketPulse';
 import { PairPreview } from '../../features/market/components/PairPreview';
-import { TickerTape } from '../../features/market/components/TickerTape';
 import { useMarketBoard } from '../../features/market/hooks/use-market-board';
 import type { MarketPair, MarketType } from '../../types/domain';
 
@@ -68,30 +67,26 @@ export function PublicHomePage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl">
-      <TickerTape
-        board={spot}
-        className="mb-6 rounded-xl border border-line bg-surface"
-      />
-      <section className="relative isolate mb-6 grid grid-cols-1 items-center gap-10 pt-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)] lg:gap-12 lg:pt-6">
+      <section className="relative isolate mb-5 grid grid-cols-1 items-center gap-10 pt-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)] lg:gap-12 lg:pt-2">
         <div aria-hidden="true" className="hero-ambient" />
         <div className="flex flex-col">
-          <p className="mb-6 inline-flex w-fit items-center gap-2 rounded-full border border-primary-line bg-primary-soft px-4 py-1.5 text-[11px] font-bold tracking-widest text-primary uppercase">
+          <p className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-primary-line bg-primary-soft px-4 py-1.5 text-[11px] font-bold tracking-widest text-primary uppercase">
             <span aria-hidden="true" className="text-[10px] text-positive">
               ✦
             </span>
             {m.heroBadge}
           </p>
-          <h1 className="mb-5 text-[clamp(34px,4.2vw,60px)] leading-[1.03] font-bold tracking-tight">
+          <h1 className="mb-4 text-[clamp(34px,4.2vw,60px)] leading-[1.03] font-bold tracking-tight">
             <span className="block text-fg">{m.heroLine1}</span>
             <span className="block bg-linear-90 from-primary to-positive bg-clip-text text-transparent">
               {m.heroLine2}
             </span>
             <span className="block text-fg-2">{m.heroLine3}</span>
           </h1>
-          <p className="mb-8 max-w-[440px] text-[clamp(14px,1.1vw,17px)] leading-relaxed text-muted">
+          <p className="mb-6 max-w-[440px] text-[clamp(14px,1.1vw,17px)] leading-relaxed text-muted">
             {m.heroBody}
           </p>
-          <div className="mb-8 flex flex-wrap items-center gap-3">
+          <div className="mb-6 flex flex-wrap items-center gap-3">
             <Link
               to="/register"
               className={buttonClassName(

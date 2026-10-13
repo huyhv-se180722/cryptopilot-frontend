@@ -4,11 +4,13 @@ import type { MarketPair } from '../../../types/domain';
 import { formatPrice, toFixedDecimal } from '../../../utils/decimal-format';
 import type { MarketBoardData } from '../hooks/use-market-board';
 import { byVolume } from '../model/market-movers';
+import { TickerTape } from './TickerTape';
 
 /**
- * SCR-01 strip under the hero (the prototype's "market pulse"): the four
- * most traded Spot pairs of the last 24 hours with their live price and
- * change. The ticker tape of every pair runs at the top of the page.
+ * SCR-01 strip under the hero (the prototype's live strip and "market
+ * pulse"): a ticker tape of every Spot pair's live price under the
+ * section's live title, then the four most traded pairs of the last 24
+ * hours. The prototype's tape ran invented events; this one runs prices.
  */
 export function MarketPulse({
   board,
@@ -27,15 +29,11 @@ export function MarketPulse({
       aria-label={m.pulseTitle}
       className="mb-8 overflow-hidden rounded-2xl border border-line bg-surface"
     >
-      <div className="flex items-center gap-2 border-b border-line px-5 py-2.5">
-        <span
-          aria-hidden="true"
-          className="size-1.5 rounded-full bg-primary motion-safe:animate-[pulse-led_1.8s_ease-in-out_infinite]"
-        />
-        <span className="font-mono text-[10px] font-bold tracking-widest text-muted-dim uppercase">
-          {m.pulseTitle}
-        </span>
-      </div>
+      <TickerTape
+        board={board}
+        label={m.pulseTitle}
+        className="border-b border-line"
+      />
       <h3 className="px-5 pt-3 text-[10px] font-semibold tracking-wider text-muted-dim uppercase">
         {m.pulseMostTraded}
       </h3>
