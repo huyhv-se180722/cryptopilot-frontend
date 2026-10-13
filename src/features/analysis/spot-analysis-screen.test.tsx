@@ -31,6 +31,7 @@ beforeAll(() => {
 
 const priceLines = vi.hoisted(() => [] as { price: number; title: string }[]);
 vi.mock('lightweight-charts', () => ({
+  createSeriesMarkers: () => ({ setMarkers: vi.fn() }),
   CandlestickSeries: { name: 'candles' },
   LineSeries: { name: 'line' },
   HistogramSeries: { name: 'histogram' },

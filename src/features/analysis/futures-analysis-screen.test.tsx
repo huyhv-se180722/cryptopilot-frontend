@@ -14,6 +14,7 @@ import type {
 import { fakeAuth, page, renderRoutes, testTrader } from '../../test/render';
 
 vi.mock('lightweight-charts', () => ({
+  createSeriesMarkers: () => ({ setMarkers: vi.fn() }),
   CandlestickSeries: { name: 'candles' },
   LineSeries: { name: 'line' },
   HistogramSeries: { name: 'histogram' },
