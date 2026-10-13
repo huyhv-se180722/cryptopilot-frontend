@@ -1,7 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { LineSeries, createChart, type UTCTimestamp } from 'lightweight-charts';
+import { LineSeries, createChart } from 'lightweight-charts';
+import { useCopy } from '../../../hooks/use-copy';
+import { formatCopy } from '../../../i18n/copy';
 import type { Decimal, ISODateTime } from '../../../types/domain';
 import { chartOptions, token, useThemeVersion } from './chart-theme';
+import { chartOffsetSeconds, chartTime, zoneLabel } from './chart-time';
 
 export interface MetricLine {
   id: string;
@@ -18,7 +21,8 @@ export interface MetricLine {
  * A time series line chart in the theme of the analysis chart (SCR-11
  * open interest and long/short ratio). Drawing only: the values become
  * numbers for the chart library, the panels show the decimal strings.
- * Points are drawn where they exist; a gap is never filled.
+ * Points are drawn where they exist; a gap is never filled. Times are in
+ * the Trader's local time, as on the candle chart (chart-time.ts).
  */
 export function MetricChart({
   label,
@@ -27,8 +31,10 @@ export function MetricChart({
   label: string;
   lines: readonly MetricLine[];
 }) {
+  const copy = useCopy();
   const container = useRef<HTMLDivElement>(null);
   const theme = useThemeVersion();
+  const offset = chartOffsetSeconds('intraday');
 
   useEffect(() => {
     if (!container.current) return;
@@ -54,21 +60,26 @@ export function MetricChart({
       });
       series.setData(
         line.points.map((point) => ({
-          time: (Date.parse(point.time) / 1000) as UTCTimestamp,
+          time: chartTime(point.time, offset),
           value: Number(point.value),
         })),
       );
     }
     chart.timeScale().fitContent();
     return () => chart.remove();
-  }, [lines, theme]);
+  }, [lines, theme, offset]);
 
   return (
-    <div
-      ref={container}
-      role="img"
-      aria-label={label}
-      className="h-[220px] w-full"
-    />
+    <>
+      <div
+        ref={container}
+        role="img"
+        aria-label={label}
+        className="h-[220px] w-full"
+      />
+      <p className="mt-1 text-right text-[11px] text-muted-dim">
+        {formatCopy(copy.chart.timeZone, { zone: zoneLabel(offset) })}
+      </p>
+    </>
   );
 }

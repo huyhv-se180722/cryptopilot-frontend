@@ -8,10 +8,20 @@ import type { MarketFeed, MarketService } from '../../services/api/contracts';
 import type { Candle, KlineUpdate } from '../../types/domain';
 import { fakeAuth, page, renderRoutes } from '../../test/render';
 import { AnalysisChart, type ChartPriceLine } from './components/AnalysisChart';
+import { chartOffsetSeconds, zoneLabel } from './components/chart-time';
+
+/** An hourly chart is drawn in local time, shifted by this from UTC. */
+const LOCAL = chartOffsetSeconds('1h');
 
 /** Records what the page asks the chart library to draw. */
 const drawn = vi.hoisted(() => ({
-  series: [] as { kind: string; pane: number; data: unknown[] }[],
+  series: [] as {
+    kind: string;
+    pane: number;
+    data: unknown[];
+    writes: number;
+    updates: unknown[];
+  }[],
   charts: 0,
   lines: [] as { price: number; title: string; lineStyle: number }[],
   markers: [] as { time: number; shape: string; text?: string }[],
@@ -37,12 +47,22 @@ vi.mock('lightweight-charts', () => {
           _options: unknown,
           pane = 0,
         ) => {
-          const entry = { kind: definition.name, pane, data: [] as unknown[] };
+          const entry = {
+            kind: definition.name,
+            pane,
+            data: [] as unknown[],
+            writes: 0,
+            updates: [] as unknown[],
+          };
           own.push(entry);
           drawn.series.push(entry);
           return {
             setData: (data: unknown[]) => {
               entry.data = data;
+              entry.writes += 1;
+            },
+            update: (bar: unknown) => {
+              entry.updates.push(bar);
             },
             // Price-pane lines only; RSI 30 / 70 sit on their own pane.
             createPriceLine: (options: (typeof drawn.lines)[number]) => {
@@ -183,28 +203,49 @@ describe('SCR-10 analysis chart (T-032)', () => {
     );
   });
 
-  it('draws the forming candle faded after the closed ones', async () => {
+  it('draws the forming candle faded, updating that bar alone as it moves', async () => {
     const { ready, push } = render();
     await ready;
     await screen.findByRole('img');
-    push({
-      market: 'spot',
-      symbol: 'BTCUSDT',
-      timeframe: '1h',
-      closed: false,
-      candle: { ...candles(261)[260]!, close: '104' },
-    });
+    const forming = candles(261)[260]!;
+    const kline = (close: string, closed: boolean) =>
+      push({
+        market: 'spot',
+        symbol: 'BTCUSDT',
+        timeframe: '1h',
+        closed,
+        candle: { ...forming, close },
+      });
+    const series = () => drawn.series.find((s) => s.kind === 'candles')!;
+    const lines = () => drawn.series.filter((s) => s.kind !== 'candles');
+    const writes = () => lines().map((s) => s.writes);
+
+    const before = { candles: series().writes, lines: writes() };
+    kline('104', false);
     expect(await screen.findByText('Forming candle, provisional')).toBeTruthy();
-    const bars = drawn.series.find((s) => s.kind === 'candles')?.data as {
-      color?: string;
-    }[];
-    await waitFor(() => expect(bars?.length ?? 0).toBeGreaterThan(0));
-    const latest = drawn.series.find((s) => s.kind === 'candles')?.data as {
-      color?: string;
-    }[];
-    expect(latest).toHaveLength(261);
-    expect(latest[260]).toHaveProperty('color');
-    expect(latest[259]).not.toHaveProperty('color');
+    // Added after the 260 closed ones as one faded bar, nothing rewritten.
+    await waitFor(() => expect(series().updates).toHaveLength(1));
+    expect(series().updates[0]).toHaveProperty('color');
+    expect(series().data).toHaveLength(260);
+
+    // It moves: that bar is updated again; no series is written, and the
+    // indicators (drawn from closed candles) stay as they were.
+    kline('105', false);
+    kline('103', false);
+    await waitFor(() => expect(series().updates).toHaveLength(3));
+    expect(series().updates[2]).toMatchObject({
+      time: Date.parse(forming.openTime) / 1000 + LOCAL,
+      close: 103,
+      color: expect.any(String),
+    });
+    expect(series().writes).toBe(before.candles);
+    expect(writes()).toEqual(before.lines);
+
+    // It closes: the closed list changed, so every series is written.
+    kline('103', true);
+    await waitFor(() => expect(series().writes).toBe(before.candles + 1));
+    expect(series().data).toHaveLength(261);
+    expect(series().data[260]).not.toHaveProperty('color');
   });
 
   it('says when EMA 200 lacks history (insufficient data)', async () => {
@@ -221,6 +262,25 @@ describe('SCR-10 analysis chart (T-032)', () => {
     expect((await screen.findByRole('alert')).textContent).toContain(
       'This pair is not available on Spot.',
     );
+  });
+
+  it('draws intraday candles in local time and daily ones in UTC, and says which', async () => {
+    const { ready } = render();
+    await ready;
+    await screen.findByRole('img');
+    const first = () =>
+      (
+        drawn.series.find((s) => s.kind === 'candles')?.data as {
+          time: number;
+        }[]
+      )[0]?.time;
+    const start = Date.UTC(2026, 9, 1) / 1000;
+    expect(first()).toBe(start + LOCAL);
+    expect(screen.getByText('Times in ' + zoneLabel(LOCAL))).toBeTruthy();
+
+    await userEvent.click(screen.getByRole('radio', { name: '1d' }));
+    await waitFor(() => expect(first()).toBe(start));
+    expect(screen.getByText('Times in UTC')).toBeTruthy();
   });
 
   it('draws price lines and redraws them without rebuilding the chart', async () => {
@@ -350,12 +410,12 @@ describe('SCR-10 analysis chart (T-032)', () => {
     await waitFor(() => expect(drawn.markers).toHaveLength(2));
     expect(drawn.markers).toEqual([
       expect.objectContaining({
-        time: (start + HOUR) / 1000,
+        time: (start + HOUR) / 1000 + LOCAL,
         shape: 'arrowUp',
         text: 'B',
       }),
       expect.objectContaining({
-        time: (start + 2 * HOUR) / 1000,
+        time: (start + 2 * HOUR) / 1000 + LOCAL,
         shape: 'arrowDown',
       }),
     ]);

@@ -5,7 +5,11 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { createQueryClient } from '../../../app/providers/query-client';
 import { ServicesContext } from '../../../app/providers/services-context';
-import type { TradingMarketService } from '../../../services/api/contracts';
+import type {
+  FeedStatus,
+  MarketFeed,
+  TradingMarketService,
+} from '../../../services/api/contracts';
 import { integrationPending } from '../../../services/api/errors';
 import type { Services } from '../../../services/api/services';
 import type { MarketTrade, OrderBook } from '../../../types/domain';
@@ -49,9 +53,26 @@ function setup(service: Partial<TradingMarketService>) {
     },
     ...service,
   };
+  // The topics ride on the market feed's connection, whose status is shared.
+  let status: FeedStatus = 'open';
+  const statusListeners = new Set<() => void>();
+  const marketFeed = {
+    status: () => status,
+    onStatus: (listener: () => void) => {
+      statusListeners.add(listener);
+      return () => statusListeners.delete(listener);
+    },
+  } as unknown as MarketFeed;
+  const setStatus = (next: FeedStatus) =>
+    act(() => {
+      status = next;
+      statusListeners.forEach((listener) => listener());
+    });
   const client = createQueryClient();
   const wrapper = ({ children }: PropsWithChildren) => (
-    <ServicesContext.Provider value={{ tradingMarket } as unknown as Services}>
+    <ServicesContext.Provider
+      value={{ tradingMarket, marketFeed } as unknown as Services}
+    >
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     </ServicesContext.Provider>
   );
@@ -59,6 +80,7 @@ function setup(service: Partial<TradingMarketService>) {
     wrapper,
     pushDepth: (value: OrderBook) => act(() => depth?.(value)),
     pushTrades: (value: readonly MarketTrade[]) => act(() => trades?.(value)),
+    setStatus,
   };
 }
 
@@ -106,5 +128,26 @@ describe('useMarketTrades (TR-03)', () => {
       103, 102, 101, 100, 99,
     ]);
     expect(result.current.value).toHaveLength(TRADES_SHOWN);
+  });
+
+  it('reads the stored trades again after a reconnect, filling the gap', async () => {
+    let stored = Array.from({ length: TRADES_SHOWN }, (_, i) => trade(100 - i));
+    const getTrades = vi.fn(async () => stored);
+    const { wrapper, setStatus } = setup({ getTrades });
+    const { result } = renderHook(() => useMarketTrades('spot', 'BTCUSDT'), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.value[0]?.id).toBe(100));
+    const reads = getTrades.mock.calls.length;
+
+    // Down while trades 101…104 happen, then open again.
+    setStatus('connecting');
+    stored = Array.from({ length: TRADES_SHOWN }, (_, i) => trade(104 - i));
+    setStatus('open');
+    await waitFor(() => expect(result.current.value[0]?.id).toBe(104));
+    expect(getTrades.mock.calls.length).toBe(reads + 1);
+    expect(result.current.value.map((t) => t.id).slice(0, 5)).toEqual([
+      104, 103, 102, 101, 100,
+    ]);
   });
 });

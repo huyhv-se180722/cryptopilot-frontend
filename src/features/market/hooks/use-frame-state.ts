@@ -12,33 +12,35 @@ const nextFrame = (callback: () => void): (() => void) => {
 /**
  * State that takes updates at any rate but renders at most once per
  * animation frame: a burst of depth or trade messages becomes one paint
- * (plan section 12). Updates queued at unmount are dropped.
+ * (plan section 12).
+ *
+ * Each update is applied as it arrives to the newest value, and only that
+ * value waits for the frame. A hidden tab runs no animation frames, so
+ * queueing the updates themselves would grow without bound while it stays
+ * hidden (ten depth books a second) and replay them all at once on return;
+ * folding them keeps one value, and the tab shows the latest on return.
  */
 export function useFrameState<T>(
   initial: () => T,
 ): [T, (update: (current: T) => T) => void] {
   const [state, setState] = useState(initial);
-  const queue = useRef<((current: T) => T)[]>([]);
+  // Every update goes through `push`, so this is always the newest value.
+  const latest = useRef(state);
   const cancel = useRef<(() => void) | null>(null);
 
   useEffect(
     () => () => {
       cancel.current?.();
       cancel.current = null;
-      queue.current = [];
     },
     [],
   );
 
   const push = useCallback((update: (current: T) => T) => {
-    queue.current.push(update);
+    latest.current = update(latest.current);
     cancel.current ??= nextFrame(() => {
       cancel.current = null;
-      const updates = queue.current;
-      queue.current = [];
-      setState((current) =>
-        updates.reduce((value, apply) => apply(value), current),
-      );
+      setState(latest.current);
     });
   }, []);
 

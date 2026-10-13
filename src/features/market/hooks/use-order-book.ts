@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useOnFeedOpen } from '../../../hooks/use-on-feed-open';
 import { useServices } from '../../../hooks/use-services';
 import type { MarketTrade, MarketType, OrderBook } from '../../../types/domain';
 import { useFrameState } from './use-frame-state';
@@ -87,7 +88,9 @@ function newestFirst(...lists: (readonly MarketTrade[])[]): MarketTrade[] {
 
 /**
  * A pair's latest market trades (TR-03): the stored ones first, then each
- * push of the topic, painted at most once per frame.
+ * push of the topic, painted at most once per frame. The stored ones are
+ * read again whenever the feed opens, so trades made while it was down
+ * fill in (the depth needs no such read: each push is a whole book).
  */
 export function useMarketTrades(
   market: MarketType,
@@ -101,6 +104,8 @@ export function useMarketTrades(
       tradingMarket.getTrades(market, symbol, TRADES_SHOWN, signal),
     staleTime: Infinity,
   });
+  const { refetch } = snapshot;
+  useOnFeedOpen(() => void refetch());
   const [live, push] = useFrameState<Live<readonly MarketTrade[]>>(() => ({
     key,
     value: [],

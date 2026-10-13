@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import {
   CandlestickSeries,
@@ -41,9 +41,9 @@ import {
 } from '../hooks/use-chart-series';
 import type { Series } from '../indicators/indicators';
 import { chartOptions, token, useThemeVersion } from './chart-theme';
+import { chartOffsetSeconds, chartTime, zoneLabel } from './chart-time';
 import {
   TONE_TOKENS,
-  barTime,
   placeMarkers,
   type ChartMarker,
   type ChartTone,
@@ -72,9 +72,10 @@ const LINE_TOKENS = {
   macdSignal: '--cp-warning',
 } as const;
 
-const time = barTime;
+/** A candle's place on the time axis (see `chart-time.ts`). */
+type TimeOf = (candle: Candle) => UTCTimestamp;
 
-function line(candles: readonly Candle[], values: Series) {
+function line(time: TimeOf, candles: readonly Candle[], values: Series) {
   return candles.map((candle, i) => {
     const value = values[i];
     return value === null || value === undefined
@@ -165,7 +166,12 @@ function drawPriceLines(
   );
 }
 
-function build(chart: IChartApi, toggles: ChartToggles, places: number) {
+function build(
+  chart: IChartApi,
+  toggles: ChartToggles,
+  places: number,
+  time: TimeOf,
+) {
   const up = token('--cp-positive');
   const down = token('--cp-negative');
   const upDim = token('--cp-positive-dim');
@@ -188,6 +194,20 @@ function build(chart: IChartApi, toggles: ChartToggles, places: number) {
     borderVisible: false,
     priceFormat: { type: 'price', precision: places, minMove },
   });
+  // Provisional (SRS 3.3.2): the forming candle is drawn faded.
+  const formingBar = (forming: Candle): CandlestickData<UTCTimestamp> => {
+    const colour =
+      Number(forming.close) >= Number(forming.open) ? upDim : downDim;
+    return {
+      time: time(forming),
+      open: Number(forming.open),
+      high: Number(forming.high),
+      low: Number(forming.low),
+      close: Number(forming.close),
+      color: colour,
+      wickColor: colour,
+    };
+  };
   writers.push(({ candles: closed, forming }) => {
     const bars: CandlestickData<UTCTimestamp>[] = closed.map((candle) => ({
       time: time(candle),
@@ -196,20 +216,7 @@ function build(chart: IChartApi, toggles: ChartToggles, places: number) {
       low: Number(candle.low),
       close: Number(candle.close),
     }));
-    if (forming) {
-      const rising = Number(forming.close) >= Number(forming.open);
-      // Provisional (SRS 3.3.2): the forming candle is drawn faded.
-      const colour = rising ? upDim : downDim;
-      bars.push({
-        time: time(forming),
-        open: Number(forming.open),
-        high: Number(forming.high),
-        low: Number(forming.low),
-        close: Number(forming.close),
-        color: colour,
-        wickColor: colour,
-      });
-    }
+    if (forming) bars.push(formingBar(forming));
     candles.setData(bars);
   });
 
@@ -219,7 +226,7 @@ function build(chart: IChartApi, toggles: ChartToggles, places: number) {
   ) => {
     const series = chart.addSeries(LineSeries, lineOptions(name));
     writers.push(({ candles: closed, indicators }) =>
-      series.setData(indicators ? line(closed, pick(indicators)) : []),
+      series.setData(indicators ? line(time, closed, pick(indicators)) : []),
     );
   };
   if (toggles.sma20) overlay('sma20', (i) => i.sma20);
@@ -234,7 +241,7 @@ function build(chart: IChartApi, toggles: ChartToggles, places: number) {
       });
       writers.push(({ candles: closed, indicators }) =>
         series.setData(
-          indicators ? line(closed, indicators.bollinger[band]) : [],
+          indicators ? line(time, closed, indicators.bollinger[band]) : [],
         ),
       );
     }
@@ -266,7 +273,7 @@ function build(chart: IChartApi, toggles: ChartToggles, places: number) {
   ) => {
     const series = chart.addSeries(LineSeries, lineOptions(name), index);
     writers.push(({ candles: closed, indicators }) =>
-      series.setData(indicators ? line(closed, values(indicators)) : []),
+      series.setData(indicators ? line(time, closed, values(indicators)) : []),
     );
     return series;
   };
@@ -323,6 +330,12 @@ function build(chart: IChartApi, toggles: ChartToggles, places: number) {
 
   return {
     write: (data: Data) => writers.forEach((write) => write(data)),
+    /**
+     * Only the forming candle moved: change that bar alone (the library
+     * replaces its last bar at the same time, or appends a later one); the
+     * indicators and panels are drawn from closed candles and stay.
+     */
+    updateForming: (forming: Candle) => candles.update(formingBar(forming)),
     candles,
   };
 }
@@ -369,12 +382,21 @@ export function AnalysisChart({
   const firstShown = useRef<string | null>(null);
   const container = useRef<HTMLDivElement>(null);
   const write = useRef<((data: Data) => void) | null>(null);
+  const updateForming = useRef<((forming: Candle) => void) | null>(null);
+  /** What the series hold, to tell a forming-only change from a new list. */
+  const written = useRef<Pick<Data, 'candles' | 'indicators'> | null>(null);
   const latest = useRef<Data>(series);
   const ready = series.status === 'ready';
   const togglesKey = CHART_ITEMS.map((item) => (toggles[item] ? 1 : 0)).join(
     '',
   );
   const places = decimalPlaces(tickSize);
+  // Local time on intraday charts, UTC on daily ones (chart-time.ts).
+  const offset = chartOffsetSeconds(timeframe);
+  const time = useCallback(
+    (candle: Candle) => chartTime(candle.openTime, offset),
+    [offset],
+  );
   const theme = useThemeVersion();
   const priceSeries = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const drawnLines = useRef<IPriceLine[]>([]);
@@ -428,12 +450,14 @@ export function AnalysisChart({
   useEffect(() => {
     if (!ready || !container.current) return;
     const chart = createChart(container.current, chartOptions());
-    const built = build(chart, toggles, places);
+    const built = build(chart, toggles, places, time);
     write.current = built.write;
+    updateForming.current = built.updateForming;
     priceSeries.current = built.candles;
     drawnLines.current = drawPriceLines(built.candles, [], latestLines.current);
     markersApi.current = createSeriesMarkers(built.candles, []);
     write.current(latest.current);
+    written.current = latest.current;
     chartApi.current = chart;
     firstShown.current = latest.current.candles[0]?.openTime ?? null;
     const scale = chart.timeScale();
@@ -451,6 +475,8 @@ export function AnalysisChart({
     return () => {
       if (extendable) scale.unsubscribeVisibleLogicalRangeChange(onRange);
       write.current = null;
+      updateForming.current = null;
+      written.current = null;
       chartApi.current = null;
       priceSeries.current = null;
       drawnLines.current = [];
@@ -458,7 +484,7 @@ export function AnalysisChart({
       chart.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `toggles` is read through `togglesKey`.
-  }, [ready, togglesKey, places, theme, extendable]);
+  }, [ready, togglesKey, places, theme, extendable, time]);
 
   // Lines change often (orders, levels): redraw them on the same series.
   useEffect(() => {
@@ -481,6 +507,7 @@ export function AnalysisChart({
         latestMarkers.current,
         forming ? [...candles, forming] : candles,
         (tone) => token(TONE_TOKENS[tone]),
+        time,
       ),
     );
   }, [
@@ -492,6 +519,7 @@ export function AnalysisChart({
     togglesKey,
     places,
     theme,
+    time,
   ]);
 
   // A line's chip follows its price while the Trader pans and zooms. The
@@ -526,6 +554,23 @@ export function AnalysisChart({
   }, [hasActions]);
 
   useEffect(() => {
+    // The forming candle moves every couple of seconds: when nothing else
+    // changed, update that one bar instead of writing every series again.
+    const held = written.current;
+    if (
+      held &&
+      series.forming &&
+      updateForming.current &&
+      held.candles === series.candles &&
+      held.indicators === series.indicators
+    ) {
+      try {
+        updateForming.current(series.forming);
+        return;
+      } catch {
+        // A bar older than the last one cannot be updated: write it all.
+      }
+    }
     const scale = extendable ? chartApi.current?.timeScale() : undefined;
     const range = scale?.getVisibleLogicalRange() ?? null;
     write.current?.({
@@ -533,6 +578,11 @@ export function AnalysisChart({
       forming: series.forming,
       indicators: series.indicators,
     });
+    if (write.current)
+      written.current = {
+        candles: series.candles,
+        indicators: series.indicators,
+      };
     // Older candles were put in front: move the view by as many bars so
     // what the Trader looks at stays where it was.
     const before = firstShown.current;
@@ -607,15 +657,18 @@ export function AnalysisChart({
             {c.loadingOlder}
           </span>
         )}
-        {series.forming && (
-          <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] text-muted">
-            <span
-              aria-hidden="true"
-              className="h-3 w-1.5 rounded-sm bg-positive-line"
-            />
-            {c.forming}
-          </span>
-        )}
+        <span className="ml-auto inline-flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-[11px] text-muted">
+          {series.forming && (
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                aria-hidden="true"
+                className="h-3 w-1.5 rounded-sm bg-positive-line"
+              />
+              {c.forming}
+            </span>
+          )}
+          <span>{formatCopy(c.timeZone, { zone: zoneLabel(offset) })}</span>
+        </span>
       </div>
       {series.status === 'loading' ? (
         <Skeleton className={classNames('w-full', HEIGHTS[panels])} />
