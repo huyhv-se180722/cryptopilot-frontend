@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { MarketOverview } from '../../types/domain';
 import {
+  SILENCE_LIMIT_MS,
   createStompMarketFeed,
+  type FeedClock,
   type StompConnection,
 } from './stomp-market-feed';
 
@@ -50,21 +52,48 @@ function fakeConnection() {
     onConnect: () => undefined,
     onWebSocketClose: () => undefined,
     onStompError: () => undefined,
+    // Closing the socket reports a close, after which the client reconnects.
+    forceDisconnect: vi.fn(() =>
+      (connection.onWebSocketClose as unknown as () => void)(),
+    ),
   };
   const send = (destination: string, body: string) =>
     subscriptions.get(destination)?.({ body });
   return { connection, subscriptions, unsubscribed, send };
 }
 
+/** A clock the test moves; the watch runs when it is told to. */
+function fakeClock() {
+  let now = 0;
+  const watches = new Set<() => void>();
+  const clock: FeedClock = {
+    now: () => now,
+    every: (callback) => {
+      watches.add(callback);
+      return () => watches.delete(callback);
+    },
+  };
+  const advance = (ms: number) => {
+    now += ms;
+    watches.forEach((watch) => watch());
+  };
+  return { clock, advance, watching: () => watches.size };
+}
+
 function setup() {
   const fake = fakeConnection();
+  const time = fakeClock();
   const connect = vi.fn(() => fake.connection as unknown as StompConnection);
-  const feed = createStompMarketFeed('ws://localhost:8080/ws', connect);
+  const feed = createStompMarketFeed(
+    'ws://localhost:8080/ws',
+    connect,
+    time.clock,
+  );
   const connected = () =>
     (fake.connection.onConnect as unknown as () => void)();
   const dropped = () =>
     (fake.connection.onWebSocketClose as unknown as () => void)();
-  return { feed, fake, connect, connected, dropped };
+  return { feed, fake, connect, connected, dropped, time };
 }
 
 describe('STOMP market feed', () => {
@@ -166,6 +195,50 @@ describe('STOMP market feed', () => {
       closed: true,
       candle: { close: '1.5' },
     });
+  });
+
+  it('reopens a socket that has gone silent, waiting longer each time', () => {
+    const { feed, fake, connected, time } = setup();
+    feed.subscribeOverview('spot', vi.fn());
+    connected();
+    const tick = () =>
+      fake.send('/topic/overview.SPOT', JSON.stringify(OVERVIEW));
+
+    // Messages keep it alive.
+    for (let i = 0; i < 10; i++) {
+      time.advance(5_000);
+      tick();
+    }
+    expect(fake.connection.forceDisconnect).not.toHaveBeenCalled();
+
+    // Half-open: nothing arrives for the limit, so it is closed and reopened.
+    time.advance(SILENCE_LIMIT_MS);
+    expect(fake.connection.forceDisconnect).toHaveBeenCalledTimes(1);
+    expect(feed.status()).toBe('connecting');
+    connected();
+    expect(feed.status()).toBe('open');
+
+    // Still silent after the reconnect: the next limit is twice as long.
+    time.advance(SILENCE_LIMIT_MS);
+    expect(fake.connection.forceDisconnect).toHaveBeenCalledTimes(1);
+    time.advance(SILENCE_LIMIT_MS);
+    expect(fake.connection.forceDisconnect).toHaveBeenCalledTimes(2);
+
+    // A message brings the limit back to the start.
+    connected();
+    tick();
+    time.advance(SILENCE_LIMIT_MS);
+    expect(fake.connection.forceDisconnect).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not judge a feed that carries only quiet topics, nor a closed one', () => {
+    const { feed, fake, connected, time } = setup();
+    const stop = feed.subscribeKline('spot', 'btcusdt', '1d', vi.fn());
+    connected();
+    time.advance(10 * SILENCE_LIMIT_MS);
+    expect(fake.connection.forceDisconnect).not.toHaveBeenCalled();
+    stop();
+    expect(time.watching()).toBe(0);
   });
 
   it('unsubscribes and closes the socket with the last subscriber', () => {
