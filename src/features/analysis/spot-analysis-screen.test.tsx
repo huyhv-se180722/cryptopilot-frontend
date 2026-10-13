@@ -38,8 +38,14 @@ vi.mock('lightweight-charts', () => ({
   createChart: () => ({
     addSeries: () => ({
       setData: vi.fn(),
-      createPriceLine: (line: { price: number; title: string }) =>
-        priceLines.push(line),
+      createPriceLine: (line: { price: number; title: string }) => {
+        priceLines.push(line);
+        return line;
+      },
+      removePriceLine: (line: { price: number; title: string }) => {
+        const at = priceLines.indexOf(line);
+        if (at >= 0) priceLines.splice(at, 1);
+      },
     }),
     panes: () => [0, 1, 2, 3].map(() => ({ setStretchFactor: vi.fn() })),
     timeScale: () => ({ fitContent: vi.fn() }),
@@ -94,6 +100,7 @@ const TICKER: MarketTicker = {
   high24h: '63950.00',
   low24h: '61820.50',
   changePercent24h: '1.254',
+  baseVolume24h: '17325.48210000',
   quoteVolume24h: '1139455120.42',
   markPrice: null,
   indexPrice: null,

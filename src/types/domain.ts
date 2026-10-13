@@ -77,6 +77,8 @@ export interface MarketTicker {
   low24h: Decimal | null;
   /** Already a percent, e.g. "1.25". */
   changePercent24h: Decimal | null;
+  /** 24h volume in the base asset, e.g. BTC of BTCUSDT. */
+  baseVolume24h: Decimal | null;
   quoteVolume24h: Decimal | null;
   markPrice: Decimal | null;
   indexPrice: Decimal | null;
@@ -509,4 +511,15 @@ export interface RiskSuggestion {
   capacityScore: number;
   attitudeScore: number;
   suggestedProfile: RiskProfile;
+}
+
+/**
+ * Demo trading (D-86): the Trader's paper account, virtual funds only;
+ * nothing reaches an exchange. How Futures positions are held (Q-T4).
+ */
+export type PaperPositionMode = 'one-way' | 'hedge';
+export interface PaperAccount {
+  accountId: string;
+  positionMode: PaperPositionMode;
+  openedAt: ISODateTime;
 }

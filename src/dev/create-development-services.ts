@@ -1,6 +1,7 @@
 import type { Services } from '../services/api/services';
 import { createDevelopmentAuth } from './dev-auth';
 import { createDevelopmentMarket } from './dev-market';
+import { createDevelopmentPaperTrading } from './dev-paper-trading';
 import { createDevelopmentProfile } from './dev-profile';
 import { createDevelopmentTradingPlan } from './dev-trading-plan';
 import { createDevelopmentWatchlist } from './dev-watchlist';
@@ -16,5 +17,6 @@ export function createDevelopmentServices(base: Services): Services {
     ...createDevelopmentMarket(),
     tradingPlan: createDevelopmentTradingPlan(() => auth.restoreSession()),
     ...createDevelopmentWatchlist(() => auth.restoreSession()),
+    ...createDevelopmentPaperTrading(() => auth.restoreSession()),
   };
 }

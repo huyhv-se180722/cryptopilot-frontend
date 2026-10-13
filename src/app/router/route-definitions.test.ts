@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { en } from '../../i18n/locales/en';
+import { traderNav } from '../layouts/navigation';
 import {
   DIALOG_SCREENS,
   adminRoutes,
   guestOnlyRoutes,
+  paperRoutes,
   publicRoutes,
   traderRoutes,
 } from './route-definitions';
@@ -61,5 +63,16 @@ describe('route definitions', () => {
 
   it('has an English title for every route', () => {
     for (const route of all) expect(en.screens[route.titleKey]).toBeTruthy();
+  });
+
+  it('traces demo trading to D-86 under /trade, off until its flag is set', () => {
+    expect(paperRoutes.map((route) => [route.path, route.screen])).toEqual([
+      ['/trade/spot', 'D-86'],
+      ['/trade/spot/:symbol', 'D-86'],
+    ]);
+    const others = [...publicRoutes, ...guestOnlyRoutes, ...traderRoutes];
+    expect(others.some((route) => route.path.startsWith('/trade'))).toBe(false);
+    // VITE_ENABLE_PAPER_TRADING is not set in tests (D-94).
+    expect(traderNav.some((item) => item.to.startsWith('/trade'))).toBe(false);
   });
 });

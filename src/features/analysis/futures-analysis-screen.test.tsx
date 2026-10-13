@@ -19,7 +19,11 @@ vi.mock('lightweight-charts', () => ({
   HistogramSeries: { name: 'histogram' },
   ColorType: { Solid: 'solid' },
   createChart: () => ({
-    addSeries: () => ({ setData: vi.fn(), createPriceLine: vi.fn() }),
+    addSeries: () => ({
+      setData: vi.fn(),
+      createPriceLine: vi.fn(),
+      removePriceLine: vi.fn(),
+    }),
     panes: () => [0, 1, 2, 3].map(() => ({ setStretchFactor: vi.fn() })),
     timeScale: () => ({ fitContent: vi.fn() }),
     remove: vi.fn(),
@@ -179,6 +183,7 @@ describe('SCR-11 Futures analysis (T-034)', () => {
       high24h: null,
       low24h: null,
       changePercent24h: null,
+      baseVolume24h: null,
       quoteVolume24h: null,
       markPrice: '63010.2',
       indexPrice: '63005.8',

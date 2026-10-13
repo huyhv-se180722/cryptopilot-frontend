@@ -6,6 +6,7 @@ import {
   createChart,
   type CandlestickData,
   type IChartApi,
+  type IPriceLine,
   type ISeriesApi,
   type SeriesType,
   type UTCTimestamp,
@@ -19,6 +20,7 @@ import { errorText } from '../../../i18n/messages';
 import type {
   Candle,
   CandleTimeframe,
+  Decimal,
   MarketType,
 } from '../../../types/domain';
 import { classNames } from '../../../utils/class-names';
@@ -37,6 +39,10 @@ import type { Series } from '../indicators/indicators';
 import { chartOptions, token, useThemeVersion } from './chart-theme';
 
 const TIMEFRAMES: readonly CandleTimeframe[] = ['15m', '1h', '4h', '1d'];
+/** An extendable chart opens on the latest bars, like an exchange chart. */
+const OPENING_BARS = 150;
+/** Bars left of the view at which an extendable chart reads an older page. */
+const LOAD_MARGIN_BARS = 30;
 /** Price pane 320px plus 110px per shown panel. */
 const HEIGHTS = ['h-[320px]', 'h-[430px]', 'h-[540px]', 'h-[650px]'] as const;
 
@@ -81,13 +87,47 @@ export interface PriceLevels {
   resistance: string | null;
 }
 
-function build(
-  chart: IChartApi,
-  toggles: ChartToggles,
-  places: number,
-  levels: PriceLevels | undefined,
-  labels: { support: string; resistance: string },
-) {
+/** Which design token draws a price line, so both themes follow. */
+const TONE_TOKENS = {
+  positive: '--cp-positive',
+  negative: '--cp-negative',
+  neutral: '--cp-muted',
+  primary: '--cp-primary',
+  warning: '--cp-warning',
+} as const;
+
+/**
+ * A labelled horizontal line on the price pane: a BR-14 level, or later an
+ * order, an entry, a TP/SL or a liquidation price. `id` keeps it stable.
+ */
+export interface ChartPriceLine {
+  id: string;
+  price: Decimal;
+  label: string;
+  tone: keyof typeof TONE_TOKENS;
+  dashed?: boolean;
+}
+
+/** Replaces the lines drawn on `series` with `lines`; returns the new ones. */
+function drawPriceLines(
+  series: ISeriesApi<'Candlestick'>,
+  drawn: readonly IPriceLine[],
+  lines: readonly ChartPriceLine[],
+): IPriceLine[] {
+  drawn.forEach((line) => series.removePriceLine(line));
+  return lines.map((line) =>
+    series.createPriceLine({
+      price: Number(line.price),
+      color: token(TONE_TOKENS[line.tone]),
+      lineWidth: 1,
+      lineStyle: line.dashed === false ? 0 : 1,
+      axisLabelVisible: true,
+      title: line.label,
+    }),
+  );
+}
+
+function build(chart: IChartApi, toggles: ChartToggles, places: number) {
   const up = token('--cp-positive');
   const down = token('--cp-negative');
   const upDim = token('--cp-positive-dim');
@@ -110,20 +150,6 @@ function build(
     borderVisible: false,
     priceFormat: { type: 'price', precision: places, minMove },
   });
-  // BR-14: nearest support and resistance as horizontal lines.
-  for (const [price, colour, title] of [
-    [levels?.support ?? null, up, labels.support],
-    [levels?.resistance ?? null, down, labels.resistance],
-  ] as const)
-    if (price !== null)
-      candles.createPriceLine({
-        price: Number(price),
-        color: colour,
-        lineWidth: 1,
-        lineStyle: 1,
-        axisLabelVisible: true,
-        title,
-      });
   writers.push(({ candles: closed, forming }) => {
     const bars: CandlestickData<UTCTimestamp>[] = closed.map((candle) => ({
       time: time(candle),
@@ -257,7 +283,10 @@ function build(
   chart.panes()[0]?.setStretchFactor(3);
   for (const index of panes) chart.panes()[index]?.setStretchFactor(1);
 
-  return (data: Data) => writers.forEach((write) => write(data));
+  return {
+    write: (data: Data) => writers.forEach((write) => write(data)),
+    candles,
+  };
 }
 
 /**
@@ -265,7 +294,10 @@ function build(
  * 1h, BR-08), the latest 500 closed candles and the forming one drawn
  * faded as provisional; overlays SMA 20, EMA 20 / 50 / 200 and Bollinger;
  * panels Volume with its SMA 20, RSI 14 and MACD. Each item can be hidden,
- * and the choice is remembered on the device.
+ * and the choice is remembered on the device. `levels` (BR-14) and
+ * `priceLines` are drawn on the price pane and redrawn without a rebuild.
+ * `extendable` (trading screens) opens on the latest bars and reads older
+ * candles when dragged to its start, keeping the view in place.
  */
 export function AnalysisChart({
   market,
@@ -274,6 +306,8 @@ export function AnalysisChart({
   timeframe,
   onTimeframeChange,
   levels,
+  priceLines,
+  extendable = false,
 }: {
   market: MarketType;
   symbol: string;
@@ -281,11 +315,16 @@ export function AnalysisChart({
   timeframe: CandleTimeframe;
   onTimeframeChange: (timeframe: CandleTimeframe) => void;
   levels?: PriceLevels;
+  priceLines?: readonly ChartPriceLine[];
+  extendable?: boolean;
 }) {
   const copy = useCopy();
   const c = copy.chart;
   const { toggles, toggle } = useChartPreferences();
-  const series = useChartSeries(market, symbol, timeframe);
+  const series = useChartSeries(market, symbol, timeframe, { extendable });
+  const chartApi = useRef<IChartApi | null>(null);
+  const loadOlder = useRef(series.loadOlder);
+  const firstShown = useRef<string | null>(null);
   const container = useRef<HTMLDivElement>(null);
   const write = useRef<((data: Data) => void) | null>(null);
   const latest = useRef<Data>(series);
@@ -295,36 +334,112 @@ export function AnalysisChart({
   );
   const places = decimalPlaces(tickSize);
   const theme = useThemeVersion();
+  const priceSeries = useRef<ISeriesApi<'Candlestick'> | null>(null);
+  const drawnLines = useRef<IPriceLine[]>([]);
+  // BR-14: nearest support and resistance, then the caller's own lines.
+  const lines: ChartPriceLine[] = [
+    ...(levels?.support
+      ? [
+          {
+            id: 'support',
+            price: levels.support,
+            label: copy.analysis.support,
+            tone: 'positive' as const,
+          },
+        ]
+      : []),
+    ...(levels?.resistance
+      ? [
+          {
+            id: 'resistance',
+            price: levels.resistance,
+            label: copy.analysis.resistance,
+            tone: 'negative' as const,
+          },
+        ]
+      : []),
+    ...(priceLines ?? []),
+  ];
+  const linesKey = lines
+    .map((line) =>
+      [line.id, line.price, line.label, line.tone, line.dashed].join(':'),
+    )
+    .join('|');
+  const latestLines = useRef(lines);
 
   // Declared before the rebuild so a rebuild writes the newest data.
   useEffect(() => {
     latest.current = series;
+    latestLines.current = lines;
+    loadOlder.current = series.loadOlder;
   });
 
   // Rebuilt when the shown items, the precision or the theme change.
   useEffect(() => {
     if (!ready || !container.current) return;
     const chart = createChart(container.current, chartOptions());
-    write.current = build(chart, toggles, places, levels, {
-      support: copy.analysis.support,
-      resistance: copy.analysis.resistance,
-    });
+    const built = build(chart, toggles, places);
+    write.current = built.write;
+    priceSeries.current = built.candles;
+    drawnLines.current = drawPriceLines(built.candles, [], latestLines.current);
     write.current(latest.current);
-    chart.timeScale().fitContent();
+    chartApi.current = chart;
+    firstShown.current = latest.current.candles[0]?.openTime ?? null;
+    const scale = chart.timeScale();
+    const onRange = (range: { from: number } | null) => {
+      if (range && range.from < LOAD_MARGIN_BARS) loadOlder.current?.();
+    };
+    if (extendable) {
+      const count = latest.current.candles.length;
+      scale.setVisibleLogicalRange({
+        from: Math.max(0, count - OPENING_BARS),
+        to: count + 5,
+      });
+      scale.subscribeVisibleLogicalRangeChange(onRange);
+    } else scale.fitContent();
     return () => {
+      if (extendable) scale.unsubscribeVisibleLogicalRangeChange(onRange);
       write.current = null;
+      chartApi.current = null;
+      priceSeries.current = null;
+      drawnLines.current = [];
       chart.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `toggles` is read through `togglesKey`.
-  }, [ready, togglesKey, places, theme, levels?.support, levels?.resistance]);
+  }, [ready, togglesKey, places, theme, extendable]);
+
+  // Lines change often (orders, levels): redraw them on the same series.
+  useEffect(() => {
+    if (!priceSeries.current) return;
+    drawnLines.current = drawPriceLines(
+      priceSeries.current,
+      drawnLines.current,
+      latestLines.current,
+    );
+  }, [linesKey]);
 
   useEffect(() => {
+    const scale = extendable ? chartApi.current?.timeScale() : undefined;
+    const range = scale?.getVisibleLogicalRange() ?? null;
     write.current?.({
       candles: series.candles,
       forming: series.forming,
       indicators: series.indicators,
     });
-  }, [series.candles, series.forming, series.indicators]);
+    // Older candles were put in front: move the view by as many bars so
+    // what the Trader looks at stays where it was.
+    const before = firstShown.current;
+    firstShown.current = series.candles[0]?.openTime ?? null;
+    if (!extendable || !scale || !range || before === null) return;
+    const added = series.candles.findIndex(
+      (candle) => candle.openTime === before,
+    );
+    if (added > 0)
+      scale.setVisibleLogicalRange({
+        from: range.from + added,
+        to: range.to + added,
+      });
+  }, [series.candles, series.forming, series.indicators, extendable]);
 
   const panels = (['volume', 'rsi', 'macd'] as const).filter(
     (item) => toggles[item],
@@ -364,6 +479,11 @@ export function AnalysisChart({
             </button>
           ))}
         </div>
+        {series.loadingOlder && (
+          <span role="status" className="text-[11px] text-muted">
+            {c.loadingOlder}
+          </span>
+        )}
         {series.forming && (
           <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] text-muted">
             <span

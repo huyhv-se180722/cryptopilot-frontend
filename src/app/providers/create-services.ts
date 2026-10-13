@@ -34,6 +34,7 @@ import {
   createHttpWatchlistService,
   createPendingWatchlistService,
 } from '../../services/api/watchlist';
+import { createPendingPaperTradingService } from '../../services/api/paper-trading';
 import { createCommunityService } from '../../services/api/community';
 import { createNewsService } from '../../services/api/news';
 import { createAiService } from '../../services/api/ai';
@@ -71,6 +72,7 @@ export async function createServices(env: Environment): Promise<Services> {
     alerts: connected
       ? createHttpAlertsService(http)
       : createPendingAlertsService(),
+    paperTrading: createPendingPaperTradingService(),
     community: createCommunityService(),
     news: createNewsService(),
     ai: createAiService(),

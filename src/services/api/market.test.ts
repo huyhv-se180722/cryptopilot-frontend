@@ -5,6 +5,7 @@ import {
   decodeKline,
   decodeOverview,
   decodePairPage,
+  decodeSpotStats,
   decodeTicker,
 } from './market-dto';
 
@@ -67,9 +68,35 @@ describe('market decoders', () => {
     const ticker = decodeTicker(SPOT_TICKER);
     expect(ticker.market).toBe('spot');
     expect(ticker.changePercent24h).toBe('-1.254');
+    expect(ticker.baseVolume24h).toBe('18234.11');
     expect(ticker.fundingRate).toBeNull();
     expect(() => decodeTicker({ ...SPOT_TICKER, market: 'MARGIN' })).toThrow();
     expect(() => decodeTicker({ ...SPOT_TICKER, lastPrice: 63000 })).toThrow();
+  });
+
+  it('reads both 24h volumes of a stored Spot ticker', () => {
+    expect(
+      decodeSpotStats({
+        symbol: 'BTCUSDT',
+        serverTime: '2026-10-03T02:15:30Z',
+        ticker: {
+          asOf: '2026-10-03T02:15:00Z',
+          lastPrice: '63000.01',
+          bestBid: '63000.00',
+          bestAsk: '63000.02',
+          high24h: '63950.00',
+          low24h: '61820.50',
+          changePercent24h: '-1.254',
+          baseVolume24h: '18234.11',
+          quoteVolume24h: '1139455120.42',
+        },
+      }),
+    ).toMatchObject({
+      market: 'spot',
+      baseVolume24h: '18234.11',
+      quoteVolume24h: '1139455120.42',
+      markPrice: null,
+    });
   });
 
   it('decodes the overview and rejects a malformed pair page', () => {
@@ -196,6 +223,13 @@ describe('HTTP market adapter', () => {
       timeframe: '1d',
       limit: 90,
     });
+    await market.getCandles({
+      market: 'spot',
+      symbol: 'BTCUSDT',
+      timeframe: '1h',
+      limit: 500,
+      before: '2026-10-02T00:00:00Z',
+    });
     expect(candles[0]).toEqual({
       openTime: '2026-10-02T00:00:00Z',
       open: '1',
@@ -215,6 +249,7 @@ describe('HTTP market adapter', () => {
     });
     expect(urls.map((url) => url.pathname + url.search)).toEqual([
       '/api/v1/market/spot/btcusdt/candles?tf=1d&limit=90',
+      '/api/v1/market/spot/BTCUSDT/candles?tf=1h&limit=500&to=2026-10-02T00%3A00%3A00Z',
       '/api/v1/market/spot/BTCUSDT/stats',
       '/api/v1/market/futures/BTCUSDT/stats',
     ]);

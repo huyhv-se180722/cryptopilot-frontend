@@ -28,6 +28,7 @@ const ticker = (
   high24h: null,
   low24h: null,
   changePercent24h: null,
+  baseVolume24h: null,
   quoteVolume24h: null,
   markPrice: null,
   indexPrice: null,

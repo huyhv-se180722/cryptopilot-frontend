@@ -58,9 +58,11 @@ export function createHttpMarketService(http: HttpClient): MarketService {
       }
       return pairs.sort((a, b) => a.displayOrder - b.displayOrder);
     },
-    getCandles: ({ market, symbol, timeframe, limit, signal }) =>
+    getCandles: ({ market, symbol, timeframe, limit, before, signal }) =>
       http.request({
-        path: `market/${market}/${encodeURIComponent(symbol)}/candles?tf=${timeframe}&limit=${limit}`,
+        path:
+          `market/${market}/${encodeURIComponent(symbol)}/candles?tf=${timeframe}&limit=${limit}` +
+          (before ? `&to=${encodeURIComponent(before)}` : ''),
         decode: decodeCandles,
         anonymous: true,
         ...withSignal(signal),

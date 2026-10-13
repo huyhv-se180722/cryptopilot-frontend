@@ -2,14 +2,18 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { SpotAnalysisPage } from '../../pages/trader/SpotAnalysisPage';
 import type { MarketFeed, MarketService } from '../../services/api/contracts';
 import type { Candle, KlineUpdate } from '../../types/domain';
 import { fakeAuth, page, renderRoutes } from '../../test/render';
+import { AnalysisChart, type ChartPriceLine } from './components/AnalysisChart';
 
 /** Records what the page asks the chart library to draw. */
 const drawn = vi.hoisted(() => ({
   series: [] as { kind: string; pane: number; data: unknown[] }[],
+  charts: 0,
+  lines: [] as { price: number; title: string; lineStyle: number }[],
 }));
 vi.mock('lightweight-charts', () => {
   const kind = (name: string) => ({ name });
@@ -19,6 +23,7 @@ vi.mock('lightweight-charts', () => {
     HistogramSeries: kind('histogram'),
     ColorType: { Solid: 'solid' },
     createChart: () => {
+      drawn.charts += 1;
       const own: typeof drawn.series = [];
       return {
         addSeries: (
@@ -33,7 +38,15 @@ vi.mock('lightweight-charts', () => {
             setData: (data: unknown[]) => {
               entry.data = data;
             },
-            createPriceLine: vi.fn(),
+            // Price-pane lines only; RSI 30 / 70 sit on their own pane.
+            createPriceLine: (options: (typeof drawn.lines)[number]) => {
+              if (definition.name === 'candles') drawn.lines.push(options);
+              return options;
+            },
+            removePriceLine: (line: (typeof drawn.lines)[number]) => {
+              const at = drawn.lines.indexOf(line);
+              if (at >= 0) drawn.lines.splice(at, 1);
+            },
           };
         },
         panes: () => [0, 1, 2, 3].map(() => ({ setStretchFactor: vi.fn() })),
@@ -61,25 +74,27 @@ const candles = (count: number): Candle[] =>
     quoteVolume: '1000',
   }));
 
+const fakeMarket = (count: number): MarketService => ({
+  listPairs: vi.fn(async () => [
+    {
+      symbol: 'BTCUSDT',
+      market: 'spot' as const,
+      baseAsset: 'BTC',
+      quoteAsset: 'USDT',
+      baseAssetName: 'Bitcoin',
+      logoUrl: null,
+      tickSize: '0.01',
+      displayOrder: 1,
+    },
+  ]),
+  getCandles: vi.fn(async () => candles(count)),
+  getFuturesMetrics: vi.fn(),
+  getTicker: vi.fn(),
+});
+
 function render(path = '/markets/spot/BTCUSDT', count = 260) {
   const klines = new Set<(update: KlineUpdate) => void>();
-  const market: MarketService = {
-    listPairs: vi.fn(async () => [
-      {
-        symbol: 'BTCUSDT',
-        market: 'spot' as const,
-        baseAsset: 'BTC',
-        quoteAsset: 'USDT',
-        baseAssetName: 'Bitcoin',
-        logoUrl: null,
-        tickSize: '0.01',
-        displayOrder: 1,
-      },
-    ]),
-    getCandles: vi.fn(async () => candles(count)),
-    getFuturesMetrics: vi.fn(),
-    getTicker: vi.fn(),
-  };
+  const market = fakeMarket(count);
   const marketFeed: MarketFeed = {
     status: () => 'open',
     onStatus: () => () => undefined,
@@ -104,6 +119,8 @@ function render(path = '/markets/spot/BTCUSDT', count = 260) {
 afterEach(() => {
   window.localStorage.clear();
   drawn.series.length = 0;
+  drawn.lines.length = 0;
+  drawn.charts = 0;
 });
 
 describe('SCR-10 analysis chart (T-032)', () => {
@@ -189,5 +206,55 @@ describe('SCR-10 analysis chart (T-032)', () => {
     expect((await screen.findByRole('alert')).textContent).toContain(
       'This pair is not available on Spot.',
     );
+  });
+
+  it('draws price lines and redraws them without rebuilding the chart', async () => {
+    const order: ChartPriceLine = {
+      id: 'order-1',
+      price: '62000.00',
+      label: 'Buy 0.01',
+      tone: 'positive',
+    };
+    function Harness() {
+      const [lines, setLines] = useState<readonly ChartPriceLine[]>([order]);
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() =>
+              setLines([{ ...order, price: '62500.00', dashed: false }])
+            }
+          >
+            move
+          </button>
+          <AnalysisChart
+            market="spot"
+            symbol="BTCUSDT"
+            tickSize="0.01"
+            timeframe="1h"
+            onTimeframeChange={() => undefined}
+            levels={{ support: '61000.00', resistance: null }}
+            priceLines={lines}
+          />
+        </>
+      );
+    }
+    await renderRoutes([page('/chart', <Harness />)], '/chart', fakeAuth(), {
+      market: fakeMarket(260),
+    });
+    await screen.findByRole('img');
+    await waitFor(() =>
+      expect(drawn.lines.map((line) => [line.title, line.price])).toEqual([
+        ['Support', 61000],
+        ['Buy 0.01', 62000],
+      ]),
+    );
+    const charts = drawn.charts;
+    await userEvent.click(screen.getByRole('button', { name: 'move' }));
+    await waitFor(() =>
+      expect(drawn.lines.map((line) => line.price)).toEqual([61000, 62500]),
+    );
+    expect(drawn.lines[1]?.lineStyle).toBe(0);
+    expect(drawn.charts).toBe(charts);
   });
 });
