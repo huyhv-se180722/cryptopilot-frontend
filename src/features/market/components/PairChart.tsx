@@ -7,6 +7,7 @@ import {
   type ISeriesApi,
   type UTCTimestamp,
 } from 'lightweight-charts';
+import { useLocale } from '../../../hooks/use-copy';
 import type { Candle } from '../../../types/domain';
 import { decimalPlaces } from '../../../utils/decimal-format';
 
@@ -72,6 +73,7 @@ export function PairChart({
    */
   lastClose?: boolean;
 }) {
+  const locale = useLocale();
   const container = useRef<HTMLDivElement>(null);
   const chart = useRef<IChartApi | null>(null);
   const series = useRef<ISeriesApi<'Candlestick'> | null>(null);
@@ -81,6 +83,8 @@ export function PairChart({
     const created = createChart(container.current, {
       autoSize: true,
       ...themeOptions(),
+      // Month names in the interface's locale, never the browser's.
+      localization: { locale },
       handleScroll: false,
       handleScale: false,
     });
@@ -95,7 +99,7 @@ export function PairChart({
       chart.current = null;
       series.current = null;
     };
-  }, [lastClose]);
+  }, [lastClose, locale]);
 
   // The theme provider writes `data-theme` on <html>; repaint from tokens.
   useEffect(() => {
@@ -129,7 +133,8 @@ export function PairChart({
       })),
     );
     chart.current?.timeScale().fitContent();
-  }, [candles, tickSize]);
+    // Also after a rebuild (another locale), so the new chart has the candles.
+  }, [candles, tickSize, lastClose, locale]);
 
   return (
     <div ref={container} role="img" aria-label={label} className={className} />

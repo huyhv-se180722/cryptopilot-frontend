@@ -13,22 +13,31 @@ import type {
 } from '../../types/domain';
 import { fakeAuth, page, renderRoutes, testTrader } from '../../test/render';
 
+/** The locale each chart is created with. */
+const charts = vi.hoisted(() => ({ locales: [] as (string | undefined)[] }));
+
 vi.mock('lightweight-charts', () => ({
   createSeriesMarkers: () => ({ setMarkers: vi.fn() }),
   CandlestickSeries: { name: 'candles' },
   LineSeries: { name: 'line' },
   HistogramSeries: { name: 'histogram' },
   ColorType: { Solid: 'solid' },
-  createChart: () => ({
-    addSeries: () => ({
-      setData: vi.fn(),
-      createPriceLine: vi.fn(),
-      removePriceLine: vi.fn(),
-    }),
-    panes: () => [0, 1, 2, 3].map(() => ({ setStretchFactor: vi.fn() })),
-    timeScale: () => ({ fitContent: vi.fn() }),
-    remove: vi.fn(),
-  }),
+  createChart: (
+    _container: unknown,
+    options: { localization?: { locale?: string } },
+  ) => {
+    charts.locales.push(options.localization?.locale);
+    return {
+      addSeries: () => ({
+        setData: vi.fn(),
+        createPriceLine: vi.fn(),
+        removePriceLine: vi.fn(),
+      }),
+      panes: () => [0, 1, 2, 3].map(() => ({ setStretchFactor: vi.fn() })),
+      timeScale: () => ({ fitContent: vi.fn() }),
+      remove: vi.fn(),
+    };
+  },
 }));
 
 const ANALYSIS: PairAnalysis = {
@@ -226,6 +235,9 @@ describe('SCR-11 Futures analysis (T-034)', () => {
       expect.any(String),
       expect.anything(),
     );
+    // The candle chart and the open interest chart name months in English.
+    expect(charts.locales.length).toBeGreaterThanOrEqual(2);
+    expect(new Set(charts.locales)).toEqual(new Set(['en']));
   });
 
   it('switches to the long/short ratio and to a 7-day range', async () => {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ColorType } from 'lightweight-charts';
+import type { Locale } from '../../../i18n/copy';
 
 /** A design token's current value, so charts follow the light and dark themes. */
 export function token(name: string) {
@@ -8,10 +9,16 @@ export function token(name: string) {
     .trim();
 }
 
-/** Chart options shared by the CryptoPilot charts, from the theme tokens. */
-export function chartOptions() {
+/**
+ * Chart options shared by the CryptoPilot charts, from the theme tokens.
+ * Month names on the time axis and in the crosshair follow the interface's
+ * locale: left alone, the chart library takes the browser's, and a
+ * Vietnamese browser showed "Tháng 8" among English copy.
+ */
+export function chartOptions(locale: Locale) {
   return {
     autoSize: true,
+    localization: { locale },
     layout: {
       background: { type: ColorType.Solid, color: 'transparent' },
       textColor: token('--cp-muted'),
