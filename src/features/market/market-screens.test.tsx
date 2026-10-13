@@ -308,12 +308,38 @@ describe('SCR-01 Public Home', () => {
     ]);
     expect(list('Top losers · 24h')).toEqual(['ETH2,441.80-0.62%']);
 
+    // The running tape: every pair once for assistive tech (the second,
+    // looping copy is hidden), and a button to stop it.
+    const tape = screen.getByRole('region', {
+      name: 'Live prices of the Spot pairs',
+    });
+    const lists = tape.querySelectorAll('ul');
+    expect(lists).toHaveLength(2);
+    expect(lists[1]?.getAttribute('aria-hidden')).toBe('true');
+    expect(
+      [...lists[0]!.querySelectorAll('li')].map((li) => li.textContent),
+    ).toEqual([
+      'BTC/USDT63,000.01+1.25%',
+      'ETH/USDT2,441.80-0.62%',
+      'SOL/USDT147.22+5.31%',
+    ]);
+    const stop = screen.getByRole('button', {
+      name: 'Pause the running prices',
+    });
+    await userEvent.click(stop);
+    expect(tape.getAttribute('data-paused')).toBe('true');
+    expect(stop.getAttribute('aria-pressed')).toBe('true');
+    expect(stop.getAttribute('aria-label')).toBe('Run the prices again');
+
     // The most traded pairs, by 24h quote volume.
     const pulse = within(
-      screen.getByRole('region', { name: 'Market pulse · most traded in 24h' }),
+      screen.getByRole('region', { name: 'Live market pulse' }),
     );
     expect(
-      pulse.getAllByRole('button').map((button) => button.textContent),
+      pulse
+        .getAllByRole('button')
+        .filter((button) => button.textContent?.includes('/'))
+        .map((button) => button.textContent),
     ).toEqual([
       'BTC/USDT63,000.01+1.25%',
       'SOL/USDT147.22+5.31%',

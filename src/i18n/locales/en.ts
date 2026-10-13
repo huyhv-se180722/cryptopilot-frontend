@@ -965,7 +965,11 @@ export const en = {
     heroGainers: 'Top gainers · 24h',
     heroLosers: 'Top losers · 24h',
     heroCardNote: 'Spot pairs enabled on CryptoPilot · prices update live.',
-    pulseTitle: 'Market pulse · most traded in 24h',
+    pulseTitle: 'Live market pulse',
+    pulseMostTraded: 'Most traded in 24h',
+    tapeLabel: 'Live prices of the Spot pairs',
+    tapePause: 'Pause the running prices',
+    tapePlay: 'Run the prices again',
     marketsSubtitle:
       'Spot and Futures pairs enabled on CryptoPilot, with live prices.',
   },
