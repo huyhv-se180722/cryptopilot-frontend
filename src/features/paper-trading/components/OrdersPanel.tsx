@@ -34,6 +34,7 @@ import {
   usePaperActions,
   usePaperWallet,
 } from '../hooks/use-paper-orders';
+import { usePaperAccount } from '../hooks/use-paper-account';
 import { formatQuantity } from '../model/order-book';
 import { TradePanel } from './TradePanel';
 import { TransferDialog } from './TransferDialog';
@@ -77,6 +78,7 @@ export function OrdersPanel({
   const fills = useFillHistory(filterId, fillsPage, tab === 'fills');
   const wallet = usePaperWallet('SPOT');
   const { cancel, cancelAll } = usePaperActions();
+  const account = usePaperAccount();
 
   const pairOf = (symbol: string) =>
     pairs.find((each) => each.symbol === symbol);
@@ -248,8 +250,10 @@ export function OrdersPanel({
       refetch: () => unknown;
     },
     content: () => React.ReactNode,
-  ) =>
-    query.isError ? (
+  ) => {
+    // Every list waits for the demo account: until it opens, say why.
+    if (account.isError) query = account;
+    return query.isError ? (
       query.error instanceof ServiceError &&
       query.error.code === 'NOT_CONFIGURED' ? (
         <p className="py-8 text-center text-xs text-muted-dim">
@@ -266,6 +270,7 @@ export function OrdersPanel({
     ) : (
       content()
     );
+  };
 
   const pager = (
     page: PaperPage<unknown> | undefined,

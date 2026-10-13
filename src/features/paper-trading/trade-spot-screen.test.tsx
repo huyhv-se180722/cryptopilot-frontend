@@ -229,6 +229,22 @@ describe('Spot demo trading layout (TR-F1, D-86)', () => {
       expect(screen.getByRole('region', { name: region })).toBeTruthy();
   });
 
+  it('says the demo account is not connected in the form and the orders panel', async () => {
+    await open();
+    const form = await screen.findByRole('region', { name: 'Spot order' });
+    await waitFor(() =>
+      expect(form.textContent).toContain('not connected to the server yet'),
+    );
+    expect(
+      within(form).getByRole('button', { name: 'Buy BTC' }),
+    ).toHaveProperty('disabled', true);
+    expect(form.textContent).not.toContain('Add this pair to your watchlist');
+    const panel = screen.getByRole('region', { name: 'Orders and funds' });
+    await waitFor(() =>
+      expect(panel.textContent).toContain('not connected to the server yet'),
+    );
+  });
+
   it('opens the demo account once and says it is ready', async () => {
     const paperTrading: PaperTradingService = {
       ...createPendingPaperTradingService(),

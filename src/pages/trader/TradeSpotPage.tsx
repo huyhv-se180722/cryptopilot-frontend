@@ -27,6 +27,7 @@ import {
 } from '../../features/paper-trading/components/SpotOrderForm';
 import { TradePanel } from '../../features/paper-trading/components/TradePanel';
 import { TradeTickerStrip } from '../../features/paper-trading/components/TradeTickerStrip';
+import { usePaperAccount } from '../../features/paper-trading/hooks/use-paper-account';
 import { usePaperWallet } from '../../features/paper-trading/hooks/use-paper-orders';
 import { useTradeTimeframe } from '../../features/paper-trading/hooks/use-trade-timeframe';
 import {
@@ -57,6 +58,7 @@ function TradeSpot({
   // until the market list gives it (FEQ-01).
   const pairId = useWatchedPair(pair.symbol)?.pairId ?? null;
   const spot = usePaperWallet('SPOT');
+  const account = usePaperAccount();
   const balance = (asset: string) =>
     spot.data?.balances.find((row) => row.asset === asset)?.free ?? '0';
   const funds = spot.data
@@ -170,6 +172,9 @@ function TradeSpot({
             lastPrice={ticker?.lastPrice ?? null}
             picked={picked}
             funds={funds}
+            unavailable={
+              account.isError ? errorText(copy, account.error) : null
+            }
           />
         </TradePanel>
       </div>
