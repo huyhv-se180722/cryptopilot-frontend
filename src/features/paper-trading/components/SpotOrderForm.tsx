@@ -61,6 +61,7 @@ export function SpotOrderForm({
   lastPrice,
   picked,
   funds,
+  unavailable,
 }: {
   pair: MarketPair;
   pairId: string | null;
@@ -68,6 +69,8 @@ export function SpotOrderForm({
   picked: PickedPrice | null;
   /** Free balances, or null while the wallet is not known. */
   funds: Funds | null;
+  /** Why the demo account cannot trade now (e.g. not connected), or null. */
+  unavailable: string | null;
 }) {
   const copy = useCopy();
   const p = copy.paper;
@@ -139,7 +142,7 @@ export function SpotOrderForm({
   async function submit(event: FormEvent) {
     event.preventDefault();
     setShown(true);
-    if (!pairId || !check.order) return;
+    if (unavailable || !pairId || !check.order) return;
     const order = { ...check.order, pairId, market: 'spot' as const };
     // The same order sent again (e.g. after a timeout) keeps its key, so the
     // backend returns the first one instead of placing a second (TR-06).
@@ -349,16 +352,16 @@ export function SpotOrderForm({
       )}
 
       {notice && <FormNotice tone="error">{notice}</FormNotice>}
-      {!pairId && (
+      {(unavailable || !pairId) && (
         <p id={reasonId} className="text-[11px] text-warning">
-          {p.needPairId}
+          {unavailable ?? p.needPairId}
         </p>
       )}
 
       <button
         type="submit"
-        disabled={!pairId || place.pending}
-        aria-describedby={pairId ? undefined : reasonId}
+        disabled={Boolean(unavailable) || !pairId || place.pending}
+        aria-describedby={unavailable || !pairId ? reasonId : undefined}
         className={classNames(
           'inline-flex h-10 w-full items-center justify-center rounded-lg text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 pointer-coarse:min-h-11',
           buy ? 'bg-positive hover:opacity-90' : 'bg-negative hover:opacity-90',
