@@ -1,12 +1,6 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useOnFeedOpen } from '../../../hooks/use-on-feed-open';
 import { useServices } from '../../../hooks/use-services';
 import type {
   Candle,
@@ -164,18 +158,8 @@ export function useChartSeries(
   );
 
   // A reconnect may have skipped closed candles: read the history again.
-  const status = useSyncExternalStore(
-    marketFeed.onStatus,
-    marketFeed.status,
-    marketFeed.status,
-  );
-  const previous = useRef(status);
   const { refetch } = history;
-  useEffect(() => {
-    const wasDown = previous.current !== 'open';
-    previous.current = status;
-    if (status === 'open' && wasDown) void refetch();
-  }, [status, refetch]);
+  useOnFeedOpen(() => void refetch());
 
   const all = useMemo(() => {
     const stored = history.data ?? [];
