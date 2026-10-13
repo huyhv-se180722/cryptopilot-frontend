@@ -914,6 +914,10 @@ export const en = {
       'This pair is not available on Spot. Choose another pair from the market list.',
     pairUnavailableFutures:
       'This pair is not available on Futures. Choose another pair from the market list.',
+    // The NOTICE of the chart library; its licence asks for it and a link to
+    // tradingview.com on a page the users see.
+    credit: 'Charts by TradingView Lightweight Charts™',
+    creditCopyright: '© TradingView, Inc.',
   },
   market: {
     tabsLabel: 'Market',

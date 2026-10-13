@@ -17,6 +17,7 @@ export function chartOptions() {
       textColor: token('--cp-muted'),
       fontFamily: 'JetBrains Mono, ui-monospace, monospace',
       fontSize: 11,
+      // The licence's attribution and link are in the shell footer.
       attributionLogo: false,
       panes: { separatorColor: token('--cp-border') },
     },
