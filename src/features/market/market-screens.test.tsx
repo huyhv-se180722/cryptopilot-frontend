@@ -281,11 +281,7 @@ describe('SCR-01 Public Home', () => {
       'See the Market.Plan With Data.Practice Risk-Free.',
     );
     expect(screen.getByText('Decision support · Paper trading')).toBeTruthy();
-    expect(
-      screen.getByText(
-        /it never places real orders, connects to your exchange account or holds your funds/,
-      ),
-    ).toBeTruthy();
+    expect(screen.getByText(/No real orders, no funds held\./)).toBeTruthy();
 
     // The product's own capabilities, never "signals".
     const chips = within(

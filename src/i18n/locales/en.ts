@@ -951,7 +951,7 @@ export const en = {
     heroLine2: 'Plan With Data.',
     heroLine3: 'Practice Risk-Free.',
     heroBody:
-      'CryptoPilot helps you analyze the crypto Spot and Futures markets, plan trades with clear risk limits, practice them in simulation against live prices and review the results. It supports your decisions: it never places real orders, connects to your exchange account or holds your funds.',
+      'Analyze the market, plan with clear risk limits and practice in simulation. No real orders, no funds held.',
     heroRegister: 'Start analyzing free',
     heroExplore: 'Explore live markets',
     heroBadge: 'Decision support · Paper trading',
