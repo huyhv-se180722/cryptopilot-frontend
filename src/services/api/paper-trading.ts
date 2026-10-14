@@ -6,6 +6,7 @@ import {
   decodeFill,
   decodeLedgerEntry,
   decodeOrder,
+  decodeOrderList,
   decodeOrders,
   decodePage,
   decodeTransfer,
@@ -24,7 +25,9 @@ export function createPendingPaperTradingService(): PaperTradingService {
     transfers: async () => integrationPending(),
     ledger: async () => integrationPending(),
     placeOrder: async () => integrationPending(),
+    placeOrderList: async () => integrationPending(),
     cancelOrder: async () => integrationPending(),
+    cancelOrderList: async () => integrationPending(),
     cancelAll: async () => integrationPending(),
     openOrders: async () => integrationPending(),
     orders: async () => integrationPending(),
@@ -92,11 +95,24 @@ export function createHttpPaperTradingService(
         body: { ...order, market: market.toUpperCase() },
         decode: decodeOrder,
       }),
+    placeOrderList: ({ market, ...list }) =>
+      http.request({
+        path: 'paper/order-lists',
+        method: 'POST',
+        body: { ...list, market: market.toUpperCase() },
+        decode: decodeOrderList,
+      }),
     cancelOrder: (orderId) =>
       http.request({
         path: `paper/orders/${encodeURIComponent(orderId)}/cancel`,
         method: 'POST',
         decode: decodeOrder,
+      }),
+    cancelOrderList: (listId) =>
+      http.request({
+        path: `paper/order-lists/${encodeURIComponent(listId)}/cancel`,
+        method: 'POST',
+        decode: decodeOrderList,
       }),
     cancelAll: (pairId) =>
       http.request({

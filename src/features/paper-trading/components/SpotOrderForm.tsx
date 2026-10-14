@@ -18,25 +18,22 @@ import { usePaperActions } from '../hooks/use-paper-orders';
 import {
   amountOf,
   checkSpotOrder,
+  EMPTY_DRAFT,
+  hasLimitPrice,
   shareOfFunds,
   totalOf,
   type Funds,
+  type SpotFormType,
   type SpotOrderDraft,
   type SpotOrderField,
   type SpotOrderProblem,
 } from '../model/spot-order';
 
 const SHARES = [25, 50, 75, 100] as const;
-
-const EMPTY: SpotOrderDraft = {
-  side: 'BUY',
-  type: 'LIMIT',
-  timeInForce: 'GTC',
-  price: '',
-  amount: '',
-  total: '',
-  byTotal: false,
-};
+const STOP_FORMS = ['STOP_LIMIT', 'STOP_MARKET', 'TRAILING', 'OCO'] as const;
+type StopForm = (typeof STOP_FORMS)[number];
+const isStopForm = (type: SpotFormType): type is StopForm =>
+  (STOP_FORMS as readonly string[]).includes(type);
 
 /** A price picked in the order book or trades; `at` makes a repeat count. */
 export interface PickedPrice {
@@ -47,13 +44,16 @@ export interface PickedPrice {
 const newClientOrderId = () => 'web-' + crypto.randomUUID();
 
 /**
- * Spot order form of the demo exchange (B Spot form, plan section 6.1):
- * Buy / Sell, Limit / Market, price, amount, a 25–100 % share of the free
- * balance, total, time in force, and for a Market buy the option to spend
- * a total. It checks tick, step, minimum value and balance before sending
- * (exact decimals, D-95), keeps the idempotency key when the same order
- * is sent again, and says why it cannot trade a pair without an id
- * (FEQ-01). Demo funds only: nothing reaches an exchange.
+ * Spot order form of the demo exchange, as the exchange's Spot order panel
+ * has it: Buy / Sell; Limit (time in force, Post only for a LIMIT_MAKER,
+ * TP/SL for an OTOCO), Market (by amount or by total, on both sides), and
+ * under Stop the Stop Limit, Stop Market, Trailing Stop and OCO forms. A
+ * stop is sent as a stop loss or a take profit by where it lies against
+ * the last price, as the exchange's panel does. It checks tick, step,
+ * minimum value and balance before sending (exact decimals, D-95), keeps
+ * the idempotency key when the same order is sent again, and says why it
+ * cannot trade a pair without an id (FEQ-01). Demo funds only: nothing
+ * reaches an exchange.
  */
 export function SpotOrderForm({
   pair,
@@ -75,10 +75,11 @@ export function SpotOrderForm({
   const copy = useCopy();
   const p = copy.paper;
   const toast = useToast();
-  const { place } = usePaperActions();
+  const { place, placeList } = usePaperActions();
   const base = pair.baseAsset ?? pair.symbol;
   const quote = pair.quoteAsset ?? '';
-  const [draft, setDraft] = useState<SpotOrderDraft>(EMPTY);
+  const [draft, setDraft] = useState<SpotOrderDraft>(EMPTY_DRAFT);
+  const [stopForm, setStopForm] = useState<StopForm>('STOP_LIMIT');
   const [shown, setShown] = useState(false);
   const [serverErrors, setServerErrors] = useState<
     Partial<Record<SpotOrderField, SpotOrderProblem>>
@@ -87,33 +88,46 @@ export function SpotOrderForm({
   const sent = useRef<{ key: string; id: string } | null>(null);
   const reasonId = useId();
 
-  // A price picked in the book becomes a limit price (once per pick).
+  // A price picked in the book becomes the limit price (once per pick).
   const [seenPick, setSeenPick] = useState(picked?.at ?? 0);
   if (picked && picked.at !== seenPick) {
     setSeenPick(picked.at);
-    setDraft((current) => ({
-      ...current,
-      type: 'LIMIT',
-      price: picked.price,
-      total: totalOf(
-        { type: 'LIMIT', price: picked.price },
-        current.amount,
-        lastPrice,
-      ),
-    }));
+    setDraft((current) => {
+      const type = hasLimitPrice(current.type) ? current.type : 'LIMIT';
+      return {
+        ...current,
+        type,
+        price: picked.price,
+        total: totalOf(
+          { type, price: picked.price, stop: current.stop },
+          current.amount,
+          lastPrice,
+        ),
+      };
+    });
   }
 
   const available = funds ?? { quote: '0', base: '0' };
   const check = checkSpotOrder(draft, pair, available, lastPrice);
   const buy = draft.side === 'BUY';
-  const market = draft.type === 'MARKET';
-  const byTotal = market && buy && draft.byTotal;
+  const type = draft.type;
+  const market = type === 'MARKET';
+  const byTotal = market && draft.byTotal;
+  const pending = place.pending || placeList.pending;
 
   const update = (next: Partial<SpotOrderDraft>) => {
     setDraft((current) => ({ ...current, ...next }));
     setServerErrors({});
     setNotice(null);
   };
+  const changeType = (next: SpotFormType) =>
+    update({
+      type: next,
+      total:
+        next === 'MARKET'
+          ? ''
+          : totalOf({ ...draft, type: next }, draft.amount, lastPrice),
+    });
 
   const problemText = (problem: SpotOrderProblem | undefined) => {
     switch (problem) {
@@ -130,6 +144,14 @@ export function SpotOrderForm({
         });
       case 'insufficient':
         return p.errInsufficient;
+      case 'atLastPrice':
+        return p.errAtLastPrice;
+      case 'noLastPrice':
+        return p.errNoLastPrice;
+      case 'trailingRange':
+        return p.errTrailingRange;
+      case 'priceOrder':
+        return p.errPriceOrder;
       default:
         return undefined;
     }
@@ -139,49 +161,73 @@ export function SpotOrderForm({
       serverErrors[field] ?? (shown ? check.errors[field] : undefined),
     );
 
+  const succeeded = (message: string, tone: 'success' | 'info' = 'success') => {
+    sent.current = null;
+    setShown(false);
+    setDraft((current) => ({ ...current, amount: '', total: '' }));
+    toast.show({ tone, message });
+  };
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     setShown(true);
-    if (unavailable || !pairId || !check.order) return;
-    const order = { ...check.order, pairId, market: 'spot' as const };
+    if (unavailable || !pairId || !check.request) return;
+    const request = check.request;
     // The same order sent again (e.g. after a timeout) keeps its key, so the
     // backend returns the first one instead of placing a second (TR-06).
-    const key = JSON.stringify(order);
+    const key = JSON.stringify(request);
     if (sent.current?.key !== key)
       sent.current = { key, id: newClientOrderId() };
-    const result = await place.run({
-      ...order,
-      clientOrderId: sent.current.id,
-    });
-    if (result.status === 'success') {
-      sent.current = null;
-      setShown(false);
-      setDraft((current) => ({ ...current, amount: '', total: '' }));
-      // A post-only order that would take liquidity expires at once (GTX).
-      toast.show(
-        result.data.statusReason === 'POST_ONLY_WOULD_TAKE'
-          ? { tone: 'info', message: p.postOnlyExpired }
-          : {
-              tone: 'success',
-              message: formatCopy(p.placed, {
-                side: buy ? p.sideBUY : p.sideSELL,
-                status: p[`status${result.data.status}`].toLowerCase(),
-              }),
-            },
-      );
+    if (request.kind === 'list') {
+      const result = await placeList.run({
+        ...request.list,
+        pairId,
+        market: 'spot',
+      });
+      if (result.status === 'success')
+        return succeeded(formatCopy(p.listPlaced, { type: result.data.type }));
+      if (result.status === 'error') refused(result.error);
       return;
     }
-    if (result.status !== 'error') return;
-    const problem = problemOf(result.error);
-    if (problem?.code === 'PAPER_INSUFFICIENT_BALANCE') {
-      setNotice(p.insufficientServer);
-      return;
+    const result = await place.run({
+      ...request.order,
+      pairId,
+      market: 'spot',
+      clientOrderId: sent.current.id,
+    });
+    if (result.status === 'success')
+      return succeeded(
+        formatCopy(p.placed, {
+          side: buy ? p.sideBUY : p.sideSELL,
+          status: p[`status${result.data.status}`].toLowerCase(),
+        }),
+      );
+    if (result.status === 'error') refused(result.error);
+  }
+
+  function refused(error: unknown) {
+    const problem = problemOf(error);
+    switch (problem?.code) {
+      case 'PAPER_INSUFFICIENT_BALANCE':
+        return setNotice(p.insufficientServer);
+      case 'PAPER_ORDER_WOULD_TAKE':
+        return setNotice(p.postOnlyRefused);
+      case 'PAPER_ORDER_WOULD_TRIGGER':
+        return setNotice(p.wouldTrigger);
     }
     const fields: Partial<Record<SpotOrderField, SpotOrderProblem>> = {};
     const aliases: Record<string, SpotOrderField> = {
       price: 'price',
+      stopPrice: 'stop',
+      trailingDelta: 'trailing',
       quantity: 'amount',
       quoteOrderQty: 'total',
+      'oco.takeProfitPrice': type === 'OCO' ? 'price' : 'takeProfit',
+      'oco.stopPrice': type === 'OCO' ? 'stop' : 'stopLoss',
+      'oco.stopLimitPrice': 'stopLimit',
+      'oco.quantity': 'amount',
+      'working.price': 'price',
+      'working.quantity': 'amount',
     };
     for (const [name, messageId] of Object.entries(
       problem?.fieldErrors ?? {},
@@ -190,11 +236,29 @@ export function SpotOrderForm({
       if (field) fields[field] = messageId === 'MSG01' ? 'required' : 'invalid';
     }
     if (Object.keys(fields).length > 0) setServerErrors(fields);
-    else setNotice(errorText(copy, result.error));
+    else setNotice(errorText(copy, error));
   }
 
   const share = (percent: number) =>
     update(shareOfFunds(draft, pair, available, percent, lastPrice));
+
+  const priceInput = (field: 'price' | 'stop' | 'stopLimit', label: string) => (
+    <Input
+      label={label}
+      inputMode="decimal"
+      autoComplete="off"
+      value={draft[field]}
+      error={fieldError(field)}
+      onChange={(event) => {
+        const value = event.target.value;
+        const next = { ...draft, [field]: value };
+        update({
+          [field]: value,
+          total: totalOf(next, draft.amount, lastPrice),
+        });
+      }}
+    />
+  );
 
   return (
     <form
@@ -206,9 +270,7 @@ export function SpotOrderForm({
         <SegmentedControl
           label={p.sideLabel}
           value={draft.side}
-          onChange={(side) =>
-            update({ side, byTotal: side === 'BUY' && draft.byTotal })
-          }
+          onChange={(side) => update({ side })}
           options={[
             { value: 'BUY', label: p.sideBUY },
             { value: 'SELL', label: p.sideSELL },
@@ -216,26 +278,33 @@ export function SpotOrderForm({
         />
         <SegmentedControl
           label={p.orderTypeLabel}
-          value={draft.type}
-          onChange={(type) =>
-            update({
-              type,
-              total:
-                type === 'MARKET'
-                  ? ''
-                  : totalOf(
-                      { type, price: draft.price },
-                      draft.amount,
-                      lastPrice,
-                    ),
-            })
-          }
+          value={isStopForm(type) ? 'STOP' : type}
+          onChange={(next) => changeType(next === 'STOP' ? stopForm : next)}
           options={[
             { value: 'LIMIT', label: p.typeLIMIT },
             { value: 'MARKET', label: p.typeMARKET },
+            { value: 'STOP', label: p.formSTOP },
           ]}
         />
       </div>
+
+      {isStopForm(type) && (
+        <Select
+          label={p.stopFormLabel}
+          value={type}
+          onChange={(event) => {
+            const next = event.target.value as StopForm;
+            setStopForm(next);
+            changeType(next);
+          }}
+        >
+          {STOP_FORMS.map((form) => (
+            <option key={form} value={form}>
+              {p[`form${form}`]}
+            </option>
+          ))}
+        </Select>
+      )}
 
       <p className="flex items-baseline justify-between text-[11px] text-muted-dim">
         {p.available}
@@ -258,6 +327,21 @@ export function SpotOrderForm({
         </span>
       </p>
 
+      {(type === 'STOP_LIMIT' || type === 'STOP_MARKET') &&
+        priceInput('stop', formatCopy(p.fieldStop, { asset: quote }))}
+      {type === 'TRAILING' && (
+        <Input
+          label={p.fieldTrailing}
+          inputMode="decimal"
+          autoComplete="off"
+          value={draft.trailing}
+          error={fieldError('trailing')}
+          onChange={(event) => update({ trailing: event.target.value })}
+        />
+      )}
+      {type === 'TRAILING' &&
+        priceInput('stop', formatCopy(p.fieldActivation, { asset: quote }))}
+
       {market ? (
         <Input
           label={formatCopy(p.fieldPrice, { asset: quote })}
@@ -265,21 +349,28 @@ export function SpotOrderForm({
           readOnly
           aria-readonly="true"
         />
-      ) : (
-        <Input
-          label={formatCopy(p.fieldPrice, { asset: quote })}
-          inputMode="decimal"
-          autoComplete="off"
-          value={draft.price}
-          error={fieldError('price')}
-          onChange={(event) => {
-            const price = event.target.value;
-            update({
-              price,
-              total: totalOf({ type: 'LIMIT', price }, draft.amount, lastPrice),
-            });
-          }}
-        />
+      ) : type === 'STOP_MARKET' ? null : (
+        priceInput(
+          'price',
+          formatCopy(
+            type === 'OCO'
+              ? p.fieldTakeProfitPrice
+              : type === 'LIMIT'
+                ? p.fieldPrice
+                : p.fieldLimit,
+            { asset: quote },
+          ),
+        )
+      )}
+
+      {type === 'OCO' && (
+        <>
+          {priceInput('stop', formatCopy(p.fieldStop, { asset: quote }))}
+          {priceInput(
+            'stopLimit',
+            formatCopy(p.fieldStopLimit, { asset: quote }),
+          )}
+        </>
       )}
 
       {!byTotal && (
@@ -331,16 +422,53 @@ export function SpotOrderForm({
         }}
       />
 
-      {market && buy && (
+      {market && (
         <Checkbox
-          label={p.byTotal}
+          label={buy ? p.byTotal : p.byTotalSell}
           checked={draft.byTotal}
           onChange={(event) =>
             update({ byTotal: event.target.checked, amount: '', total: '' })
           }
         />
       )}
-      {!market && (
+
+      {type === 'LIMIT' && (
+        <div className="flex flex-wrap gap-x-4 gap-y-2">
+          <Checkbox
+            label={p.postOnly}
+            checked={draft.postOnly}
+            onChange={(event) => update({ postOnly: event.target.checked })}
+          />
+          <Checkbox
+            label={p.tpsl}
+            checked={draft.tpsl}
+            onChange={(event) => update({ tpsl: event.target.checked })}
+          />
+        </div>
+      )}
+      {type === 'LIMIT' && draft.tpsl && (
+        <>
+          <Input
+            label={formatCopy(p.fieldTakeProfit, { asset: quote })}
+            inputMode="decimal"
+            autoComplete="off"
+            value={draft.takeProfit}
+            error={fieldError('takeProfit')}
+            onChange={(event) => update({ takeProfit: event.target.value })}
+          />
+          <Input
+            label={formatCopy(p.fieldStopLoss, { asset: quote })}
+            inputMode="decimal"
+            autoComplete="off"
+            value={draft.stopLoss}
+            error={fieldError('stopLoss')}
+            onChange={(event) => update({ stopLoss: event.target.value })}
+          />
+          <p className="text-[10px] text-muted-dim">{p.tpslNote}</p>
+        </>
+      )}
+
+      {((type === 'LIMIT' && !draft.postOnly) || type === 'STOP_LIMIT') && (
         <Select
           label={p.tifLabel}
           value={draft.timeInForce}
@@ -353,7 +481,6 @@ export function SpotOrderForm({
           <option value="GTC">{p.tifGTC}</option>
           <option value="IOC">{p.tifIOC}</option>
           <option value="FOK">{p.tifFOK}</option>
-          <option value="GTX">{p.tifGTX}</option>
         </Select>
       )}
 
@@ -366,19 +493,23 @@ export function SpotOrderForm({
 
       <button
         type="submit"
-        disabled={Boolean(unavailable) || !pairId || place.pending}
+        disabled={Boolean(unavailable) || !pairId || pending}
         aria-describedby={unavailable || !pairId ? reasonId : undefined}
         className={classNames(
           'inline-flex h-10 w-full items-center justify-center rounded-lg text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 pointer-coarse:min-h-11',
           buy ? 'bg-positive hover:opacity-90' : 'bg-negative hover:opacity-90',
         )}
       >
-        {place.pending
+        {pending
           ? p.placing
           : formatCopy(buy ? p.submitBUY : p.submitSELL, { asset: base })}
       </button>
       <p className="text-[10px] text-muted-dim">
-        {market ? p.estimateNote + ' ' : ''}
+        {type === 'STOP_LIMIT' || type === 'STOP_MARKET'
+          ? p.stopNote + ' '
+          : ''}
+        {type === 'TRAILING' ? p.trailingNote + ' ' : ''}
+        {market || type === 'STOP_MARKET' ? p.estimateNote + ' ' : ''}
         {p.feeNote}
       </p>
     </form>

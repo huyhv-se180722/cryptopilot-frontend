@@ -11,11 +11,14 @@ import type {
   PaperFill,
   PaperLedgerEntry,
   PaperOrder,
+  PaperOrderList,
+  PaperOrderListLeg,
   PaperPage,
   PaperTransfer,
   PaperWalletType,
   PlacePaperOrder,
   Session,
+  SpotOrderType,
 } from '../types/domain';
 import {
   add,
@@ -39,6 +42,21 @@ const GRANT: Readonly<
 /** The backend's default Spot fee (maker and taker 0.1 %), scripted here. */
 const FEE_RATE = '0.001';
 const QUOTE = 'USDT';
+const STOPS: readonly SpotOrderType[] = [
+  'STOP_LOSS',
+  'STOP_LOSS_LIMIT',
+  'TAKE_PROFIT',
+  'TAKE_PROFIT_LIMIT',
+];
+const isStop = (type: string) => (STOPS as readonly string[]).includes(type);
+const isMarketStop = (type: string) =>
+  type === 'STOP_LOSS' || type === 'TAKE_PROFIT';
+/**
+ * The side of the price a Spot stop waits on, as the exchange fixes it: a
+ * stop loss BUY and a take profit SELL above, the other two below.
+ */
+const triggersAbove = (type: string, side: OrderSide) =>
+  type.startsWith('STOP_LOSS') === (side === 'BUY');
 
 function refuse(
   status: number,
@@ -65,15 +83,22 @@ const symbolOf = (pairId: string) =>
 
 /**
  * DEVELOPMENT ONLY. An in-memory demo exchange with the backend's answers
- * (TR-04, TR-06, TR-07 on its demo trading branch): the account opens
- * once with the Q-T5 grant; MARKET orders fill at the development last
- * price as taker; a LIMIT that crosses fills at once, otherwise it waits,
- * locks its funds and fills as maker when the price reaches it (checked
- * every second); IOC / FOK that cannot fill expire, and so does a
- * post-only (GTX) order that would fill at once. Fees are the default
- * 0.1 % taken in the asset received. Refusals use the backend's codes:
- * MSG44, MSG41, MSG01 / MSG15 field errors, PAPER_INSUFFICIENT_BALANCE,
- * PAPER_ORDER_NOT_OPEN (MSG43). A reload starts again.
+ * (TR-04, TR-06, TR-07, TR-09 to TR-12 on its demo trading branch), in the
+ * order types of the exchange's Spot API: the account opens once with the
+ * Q-T5 grant; MARKET orders fill at the development last price as taker
+ * (by quantity, or by a quote amount on either side); a LIMIT that crosses
+ * fills at once, otherwise it waits, locks its funds and fills as maker
+ * when the price reaches it (checked every second); IOC / FOK that cannot
+ * fill expire; a LIMIT_MAKER that would fill at once is refused; GTX is
+ * refused on Spot. STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT and
+ * TAKE_PROFIT_LIMIT wait for the last price on the side their type and
+ * side fix (a stop already met is refused), or with a trailing delta for
+ * the price to come back from its best by the delta; triggered, the
+ * market kinds fill at the last price and the limit kinds wait at their
+ * price. OCO, OTO and OTOCO lock once per OCO, cancel the other order of
+ * an OCO when one fills or triggers, and place the pending part when the
+ * working order fills. Fees are the default 0.1 % taken in the asset
+ * received. Refusals use the backend's codes. A reload starts again.
  */
 export function createDevelopmentPaperTrading(
   session: () => Promise<Session | null>,
@@ -86,6 +111,11 @@ export function createDevelopmentPaperTrading(
     FUTURES: new Map(),
   };
   const orders = new Map<string, PaperOrder>();
+  /** What each working order holds back; an OCO holds it on one order. */
+  const locks = new Map<string, string>();
+  /** The best price a trailing stop has tracked since it started. */
+  const best = new Map<string, string>();
+  const lists = new Map<string, PaperOrderList>();
   const fills: PaperFill[] = [];
   const transfers = new Map<string, PaperTransfer>();
   const ledger: PaperLedgerEntry[] = [];
@@ -144,6 +174,88 @@ export function createDevelopmentPaperTrading(
     if (!pair) refuse(404, 'RESOURCE_NOT_FOUND', 'MSG41');
     return pair;
   };
+  /** The coin an order of `side` locks: the quote for a buy, the base for a sale. */
+  const lockedRow = (order: PaperOrder) => {
+    const pair = pairOf(order.pairId);
+    return holding(
+      'SPOT',
+      order.side === 'BUY' ? QUOTE : (pair.baseAsset ?? pair.symbol),
+    );
+  };
+  /** What an order needs held back: its price (or stop) × quantity, or the quantity. */
+  const needOf = (
+    side: OrderSide,
+    price: string | null,
+    quantity: string,
+  ): string =>
+    side === 'BUY' ? multiply(price as string, quantity) : quantity;
+  const hold = (order: PaperOrder, amount: string) => {
+    const row = lockedRow(order);
+    if (compare(row.free, amount) < 0)
+      refuse(400, 'PAPER_INSUFFICIENT_BALANCE', 'MSG01');
+    row.free = subtract(row.free, amount);
+    row.locked = add(row.locked, amount);
+    locks.set(order.orderId, amount);
+  };
+  const release = (order: PaperOrder, amount = locks.get(order.orderId)) => {
+    if (!amount || !isPositive(amount)) {
+      locks.delete(order.orderId);
+      return;
+    }
+    const row = lockedRow(order);
+    row.locked = subtract(row.locked, amount);
+    row.free = add(row.free, amount);
+    locks.delete(order.orderId);
+  };
+  const end = (
+    order: PaperOrder,
+    status: PaperOrder['status'],
+    reason: string | null = null,
+  ) => {
+    const ended = { ...order, status, statusReason: reason, closedAt: at() };
+    orders.set(order.orderId, ended);
+    return ended;
+  };
+  const role = (order: PaperOrder) =>
+    order.clientOrderId.slice(order.clientOrderId.lastIndexOf(':'));
+  const legsOf = (listId: string) =>
+    [...orders.values()].filter((order) => order.listId === listId);
+  const ocoLeg = (order: PaperOrder) =>
+    role(order) === ':tp' || role(order) === ':sl';
+  /** The group as the backend answers it, its working order first. */
+  const listOf = (listId: string): PaperOrderList => {
+    const list = lists.get(listId) as PaperOrderList;
+    const rank = (order: PaperOrder) =>
+      [':w', ':p', ':tp', ':sl'].indexOf(role(order));
+    const legs = legsOf(listId).sort((a, b) => rank(a) - rank(b));
+    const done = legs.every(
+      (leg) => leg.status !== 'NEW' && leg.status !== 'PENDING_NEW',
+    );
+    const updated = {
+      ...list,
+      status: done ? ('ALL_DONE' as const) : list.status,
+      orders: legs,
+    };
+    lists.set(listId, updated);
+    return updated;
+  };
+
+  /**
+   * Before an order of an OCO executes or triggers, the other expires; the
+   * lock the pair shared passes to this one.
+   */
+  const resolveOco = (order: PaperOrder) => {
+    if (!order.listId || !ocoLeg(order)) return;
+    for (const other of legsOf(order.listId)) {
+      if (other.orderId === order.orderId || !ocoLeg(other)) continue;
+      if (other.status !== 'NEW') continue;
+      const shared = locks.get(other.orderId) ?? '0';
+      const own = locks.get(order.orderId) ?? '0';
+      locks.set(order.orderId, add(own, shared));
+      locks.delete(other.orderId);
+      end(other, 'EXPIRED', 'OCO_OTHER_EXECUTED');
+    }
+  };
 
   /** One execution: moves the funds, takes the fee in the asset received. */
   function execute(
@@ -152,8 +264,8 @@ export function createDevelopmentPaperTrading(
     price: string,
     quantity: string,
     liquidity: 'MAKER' | 'TAKER',
-    lockedQuote: string,
   ) {
+    resolveOco(order);
     const base = pair.baseAsset ?? pair.symbol;
     const quote = multiply(price, quantity);
     const buy = order.side === 'BUY';
@@ -161,13 +273,16 @@ export function createDevelopmentPaperTrading(
     const fee = toStep(multiply(received, FEE_RATE), '0.00000001', 'up');
     const quoteRow = holding('SPOT', QUOTE);
     const baseRow = holding('SPOT', base);
+    const locked = locks.get(order.orderId) ?? '0';
+    locks.delete(order.orderId);
     if (buy) {
-      // The lock covered the limit price; what it did not spend comes back.
-      quoteRow.locked = subtract(quoteRow.locked, lockedQuote);
-      quoteRow.free = add(quoteRow.free, subtract(lockedQuote, quote));
+      // The lock covered the limit price (or the stop); the rest comes back.
+      quoteRow.locked = subtract(quoteRow.locked, locked);
+      quoteRow.free = add(quoteRow.free, subtract(locked, quote));
       baseRow.free = add(baseRow.free, subtract(quantity, fee));
     } else {
-      baseRow.locked = subtract(baseRow.locked, quantity);
+      baseRow.locked = subtract(baseRow.locked, locked);
+      baseRow.free = add(baseRow.free, subtract(locked, quantity));
       quoteRow.free = add(quoteRow.free, subtract(quote, fee));
     }
     const fillId = id('fill');
@@ -206,13 +321,66 @@ export function createDevelopmentPaperTrading(
       closedAt: at(),
     };
     orders.set(order.orderId, filled);
+    if (order.listId && role(order) === ':w') activate(order.listId);
     return filled;
+  }
+
+  /** The pending part of an OTO or OTOCO, once its working order filled. */
+  function activate(listId: string) {
+    const pending = legsOf(listId).filter(
+      (leg) => leg.status === 'PENDING_NEW',
+    );
+    if (pending.length === 0) return;
+    const need = pending.reduce((most, leg) => {
+      const amount = needOf(
+        leg.side,
+        leg.price ?? leg.stopPrice ?? null,
+        leg.quantity as string,
+      );
+      return compare(amount, most) > 0 ? amount : most;
+    }, '0' as string);
+    const row = lockedRow(pending[0] as PaperOrder);
+    if (compare(row.free, need) < 0) {
+      for (const leg of pending) end(leg, 'REJECTED', 'INSUFFICIENT_BALANCE');
+      return;
+    }
+    pending.forEach((leg, index) => {
+      const working = { ...leg, status: 'NEW' as const };
+      orders.set(leg.orderId, working);
+      // An OCO locks once, on its first order.
+      if (index === 0) hold(working, need);
+    });
+    startMatching();
   }
 
   const crosses = (side: OrderSide, limit: string, last: string) =>
     side === 'BUY' ? compare(limit, last) >= 0 : compare(limit, last) <= 0;
 
-  /** Waiting LIMIT orders fill as maker once the price reaches them. */
+  /** Whether a waiting stop triggers at `last`; a trailing one moves its best. */
+  const triggers = (order: PaperOrder, last: string) => {
+    const above = triggersAbove(order.type, order.side);
+    const met = (stop: string) =>
+      above ? compare(last, stop) >= 0 : compare(last, stop) <= 0;
+    if (!order.trailingDelta) return met(order.stopPrice as string);
+    const tracked = best.get(order.orderId);
+    if (tracked === undefined) {
+      if (!order.stopPrice || met(order.stopPrice))
+        best.set(order.orderId, last);
+      return false;
+    }
+    const sell = order.side === 'SELL';
+    if (sell ? compare(last, tracked) > 0 : compare(last, tracked) < 0) {
+      best.set(order.orderId, last);
+      return false;
+    }
+    const share = divide(String(order.trailingDelta), '10000', 12);
+    const trigger = sell
+      ? multiply(tracked, subtract('1', share))
+      : multiply(tracked, add('1', share));
+    return sell ? compare(last, trigger) <= 0 : compare(last, trigger) >= 0;
+  };
+
+  /** Waiting orders fill as maker once the price reaches them; stops trigger. */
   const match = async () => {
     const waiting = [...orders.values()].filter((o) => o.status === 'NEW');
     if (waiting.length === 0) {
@@ -221,17 +389,27 @@ export function createDevelopmentPaperTrading(
       return;
     }
     for (const order of waiting) {
+      if (orders.get(order.orderId)?.status !== 'NEW') continue;
       const pair = pairOf(order.pairId);
       const last = await lastPrice(order.symbol);
+      if (isStop(order.type) && !order.triggeredAt) {
+        if (!triggers(order, last)) continue;
+        resolveOco(order);
+        if (isMarketStop(order.type)) {
+          execute(order, pair, last, order.quantity as string, 'TAKER');
+          continue;
+        }
+        orders.set(order.orderId, { ...order, triggeredAt: at() });
+        continue;
+      }
       const price = order.price as string;
       if (crosses(order.side, price, last) && order.quantity)
-        execute(order, pair, price, order.quantity, 'MAKER', lockOf(order));
+        execute(order, pair, price, order.quantity, 'MAKER');
     }
   };
-  const lockOf = (order: PaperOrder) =>
-    order.side === 'BUY'
-      ? multiply(order.price as string, order.quantity as string)
-      : (order.quantity as string);
+  const startMatching = () => {
+    matcher ??= setInterval(() => void match().catch(() => undefined), 1_000);
+  };
 
   const page = <T>(
     rows: readonly T[],
@@ -244,6 +422,34 @@ export function createDevelopmentPaperTrading(
     page: query.page,
     pageSize: query.pageSize,
     total: rows.length,
+  });
+
+  /** A new order of the Spot types, NEW, with the backend's empty fields. */
+  const newOrder = (
+    fields: Pick<
+      PaperOrder,
+      'clientOrderId' | 'pairId' | 'symbol' | 'side' | 'type'
+    > &
+      Partial<PaperOrder>,
+  ): PaperOrder => ({
+    orderId: id('order'),
+    market: 'spot',
+    timeInForce: null,
+    price: null,
+    quantity: null,
+    quoteOrderQty: null,
+    executedQuantity: '0',
+    cumQuote: '0',
+    avgPrice: null,
+    status: 'NEW',
+    statusReason: null,
+    placedAt: at(),
+    closedAt: null,
+    stopPrice: null,
+    trailingDelta: null,
+    triggeredAt: null,
+    listId: null,
+    ...fields,
   });
 
   const paperTrading: PaperTradingService = {
@@ -356,115 +562,228 @@ export function createDevelopmentPaperTrading(
       const pair = pairOf(request.pairId);
       const tick = pair.tickSize ?? '0.01';
       const step = pair.stepSize ?? '0.00001';
-      const limit = request.type === 'LIMIT';
+      const type = request.type;
+      const stop = isStop(type);
+      const limitKind =
+        type === 'LIMIT' ||
+        type === 'LIMIT_MAKER' ||
+        type === 'STOP_LOSS_LIMIT' ||
+        type === 'TAKE_PROFIT_LIMIT';
       const errors: Record<string, string> = {};
-      if (limit && !request.price) errors.price = 'MSG01';
-      if (
-        !request.quantity &&
-        !(request.side === 'BUY' && request.quoteOrderQty)
-      )
+      if (limitKind && !request.price) errors.price = 'MSG01';
+      if (!request.quantity && !(type === 'MARKET' && request.quoteOrderQty))
         errors.quantity = 'MSG01';
+      if (stop && !request.stopPrice && !request.trailingDelta)
+        errors.stopPrice = 'MSG01';
+      if ((request.timeInForce as string | undefined) === 'GTX')
+        errors.timeInForce = 'MSG15';
       if (Object.keys(errors).length)
         refuse(400, 'VALIDATION', 'MSG01', errors);
       const last = await lastPrice(pair.symbol);
-      const price = limit
+      const price = limitKind
         ? toStep(request.price as string, tick, 'half-up')
         : last;
+      const stopPrice = request.stopPrice
+        ? toStep(request.stopPrice, tick, 'half-up')
+        : null;
+      if (stop && stopPrice && !request.trailingDelta) {
+        const above = triggersAbove(type, request.side);
+        if (
+          above ? compare(last, stopPrice) >= 0 : compare(last, stopPrice) <= 0
+        )
+          refuse(409, 'PAPER_ORDER_WOULD_TRIGGER', 'MSG43');
+      }
       const quantity = request.quantity
         ? toStep(request.quantity, step, 'down')
         : toStep(divide(request.quoteOrderQty as string, last), step, 'down');
-      const notional = multiply(price, quantity);
+      const sizing = limitKind ? price : (stopPrice ?? last);
+      const notional = multiply(sizing, quantity);
       if (
         !isPositive(quantity) ||
         compare(notional, pair.minNotional ?? '0') < 0
       )
         refuse(400, 'VALIDATION', 'MSG15', { quantity: 'MSG15' });
-      const base = pair.baseAsset ?? pair.symbol;
-      const buy = request.side === 'BUY';
-      const funds = holding('SPOT', buy ? QUOTE : base);
-      const need = buy ? notional : quantity;
-      if (compare(funds.free, need) < 0)
-        refuse(400, 'PAPER_INSUFFICIENT_BALANCE', 'MSG01');
-      funds.free = subtract(funds.free, need);
-      funds.locked = add(funds.locked, need);
-      const order: PaperOrder = {
-        orderId: id('order'),
+      if (type === 'LIMIT_MAKER' && crosses(request.side, price, last))
+        refuse(409, 'PAPER_ORDER_WOULD_TAKE', 'MSG43');
+      const order = newOrder({
         clientOrderId: request.clientOrderId,
         pairId: request.pairId,
         symbol: pair.symbol,
-        market: 'spot',
         side: request.side,
-        type: request.type,
-        timeInForce: limit ? (request.timeInForce ?? 'GTC') : null,
-        price: limit ? price : null,
+        type,
+        timeInForce:
+          type === 'LIMIT' ||
+          type === 'STOP_LOSS_LIMIT' ||
+          type === 'TAKE_PROFIT_LIMIT'
+            ? (request.timeInForce ?? 'GTC')
+            : null,
+        price: limitKind ? price : null,
         quantity: request.quantity ? quantity : null,
         quoteOrderQty: request.quantity
           ? null
           : (request.quoteOrderQty ?? null),
-        executedQuantity: '0',
-        cumQuote: '0',
-        avgPrice: null,
-        status: 'NEW',
-        statusReason: null,
-        placedAt: at(),
-        closedAt: null,
-      };
+        stopPrice,
+        trailingDelta: request.trailingDelta ?? null,
+      });
+      hold(order, needOf(request.side, sizing, quantity));
       orders.set(order.orderId, order);
-      // Post-only (GTX): an order that would take liquidity expires instead.
       if (
-        limit &&
-        order.timeInForce === 'GTX' &&
-        crosses(request.side, price, last)
+        type === 'MARKET' ||
+        (type === 'LIMIT' && crosses(request.side, price, last))
+      )
+        return execute(order, pair, last, quantity, 'TAKER');
+      if (
+        type === 'LIMIT' &&
+        (order.timeInForce === 'IOC' || order.timeInForce === 'FOK')
       ) {
-        funds.locked = subtract(funds.locked, need);
-        funds.free = add(funds.free, need);
-        const expired = {
-          ...order,
-          status: 'EXPIRED' as const,
-          statusReason: 'POST_ONLY_WOULD_TAKE',
-          closedAt: at(),
-        };
-        orders.set(order.orderId, expired);
-        return expired;
+        release(order);
+        return end(order, 'EXPIRED', 'NOT_FILLABLE_ON_ARRIVAL');
       }
-      if (!limit || crosses(request.side, price, last))
-        return execute(order, pair, last, quantity, 'TAKER', need);
-      if (order.timeInForce === 'IOC' || order.timeInForce === 'FOK') {
-        funds.locked = subtract(funds.locked, need);
-        funds.free = add(funds.free, need);
-        const expired = {
-          ...order,
-          status: 'EXPIRED' as const,
-          statusReason: `${order.timeInForce}_NOT_FILLABLE`,
-          closedAt: at(),
-        };
-        orders.set(order.orderId, expired);
-        return expired;
-      }
-      matcher ??= setInterval(() => void match().catch(() => undefined), 1_000);
+      startMatching();
       return order;
+    },
+
+    async placeOrderList(request) {
+      await opened();
+      const pair = pairOf(request.pairId);
+      const last = await lastPrice(pair.symbol);
+      const listId = id('list');
+      const created: PaperOrder[] = [];
+      const leg = (
+        suffix: string,
+        part: PaperOrderListLeg,
+        pending: boolean,
+      ) => {
+        const order = newOrder({
+          clientOrderId: listId + suffix,
+          pairId: request.pairId,
+          symbol: pair.symbol,
+          side: part.side,
+          type: part.type,
+          timeInForce:
+            part.type === 'LIMIT' || part.type.endsWith('_LIMIT')
+              ? 'GTC'
+              : null,
+          price: part.price ?? null,
+          quantity: part.quantity,
+          stopPrice: part.stopPrice ?? null,
+          listId,
+          status: pending ? 'PENDING_NEW' : 'NEW',
+        });
+        created.push(order);
+        return order;
+      };
+      const oco = (pending: boolean) => {
+        const legs = request.oco;
+        if (!legs) refuse(400, 'VALIDATION', 'MSG01', { oco: 'MSG01' });
+        const sell = legs.side === 'SELL';
+        if (
+          !pending &&
+          (sell
+            ? compare(legs.takeProfitPrice, last) <= 0 ||
+              compare(legs.stopPrice, last) >= 0
+            : compare(legs.takeProfitPrice, last) >= 0 ||
+              compare(legs.stopPrice, last) <= 0)
+        )
+          refuse(400, 'VALIDATION', 'MSG15', {
+            'oco.takeProfitPrice': 'MSG15',
+          });
+        const takeProfit = leg(
+          ':tp',
+          {
+            side: legs.side,
+            type: 'LIMIT_MAKER',
+            price: legs.takeProfitPrice,
+            quantity: legs.quantity,
+          },
+          pending,
+        );
+        const stop = leg(
+          ':sl',
+          {
+            side: legs.side,
+            type: legs.stopLimitPrice ? 'STOP_LOSS_LIMIT' : 'STOP_LOSS',
+            ...(legs.stopLimitPrice ? { price: legs.stopLimitPrice } : {}),
+            stopPrice: legs.stopPrice,
+            quantity: legs.quantity,
+          },
+          pending,
+        );
+        return [takeProfit, stop] as const;
+      };
+      lists.set(listId, {
+        listId,
+        type: request.type,
+        status: 'EXECUTING',
+        pairId: request.pairId,
+        symbol: pair.symbol,
+        orders: [],
+      });
+      if (request.type === 'OCO') {
+        const [takeProfit, stop] = oco(false);
+        created.forEach((order) => orders.set(order.orderId, order));
+        const need = [takeProfit, stop].reduce((most, order) => {
+          const amount = needOf(
+            order.side,
+            order.price ?? order.stopPrice ?? null,
+            order.quantity as string,
+          );
+          return compare(amount, most) > 0 ? amount : most;
+        }, '0');
+        hold(takeProfit, need);
+      } else {
+        if (!request.working)
+          refuse(400, 'VALIDATION', 'MSG01', { working: 'MSG01' });
+        const working = leg(':w', request.working, false);
+        if (request.type === 'OTO') {
+          if (!request.pending)
+            refuse(400, 'VALIDATION', 'MSG01', { pending: 'MSG01' });
+          leg(':p', request.pending, true);
+        } else oco(true);
+        created.forEach((order) => orders.set(order.orderId, order));
+        hold(
+          working,
+          needOf(working.side, working.price, working.quantity as string),
+        );
+        if (
+          working.type === 'LIMIT' &&
+          crosses(working.side, working.price as string, last)
+        )
+          execute(working, pair, last, working.quantity as string, 'TAKER');
+      }
+      startMatching();
+      return listOf(listId);
     },
 
     async cancelOrder(orderId) {
       await opened();
       const order = orders.get(orderId);
       if (!order) refuse(404, 'RESOURCE_NOT_FOUND', 'MSG41');
-      if (order.status !== 'NEW') refuse(409, 'PAPER_ORDER_NOT_OPEN', 'MSG43');
-      const pair = pairOf(order.pairId);
-      const funds = holding(
-        'SPOT',
-        order.side === 'BUY' ? QUOTE : (pair.baseAsset ?? pair.symbol),
+      if (order.status !== 'NEW' && order.status !== 'PENDING_NEW')
+        refuse(409, 'PAPER_ORDER_NOT_OPEN', 'MSG43');
+      if (order.listId) {
+        // Cancelling any order of a group cancels the group.
+        await paperTrading.cancelOrderList(order.listId);
+        return orders.get(orderId) as PaperOrder;
+      }
+      release(order);
+      best.delete(orderId);
+      return end(order, 'CANCELED');
+    },
+
+    async cancelOrderList(listId) {
+      await opened();
+      if (!lists.has(listId)) refuse(404, 'RESOURCE_NOT_FOUND', 'MSG41');
+      const legs = legsOf(listId).filter(
+        (leg) => leg.status === 'NEW' || leg.status === 'PENDING_NEW',
       );
-      const locked = lockOf(order);
-      funds.locked = subtract(funds.locked, locked);
-      funds.free = add(funds.free, locked);
-      const canceled = {
-        ...order,
-        status: 'CANCELED' as const,
-        closedAt: at(),
-      };
-      orders.set(orderId, canceled);
-      return canceled;
+      if (legs.length === 0) refuse(409, 'PAPER_ORDER_NOT_OPEN', 'MSG43');
+      for (const leg of legs) {
+        release(leg);
+        best.delete(leg.orderId);
+        end(leg, 'CANCELED');
+      }
+      return listOf(listId);
     },
 
     async cancelAll(pairId) {
@@ -474,7 +793,8 @@ export function createDevelopmentPaperTrading(
         .reverse();
       const canceled: PaperOrder[] = [];
       for (const order of working)
-        canceled.push(await paperTrading.cancelOrder(order.orderId));
+        if (orders.get(order.orderId)?.status === 'NEW')
+          canceled.push(await paperTrading.cancelOrder(order.orderId));
       return canceled;
     },
 
@@ -484,7 +804,8 @@ export function createDevelopmentPaperTrading(
       return [...orders.values()]
         .filter(
           (order) =>
-            order.status === 'NEW' && (!pairId || order.pairId === pairId),
+            (order.status === 'NEW' || order.status === 'PENDING_NEW') &&
+            (!pairId || order.pairId === pairId),
         )
         .reverse();
     },

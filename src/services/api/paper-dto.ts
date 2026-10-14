@@ -5,6 +5,7 @@ import type {
   PaperFill,
   PaperLedgerEntry,
   PaperOrder,
+  PaperOrderList,
   PaperPage,
   PaperTransfer,
   PaperWallet,
@@ -34,12 +35,15 @@ const SIDES = ['BUY', 'SELL'] as const;
 const TYPES = [
   'MARKET',
   'LIMIT',
-  'STOP_MARKET',
-  'STOP_LIMIT',
-  'TAKE_PROFIT_MARKET',
+  'LIMIT_MAKER',
+  'STOP_LOSS',
+  'STOP_LOSS_LIMIT',
+  'TAKE_PROFIT',
   'TAKE_PROFIT_LIMIT',
+  'STOP',
+  'STOP_MARKET',
+  'TAKE_PROFIT_MARKET',
   'TRAILING_STOP_MARKET',
-  'TRAILING_STOP_LIMIT',
 ] as const;
 const STATUSES = [
   'NEW',
@@ -152,6 +156,30 @@ export function decodeOrder(body: unknown): PaperOrder {
     statusReason: nullableText(value.statusReason, 'statusReason'),
     placedAt: instant(value.placedAt, 'placedAt'),
     closedAt: nullableInstant(value.closedAt, 'closedAt'),
+    stopPrice: nullableDecimal(value.stopPrice, 'stopPrice'),
+    trailingDelta:
+      value.trailingDelta === null || value.trailingDelta === undefined
+        ? null
+        : integer(value.trailingDelta, 'trailingDelta'),
+    triggeredAt: nullableInstant(value.triggeredAt, 'triggeredAt'),
+    listId: nullableText(value.listId, 'listId'),
+  };
+}
+
+/** A group of orders (TR-10): OCO, OTO or OTOCO with its orders. */
+export function decodeOrderList(body: unknown): PaperOrderList {
+  const value = record(body, 'orderList');
+  return {
+    listId: text(value.listId, 'listId'),
+    type: oneOf(['OCO', 'OTO', 'OTOCO'] as const, value.type, 'type'),
+    status: oneOf(
+      ['EXECUTING', 'ALL_DONE', 'REJECTED'] as const,
+      value.status,
+      'status',
+    ),
+    pairId: text(value.pairId, 'pairId'),
+    symbol: text(value.symbol, 'symbol'),
+    orders: list(value.orders, 'orders').map(decodeOrder),
   };
 }
 
