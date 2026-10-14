@@ -109,6 +109,22 @@ describe('market decoders', () => {
     ).toBe('futures');
     expect(() => decodePairPage({ items: [{}], total: 1 })).toThrow();
   });
+
+  it('keeps the pair id when the backend sends it (FEQ-01)', () => {
+    const id = '0199a0f0-1111-7aaa-8bbb-000000000001';
+    const page = decodePairPage({
+      items: [{ ...pair('BTCUSDT', 1), pairId: id }, pair('ETHUSDT', 2)],
+      total: 2,
+    });
+    expect(page.items[0]?.pairId).toBe(id);
+    expect(page.items[1]).not.toHaveProperty('pairId');
+    expect(() =>
+      decodePairPage({
+        items: [{ ...pair('BTCUSDT', 1), pairId: 7 }],
+        total: 1,
+      }),
+    ).toThrow();
+  });
 });
 
 describe('kline decoder', () => {
