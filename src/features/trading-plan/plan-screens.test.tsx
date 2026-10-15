@@ -25,6 +25,10 @@ beforeAll(() => {
   };
 });
 
+// The editor refuses an expiry that has passed, so the draft expires a week
+// after the run rather than on a fixed day that the calendar overtakes.
+const EXPIRES_AT = new Date(Date.now() + 7 * 86_400_000).toISOString();
+
 const ROW: TradingPlanSummary = {
   id: '0199a2c4-0000-7000-8000-00000000a1b2',
   pairId: '0199a0f0-1111-7aaa-8bbb-000000000001',
@@ -40,7 +44,7 @@ const ROW: TradingPlanSummary = {
   status: 'DRAFT',
   createdAt: '2026-10-08T02:20:00Z',
   activatedAt: null,
-  expiresAt: '2026-10-15T02:20:00Z',
+  expiresAt: EXPIRES_AT,
 };
 
 const PLAN: TradingPlan = {
@@ -56,7 +60,7 @@ const PLAN: TradingPlan = {
   riskPercent: '1',
   leverage: 5,
   marginMode: 'ISOLATED',
-  expiresAt: '2026-10-15T02:20:00Z',
+  expiresAt: EXPIRES_AT,
   note: 'Retest of the range high.',
   status: 'DRAFT',
   editable: true,
