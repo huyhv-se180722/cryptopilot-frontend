@@ -31,6 +31,10 @@ import { TradeTickerStrip } from '../../features/paper-trading/components/TradeT
 import { useChartOrders } from '../../features/paper-trading/hooks/use-chart-orders';
 import { usePaperAccount } from '../../features/paper-trading/hooks/use-paper-account';
 import { usePaperWallet } from '../../features/paper-trading/hooks/use-paper-orders';
+import {
+  readLastSpotPair,
+  useRememberSpotPair,
+} from '../../features/paper-trading/hooks/use-last-spot-pair';
 import { useTradeTimeframe } from '../../features/paper-trading/hooks/use-trade-timeframe';
 import {
   useWatchedPair,
@@ -53,6 +57,7 @@ function TradeSpot({
   const p = copy.paper;
   const navigate = useNavigate();
   const [timeframe, setTimeframe] = useTradeTimeframe();
+  useRememberSpotPair(pair.symbol);
   const [region, setRegion] = useState<PhoneRegion>('chart');
   const [picked, setPicked] = useState<PickedPrice | null>(null);
   const pick = (price: Decimal) => setPicked({ price, at: Date.now() });
@@ -195,7 +200,8 @@ function TradeSpot({
  * workspace layout of an exchange's Spot screen with the pair switcher,
  * the instrument strip and the shared chart. The order book, trades,
  * order form and orders panel are filled by TR-F2 and TR-F3. Without a
- * symbol the first pair in display order opens.
+ * symbol the pair last opened here reopens, or else the first pair in
+ * display order.
  */
 export function TradeSpotPage() {
   const copy = useCopy();
@@ -206,8 +212,12 @@ export function TradeSpotPage() {
   );
   const first = pairs.data?.[0];
 
-  if (symbol === '' && first)
-    return <Navigate replace to={'/trade/spot/' + first.symbol} />;
+  if (symbol === '' && first) {
+    const last = readLastSpotPair();
+    const reopen =
+      pairs.data?.find((candidate) => candidate.symbol === last) ?? first;
+    return <Navigate replace to={'/trade/spot/' + reopen.symbol} />;
+  }
   return (
     <div className="w-full">
       <DemoTradingBanner />
