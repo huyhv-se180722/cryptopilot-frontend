@@ -230,6 +230,31 @@ describe('Spot demo trading layout (TR-F1, D-86)', () => {
       expect(screen.getByRole('region', { name: region })).toBeTruthy();
   });
 
+  it('reopens the pair last opened, and the first pair once that one is gone', async () => {
+    await open('/trade/spot/SOLUSDT');
+    await screen.findByRole('button', {
+      name: 'Choose a pair (current: SOL/USDT)',
+    });
+    expect(window.localStorage.getItem('cp-trade-spot-pair')).toBe('SOLUSDT');
+    cleanup();
+
+    await open('/trade/spot');
+    expect(
+      await screen.findByRole('button', {
+        name: 'Choose a pair (current: SOL/USDT)',
+      }),
+    ).toBeTruthy();
+    cleanup();
+
+    window.localStorage.setItem('cp-trade-spot-pair', 'DELISTEDUSDT');
+    await open('/trade/spot');
+    expect(
+      await screen.findByRole('button', {
+        name: 'Choose a pair (current: BTC/USDT)',
+      }),
+    ).toBeTruthy();
+  });
+
   it('says the demo account is not connected in the form and the orders panel', async () => {
     await open();
     const form = await screen.findByRole('region', { name: 'Spot order' });
