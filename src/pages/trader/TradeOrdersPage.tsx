@@ -41,9 +41,9 @@ const STATUSES: readonly PaperOrderStatus[] = [
  * Demo orders (D-86, plan section 16, TR-07; designed after the
  * exchange's Order History without a Figma frame): open orders with
  * cancel and cancel all, the order history and the trade history of
- * every pair, filtered by pair, status and period, 20 rows a page. A
- * pair can be chosen only when its id is known from the watchlist
- * (FEQ-01).
+ * every pair, filtered by pair, status and period, 20 rows a page. The
+ * pair filter lists the Spot pairs whose id the market list gives
+ * (FEQ-01), and the watched pairs when a backend does not give it yet.
  */
 export function TradeOrdersPage() {
   const copy = useCopy();
@@ -68,9 +68,17 @@ export function TradeOrdersPage() {
   const open = useOpenOrders(pairId || null);
   const orders = useOrderHistory(filter, ordersPage, tab === 'orders');
   const fills = useFillHistory(filter, fillsPage, tab === 'fills');
-  const choices = (watchlist.data?.items ?? []).filter(
-    (item) => item.spotListed,
+  const listed = (pairs.data ?? []).flatMap((pair) =>
+    pair.pairId ? [{ pairId: pair.pairId, symbol: pair.symbol }] : [],
   );
+  const withoutId = (pairs.data ?? []).some((pair) => !pair.pairId);
+  const choices = [
+    ...listed,
+    ...(watchlist.data?.items ?? []).filter(
+      (item) =>
+        item.spotListed && !listed.some((pair) => pair.pairId === item.pairId),
+    ),
+  ];
 
   const restart = () => {
     setOrdersPage(1);
@@ -178,7 +186,9 @@ export function TradeOrdersPage() {
           </button>
         )}
       </div>
-      <p className="mb-3 text-[11px] text-muted-dim">{p.pairFilterHint}</p>
+      {withoutId && (
+        <p className="mb-3 text-[11px] text-muted-dim">{p.pairFilterHint}</p>
+      )}
       {notice && <FormNotice tone="error">{notice}</FormNotice>}
       <Tabs
         label={p.ordersTitle}

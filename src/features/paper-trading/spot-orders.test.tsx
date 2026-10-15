@@ -84,10 +84,10 @@ const BOOK: OrderBook = {
   asks: [{ price: '60010.00', quantity: '0.5' }],
 };
 
-async function open(path = '/trade/spot/BTCUSDT') {
+async function open(path = '/trade/spot/BTCUSDT', pairs = PAIRS) {
   const prices: Record<string, string> = { BTCUSDT: '60000', ETHUSDT: '2500' };
   const market: MarketService = {
-    listPairs: vi.fn(async () => PAIRS),
+    listPairs: vi.fn(async () => pairs),
     getCandles: vi.fn(async () => []),
     getFuturesMetrics: vi.fn(),
     getTicker: vi.fn(async (_m, symbol) =>
@@ -252,6 +252,19 @@ describe('Spot demo orders (TR-F3)', () => {
     expect(submit).toHaveProperty('disabled', true);
     expect(submit.getAttribute('aria-describedby')).toBeTruthy();
     expect(form.textContent).toContain('Add this pair to your watchlist');
+  });
+
+  it('trades a pair off the watchlist when the market list gives its id (FEQ-01)', async () => {
+    const withIds = PAIRS.map((row) => ({
+      ...row,
+      pairId: DEV_PAIR_IDS[row.symbol]!,
+    }));
+    const { form, user } = await open('/trade/spot/ETHUSDT', withIds);
+    expect(form.textContent).not.toContain('Add this pair to your watchlist');
+    await user.type(field(form, /Price/), '2400');
+    await user.type(field(form, /Amount/), '0.1');
+    await user.click(within(form).getByRole('button', { name: 'Buy ETH' }));
+    expect(await screen.findByText('Buy order open.')).toBeTruthy();
   });
 
   it('transfers USDT to the Futures wallet', async () => {

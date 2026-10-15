@@ -50,6 +50,11 @@ export interface Session {
 }
 /** A pair enabled by Admin on one market, in admin display order (BR-07). */
 export interface MarketPair {
+  /**
+   * The id requests name the pair by (watchlist, alerts, plans, demo
+   * orders). Absent from a backend that does not send it yet (FEQ-01).
+   */
+  pairId?: string;
   symbol: string;
   market: MarketType;
   baseAsset: string | null;

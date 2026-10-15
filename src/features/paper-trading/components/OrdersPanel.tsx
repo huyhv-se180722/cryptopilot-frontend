@@ -65,7 +65,8 @@ export function OrdersPanel({
   const { cancel, cancelAll } = usePaperActions();
 
   const { orderColumns, fillColumns, money } = usePaperColumns(pairs);
-  // Without the pair's id (FEQ-01) the lists are narrowed by symbol here.
+  // Without the pair's id (FEQ-01, older backend) the lists are narrowed
+  // by symbol here.
   const mine = <T extends { symbol: string }>(rows: readonly T[]) =>
     onlyThis ? rows.filter((row) => row.symbol === pair.symbol) : rows;
 

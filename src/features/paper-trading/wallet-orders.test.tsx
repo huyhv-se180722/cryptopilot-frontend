@@ -46,9 +46,13 @@ const PRICES: Record<string, string> = {
 };
 const BTC_ID = DEV_PAIR_IDS.BTCUSDT!;
 
-async function setup(element: React.ReactElement, path: string) {
+async function setup(
+  element: React.ReactElement,
+  path: string,
+  pairs: readonly MarketPair[] = [BTC],
+) {
   const market: MarketService = {
-    listPairs: vi.fn(async () => [BTC]),
+    listPairs: vi.fn(async () => pairs),
     getCandles: vi.fn(async () => []),
     getFuturesMetrics: vi.fn(),
     getTicker: vi.fn(
@@ -204,5 +208,29 @@ describe('Demo orders page (TR-F3)', () => {
       ).toEqual(['All', 'BTCUSDT']),
     );
     expect(screen.getByText(/Only pairs on your watchlist/)).toBeTruthy();
+  });
+
+  it('offers every Spot pair whose id the market list gives (FEQ-01)', async () => {
+    const ETH: MarketPair = {
+      ...BTC,
+      pairId: DEV_PAIR_IDS.ETHUSDT!,
+      symbol: 'ETHUSDT',
+      baseAsset: 'ETH',
+      baseAssetName: 'Ethereum',
+      displayOrder: 2,
+    };
+    await setup(<TradeOrdersPage />, '/trade/orders', [
+      { ...BTC, pairId: BTC_ID },
+      ETH,
+    ]);
+    const select = await screen.findByRole('combobox', { name: 'Pair' });
+    await waitFor(() =>
+      expect(
+        within(select)
+          .getAllByRole('option')
+          .map((option) => option.textContent),
+      ).toEqual(['All', 'BTCUSDT', 'ETHUSDT']),
+    );
+    expect(screen.queryByText(/Only pairs on your watchlist/)).toBeNull();
   });
 });

@@ -56,9 +56,10 @@ function TradeSpot({
   const [region, setRegion] = useState<PhoneRegion>('chart');
   const [picked, setPicked] = useState<PickedPrice | null>(null);
   const pick = (price: Decimal) => setPicked({ price, at: Date.now() });
-  // Demo orders name the pair by id, which only a watchlist row carries
-  // until the market list gives it (FEQ-01).
-  const pairId = useWatchedPair(pair.symbol)?.pairId ?? null;
+  // Demo orders name the pair by id. The market list gives it (FEQ-01);
+  // a watchlist row is the fallback for a backend that does not yet.
+  const watched = useWatchedPair(pair.symbol);
+  const pairId = pair.pairId ?? watched?.pairId ?? null;
   const chartOrders = useChartOrders(pair, pairId);
   const spot = usePaperWallet('SPOT');
   const account = usePaperAccount();
