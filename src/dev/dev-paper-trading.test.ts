@@ -212,7 +212,7 @@ describe('development demo exchange (TR-04, TR-06, TR-07 answers)', () => {
     });
     expect(expired).toMatchObject({
       status: 'EXPIRED',
-      statusReason: 'IOC_NOT_FILLABLE',
+      statusReason: 'NOT_FILLABLE_ON_ARRIVAL',
     });
   });
 

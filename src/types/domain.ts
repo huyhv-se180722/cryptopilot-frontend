@@ -564,16 +564,27 @@ export interface PaperTransfer {
   transferredAt: ISODateTime;
 }
 export type OrderSide = 'BUY' | 'SELL';
-/** Every type the backend knows; the Spot form places MARKET and LIMIT. */
-export type PaperOrderType =
+/**
+ * The Spot order types of the exchange's Spot API (STOP_LOSS and
+ * TAKE_PROFIT execute at the market once triggered, the _LIMIT kinds work
+ * as a limit; LIMIT_MAKER is the post-only order).
+ */
+export type SpotOrderType =
   | 'MARKET'
   | 'LIMIT'
+  | 'LIMIT_MAKER'
+  | 'STOP_LOSS'
+  | 'STOP_LOSS_LIMIT'
+  | 'TAKE_PROFIT'
+  | 'TAKE_PROFIT_LIMIT';
+/** Every type the backend knows: the Spot ones, and those of Futures. */
+export type PaperOrderType =
+  | SpotOrderType
+  | 'STOP'
   | 'STOP_MARKET'
-  | 'STOP_LIMIT'
   | 'TAKE_PROFIT_MARKET'
-  | 'TAKE_PROFIT_LIMIT'
-  | 'TRAILING_STOP_MARKET'
-  | 'TRAILING_STOP_LIMIT';
+  | 'TRAILING_STOP_MARKET';
+/** GTX is the post-only of Futures; Spot takes GTC, IOC and FOK. */
 export type TimeInForce = 'GTC' | 'IOC' | 'FOK' | 'GTX';
 export type PaperOrderStatus =
   | 'NEW'
@@ -603,10 +614,18 @@ export interface PaperOrder {
   cumQuote: Decimal;
   avgPrice: Decimal | null;
   status: PaperOrderStatus;
-  /** Why it ended other than by filling, e.g. IOC_NOT_FILLABLE. */
+  /** Why it ended other than by filling, e.g. NOT_FILLABLE_ON_ARRIVAL. */
   statusReason: string | null;
   placedAt: ISODateTime;
   closedAt: ISODateTime | null;
+  /** A stop's stopPrice: its trigger, or where a trailing stop starts. */
+  stopPrice?: Decimal | null;
+  /** A trailing stop's delta in basis points (100 = 1 %). */
+  trailingDelta?: number | null;
+  /** When a stop triggered. */
+  triggeredAt?: ISODateTime | null;
+  /** The OCO, OTO or OTOCO it belongs to. */
+  listId?: string | null;
 }
 export interface PaperFill {
   fillId: string;
@@ -626,21 +645,66 @@ export interface PaperFill {
   tradedAt: ISODateTime;
 }
 /**
- * A Spot order to place (TR-06). LIMIT: price and quantity, GTC unless IOC
- * or FOK. MARKET: quantity, or for a BUY the quote amount to spend. The
- * `clientOrderId` is the idempotency key: keep it when sending again.
+ * A Spot order to place, as the exchange's Spot API takes it. LIMIT:
+ * price and quantity, GTC unless IOC or FOK. LIMIT_MAKER: price and
+ * quantity, refused if it would fill at once. MARKET: quantity, or the
+ * quote amount to spend (BUY) or receive (SELL). STOP_LOSS / TAKE_PROFIT:
+ * quantity and a stopPrice and/or trailingDelta; the _LIMIT kinds also a
+ * price. The `clientOrderId` is the idempotency key: keep it when sending
+ * again.
  */
 export interface PlacePaperOrder {
   pairId: string;
   market: MarketType;
   side: OrderSide;
-  type: 'MARKET' | 'LIMIT';
-  /** GTX: post-only, expires instead of taking liquidity on arrival. */
-  timeInForce?: 'GTC' | 'IOC' | 'FOK' | 'GTX';
+  type: SpotOrderType;
+  timeInForce?: 'GTC' | 'IOC' | 'FOK';
   price?: Decimal;
   quantity?: Decimal;
   quoteOrderQty?: Decimal;
+  stopPrice?: Decimal;
+  /** Basis points, 10 to 2000 (0.1 % to 20 %). */
+  trailingDelta?: number;
   clientOrderId: string;
+}
+export type PaperOrderListType = 'OCO' | 'OTO' | 'OTOCO';
+/** One order of an OTO or OTOCO. */
+export interface PaperOrderListLeg {
+  side: OrderSide;
+  type: SpotOrderType;
+  price?: Decimal;
+  stopPrice?: Decimal;
+  quantity: Decimal;
+}
+/** The take profit (LIMIT_MAKER) and stop of an OCO, on one side and quantity. */
+export interface PaperOcoLegs {
+  side: OrderSide;
+  quantity: Decimal;
+  takeProfitPrice: Decimal;
+  stopPrice: Decimal;
+  /** Absent: the stop is a STOP_LOSS, executed at the market. */
+  stopLimitPrice?: Decimal;
+}
+/**
+ * A group of Spot orders to place together: OCO (`oco`), OTO (`working`
+ * and `pending`), OTOCO (`working` and `oco`, a limit with TP/SL).
+ */
+export interface PlacePaperOrderList {
+  pairId: string;
+  market: MarketType;
+  type: PaperOrderListType;
+  working?: PaperOrderListLeg;
+  pending?: PaperOrderListLeg;
+  oco?: PaperOcoLegs;
+}
+export interface PaperOrderList {
+  listId: string;
+  type: PaperOrderListType;
+  status: 'EXECUTING' | 'ALL_DONE' | 'REJECTED';
+  pairId: string;
+  symbol: string;
+  /** The working order first, then the take profit and the stop. */
+  orders: readonly PaperOrder[];
 }
 export interface PaperPage<T> {
   items: readonly T[];

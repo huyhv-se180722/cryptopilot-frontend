@@ -11,6 +11,7 @@ import type {
   PaperOrderStatus,
   PaperWalletType,
   PlacePaperOrder,
+  PlacePaperOrderList,
 } from '../../../types/domain';
 import { usePaperAccount } from './use-paper-account';
 
@@ -149,6 +150,16 @@ export function usePaperActions() {
       [paperTrading, refresh],
     ),
   );
+  const placeList = useMutation(
+    useCallback(
+      async (list: PlacePaperOrderList) => {
+        const placed = await paperTrading.placeOrderList(list);
+        await refresh();
+        return placed;
+      },
+      [paperTrading, refresh],
+    ),
+  );
   const cancel = useMutation(
     useCallback(
       async (orderId: string) => {
@@ -192,5 +203,5 @@ export function usePaperActions() {
       [paperTrading, refresh],
     ),
   );
-  return { place, cancel, cancelAll, transfer };
+  return { place, placeList, cancel, cancelAll, transfer };
 }

@@ -30,6 +30,8 @@ import type {
   PaperWallet,
   PaperWalletType,
   PlacePaperOrder,
+  PlacePaperOrderList,
+  PaperOrderList,
   PlanCalculation,
   PlanInputs,
   PlanListQuery,
@@ -239,10 +241,14 @@ export interface PaperTradingService {
     query: PaperLedgerQuery,
     signal?: AbortSignal,
   ): Promise<PaperPage<PaperLedgerEntry>>;
-  /** Places a Spot MARKET or LIMIT order, once per `clientOrderId` (TR-06). */
+  /** Places a Spot order of any Spot type, once per `clientOrderId` (TR-06, TR-09, TR-11, TR-12). */
   placeOrder(order: PlacePaperOrder): Promise<PaperOrder>;
-  /** Cancels a working order and releases what it locked. */
+  /** Places an OCO, OTO or OTOCO (TR-10). */
+  placeOrderList(list: PlacePaperOrderList): Promise<PaperOrderList>;
+  /** Cancels a working order and releases what it locked; for an order of a group, the group. */
   cancelOrder(orderId: string): Promise<PaperOrder>;
+  /** Cancels every order of a group that works or waits. */
+  cancelOrderList(listId: string): Promise<PaperOrderList>;
   /** Cancels every working order on one pair. */
   cancelAll(pairId: string): Promise<readonly PaperOrder[]>;
   /** Working orders, newest first; every pair when `pairId` is null (TR-07). */

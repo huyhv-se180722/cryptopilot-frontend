@@ -73,12 +73,28 @@ export function usePaperColumns(pairs: readonly MarketPair[]) {
     {
       id: 'type',
       header: p.colType,
-      render: (row) =>
-        row.type === 'LIMIT'
-          ? p.typeLIMIT
-          : row.type === 'MARKET'
-            ? p.typeMARKET
-            : row.type,
+      render: (row) => {
+        const name = `type${row.type}`;
+        return name in p ? p[name as keyof typeof p] : row.type;
+      },
+    },
+    {
+      id: 'trigger',
+      header: p.colTrigger,
+      numeric: true,
+      render: (row) => {
+        const stop = row.stopPrice ? price(row.symbol, row.stopPrice) : null;
+        if (!row.trailingDelta) return stop ?? copy.market.noValue;
+        return (
+          <>
+            {stop}
+            {stop ? ' · ' : ''}
+            {formatCopy(p.triggerTrailing, {
+              delta: String(row.trailingDelta / 100),
+            })}
+          </>
+        );
+      },
     },
     { id: 'side', header: p.colSide, render: (row) => side(row.side) },
     {
@@ -112,7 +128,22 @@ export function usePaperColumns(pairs: readonly MarketPair[]) {
       render: (row) => money(row.cumQuote),
     },
     action
-      ? { id: 'action', header: '', render: action }
+      ? {
+          id: 'action',
+          header: '',
+          // The pending part of an OTO or OTOCO waits for its working order.
+          render: (row) =>
+            row.status === 'PENDING_NEW' ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="text-[11px] text-muted-dim">
+                  {p.statusPENDING_NEW}
+                </span>
+                {action(row)}
+              </span>
+            ) : (
+              action(row)
+            ),
+        }
       : {
           id: 'status',
           header: p.colStatus,
