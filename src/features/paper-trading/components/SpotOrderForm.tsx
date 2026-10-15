@@ -1,6 +1,7 @@
 import { useId, useRef, useState, type FormEvent } from 'react';
 import { FormNotice } from '../../../components/feedback/FormNotice';
 import { Checkbox } from '../../../components/ui/Checkbox';
+import { DecimalInput } from '../../../components/ui/DecimalInput';
 import { Input } from '../../../components/ui/Input';
 import { NumericText } from '../../../components/ui/NumericText';
 import { SegmentedControl } from '../../../components/ui/SegmentedControl';
@@ -243,14 +244,12 @@ export function SpotOrderForm({
     update(shareOfFunds(draft, pair, available, percent, lastPrice));
 
   const priceInput = (field: 'price' | 'stop' | 'stopLimit', label: string) => (
-    <Input
+    <DecimalInput
       label={label}
-      inputMode="decimal"
       autoComplete="off"
       value={draft[field]}
       error={fieldError(field)}
-      onChange={(event) => {
-        const value = event.target.value;
+      onValueChange={(value) => {
         const next = { ...draft, [field]: value };
         update({
           [field]: value,
@@ -374,14 +373,12 @@ export function SpotOrderForm({
       )}
 
       {!byTotal && (
-        <Input
+        <DecimalInput
           label={formatCopy(p.fieldAmount, { asset: base })}
-          inputMode="decimal"
           autoComplete="off"
           value={draft.amount}
           error={fieldError('amount')}
-          onChange={(event) => {
-            const amount = event.target.value;
+          onValueChange={(amount) => {
             update({ amount, total: totalOf(draft, amount, lastPrice) });
           }}
         />
@@ -405,15 +402,13 @@ export function SpotOrderForm({
         ))}
       </div>
 
-      <Input
+      <DecimalInput
         label={formatCopy(p.fieldTotal, { asset: quote })}
-        inputMode="decimal"
         autoComplete="off"
         value={draft.total}
         readOnly={market && !byTotal}
         error={fieldError('total')}
-        onChange={(event) => {
-          const total = event.target.value;
+        onValueChange={(total) => {
           update(
             byTotal
               ? { total }
@@ -448,21 +443,19 @@ export function SpotOrderForm({
       )}
       {type === 'LIMIT' && draft.tpsl && (
         <>
-          <Input
+          <DecimalInput
             label={formatCopy(p.fieldTakeProfit, { asset: quote })}
-            inputMode="decimal"
             autoComplete="off"
             value={draft.takeProfit}
             error={fieldError('takeProfit')}
-            onChange={(event) => update({ takeProfit: event.target.value })}
+            onValueChange={(takeProfit) => update({ takeProfit })}
           />
-          <Input
+          <DecimalInput
             label={formatCopy(p.fieldStopLoss, { asset: quote })}
-            inputMode="decimal"
             autoComplete="off"
             value={draft.stopLoss}
             error={fieldError('stopLoss')}
-            onChange={(event) => update({ stopLoss: event.target.value })}
+            onValueChange={(stopLoss) => update({ stopLoss })}
           />
           <p className="text-[10px] text-muted-dim">{p.tpslNote}</p>
         </>
