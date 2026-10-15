@@ -169,6 +169,23 @@ describe('Spot demo orders (TR-F3)', () => {
     expect(funds.textContent).toContain('590');
   });
 
+  it('groups the price by thousands and takes a comma typed as grouping', async () => {
+    const { form, user } = await open();
+    const price = field(form, /^Price/) as HTMLInputElement;
+    await user.type(price, '59000');
+    expect(price.value).toBe('59,000');
+    await user.clear(price);
+    await user.type(price, '59,000.5');
+    expect(price.value).toBe('59,000.5');
+    await user.type(field(form, /Amount/), '0.01');
+    expect((field(form, /Total/) as HTMLInputElement).value).toBe('590.00');
+    // A point is the decimal mark: "81.32" stays 81.32, plainly not 81,320.
+    await user.clear(price);
+    await user.type(price, '81.32');
+    expect(price.value).toBe('81.32');
+    expect((field(form, /Total/) as HTMLInputElement).value).toBe('0.81');
+  });
+
   it('checks the order before sending it', async () => {
     const { form, user } = await open();
     await user.click(within(form).getByRole('button', { name: 'Buy BTC' }));
@@ -341,7 +358,7 @@ describe('Spot demo orders (TR-F3)', () => {
     await user.click(
       await screen.findByRole('button', { name: /^Bid 59,990.00/ }),
     );
-    expect((field(form, /^Price/) as HTMLInputElement).value).toBe('59990.00');
+    expect((field(form, /^Price/) as HTMLInputElement).value).toBe('59,990.00');
   });
 
   it('says why a pair without an id cannot be traded (FEQ-01)', async () => {
