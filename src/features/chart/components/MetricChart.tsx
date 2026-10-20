@@ -12,8 +12,11 @@ export interface MetricLine {
   colorToken: string;
   /** Left or right price scale, so two units can share the chart. */
   scale: 'left' | 'right';
-  /** Axis labels: compact (K / M / B) for amounts, 4 decimals for ratios. */
-  format: 'amount' | 'ratio';
+  /**
+   * Axis labels: compact (K / M / B) for amounts, 4 decimals for ratios,
+   * 2 decimals for a worth in USDT.
+   */
+  format: 'amount' | 'ratio' | 'usdt';
   points: readonly { time: ISODateTime; value: Decimal }[];
 }
 
@@ -27,15 +30,18 @@ export interface MetricLine {
 export function MetricChart({
   label,
   lines,
+  daily = false,
 }: {
   label: string;
   lines: readonly MetricLine[];
+  /** Points at the start of UTC days: drawn in UTC, as daily candles. */
+  daily?: boolean;
 }) {
   const copy = useCopy();
   const locale = useLocale();
   const container = useRef<HTMLDivElement>(null);
   const theme = useThemeVersion();
-  const offset = chartOffsetSeconds('intraday');
+  const offset = chartOffsetSeconds(daily ? '1d' : 'intraday');
 
   useEffect(() => {
     if (!container.current) return;
@@ -57,7 +63,9 @@ export function MetricChart({
         priceFormat:
           line.format === 'amount'
             ? { type: 'volume' as const }
-            : { type: 'price' as const, precision: 4, minMove: 0.0001 },
+            : line.format === 'usdt'
+              ? { type: 'price' as const, precision: 2, minMove: 0.01 }
+              : { type: 'price' as const, precision: 4, minMove: 0.0001 },
       });
       series.setData(
         line.points.map((point) => ({

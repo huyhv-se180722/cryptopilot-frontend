@@ -88,6 +88,8 @@ describe('account pushes on the demo screens (TR-08)', () => {
         '["paper","data","fills"]',
         '["paper","data","ledger"]',
         '["paper","data","wallet"]',
+        '["paper","data","pnl"]',
+        '["paper","data","equity"]',
       ].sort(),
     );
   });

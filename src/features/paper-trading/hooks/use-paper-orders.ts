@@ -16,7 +16,7 @@ import type {
 } from '../../../types/domain';
 import { usePaperAccount } from './use-paper-account';
 
-const PAPER_KEY = ['paper', 'data'] as const;
+export const PAPER_KEY = ['paper', 'data'] as const;
 /** CR-04: 20 rows per page. */
 export const PAPER_PAGE_SIZE = 20;
 /**
@@ -35,8 +35,8 @@ function useAccountReady() {
 /** The reads a push makes stale, by what it changed. */
 const STALE: Record<PaperAccountEvent['kind'], readonly string[]> = {
   order: ['open', 'orders'],
-  fill: ['fills', 'ledger'],
-  balance: ['wallet', 'ledger'],
+  fill: ['fills', 'ledger', 'pnl', 'equity'],
+  balance: ['wallet', 'ledger', 'pnl', 'equity'],
 };
 
 /** The read rhythm: none while the pushes arrive, else `PAPER_REFRESH_MS`. */
