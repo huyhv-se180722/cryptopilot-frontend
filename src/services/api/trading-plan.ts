@@ -15,6 +15,7 @@ export function createPendingTradingPlanService(): TradingPlanService {
     get: async () => integrationPending(),
     activate: async () => integrationPending(),
     cancel: async () => integrationPending(),
+    create: async () => integrationPending(),
     calculate: async () => integrationPending(),
     update: async () => integrationPending(),
   };
@@ -62,6 +63,13 @@ export function createHttpTradingPlanService(
       http.request({
         path: planPath(id) + '/cancel',
         method: 'POST',
+        decode: decodePlan,
+      }),
+    create: (pairId, inputs, activate) =>
+      http.request({
+        path: 'plans',
+        method: 'POST',
+        body: { pairId, ...encodePlanInputs(inputs), activate },
         decode: decodePlan,
       }),
     calculate: (pairId, inputs, signal) =>

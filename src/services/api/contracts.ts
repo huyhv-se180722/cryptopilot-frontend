@@ -171,6 +171,16 @@ export interface TradingPlanService {
   activate(id: string): Promise<TradingPlan>;
   /** DRAFT or ACTIVE → CANCELLED (UC-19). */
   cancel(id: string): Promise<TradingPlan>;
+  /**
+   * A new plan on a pair of the market lists (UC-16): a DRAFT, or ACTIVE
+   * with `activate`; nothing is saved when activation is refused (MSG18,
+   * MSG27). 403 MSG29 for a Futures plan outside the caller's plan.
+   */
+  create(
+    pairId: string,
+    inputs: PlanInputs,
+    activate: boolean,
+  ): Promise<TradingPlan>;
   /** SCR-17 risk panel for the values entered; nothing is saved. */
   calculate(
     pairId: string,

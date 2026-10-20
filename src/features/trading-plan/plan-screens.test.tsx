@@ -159,6 +159,7 @@ function fakePlans(overrides: Partial<TradingPlanService> = {}) {
       status: 'CANCELLED' as const,
       editable: false,
     })),
+    create: vi.fn(async () => PLAN),
     calculate: vi.fn(async () => ({
       entryPrice: PLAN.entryPrice,
       capital: PLAN.capital,
