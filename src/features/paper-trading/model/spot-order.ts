@@ -13,7 +13,6 @@ import {
   isPositive,
   multiply,
   percentOf,
-  subtract,
   toStep,
 } from '../../../utils/decimal-math';
 
@@ -108,9 +107,6 @@ export interface Funds {
   quote: Decimal;
   base: Decimal;
 }
-
-/** The fee the exchange takes from what a fill brings in (0.1 %). */
-const FEE_RATE = '0.001';
 
 const filled = (value: string) => value.trim() !== '';
 const valid = (value: string) =>
@@ -324,14 +320,8 @@ export function checkSpotOrder(
               price: price as Decimal,
             };
         if (!tpsl) return { kind: 'order', order: { ...working, ...size } };
-        // The coin a buy brings in is less the fee: the TP/SL sells what is left.
-        const exit = buy
-          ? toStep(
-              multiply(quantity as Decimal, subtract('1', FEE_RATE)),
-              step,
-              'down',
-            )
-          : (quantity as Decimal);
+        // No OCO quantity: the backend sells what the buy brings in net of its
+        // fee, a rate the form does not know (D-99).
         return {
           kind: 'list',
           list: {
@@ -344,7 +334,6 @@ export function checkSpotOrder(
             },
             oco: {
               side: buy ? 'SELL' : 'BUY',
-              quantity: exit,
               takeProfitPrice: takeProfit as Decimal,
               stopPrice: stopLoss as Decimal,
             },

@@ -279,7 +279,7 @@ describe('Spot order check (TR-F3)', () => {
     ).toEqual({ price: 'priceOrder', stop: 'priceOrder' });
   });
 
-  it('sends a limit with TP/SL as an OTOCO selling what the buy brings in', () => {
+  it('sends a limit with TP/SL as an OTOCO, its quantity left to the backend', () => {
     expect(
       listOf(
         checkSpotOrder(
@@ -299,7 +299,6 @@ describe('Spot order check (TR-F3)', () => {
       },
       oco: {
         side: 'SELL',
-        quantity: '0.00999',
         takeProfitPrice: '63000.00',
         stopPrice: '58000.00',
       },

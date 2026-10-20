@@ -216,6 +216,38 @@ describe('development demo exchange (TR-04, TR-06, TR-07 answers)', () => {
     });
   });
 
+  it('gives an OTOCO without a quantity what its buy leaves net of the fee', async () => {
+    const { paperTrading } = setup();
+    await paperTrading.openAccount();
+    const list = await paperTrading.placeOrderList({
+      pairId: BTC,
+      market: 'spot',
+      type: 'OTOCO',
+      working: {
+        side: 'BUY',
+        type: 'LIMIT',
+        price: '50000',
+        quantity: '0.01',
+      },
+      oco: { side: 'SELL', takeProfitPrice: '70000', stopPrice: '45000' },
+    });
+    expect(list.orders.map((o) => [o.type, o.status, o.quantity])).toEqual([
+      ['LIMIT', 'NEW', '0.01'],
+      ['LIMIT_MAKER', 'PENDING_NEW', '0.00999'],
+      ['STOP_LOSS', 'PENDING_NEW', '0.00999'],
+    ]);
+    await expect(
+      paperTrading.placeOrderList({
+        pairId: BTC,
+        market: 'spot',
+        type: 'OCO',
+        oco: { side: 'SELL', takeProfitPrice: '70000', stopPrice: '50000' },
+      }),
+    ).rejects.toMatchObject({
+      problem: { fieldErrors: { 'oco.quantity': 'MSG01' } },
+    });
+  });
+
   it('moves USDT between the wallets once per clientTransferId', async () => {
     const { paperTrading } = setup();
     await paperTrading.openAccount();
