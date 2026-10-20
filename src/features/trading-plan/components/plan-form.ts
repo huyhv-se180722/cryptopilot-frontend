@@ -55,6 +55,21 @@ const DECIMAL = /^\d{1,16}(\.\d{1,12})?$/;
 const CAPITAL = /^\d{1,20}(\.\d{1,8})?$/;
 const PERCENT = /^\d{1,2}(\.\d{1,3})?$/;
 
+/** A new plan: Spot, LONG, a limit entry, the profile's capital and risk. */
+export const EMPTY_PLAN_DRAFT: PlanDraft = {
+  market: 'spot',
+  direction: 'LONG',
+  entryType: 'LIMIT',
+  entryPrice: '',
+  stopLoss: '',
+  takeProfit: '',
+  capital: '',
+  riskPercent: '',
+  leverage: '',
+  expiry: '',
+  note: '',
+};
+
 /** The stored DRAFT as form values, without the scale padding. */
 export function draftOfPlan(plan: TradingPlan): PlanDraft {
   return {
@@ -86,6 +101,12 @@ function compare(a: string, b: string): number {
   return x < y ? -1 : x > y ? 1 : 0;
 }
 const isZero = (value: string) => /^0*(\.0*)?$/.test(value);
+
+/** A price typed in a way the chart can draw: a plain positive decimal. */
+export const drawablePrice = (raw: string): string | null => {
+  const value = raw.trim();
+  return DECIMAL.test(value) && !isZero(value) ? value : null;
+};
 
 /**
  * Checks the draft and builds the inputs the API takes. An empty capital or

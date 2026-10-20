@@ -9,12 +9,14 @@ import type {
   TradingPlan,
   TradingPlanSummary,
 } from '../types/domain';
+import { devPairs } from './fixtures/market';
 import { devPlanSeeds } from './fixtures/trading-plan';
 
 /**
  * DEVELOPMENT ONLY. In-memory `/plans/**` with the backend's answers for
- * SCR-16, SCR-17 (edit) and SCR-18: request rules and BR-22 as field
- * errors on calculate / update (the result itself is scripted), tabs,
+ * SCR-16, SCR-17 (create and edit) and SCR-18: request rules and BR-22 as
+ * field errors on calculate / create / update (the result itself is
+ * scripted, from a plan on the pair or else the first one), tabs,
  * market and period filters, 404 MSG41,
  * activation refused by a BLOCKING warning (MSG18), by the plan's
  * `ACTIVE_PLAN_MAX` (MSG27) or by the status (MSG43), and cancellation.
@@ -140,12 +142,21 @@ export function createDevelopmentTradingPlan(
     return next;
   };
 
-  /** Scripted: the stored calculation of a plan on that pair. */
+  /** A pair enabled on the market of the inputs; MSG41 otherwise. */
+  const enabled = (pairId: string, inputs: PlanInputs) => {
+    if (!devPairs(inputs.market).some((pair) => pair.pairId === pairId))
+      refuse(404, 'RESOURCE_NOT_FOUND', 'MSG41');
+  };
+  /**
+   * Scripted: the stored calculation of a plan on that pair, or of the
+   * first plan for a pair that has none yet.
+   */
   const calculation = (pairId: string, inputs: PlanInputs): PlanCalculation => {
+    const all = [...plans.values()];
     const base =
-      [...plans.values()].find(
-        (plan) => plan.pairId === pairId && plan.status === 'DRAFT',
-      ) ?? [...plans.values()].find((plan) => plan.pairId === pairId);
+      all.find((plan) => plan.pairId === pairId && plan.status === 'DRAFT') ??
+      all.find((plan) => plan.pairId === pairId) ??
+      all[0];
     if (!base) return refuse(404, 'RESOURCE_NOT_FOUND', 'MSG41');
     return {
       entryPrice: inputs.entryPrice ?? base.entryPrice,
@@ -173,11 +184,46 @@ export function createDevelopmentTradingPlan(
       ]);
   };
 
+  let created = 0;
   return {
     async calculate(pairId, inputs, signal) {
       await pause(signal);
       checkInputs(inputs);
+      enabled(pairId, inputs);
       return calculation(pairId, inputs);
+    },
+    async create(pairId, inputs, activate) {
+      await pause();
+      checkInputs(inputs);
+      enabled(pairId, inputs);
+      const result = calculation(pairId, inputs);
+      // An activation refused saves nothing, like the backend.
+      if (activate && result.blocksActivation)
+        refuse(409, 'TRADING_BLOCKING_WARNING', 'MSG18');
+      if (activate) await activeLimit();
+      const at = new Date(now()).toISOString();
+      const plan: TradingPlan = {
+        id: `0199a2c4-0000-7000-8000-${String(900 + created++).padStart(12, '0')}`,
+        pairId,
+        ...inputs,
+        entryPrice: result.entryPrice,
+        capital: result.capital,
+        riskPercent: result.riskPercent,
+        marginMode: inputs.market === 'futures' ? 'ISOLATED' : null,
+        expiresAt:
+          inputs.expiresAt ??
+          (inputs.entryType === 'LIMIT'
+            ? new Date(now() + 7 * 86_400_000).toISOString()
+            : null),
+        status: 'DRAFT',
+        editable: true,
+        snapshot: result.snapshot,
+        warnings: result.warnings,
+        blocksActivation: result.blocksActivation,
+        statusHistory: [{ status: 'DRAFT', at }],
+      };
+      plans.set(plan.id, plan);
+      return activate ? move(plan, 'ACTIVE') : plan;
     },
     async update(id, inputs, activate) {
       await pause();

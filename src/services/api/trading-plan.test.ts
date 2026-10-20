@@ -215,6 +215,10 @@ describe('HTTP trading plan adapter', () => {
     await saved.plans.update(PLAN.id, inputs, true);
     expect(saved.calls[0]?.method).toBe('PUT');
     expect(saved.calls[0]?.url.pathname).toBe('/api/v1/plans/' + PLAN.id);
+    const created = setup(PLAN);
+    await created.plans.create(PLAN.pairId, inputs, false);
+    expect(created.calls[0]?.method).toBe('POST');
+    expect(created.calls[0]?.url.pathname).toBe('/api/v1/plans');
   });
 
   it('is pending while no API is configured', async () => {
@@ -279,6 +283,39 @@ describe('plan calculation', () => {
       expiresAt: null,
       note: 'retest',
       activate: false,
+    });
+    // A new plan names its pair and asks for activation the same way.
+    await createHttpTradingPlanService(http).create(
+      PLAN.pairId,
+      {
+        market: 'spot',
+        direction: 'LONG',
+        entryType: 'LIMIT',
+        entryPrice: '61000',
+        stopLoss: '59000',
+        takeProfit: '67000',
+        capital: '1000',
+        riskPercent: '1',
+        leverage: null,
+        expiresAt: null,
+        note: null,
+      },
+      true,
+    );
+    expect(bodies[1]).toEqual({
+      pairId: PLAN.pairId,
+      market: 'SPOT',
+      direction: 'LONG',
+      entryType: 'LIMIT',
+      entryPrice: '61000',
+      stopLoss: '59000',
+      takeProfit: '67000',
+      capital: '1000',
+      riskPercent: '1',
+      leverage: null,
+      expiresAt: null,
+      note: null,
+      activate: true,
     });
   });
 });

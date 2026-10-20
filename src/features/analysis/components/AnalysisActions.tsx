@@ -13,8 +13,9 @@ import type { MarketType } from '../../../types/domain';
  * SCR-10 / SCR-11 actions (SRS 3.3.2, 3.3.3), on the pair id the market
  * list gives (FEQ-01). Add to watchlist appends the pair (UC-12), or shows
  * it is watched; Create alert opens SCR-14 on the pair, which the server
- * adds to the watchlist when it is not there yet (BR-16). Creating a plan
- * from here waits for the new plan form and says so. Ask AI is PRO and
+ * adds to the watchlist when it is not there yet (BR-16). Create trading
+ * plan opens SCR-17 on the pair (`planHref`); without it, as on Futures
+ * until leverage brackets exist, it stays disabled and says why. Ask AI is PRO and
  * PREMIUM only: on a plan without AI questions it shows MSG29; otherwise it
  * opens SCR-29 with the pair.
  */
@@ -25,6 +26,7 @@ export function AnalysisActions({
   adding,
   onAddWatchlist,
   onCreateAlert,
+  planHref,
 }: {
   market: MarketType;
   symbol: string;
@@ -35,6 +37,8 @@ export function AnalysisActions({
   onAddWatchlist: () => void;
   /** Opens SCR-14 on the pair; absent while its markets are unknown. */
   onCreateAlert: (() => void) | undefined;
+  /** SCR-17 on the pair; absent while plans cannot be created here. */
+  planHref?: string;
 }) {
   const copy = useCopy();
   const a = copy.analysis;
@@ -74,15 +78,29 @@ export function AnalysisActions({
           <Bell size={14} aria-hidden="true" />
           {a.createAlert}
         </Button>
-        <Button
-          variant="secondary"
-          disabled
-          aria-describedby="analysis-actions-note"
-          className="justify-start"
-        >
-          <ClipboardList size={14} aria-hidden="true" />
-          {a.createPlan}
-        </Button>
+        {planHref ? (
+          <Link
+            to={planHref}
+            className={buttonClassName(
+              'secondary',
+              'md',
+              'justify-start no-underline',
+            )}
+          >
+            <ClipboardList size={14} aria-hidden="true" />
+            {a.createPlan}
+          </Link>
+        ) : (
+          <Button
+            variant="secondary"
+            disabled
+            aria-describedby="analysis-actions-note"
+            className="justify-start"
+          >
+            <ClipboardList size={14} aria-hidden="true" />
+            {a.createPlan}
+          </Button>
+        )}
         {aiQuota === 0 ? (
           <Button
             variant="secondary"
@@ -106,9 +124,14 @@ export function AnalysisActions({
           </Link>
         )}
       </div>
-      <p id="analysis-actions-note" className="mt-2 text-[11px] text-muted-dim">
-        {a.planPending}
-      </p>
+      {!planHref && (
+        <p
+          id="analysis-actions-note"
+          className="mt-2 text-[11px] text-muted-dim"
+        >
+          {a.planPending}
+        </p>
+      )}
       <Dialog
         open={upsell}
         onOpenChange={setUpsell}

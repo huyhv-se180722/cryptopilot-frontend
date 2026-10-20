@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { ErrorState } from '../../components/feedback/States';
@@ -6,7 +5,6 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { useCopy } from '../../hooks/use-copy';
 import { formatCopy } from '../../i18n/copy';
 import { errorText } from '../../i18n/messages';
-import { AnalysisChart } from '../../features/chart/components/AnalysisChart';
 import { usePairLookup } from '../../features/market/hooks/use-market-data';
 import { PlanActions } from '../../features/trading-plan/components/PlanActions';
 import {
@@ -23,8 +21,8 @@ import {
 import { shortPlanId } from '../../features/trading-plan/components/plan-format';
 import { planLines } from '../../features/trading-plan/components/plan-lines';
 import { usePlan } from '../../features/trading-plan/hooks/use-plans';
-import type { CandleTimeframe } from '../../types/domain';
 import { pairLabel } from '../../utils/pair-label';
+import { PlanChart } from './plan-chart';
 
 /**
  * SCR-18 Trading Plan Detail (SRS 3.5.3, UC-18, UC-19): the pair, named
@@ -45,7 +43,6 @@ export function PlanDetailPage() {
   const pair = plan ? pairOf(plan.pairId, plan.market) : undefined;
   // The chart reads the candles of the plan's own market.
   const charted = pair && plan && pair.market === plan.market ? pair : null;
-  const [timeframe, setTimeframe] = useState<CandleTimeframe>('1h');
 
   return (
     <div className="mx-auto w-full max-w-7xl">
@@ -93,13 +90,9 @@ export function PlanDetailPage() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
             <div className="flex min-w-0 flex-col gap-4">
               {charted ? (
-                <AnalysisChart
-                  market={plan.market}
-                  symbol={charted.symbol}
-                  tickSize={charted.tickSize}
-                  timeframe={timeframe}
-                  onTimeframeChange={setTimeframe}
-                  priceLines={planLines(plan, {
+                <PlanChart
+                  pair={charted}
+                  lines={planLines(plan, {
                     entry: p.colEntry,
                     stopLoss: p.colStopLoss,
                     takeProfit: p.colTakeProfit,

@@ -536,6 +536,29 @@ describe('development plan editing (SCR-17)', () => {
     });
   });
 
+  it('creates a plan on any enabled pair, and none on another', async () => {
+    const plans = createDevelopmentTradingPlan(async () => free);
+    // LINKUSDT has no plan yet: the calculation is scripted from the first.
+    const link = DEV_PAIR_IDS.LINKUSDT!;
+    const draft = await plans.create(link, inputs, false);
+    expect(draft).toMatchObject({
+      pairId: link,
+      status: 'DRAFT',
+      editable: true,
+      entryPrice: '61000',
+    });
+    expect((await plans.get(draft.id)).pairId).toBe(link);
+    // MATICUSDT is no longer listed: not enabled, MSG41.
+    await expect(
+      plans.create(DEV_PAIR_IDS.MATICUSDT!, inputs, false),
+    ).rejects.toMatchObject({ problem: { messageCode: 'MSG41' } });
+    await expect(
+      plans.create(link, { ...inputs, stopLoss: '62000' }, false),
+    ).rejects.toMatchObject({
+      problem: { fieldErrors: { stopLoss: 'MSG16' } },
+    });
+  });
+
   it('saves a draft, and saves nothing when activation is refused', async () => {
     const plans = createDevelopmentTradingPlan(async () => free);
     const saved = await plans.update(btcDraft, inputs, false);

@@ -300,6 +300,11 @@ describe('SCR-11 Futures analysis (T-034)', () => {
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);
+    expect(
+      screen.getByText(
+        'Futures plans cannot be created until leverage brackets are configured.',
+      ),
+    ).toBeTruthy();
   });
 
   it('shows MSG29 on FREE and reads no analysis', async () => {
