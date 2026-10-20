@@ -30,7 +30,7 @@ import {
   toStep,
 } from '../utils/decimal-math';
 import { devPairs } from './fixtures/market';
-import { DEV_PAIR_IDS } from './fixtures/watchlist';
+import { DEV_PAIR_IDS } from './fixtures/market';
 
 /** The grant of plan Q-T5, as the backend's default configuration. */
 const GRANT: Readonly<

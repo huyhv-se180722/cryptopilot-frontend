@@ -4,7 +4,7 @@ import { createDevelopmentAuth } from './dev-auth';
 import { createDevelopmentMarket } from './dev-market';
 import { createDevelopmentTradingPlan } from './dev-trading-plan';
 import { createDevelopmentWatchlist } from './dev-watchlist';
-import { DEV_PAIR_IDS } from './fixtures/watchlist';
+import { DEV_PAIR_IDS } from './fixtures/market';
 import { DEV_PASSWORD, DEV_TOKENS, devPrincipals } from './fixtures/auth';
 import type { AlertRule, PlanInputs, Session } from '../types/domain';
 import { createServices } from '../app/providers/create-services';

@@ -800,8 +800,6 @@ export const en = {
     listPlaced: '{type} placed.',
     insufficientServer: 'Not enough available balance for this order.',
     orderNotOpen: 'This order is no longer open.',
-    needPairId:
-      'Add this pair to your watchlist to trade it here: demo orders name a pair by an id the market list does not give yet.',
     placed: '{side} order {status}.',
     statusNEW: 'Open',
     statusPENDING_NEW: 'Pending',
@@ -896,8 +894,6 @@ export const en = {
     period90: '90D',
     periodAll: 'All',
     resetFilters: 'Reset',
-    pairFilterHint:
-      'Only pairs on your watchlist can be chosen: the order history names a pair by an id the market list does not give yet.',
     noLedger: 'No balance change in this period.',
     noTransfers: 'No transfers yet.',
     ordersTitle: 'Orders',

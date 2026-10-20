@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createDevelopmentPaperTrading } from '../../dev/dev-paper-trading';
-import { DEV_PAIR_IDS } from '../../dev/fixtures/watchlist';
+import { DEV_PAIR_IDS } from '../../dev/fixtures/market';
 import { TradeSpotPage } from '../../pages/trader/TradeSpotPage';
 import type {
   MarketFeed,
@@ -73,6 +73,7 @@ afterEach(() => {
 });
 
 const pair = (symbol: string, base: string, order: number): MarketPair => ({
+  pairId: DEV_PAIR_IDS[symbol] as string,
   symbol,
   market: 'spot',
   baseAsset: base,

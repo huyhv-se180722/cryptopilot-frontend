@@ -11,6 +11,7 @@ import { MarketTradesPanel } from './components/MarketTradesPanel';
 import { OrderBookPanel } from './components/OrderBookPanel';
 
 const PAIR: MarketPair = {
+  pairId: 'p-btc',
   symbol: 'BTCUSDT',
   market: 'spot',
   baseAsset: 'BTC',

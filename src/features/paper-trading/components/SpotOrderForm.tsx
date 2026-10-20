@@ -53,19 +53,17 @@ const newClientOrderId = () => 'web-' + crypto.randomUUID();
  * the last price, as the exchange's panel does. It checks tick, step,
  * minimum value and balance before sending (exact decimals, D-95), keeps
  * the idempotency key when the same order is sent again, and says why it
- * cannot trade a pair without an id (FEQ-01). Demo funds only: nothing
- * reaches an exchange.
+ * cannot trade while the demo account is not available. Demo funds only:
+ * nothing reaches an exchange.
  */
 export function SpotOrderForm({
   pair,
-  pairId,
   lastPrice,
   picked,
   funds,
   unavailable,
 }: {
   pair: MarketPair;
-  pairId: string | null;
   lastPrice: Decimal | null;
   picked: PickedPrice | null;
   /** Free balances, or null while the wallet is not known. */
@@ -77,6 +75,7 @@ export function SpotOrderForm({
   const p = copy.paper;
   const toast = useToast();
   const { place, placeList } = usePaperActions();
+  const pairId = pair.pairId;
   const base = pair.baseAsset ?? pair.symbol;
   const quote = pair.quoteAsset ?? '';
   const [draft, setDraft] = useState<SpotOrderDraft>(EMPTY_DRAFT);
@@ -172,7 +171,7 @@ export function SpotOrderForm({
   async function submit(event: FormEvent) {
     event.preventDefault();
     setShown(true);
-    if (unavailable || !pairId || !check.request) return;
+    if (unavailable || !check.request) return;
     const request = check.request;
     // The same order sent again (e.g. after a timeout) keeps its key, so the
     // backend returns the first one instead of placing a second (TR-06).
@@ -478,16 +477,16 @@ export function SpotOrderForm({
       )}
 
       {notice && <FormNotice tone="error">{notice}</FormNotice>}
-      {(unavailable || !pairId) && (
+      {unavailable && (
         <p id={reasonId} className="text-[11px] text-warning">
-          {unavailable ?? p.needPairId}
+          {unavailable}
         </p>
       )}
 
       <button
         type="submit"
-        disabled={Boolean(unavailable) || !pairId || pending}
-        aria-describedby={unavailable || !pairId ? reasonId : undefined}
+        disabled={Boolean(unavailable) || pending}
+        aria-describedby={unavailable ? reasonId : undefined}
         className={classNames(
           'inline-flex h-10 w-full items-center justify-center rounded-lg text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 pointer-coarse:min-h-11',
           buy ? 'bg-positive hover:opacity-90' : 'bg-negative hover:opacity-90',

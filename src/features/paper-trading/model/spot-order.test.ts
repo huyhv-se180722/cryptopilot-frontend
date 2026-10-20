@@ -11,6 +11,7 @@ import {
 } from './spot-order';
 
 const BTC: MarketPair = {
+  pairId: 'p-btc',
   symbol: 'BTCUSDT',
   market: 'spot',
   baseAsset: 'BTC',

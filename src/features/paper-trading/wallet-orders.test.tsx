@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createDevelopmentPaperTrading } from '../../dev/dev-paper-trading';
-import { DEV_PAIR_IDS } from '../../dev/fixtures/watchlist';
+import { DEV_PAIR_IDS } from '../../dev/fixtures/market';
 import { TradeOrdersPage } from '../../pages/trader/TradeOrdersPage';
 import { TradeWalletPage } from '../../pages/trader/TradeWalletPage';
 import type {
@@ -27,7 +27,9 @@ beforeAll(() => {
   };
 });
 
+const BTC_ID = DEV_PAIR_IDS.BTCUSDT!;
 const BTC: MarketPair = {
+  pairId: BTC_ID,
   symbol: 'BTCUSDT',
   market: 'spot',
   baseAsset: 'BTC',
@@ -44,7 +46,6 @@ const PRICES: Record<string, string> = {
   ETHUSDT: '2500',
   BNBUSDT: '580',
 };
-const BTC_ID = DEV_PAIR_IDS.BTCUSDT!;
 
 async function setup(
   element: React.ReactElement,
@@ -197,20 +198,7 @@ describe('Demo orders page (TR-F3)', () => {
     await waitFor(() => expect(fills.textContent).toContain('Taker'));
   });
 
-  it('offers only pairs with an id from the watchlist (FEQ-01)', async () => {
-    await setup(<TradeOrdersPage />, '/trade/orders');
-    const select = await screen.findByRole('combobox', { name: 'Pair' });
-    await waitFor(() =>
-      expect(
-        within(select)
-          .getAllByRole('option')
-          .map((option) => option.textContent),
-      ).toEqual(['All', 'BTCUSDT']),
-    );
-    expect(screen.getByText(/Only pairs on your watchlist/)).toBeTruthy();
-  });
-
-  it('offers every Spot pair whose id the market list gives (FEQ-01)', async () => {
+  it('offers every Spot pair of the market list (FEQ-01)', async () => {
     const ETH: MarketPair = {
       ...BTC,
       pairId: DEV_PAIR_IDS.ETHUSDT!,
@@ -219,10 +207,7 @@ describe('Demo orders page (TR-F3)', () => {
       baseAssetName: 'Ethereum',
       displayOrder: 2,
     };
-    await setup(<TradeOrdersPage />, '/trade/orders', [
-      { ...BTC, pairId: BTC_ID },
-      ETH,
-    ]);
+    await setup(<TradeOrdersPage />, '/trade/orders', [BTC, ETH]);
     const select = await screen.findByRole('combobox', { name: 'Pair' });
     await waitFor(() =>
       expect(
@@ -231,6 +216,5 @@ describe('Demo orders page (TR-F3)', () => {
           .map((option) => option.textContent),
       ).toEqual(['All', 'BTCUSDT', 'ETHUSDT']),
     );
-    expect(screen.queryByText(/Only pairs on your watchlist/)).toBeNull();
   });
 });

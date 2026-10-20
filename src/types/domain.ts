@@ -52,9 +52,9 @@ export interface Session {
 export interface MarketPair {
   /**
    * The id requests name the pair by (watchlist, alerts, plans, demo
-   * orders). Absent from a backend that does not send it yet (FEQ-01).
+   * orders); one id per symbol on both markets (FEQ-01).
    */
-  pairId?: string;
+  pairId: string;
   symbol: string;
   market: MarketType;
   baseAsset: string | null;

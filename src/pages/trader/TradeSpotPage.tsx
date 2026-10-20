@@ -36,10 +36,7 @@ import {
   useRememberSpotPair,
 } from '../../features/paper-trading/hooks/use-last-spot-pair';
 import { useTradeTimeframe } from '../../features/paper-trading/hooks/use-trade-timeframe';
-import {
-  useWatchedPair,
-  useWatchlist,
-} from '../../features/watchlist/hooks/use-watchlist';
+import { useWatchlist } from '../../features/watchlist/hooks/use-watchlist';
 import type { Decimal, MarketPair } from '../../types/domain';
 import { classNames } from '../../utils/class-names';
 
@@ -61,11 +58,7 @@ function TradeSpot({
   const [region, setRegion] = useState<PhoneRegion>('chart');
   const [picked, setPicked] = useState<PickedPrice | null>(null);
   const pick = (price: Decimal) => setPicked({ price, at: Date.now() });
-  // Demo orders name the pair by id. The market list gives it (FEQ-01);
-  // a watchlist row is the fallback for a backend that does not yet.
-  const watched = useWatchedPair(pair.symbol);
-  const pairId = pair.pairId ?? watched?.pairId ?? null;
-  const chartOrders = useChartOrders(pair, pairId);
+  const chartOrders = useChartOrders(pair);
   const spot = usePaperWallet('SPOT');
   const account = usePaperAccount();
   const balance = (asset: string) =>
@@ -180,7 +173,6 @@ function TradeSpot({
           <SpotOrderForm
             key={pair.symbol}
             pair={pair}
-            pairId={pairId}
             lastPrice={ticker?.lastPrice ?? null}
             picked={picked}
             funds={funds}
@@ -190,7 +182,7 @@ function TradeSpot({
           />
         </TradePanel>
       </div>
-      <OrdersPanel pair={pair} pairId={pairId} pairs={pairs} />
+      <OrdersPanel pair={pair} pairs={pairs} />
     </>
   );
 }

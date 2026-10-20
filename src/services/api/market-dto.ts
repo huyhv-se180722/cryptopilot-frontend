@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   Candle,
   CandleTimeframe,
   FundingSettlement,
@@ -48,9 +48,8 @@ export function decodePairPage(body: unknown): PairPage {
   return {
     items: list(value.items, 'items').map((item, index) => {
       const pair = record(item, 'items[' + index + ']');
-      const pairId = nullableText(pair.pairId, 'pairId');
       return {
-        ...(pairId === null ? {} : { pairId }),
+        pairId: text(pair.pairId, 'pairId'),
         symbol: text(pair.symbol, 'symbol'),
         market: marketOf(pair.market),
         baseAsset: nullableText(pair.baseAsset, 'baseAsset'),

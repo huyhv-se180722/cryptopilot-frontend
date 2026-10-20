@@ -69,10 +69,25 @@ const SEEDS: readonly DevPairSeed[] = [
 /** Futures lists fewer pairs, as an admin may enable a subset. */
 const FUTURES = new Set(['BTC', 'ETH', 'BNB', 'SOL', 'XRP']);
 
+/**
+ * One id per pair on both markets, as the backend's `crypto_pair`; the
+ * watchlist, plan and demo order fixtures name pairs by these. MATICUSDT is
+ * no longer listed and only kept by a watchlist row (Q-29).
+ */
+export const DEV_PAIR_IDS: Readonly<Record<string, string>> =
+  Object.fromEntries([
+    ...SEEDS.map((seed, index) => [
+      seed.base + 'USDT',
+      `0199a0f0-1111-7aaa-8bbb-${String(index + 1).padStart(12, '0')}`,
+    ]),
+    ['MATICUSDT', '0199a0f0-1111-7aaa-8bbb-000000000099'],
+  ]);
+
 export function devPairs(market: MarketType): readonly MarketPair[] {
   return SEEDS.filter(
     (seed) => market === 'spot' || FUTURES.has(seed.base),
   ).map((seed, index) => ({
+    pairId: DEV_PAIR_IDS[seed.base + 'USDT'] as string,
     symbol: seed.base + 'USDT',
     market,
     baseAsset: seed.base,

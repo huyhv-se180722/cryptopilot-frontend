@@ -37,6 +37,7 @@ vi.mock('lightweight-charts', () => ({
 }));
 
 const pair = (symbol: string, base: string, displayOrder: number) => ({
+  pairId: 'p-' + symbol,
   symbol,
   market: 'spot' as const,
   baseAsset: base,
