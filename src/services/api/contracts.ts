@@ -21,6 +21,8 @@ import type {
   PairAnalysis,
   PaperAccount,
   PaperAccountEvent,
+  PaperEquity,
+  SpotPnl,
   PaperFill,
   PaperHistoryQuery,
   PaperLedgerEntry,
@@ -277,6 +279,10 @@ export interface PaperTradingService {
     query: PaperHistoryQuery,
     signal?: AbortSignal,
   ): Promise<PaperPage<PaperFill>>;
+  /** Each Spot coin's average cost, value and unrealised PnL (TR-13). */
+  spotPnl(signal?: AbortSignal): Promise<SpotPnl>;
+  /** The account's worth now, today's PnL and the last `days` days (1–365). */
+  equity(days: number, signal?: AbortSignal): Promise<PaperEquity>;
   /**
    * The pushes of the caller's account (TR-08), each after its change was
    * committed. A push missed (while not open) shows on the next read.

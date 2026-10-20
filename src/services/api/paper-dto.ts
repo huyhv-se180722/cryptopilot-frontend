@@ -3,6 +3,9 @@ import type {
   PaperAccount,
   PaperBalance,
   PaperBalanceUpdate,
+  PaperEquity,
+  CoinPnl,
+  SpotPnl,
   PaperFill,
   PaperLedgerEntry,
   PaperOrder,
@@ -106,6 +109,60 @@ function decodeBalance(item: unknown): PaperBalance {
     locked: decimal(value.locked, 'locked'),
     total: decimal(value.total, 'total'),
     usdtValue: nullableDecimal(value.usdtValue, 'usdtValue'),
+  };
+}
+
+function decodeCoinPnl(item: unknown): CoinPnl {
+  const value = record(item, 'coin');
+  return {
+    coinId: text(value.coinId, 'coinId'),
+    asset: text(value.asset, 'asset'),
+    quantity: decimal(value.quantity, 'quantity'),
+    averageCost: nullableDecimal(value.averageCost, 'averageCost'),
+    costBasis: nullableDecimal(value.costBasis, 'costBasis'),
+    lastPrice: nullableDecimal(value.lastPrice, 'lastPrice'),
+    value: nullableDecimal(value.value, 'value'),
+    unrealizedPnl: nullableDecimal(value.unrealizedPnl, 'unrealizedPnl'),
+    unrealizedPnlPercent: nullableDecimal(
+      value.unrealizedPnlPercent,
+      'unrealizedPnlPercent',
+    ),
+  };
+}
+
+/** `GET /paper/spot/pnl` (TR-13). */
+export function decodeSpotPnl(body: unknown): SpotPnl {
+  const value = record(body);
+  return {
+    coins: list(value.coins, 'coins').map(decodeCoinPnl),
+    totalValue: decimal(value.totalValue, 'totalValue'),
+    totalUnrealizedPnl: decimal(value.totalUnrealizedPnl, 'totalUnrealizedPnl'),
+    complete: flag(value.complete, 'complete'),
+  };
+}
+
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** `GET /paper/equity` (TR-13); history days as `YYYY-MM-DD` (UTC). */
+export function decodeEquity(body: unknown): PaperEquity {
+  const value = record(body);
+  return {
+    spotEquity: decimal(value.spotEquity, 'spotEquity'),
+    futuresEquity: decimal(value.futuresEquity, 'futuresEquity'),
+    totalEquity: decimal(value.totalEquity, 'totalEquity'),
+    todayPnl: nullableDecimal(value.todayPnl, 'todayPnl'),
+    todayPnlPercent: nullableDecimal(value.todayPnlPercent, 'todayPnlPercent'),
+    history: list(value.history, 'history').map((item, index) => {
+      const point = record(item, 'history[' + index + ']');
+      const date = text(point.date, 'date');
+      if (!DATE.test(date)) throw new Error('date is not YYYY-MM-DD');
+      return {
+        date,
+        spotEquity: decimal(point.spotEquity, 'spotEquity'),
+        futuresEquity: decimal(point.futuresEquity, 'futuresEquity'),
+        totalEquity: decimal(point.totalEquity, 'totalEquity'),
+      };
+    }),
   };
 }
 

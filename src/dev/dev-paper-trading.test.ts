@@ -248,6 +248,28 @@ describe('development demo exchange (TR-04, TR-06, TR-07 answers)', () => {
     });
   });
 
+  it('scripts the Spot PnL and the worth history of the account', async () => {
+    const { paperTrading } = setup({
+      BTCUSDT: '63000',
+      ETHUSDT: '2500',
+      BNBUSDT: '580',
+    });
+    await paperTrading.openAccount();
+    const pnl = await paperTrading.spotPnl();
+    expect(pnl.coins.map((coin) => coin.asset)).not.toContain('USDT');
+    const btc = pnl.coins.find((coin) => coin.asset === 'BTC');
+    // 0.1 BTC at 63,000 against a scripted cost of 97 % of 63,000.
+    expect(Number(btc?.value)).toBe(6300);
+    expect(Number(btc?.unrealizedPnl)).toBe(189);
+    expect(btc?.unrealizedPnlPercent).toBe('3.09');
+    const equity = await paperTrading.equity(7);
+    expect(equity.history).toHaveLength(7);
+    expect(equity.history.at(-1)?.date).toBe('2026-10-13');
+    await expect(paperTrading.equity(0)).rejects.toMatchObject({
+      problem: { messageCode: 'MSG01' },
+    });
+  });
+
   it('moves USDT between the wallets once per clientTransferId', async () => {
     const { paperTrading } = setup();
     await paperTrading.openAccount();

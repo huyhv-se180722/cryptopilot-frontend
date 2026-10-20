@@ -30,7 +30,7 @@ import {
   subtract,
   toStep,
 } from '../utils/decimal-math';
-import { devPairs } from './fixtures/market';
+import { devPairs, devStartPrice } from './fixtures/market';
 import { DEV_PAIR_IDS } from './fixtures/market';
 
 /** The grant of plan Q-T5, as the backend's default configuration. */
@@ -504,6 +504,107 @@ export function createDevelopmentPaperTrading(
         estimatedUsdt: toStep(estimatedUsdt, '0.00000001', 'down'),
         estimatedBtc: divide(estimatedUsdt, btc, 8),
         complete: true,
+      };
+    },
+
+    // Scripted: each coin cost a fixed share of its fixture start price,
+    // so some show a gain and some a loss; the worth history is a scripted
+    // curve ending at today's worth.
+    async spotPnl(signal) {
+      signal?.throwIfAborted();
+      const wallet = await paperTrading.getWallet('SPOT', signal);
+      const coins = await Promise.all(
+        wallet.balances
+          .filter((row) => row.asset !== QUOTE)
+          .map(async (row) => {
+            const last = await lastPrice(row.asset + QUOTE);
+            const share = row.asset === 'BTC' ? '0.97' : '1.03';
+            const averageCost = toStep(
+              multiply(String(devStartPrice(row.asset + QUOTE)), share),
+              '0.01',
+              'down',
+            );
+            const costBasis = toStep(
+              multiply(row.total, averageCost),
+              '0.00000001',
+              'down',
+            );
+            const value = toStep(
+              multiply(row.total, last),
+              '0.00000001',
+              'down',
+            );
+            const unrealizedPnl = subtract(value, costBasis);
+            return {
+              coinId: row.coinId,
+              asset: row.asset,
+              quantity: row.total,
+              averageCost,
+              costBasis,
+              lastPrice: last,
+              value,
+              unrealizedPnl,
+              unrealizedPnlPercent: isPositive(costBasis)
+                ? toStep(
+                    multiply(divide(unrealizedPnl, costBasis, 8), '100'),
+                    '0.01',
+                    'half-up',
+                  )
+                : null,
+            };
+          }),
+      );
+      return {
+        coins,
+        totalValue: coins.reduce((sum, coin) => add(sum, coin.value), '0'),
+        totalUnrealizedPnl: coins.reduce(
+          (sum, coin) => add(sum, coin.unrealizedPnl),
+          '0',
+        ),
+        complete: true,
+      };
+    },
+
+    async equity(days, signal) {
+      signal?.throwIfAborted();
+      if (!Number.isInteger(days) || days < 1 || days > 365)
+        refuse(400, 'VALIDATION', 'MSG01', { days: 'MSG01' });
+      const spot = (await paperTrading.getWallet('SPOT', signal)).estimatedUsdt;
+      const futures = (await paperTrading.getWallet('FUTURES', signal))
+        .estimatedUsdt;
+      const total = add(spot, futures);
+      const today = Date.UTC(
+        new Date(now()).getUTCFullYear(),
+        new Date(now()).getUTCMonth(),
+        new Date(now()).getUTCDate(),
+      );
+      const history = Array.from({ length: days }, (_, i) => {
+        const back = days - 1 - i;
+        const factor = String(1 - back * 0.002 + 0.01 * Math.sin(back / 3));
+        const at = (amount: string) =>
+          toStep(multiply(amount, factor), '0.00000001', 'down');
+        return {
+          date: new Date(today - back * 86_400_000).toISOString().slice(0, 10),
+          spotEquity: at(spot),
+          futuresEquity: at(futures),
+          totalEquity: add(at(spot), at(futures)),
+        };
+      });
+      const start = history.at(-1)?.totalEquity ?? total;
+      const todayPnl = subtract(total, start);
+      return {
+        spotEquity: spot,
+        futuresEquity: futures,
+        totalEquity: total,
+        todayPnl,
+        todayPnlPercent: isPositive(start)
+          ? toStep(
+              multiply(divide(todayPnl, start, 8), '100'),
+              '0.01',
+              'half-up',
+            )
+          : null,
+        history,
       };
     },
 
