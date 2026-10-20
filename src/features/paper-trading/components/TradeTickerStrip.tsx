@@ -17,8 +17,10 @@ import { useTickDirection } from '../hooks/use-tick-direction';
 
 function Stat({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex shrink-0 flex-col gap-0.5">
-      <dt className="text-[10px] whitespace-nowrap text-muted-dim">{label}</dt>
+    <div className="flex min-w-0 flex-col gap-0.5 xl:shrink-0">
+      <dt className="text-[10px] text-muted-dim xl:whitespace-nowrap">
+        {label}
+      </dt>
       <dd className="text-xs whitespace-nowrap text-fg-2">{children}</dd>
     </div>
   );
@@ -29,7 +31,9 @@ function Stat({ label, children }: { label: string; children: ReactNode }) {
  * switcher, last price coloured by its latest tick with an arrow, then the
  * 24h change, high, low and the volume in the base and the quote asset.
  * Values the backend has not sent yet show a dash; nothing is derived.
- * On a narrow screen the statistics wrap below and scroll sideways.
+ * Below the widest layout the statistics wrap below as a grid (2, 3 or 5
+ * columns) so none is cut off, and the Live / Delayed badge moves up beside
+ * the pair, where it stays in view.
  */
 export function TradeTickerStrip({
   pair,
@@ -62,36 +66,40 @@ export function TradeTickerStrip({
       aria-label={pair.symbol}
       className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-line bg-surface px-3 py-2"
     >
-      {/* Outside the scroller, so the pair list it opens is not clipped. */}
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 max-sm:basis-full">
         {selector}
         <Badge>{m.spot}</Badge>
         <Badge tone="warning">{p.demo}</Badge>
       </div>
-      <div
-        className={classNames(
-          'flex shrink-0 items-center gap-1 text-lg font-semibold',
-          direction === 'up' && 'text-positive',
-          direction === 'down' && 'text-negative',
-          direction === null && 'text-fg',
-        )}
-      >
-        <span className="sr-only">{p.lastPrice}</span>
-        {last ? (
-          <NumericText value={formatPrice(last, pair.tickSize)} />
-        ) : (
-          m.noValue
-        )}
-        {direction && (
-          <Arrow
-            size={14}
-            role="img"
-            aria-label={direction === 'up' ? p.priceUp : p.priceDown}
-          />
-        )}
+      <div className="flex flex-1 items-center gap-3 xl:flex-none">
+        <div
+          className={classNames(
+            'flex shrink-0 items-center gap-1 text-lg font-semibold',
+            direction === 'up' && 'text-positive',
+            direction === 'down' && 'text-negative',
+            direction === null && 'text-fg',
+          )}
+        >
+          <span className="sr-only">{p.lastPrice}</span>
+          {last ? (
+            <NumericText value={formatPrice(last, pair.tickSize)} />
+          ) : (
+            m.noValue
+          )}
+          {direction && (
+            <Arrow
+              size={14}
+              role="img"
+              aria-label={direction === 'up' ? p.priceUp : p.priceDown}
+            />
+          )}
+        </div>
+        <span className="ml-auto shrink-0 xl:hidden">
+          <FreshnessBadge freshness={freshness} />
+        </span>
       </div>
-      <div className="flex min-w-0 flex-1 items-center gap-x-6 overflow-x-auto">
-        <dl className="flex items-center gap-x-6">
+      <div className="flex w-full items-center gap-x-6 xl:w-auto xl:min-w-0 xl:flex-1">
+        <dl className="grid flex-1 grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3 md:grid-cols-5 xl:flex xl:flex-none xl:items-center xl:gap-x-6">
           <Stat label={m.colChange}>
             {ticker?.changePercent24h ? (
               <NumericText
@@ -118,7 +126,7 @@ export function TradeTickerStrip({
             {volume(ticker?.quoteVolume24h)}
           </Stat>
         </dl>
-        <span className="ml-auto shrink-0">
+        <span className="ml-auto hidden shrink-0 xl:inline-flex">
           <FreshnessBadge freshness={freshness} />
         </span>
       </div>
