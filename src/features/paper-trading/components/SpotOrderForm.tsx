@@ -21,6 +21,8 @@ import {
   checkSpotOrder,
   EMPTY_DRAFT,
   hasLimitPrice,
+  maxOrder,
+  shareInUse,
   shareOfFunds,
   totalOf,
   type Funds,
@@ -29,8 +31,8 @@ import {
   type SpotOrderField,
   type SpotOrderProblem,
 } from '../model/spot-order';
+import { ShareSlider } from './ShareSlider';
 
-const SHARES = [25, 50, 75, 100] as const;
 const STOP_FORMS = ['STOP_LIMIT', 'STOP_MARKET', 'TRAILING', 'OCO'] as const;
 type StopForm = (typeof STOP_FORMS)[number];
 const isStopForm = (type: SpotFormType): type is StopForm =>
@@ -86,6 +88,9 @@ export function SpotOrderForm({
     Partial<Record<SpotOrderField, SpotOrderProblem>>
   >({});
   const [notice, setNotice] = useState<string | null>(null);
+  // The share last set on the slider, kept until a field is typed in, so a
+  // coarse step does not pull the thumb off where it was put.
+  const [sharePicked, setSharePicked] = useState<number | null>(null);
   const sent = useRef<{ key: string; id: string } | null>(null);
   const reasonId = useId();
 
@@ -93,6 +98,7 @@ export function SpotOrderForm({
   const [seenPick, setSeenPick] = useState(picked?.at ?? 0);
   if (picked && picked.at !== seenPick) {
     setSeenPick(picked.at);
+    setSharePicked(null);
     setDraft((current) => {
       const type = hasLimitPrice(current.type) ? current.type : 'LIMIT';
       return {
@@ -115,9 +121,12 @@ export function SpotOrderForm({
   const market = type === 'MARKET';
   const byTotal = market && draft.byTotal;
   const pending = place.pending || placeList.pending;
+  const shareShown = sharePicked ?? shareInUse(draft, available, lastPrice);
+  const max = funds ? maxOrder(draft, pair, funds, lastPrice) : null;
 
   const update = (next: Partial<SpotOrderDraft>) => {
     setDraft((current) => ({ ...current, ...next }));
+    setSharePicked(null);
     setServerErrors({});
     setNotice(null);
   };
@@ -165,6 +174,7 @@ export function SpotOrderForm({
   const succeeded = (message: string, tone: 'success' | 'info' = 'success') => {
     sent.current = null;
     setShown(false);
+    setSharePicked(null);
     setDraft((current) => ({ ...current, amount: '', total: '' }));
     toast.show({ tone, message });
   };
@@ -240,8 +250,10 @@ export function SpotOrderForm({
     else setNotice(errorText(copy, error));
   }
 
-  const share = (percent: number) =>
+  const share = (percent: number) => {
     update(shareOfFunds(draft, pair, available, percent, lastPrice));
+    setSharePicked(percent);
+  };
 
   const priceInput = (field: 'price' | 'stop' | 'stopLimit', label: string) => (
     <DecimalInput
@@ -305,37 +317,55 @@ export function SpotOrderForm({
         </Select>
       )}
 
-      <p className="flex items-baseline justify-between text-[11px] text-muted-dim">
-        {p.available}
-        <span className="text-fg-2">
-          {funds ? (
-            <NumericText
-              value={
-                buy
-                  ? // Two digits, rounded down: never more than is free.
-                    groupThousands(toStep(funds.quote, '0.01', 'down'))
-                  : groupThousands(
-                      toStep(funds.base, pair.stepSize ?? '0.00000001', 'down'),
-                    )
-              }
-              suffix={' ' + (buy ? quote : base)}
-            />
-          ) : (
-            copy.market.noValue
-          )}
-        </span>
-      </p>
+      <div className="flex flex-col gap-1">
+        <p className="flex items-baseline justify-between text-[11px] text-muted-dim">
+          {p.available}
+          <span className="text-fg-2">
+            {funds ? (
+              <NumericText
+                value={
+                  buy
+                    ? // Two digits, rounded down: never more than is free.
+                      groupThousands(toStep(funds.quote, '0.01', 'down'))
+                    : groupThousands(
+                        toStep(
+                          funds.base,
+                          pair.stepSize ?? '0.00000001',
+                          'down',
+                        ),
+                      )
+                }
+                suffix={' ' + (buy ? quote : base)}
+              />
+            ) : (
+              copy.market.noValue
+            )}
+          </span>
+        </p>
+        <p className="flex items-baseline justify-between text-[11px] text-muted-dim">
+          {buy ? p.maxBuy : p.maxSell}
+          <span className="text-fg-2">
+            {max ? (
+              <NumericText
+                value={groupThousands(max)}
+                suffix={' ' + (buy ? base : quote)}
+              />
+            ) : (
+              copy.market.noValue
+            )}
+          </span>
+        </p>
+      </div>
 
       {(type === 'STOP_LIMIT' || type === 'STOP_MARKET') &&
         priceInput('stop', formatCopy(p.fieldStop, { asset: quote }))}
       {type === 'TRAILING' && (
-        <Input
+        <DecimalInput
           label={p.fieldTrailing}
-          inputMode="decimal"
           autoComplete="off"
           value={draft.trailing}
           error={fieldError('trailing')}
-          onChange={(event) => update({ trailing: event.target.value })}
+          onValueChange={(trailing) => update({ trailing })}
         />
       )}
       {type === 'TRAILING' &&
@@ -384,23 +414,7 @@ export function SpotOrderForm({
         />
       )}
 
-      <div
-        role="group"
-        aria-label={p.shareLabel}
-        className="grid grid-cols-4 gap-1.5"
-      >
-        {SHARES.map((percent) => (
-          <button
-            key={percent}
-            type="button"
-            disabled={!funds}
-            onClick={() => share(percent)}
-            className="h-7 rounded-md border border-line text-[11px] font-medium text-muted hover:border-primary-line hover:text-primary disabled:opacity-50 pointer-coarse:h-9"
-          >
-            {formatCopy(p.sharePercent, { percent })}
-          </button>
-        ))}
-      </div>
+      <ShareSlider value={shareShown} disabled={!funds} onChange={share} />
 
       <DecimalInput
         label={formatCopy(p.fieldTotal, { asset: quote })}

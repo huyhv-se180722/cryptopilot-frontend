@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createDevelopmentPaperTrading } from '../../dev/dev-paper-trading';
 import { DEV_PAIR_IDS } from '../../dev/fixtures/watchlist';
@@ -186,6 +186,13 @@ describe('Spot demo orders (TR-F3)', () => {
     expect((field(form, /Total/) as HTMLInputElement).value).toBe('0.81');
   });
 
+  it('reads an amount typed with a decimal comma ("0,5") as 0.5', async () => {
+    const { form, user } = await open();
+    await user.type(field(form, /^Price/), '1000');
+    await user.type(field(form, /Amount/), '0,5');
+    expect((field(form, /Total/) as HTMLInputElement).value).toBe('500.00');
+  });
+
   it('checks the order before sending it', async () => {
     const { form, user } = await open();
     await user.click(within(form).getByRole('button', { name: 'Buy BTC' }));
@@ -217,6 +224,44 @@ describe('Spot demo orders (TR-F3)', () => {
     });
     await waitFor(() => expect(fills.textContent).toContain('Taker'));
     expect(fills.textContent).toContain('0.04166');
+  });
+
+  it('fills the amount from the share slider, which follows a typed amount', async () => {
+    const { form, user } = await open();
+    await user.type(field(form, /^Price/), '50000');
+    const maxRow = () =>
+      within(form)
+        .getByText(/^Max (buy|sell)$/)
+        .closest('p')?.textContent;
+    // 10,000 USDT free at 50,000.
+    expect(maxRow()).toContain('0.20000 BTC');
+    const slider = within(form).getByRole('slider', {
+      name: 'Share of the available balance',
+    }) as HTMLInputElement;
+    expect(slider.value).toBe('0');
+    fireEvent.change(slider, { target: { value: '40' } });
+    expect((field(form, /Amount/) as HTMLInputElement).value).toBe('0.08000');
+    expect(slider.getAttribute('aria-valuetext')).toBe('40%');
+    const half = within(form).getByRole('button', { name: '50%' });
+    expect(half.getAttribute('aria-pressed')).toBe('false');
+    await user.click(half);
+    expect(half.getAttribute('aria-pressed')).toBe('true');
+    expect(slider.value).toBe('50');
+    // A typed amount moves the slider: 0.05 BTC × 50,000 = 25 % of the funds.
+    await user.clear(field(form, /Amount/));
+    await user.type(field(form, /Amount/), '0.05');
+    expect(slider.value).toBe('25');
+    expect(
+      within(form)
+        .getByRole('button', { name: '25%' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
+    // Back to 0 % empties the amount.
+    fireEvent.change(slider, { target: { value: '0' } });
+    expect((field(form, /Amount/) as HTMLInputElement).value).toBe('');
+    // A sale shows what the free coin brings at the price.
+    await user.click(within(form).getByRole('radio', { name: 'Sell' }));
+    expect(maxRow()).toMatch(/Max sell.*USDT/);
   });
 
   it('cancels an open order', async () => {

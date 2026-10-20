@@ -679,7 +679,11 @@ export interface PaperOrderListLeg {
 /** The take profit (LIMIT_MAKER) and stop of an OCO, on one side and quantity. */
 export interface PaperOcoLegs {
   side: OrderSide;
-  quantity: Decimal;
+  /**
+   * Required for an OCO. Absent in an OTOCO, the backend takes what the
+   * working order leaves once its fee is paid.
+   */
+  quantity?: Decimal;
   takeProfitPrice: Decimal;
   stopPrice: Decimal;
   /** Absent: the stop is a STOP_LOSS, executed at the market. */

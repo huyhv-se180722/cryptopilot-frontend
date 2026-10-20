@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   Decimal,
   MarketPair,
   OrderSide,
@@ -13,7 +13,6 @@ import {
   isPositive,
   multiply,
   percentOf,
-  subtract,
   toStep,
 } from '../../../utils/decimal-math';
 
@@ -99,7 +98,7 @@ export interface SpotOrderCheck {
   /** What to send, or null while a field is wrong or missing. */
   request: SpotOrderRequest | null;
   errors: Partial<Record<SpotOrderField, SpotOrderProblem>>;
-  /** Price × quantity in the quote asset (an estimate for MARKET). */
+  /** Price Ã— quantity in the quote asset (an estimate for MARKET). */
   notional: Decimal | null;
 }
 
@@ -108,9 +107,6 @@ export interface Funds {
   quote: Decimal;
   base: Decimal;
 }
-
-/** The fee the exchange takes from what a fill brings in (0.1 %). */
-const FEE_RATE = '0.001';
 
 const filled = (value: string) => value.trim() !== '';
 const valid = (value: string) =>
@@ -156,8 +152,9 @@ function orderPrice(
 
 /**
  * Checks a Spot order the way the exchange form does before sending it:
- * numbers present and positive, prices put on the tick (up for a sell,
- * down for a buy, so it never asks more than typed), quantity floored to
+ * numbers present and positive, prices put on the tick by the side of the
+ * order they belong to (up for a sell, down for a buy, so it never asks
+ * more than typed; the TP/SL of a buy are sells), quantity floored to
  * the step, at least the minimum order value, enough free balance, a stop
  * not at the last price, a trailing delta of 0.1 % to 20 %, and the take
  * profit and stop of an OCO or TP/SL on either side of the price. MARKET
@@ -175,9 +172,13 @@ export function checkSpotOrder(
   const buy = draft.side === 'BUY';
   const type = draft.type;
   const byTotal = type === 'MARKET' && draft.byTotal;
-  const onTick = (value: string) =>
-    toStep(value.trim(), tick, buy ? 'down' : 'up');
-  const priceOf = (field: SpotOrderField, value: string, required = true) => {
+  // Each price is put on the tick by the side of the order it belongs to.
+  const priceOf = (
+    field: SpotOrderField,
+    value: string,
+    required = true,
+    side: OrderSide = draft.side,
+  ) => {
     if (!filled(value)) {
       if (required) errors[field] = 'required';
       return null;
@@ -186,7 +187,7 @@ export function checkSpotOrder(
       errors[field] = 'invalid';
       return null;
     }
-    return onTick(value);
+    return toStep(value.trim(), tick, side === 'BUY' ? 'down' : 'up');
   };
 
   const price = hasLimitPrice(type) ? priceOf('price', draft.price) : null;
@@ -239,10 +240,11 @@ export function checkSpotOrder(
     }
   }
   if (type === 'TRAILING') {
-    if (stop && lastPrice)
-      stopType =
-        stopTypeFor(draft.side, stop, lastPrice, true) ?? 'STOP_LOSS_LIMIT';
-    else if (stop && !lastPrice) errors.stop = 'noLastPrice';
+    if (stop && lastPrice) {
+      // An activation at the last price would trigger at once.
+      stopType = stopTypeFor(draft.side, stop, lastPrice, true);
+      if (!stopType) errors.stop = 'atLastPrice';
+    } else if (stop && !lastPrice) errors.stop = 'noLastPrice';
     else stopType = 'STOP_LOSS_LIMIT';
   }
   // An OCO's take profit lies beyond the last price, its stop on this side.
@@ -259,8 +261,9 @@ export function checkSpotOrder(
   let stopLoss: Decimal | null = null;
   const tpsl = type === 'LIMIT' && draft.tpsl;
   if (tpsl) {
-    takeProfit = priceOf('takeProfit', draft.takeProfit);
-    stopLoss = priceOf('stopLoss', draft.stopLoss);
+    const exitSide: OrderSide = buy ? 'SELL' : 'BUY';
+    takeProfit = priceOf('takeProfit', draft.takeProfit, true, exitSide);
+    stopLoss = priceOf('stopLoss', draft.stopLoss, true, exitSide);
     if (price && takeProfit && compare(takeProfit, price) * (buy ? 1 : -1) <= 0)
       errors.takeProfit = 'priceOrder';
     if (price && stopLoss && compare(stopLoss, price) * (buy ? 1 : -1) >= 0)
@@ -324,14 +327,8 @@ export function checkSpotOrder(
               price: price as Decimal,
             };
         if (!tpsl) return { kind: 'order', order: { ...working, ...size } };
-        // The coin a buy brings in is less the fee: the TP/SL sells what is left.
-        const exit = buy
-          ? toStep(
-              multiply(quantity as Decimal, subtract('1', FEE_RATE)),
-              step,
-              'down',
-            )
-          : (quantity as Decimal);
+        // No OCO quantity: the backend sells what the buy brings in net of its
+        // fee, a rate the form does not know (D-99).
         return {
           kind: 'list',
           list: {
@@ -344,7 +341,6 @@ export function checkSpotOrder(
             },
             oco: {
               side: buy ? 'SELL' : 'BUY',
-              quantity: exit,
               takeProfitPrice: takeProfit as Decimal,
               stopPrice: stopLoss as Decimal,
             },
@@ -417,9 +413,14 @@ export function shareOfFunds(
 ): Pick<SpotOrderDraft, 'amount' | 'total'> {
   const step = pair.stepSize ?? '0.00000001';
   const buy = draft.side === 'BUY';
+  const byTotal = draft.type === 'MARKET' && draft.byTotal;
+  if (percent <= 0)
+    return byTotal
+      ? { amount: draft.amount, total: '' }
+      : { amount: '', total: '' };
   if (!buy) {
     const amount = toStep(percentOf(funds.base, percent, 12), step, 'down');
-    if (draft.type === 'MARKET' && draft.byTotal)
+    if (byTotal)
       return {
         amount: draft.amount,
         total: lastPrice
@@ -429,15 +430,61 @@ export function shareOfFunds(
     return { amount, total: totalOf(draft, amount, lastPrice) };
   }
   const spend = percentOf(funds.quote, percent, 2);
-  if (draft.type === 'MARKET' && draft.byTotal)
-    return { amount: draft.amount, total: spend };
+  if (byTotal) return { amount: draft.amount, total: spend };
   const price = orderPrice(draft, lastPrice);
   if (!price) return { amount: draft.amount, total: spend };
   const amount = toStep(divide(spend, price), step, 'down');
   return { amount, total: totalOf(draft, amount, lastPrice) };
 }
 
-/** Price × amount for the total field; empty while either is missing. */
+/**
+ * The share of the free balance (0 to 100, whole) the order would use, for
+ * the slider to follow what was typed: a buy's total against the free quote
+ * asset, a sale's amount (or total at the last price) against the free coin.
+ */
+export function shareInUse(
+  draft: SpotOrderDraft,
+  funds: Funds,
+  lastPrice: Decimal | null,
+): number {
+  const ratio = (part: Decimal | null, whole: Decimal) =>
+    part && valid(part) && isPositive(whole)
+      ? Number(divide(part.trim(), whole, 6)) * 100
+      : 0;
+  const percent =
+    draft.side === 'BUY'
+      ? ratio(draft.total, funds.quote)
+      : draft.type === 'MARKET' && draft.byTotal
+        ? ratio(
+            lastPrice && valid(draft.total)
+              ? divide(draft.total.trim(), lastPrice)
+              : null,
+            funds.base,
+          )
+        : ratio(draft.amount, funds.base);
+  return Math.min(100, Math.max(0, Math.round(percent)));
+}
+
+/**
+ * The most the free balance buys (in the coin) or a sale of the free coin
+ * brings (in the quote asset) at the order's price, as the exchange's panel
+ * shows "Max buy" and "Max sell"; before fees, which the form does not know
+ * (D-99). Null while the order has no price.
+ */
+export function maxOrder(
+  draft: SpotOrderDraft,
+  pair: MarketPair,
+  funds: Funds,
+  lastPrice: Decimal | null,
+): Decimal | null {
+  const price = orderPrice(draft, lastPrice);
+  if (!price) return null;
+  return draft.side === 'BUY'
+    ? toStep(divide(funds.quote, price), pair.stepSize ?? '0.00000001', 'down')
+    : toStep(multiply(funds.base, price), '0.01', 'down');
+}
+
+/** Price Ã— amount for the total field; empty while either is missing. */
 export function totalOf(
   draft: Pick<SpotOrderDraft, 'type' | 'price' | 'stop'>,
   amount: string,

@@ -780,7 +780,10 @@ export const en = {
     tifFOK: 'FOK · Fill or kill',
     available: 'Available',
     shareLabel: 'Share of the available balance',
+    sharePresets: 'Quick shares of the available balance',
     sharePercent: '{percent}%',
+    maxBuy: 'Max buy',
+    maxSell: 'Max sell',
     estimateNote:
       'Estimated at the last price; the fill price is decided when the order executes.',
     feeNote: 'A trading fee is taken from what each fill brings in.',

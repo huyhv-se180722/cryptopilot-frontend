@@ -676,6 +676,22 @@ export function createDevelopmentPaperTrading(
       const oco = (pending: boolean) => {
         const legs = request.oco;
         if (!legs) refuse(400, 'VALIDATION', 'MSG01', { oco: 'MSG01' });
+        // An OTOCO without a quantity sells what its working buy leaves net
+        // of the fee, or what its working sale sold, as the backend does.
+        const working = request.working;
+        const quantity =
+          legs.quantity ??
+          (request.type === 'OTOCO' && working
+            ? working.side === 'BUY'
+              ? toStep(
+                  multiply(working.quantity, subtract('1', FEE_RATE)),
+                  pair.stepSize ?? '0.00001',
+                  'down',
+                )
+              : working.quantity
+            : undefined);
+        if (!quantity)
+          refuse(400, 'VALIDATION', 'MSG01', { 'oco.quantity': 'MSG01' });
         const sell = legs.side === 'SELL';
         if (
           !pending &&
@@ -694,7 +710,7 @@ export function createDevelopmentPaperTrading(
             side: legs.side,
             type: 'LIMIT_MAKER',
             price: legs.takeProfitPrice,
-            quantity: legs.quantity,
+            quantity,
           },
           pending,
         );
@@ -705,7 +721,7 @@ export function createDevelopmentPaperTrading(
             type: legs.stopLimitPrice ? 'STOP_LOSS_LIMIT' : 'STOP_LOSS',
             ...(legs.stopLimitPrice ? { price: legs.stopLimitPrice } : {}),
             stopPrice: legs.stopPrice,
-            quantity: legs.quantity,
+            quantity,
           },
           pending,
         );

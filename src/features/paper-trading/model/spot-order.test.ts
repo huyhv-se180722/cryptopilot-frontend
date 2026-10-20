@@ -4,6 +4,8 @@ import {
   amountOf,
   checkSpotOrder,
   EMPTY_DRAFT,
+  maxOrder,
+  shareInUse,
   shareOfFunds,
   stopTypeFor,
   totalOf,
@@ -248,6 +250,21 @@ describe('Spot order check (TR-F3)', () => {
         '60000',
       ).errors,
     ).toEqual({ trailing: 'trailingRange' });
+    // An activation at the last price would trigger at once: not sent.
+    const atLast = checkSpotOrder(
+      draft({
+        type: 'TRAILING',
+        side: 'SELL',
+        trailing: '1',
+        stop: '60000',
+        price: '59000',
+      }),
+      BTC,
+      FUNDS,
+      '60000',
+    );
+    expect(atLast.errors).toEqual({ stop: 'atLastPrice' });
+    expect(atLast.request).toBeNull();
   });
 
   it('sends an OCO with its prices around the last price, the stop limit optional', () => {
@@ -279,7 +296,7 @@ describe('Spot order check (TR-F3)', () => {
     ).toEqual({ price: 'priceOrder', stop: 'priceOrder' });
   });
 
-  it('sends a limit with TP/SL as an OTOCO selling what the buy brings in', () => {
+  it('sends a limit with TP/SL as an OTOCO, its quantity left to the backend', () => {
     expect(
       listOf(
         checkSpotOrder(
@@ -299,7 +316,6 @@ describe('Spot order check (TR-F3)', () => {
       },
       oco: {
         side: 'SELL',
-        quantity: '0.00999',
         takeProfitPrice: '63000.00',
         stopPrice: '58000.00',
       },
@@ -312,6 +328,49 @@ describe('Spot order check (TR-F3)', () => {
         null,
       ).errors,
     ).toEqual({ takeProfit: 'priceOrder', stopLoss: 'priceOrder' });
+  });
+
+  it('puts the TP/SL of a buy on the tick as the sells they are', () => {
+    const list = listOf(
+      checkSpotOrder(
+        draft({
+          price: '60000.019',
+          tpsl: true,
+          takeProfit: '63000.001',
+          stopLoss: '58000.001',
+        }),
+        BTC,
+        FUNDS,
+        '60500',
+      ),
+    );
+    // The working buy rounds down; its take profit and stop loss round up.
+    expect(list?.working?.price).toBe('60000.01');
+    expect(list?.oco).toMatchObject({
+      takeProfitPrice: '63000.01',
+      stopPrice: '58000.01',
+    });
+    const sell = listOf(
+      checkSpotOrder(
+        draft({
+          side: 'SELL',
+          price: '60000.011',
+          amount: '0.05',
+          tpsl: true,
+          takeProfit: '57000.019',
+          stopLoss: '62000.019',
+        }),
+        BTC,
+        FUNDS,
+        '59500',
+      ),
+    );
+    expect(sell?.working?.price).toBe('60000.02');
+    expect(sell?.oco).toMatchObject({
+      side: 'BUY',
+      takeProfitPrice: '57000.01',
+      stopPrice: '62000.01',
+    });
   });
 
   it('fills the amount from a share of the free balance', () => {
@@ -331,6 +390,42 @@ describe('Spot order check (TR-F3)', () => {
         '60000',
       ),
     ).toEqual({ amount: '0.01', total: '1000.00' });
+    // 0 % empties the size.
+    expect(shareOfFunds(draft(), BTC, FUNDS, 0, null)).toEqual({
+      amount: '',
+      total: '',
+    });
+  });
+
+  it('tells the share of the free balance an order uses, for the slider', () => {
+    // A buy: its total against 1,000 USDT free.
+    expect(shareInUse(draft({ total: '250' }), FUNDS, null)).toBe(25);
+    expect(shareInUse(draft({ total: '5000' }), FUNDS, null)).toBe(100);
+    expect(shareInUse(draft({ total: '' }), FUNDS, null)).toBe(0);
+    // A sale: its amount against 0.1 BTC free, or its total at the last price.
+    expect(
+      shareInUse(draft({ side: 'SELL', amount: '0.033' }), FUNDS, null),
+    ).toBe(33);
+    expect(
+      shareInUse(
+        draft({ side: 'SELL', type: 'MARKET', byTotal: true, total: '3000' }),
+        FUNDS,
+        '60000',
+      ),
+    ).toBe(50);
+    expect(shareInUse(draft(), { quote: '0', base: '0' }, null)).toBe(0);
+  });
+
+  it('tells the most a buy gets and a sale brings at the order price', () => {
+    expect(maxOrder(draft({ price: '60000' }), BTC, FUNDS, null)).toBe(
+      '0.01666',
+    );
+    expect(maxOrder(draft({ side: 'SELL' }), BTC, FUNDS, null)).toBe('6000.00');
+    // A market order is valued at the last price; none known, no maximum.
+    expect(maxOrder(draft({ type: 'MARKET' }), BTC, FUNDS, '50000')).toBe(
+      '0.02000',
+    );
+    expect(maxOrder(draft({ type: 'MARKET' }), BTC, FUNDS, null)).toBeNull();
   });
 
   it('keeps amount and total in step both ways', () => {
