@@ -5,7 +5,7 @@ import type { HttpClient } from './http-client';
 import { decodeDepth, decodeMarketTrades } from './market-dto';
 
 /**
- * Depth and trades while demo trading is off (D-94) or no API is
+ * Depth and trades while demo trading is off (D-101) or no API is
  * configured: reads answer NOT_CONFIGURED and no topic is joined.
  */
 export function createPendingTradingMarketService(): TradingMarketService {
@@ -24,7 +24,7 @@ const pathOf = (market: string, symbol: string, rest: string) =>
  * TR-03 over the public market API (no token) and the STOMP connection of
  * the market feed: `/topic/depth.{MARKET}.{SYMBOL}` and
  * `/topic/trades.{MARKET}.{SYMBOL}`. Without a WebSocket URL the topics
- * stay silent and the panels keep the REST snapshot (D-97).
+ * stay silent and the panels keep the REST snapshot (D-104).
  */
 export function createHttpTradingMarketService(
   http: HttpClient,

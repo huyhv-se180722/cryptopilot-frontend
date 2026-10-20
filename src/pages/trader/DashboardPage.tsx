@@ -30,7 +30,7 @@ function counted(
 }
 
 /**
- * SCR-08 Trader Dashboard (T-111), the Trader's home after sign-in, from
+ * SCR-08 Trader Dashboard (T-112), the Trader's home after sign-in, from
  * the Figma "Trading Overview" frame with the SRS content: watchlist
  * snapshot, active plans and open positions, recent notifications,
  * performance summary and latest news, plus a market snapshot. Only
@@ -41,7 +41,7 @@ function counted(
 export function DashboardPage() {
   const copy = useCopy();
   const locale = useLocale();
-  // In the interface's language, as the rest of the header (A-43).
+  // In the interface's language, as the rest of the header (A-45).
   const today = useMemo(
     () => new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }),
     [locale],

@@ -52,7 +52,7 @@ import { createAdminService } from '../../services/api/admin';
 
 export async function createServices(env: Environment): Promise<Services> {
   // The session renews through the same client it authorizes (anonymous call).
-  // The refresh token survives a reload in the tab's sessionStorage (D-102).
+  // The refresh token survives a reload in the tab's sessionStorage (D-109).
   const store = browserSessionStore();
   const tokens = new TokenSession(
     createRefresher(() => http),
@@ -62,8 +62,8 @@ export async function createServices(env: Environment): Promise<Services> {
   const http = createHttpClient({ baseUrl: env.apiBaseUrl, session: tokens });
   const connected = env.apiBaseUrl !== '';
   const stomp = env.wsUrl ? createStompMarketFeed(env.wsUrl) : null;
-  // Demo trading talks to the backend only while its flag is on (D-94,
-  // D-97): the flag says the backend has the paper module.
+  // Demo trading talks to the backend only while its flag is on (D-101,
+  // D-104): the flag says the backend has the paper module.
   const paper = paperTradingEnabled && connected;
   const services: Services = {
     mode: connected ? 'backend' : 'backend-pending',

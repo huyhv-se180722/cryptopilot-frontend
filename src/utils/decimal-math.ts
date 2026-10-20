@@ -1,7 +1,7 @@
 import BigBase from 'big.js';
 
 /**
- * Exact decimal arithmetic for the trading forms (D-95, ADR-019): strings
+ * Exact decimal arithmetic for the trading forms (D-102, ADR-019): strings
  * in, strings out, never `number`. Its own constructor, so the library's
  * global settings stay untouched: 18 digits on division, round-down by
  * default, plain notation (no exponent) in every result.

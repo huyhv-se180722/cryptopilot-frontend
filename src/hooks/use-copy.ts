@@ -8,7 +8,7 @@ export function useCopy() {
 
 /**
  * The active locale ('en' or 'vi', valid language tags). Dates and charts
- * format with it, so they read in the interface's language (A-43) and
+ * format with it, so they read in the interface's language (A-45) and
  * never in the browser's.
  */
 export function useLocale() {

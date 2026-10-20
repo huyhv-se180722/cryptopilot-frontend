@@ -1,5 +1,5 @@
 /**
- * What a tab keeps to sign the Trader in again after a reload (D-102,
+ * What a tab keeps to sign the Trader in again after a reload (D-109,
  * ADR-021): the refresh token, its expiry and the signed-in email (an
  * Admin has no profile endpoint to read it back). The access token is
  * never stored.
@@ -40,7 +40,7 @@ function isSaved(value: unknown): value is SavedSession {
 }
 
 /**
- * The tab's `sessionStorage`, never `localStorage` (D-102). Storage that
+ * The tab's `sessionStorage`, never `localStorage` (D-109). Storage that
  * throws (private window, blocked site data) keeps nothing, so the session
  * then lasts as long as the page, as before.
  */

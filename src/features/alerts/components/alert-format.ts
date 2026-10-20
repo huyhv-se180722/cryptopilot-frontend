@@ -22,7 +22,7 @@ export function conditionText(copy: Copy, rule: AlertRule): string {
   }
   if (indicator === 'OPEN_INTEREST_CHANGE')
     return `${a.indicatorOPEN_INTEREST_CHANGE} · ${condition} ${value}%`;
-  // Stored as a fraction, shown in percent (D-100).
+  // Stored as a fraction, shown in percent (D-107).
   if (indicator === 'FUNDING_RATE' && rule.threshold)
     return `${a.indicatorFUNDING_RATE} · ${condition} ${trimDecimal(multiply(rule.threshold, '100'), 0)}%`;
   const name = indicator ? a[`indicator${indicator}`] : '';

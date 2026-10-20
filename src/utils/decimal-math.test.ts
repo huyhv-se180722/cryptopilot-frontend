@@ -13,7 +13,7 @@ import {
   toStep,
 } from './decimal-math';
 
-describe('decimal math (D-95, ADR-019)', () => {
+describe('decimal math (D-102, ADR-019)', () => {
   it('reproduces the Spot example of the plan (section 13): buy 0.01 BTC at 60,000', () => {
     // Locked: 0.01 × 60,000 = 600 USDT; received after the 0.1 % fee.
     expect(multiply('0.01', '60000')).toBe('600');

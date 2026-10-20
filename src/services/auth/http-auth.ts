@@ -18,7 +18,7 @@ const AUTH = 'auth/';
  * HTTP adapter for the backend auth module (`/api/v1/auth/*`, `/me/password`;
  * `/me/profile` for the signed-in identity).
  * Tokens stay in memory (`TokenSession`); the refresh token and the email
- * are also kept in `store` (the tab's sessionStorage, D-102), so a reload
+ * are also kept in `store` (the tab's sessionStorage, D-109), so a reload
  * resumes the session with one `POST /auth/refresh`.
  */
 export function createHttpAuthService(
@@ -71,7 +71,7 @@ export function createHttpAuthService(
     }
   }
 
-  /** A reload: resume from the refresh token this tab kept (D-102). */
+  /** A reload: resume from the refresh token this tab kept (D-109). */
   async function resume(): Promise<Session | null> {
     const saved = store.read();
     if (!saved) return null;

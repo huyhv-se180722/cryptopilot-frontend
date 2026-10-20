@@ -78,7 +78,7 @@ type Listener = (body: unknown) => void;
  */
 /**
  * Any other public topic on the same connection, decoded on arrival; the
- * TR-03 depth and trades topics use it (D-97).
+ * TR-03 depth and trades topics use it (D-104).
  */
 export interface StompTopics {
   subscribeTopic<T>(

@@ -30,7 +30,7 @@ export const REFRESH_LEAD_MS = 60_000;
 /**
  * Holds the tokens of the current session in memory, and hands the refresh
  * token to `store` on every sign-in and rotation so a reload can resume
- * (D-102: the tab's sessionStorage; the access token is never stored).
+ * (D-109: the tab's sessionStorage; the access token is never stored).
  * Refresh is single-flight: presenting a refresh token twice makes the
  * server revoke the session.
  */

@@ -1,5 +1,5 @@
 /**
- * Indicator series for drawing only (D-96, proposed; FEQ-04): the backend
+ * Indicator series for drawing only (D-103, proposed; FEQ-04): the backend
  * returns the latest values, so the chart computes the history itself with
  * the definitions and seeds of BR-12 / TECHNICAL_DESIGN 7.2, D-52 and
  * D-55. Numbers are allowed here (indicators, not money). The analysis

@@ -28,7 +28,7 @@ const stepOf = (power: number) =>
   power < 0 ? '0.' + '0'.repeat(-power - 1) + '1' : '1' + '0'.repeat(power);
 
 /**
- * The price groups the order book offers: the tick and 10× it (D-98). The
+ * The price groups the order book offers: the tick and 10× it (D-105). The
  * backend streams 20 levels a side, too narrow for 100× or 1000× to show
  * more than a row or two. A tick that is not a power of ten is offered
  * alone (no grouping).

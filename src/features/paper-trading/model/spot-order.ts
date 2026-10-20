@@ -328,7 +328,7 @@ export function checkSpotOrder(
             };
         if (!tpsl) return { kind: 'order', order: { ...working, ...size } };
         // No OCO quantity: the backend sells what the buy brings in net of its
-        // fee, a rate the form does not know (D-99).
+        // fee, a rate the form does not know (D-106).
         return {
           kind: 'list',
           list: {
@@ -469,7 +469,7 @@ export function shareInUse(
  * The most the free balance buys (in the coin) or a sale of the free coin
  * brings (in the quote asset) at the order's price, as the exchange's panel
  * shows "Max buy" and "Max sell"; before fees, which the form does not know
- * (D-99). Null while the order has no price.
+ * (D-106). Null while the order has no price.
  */
 export function maxOrder(
   draft: SpotOrderDraft,
