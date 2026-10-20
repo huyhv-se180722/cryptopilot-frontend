@@ -210,6 +210,60 @@ describe('useLiveTicker (CR-09)', () => {
     expect(hook.result.current.ticker?.bestAsk).toBe('63000.01');
   });
 
+  it('shows the stored snapshot before the first stream message', async () => {
+    const { wrapper, getTicker, push } = setup('open');
+    const hook = renderHook(() => useLiveTicker('spot', 'BTCUSDT'), {
+      wrapper,
+    });
+    // Read once at open, while the stream has sent nothing yet.
+    await waitFor(() =>
+      expect(hook.result.current.ticker?.lastPrice).toBe('1'),
+    );
+    expect(getTicker).toHaveBeenCalledTimes(1);
+    expect(hook.result.current.freshness).toBe('connecting');
+    // The next stream message replaces it and the feed is live.
+    await act(() => vi.advanceTimersByTimeAsync(5));
+    push({
+      ...(hook.result.current.ticker as MarketTicker),
+      sourceTime: new Date().toISOString(),
+      lastPrice: '63000.01',
+    });
+    expect(hook.result.current.ticker?.lastPrice).toBe('63000.01');
+    expect(hook.result.current.freshness).toBe('live');
+  });
+
+  it('keeps a stream message over a snapshot of the same instant', async () => {
+    const { wrapper, getTicker, push } = setup('open');
+    let answer: (value: MarketTicker) => void = () => undefined;
+    getTicker.mockImplementationOnce(
+      () => new Promise<MarketTicker>((resolve) => (answer = resolve)),
+    );
+    const hook = renderHook(() => useLiveTicker('spot', 'BTCUSDT'), {
+      wrapper,
+    });
+    const at = new Date().toISOString();
+    const message = {
+      market: 'spot',
+      symbol: 'BTCUSDT',
+      sourceTime: at,
+      lastPrice: '63000.01',
+      bestBid: null,
+      bestAsk: null,
+      high24h: null,
+      low24h: null,
+      changePercent24h: null,
+      baseVolume24h: null,
+      quoteVolume24h: null,
+      markPrice: null,
+      indexPrice: null,
+      fundingRate: null,
+      nextFundingTime: null,
+    } as const;
+    push(message);
+    await act(async () => answer({ ...message, lastPrice: '1' }));
+    expect(hook.result.current.ticker?.lastPrice).toBe('63000.01');
+  });
+
   it('polls the snapshot every 10 s without a socket', async () => {
     const { wrapper, getTicker } = setup('unavailable');
     const hook = renderHook(() => useLiveTicker('spot', 'BTCUSDT'), {
