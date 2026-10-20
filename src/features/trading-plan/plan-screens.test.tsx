@@ -5,9 +5,14 @@ import userEvent from '@testing-library/user-event';
 import { PlanDetailPage } from '../../pages/trader/PlanDetailPage';
 import { PlanEditPage } from '../../pages/trader/PlanEditPage';
 import { PlansPage } from '../../pages/trader/PlansPage';
-import type { TradingPlanService } from '../../services/api/contracts';
+import type {
+  MarketService,
+  TradingPlanService,
+} from '../../services/api/contracts';
 import { ServiceError } from '../../services/api/errors';
 import type {
+  MarketPair,
+  MarketType,
   PlanEntitlements,
   Session,
   TradingPlan,
@@ -138,10 +143,43 @@ function fakePlans(overrides: Partial<TradingPlanService> = {}) {
   return service;
 }
 
+const btc = (market: MarketType): MarketPair => ({
+  pairId: ROW.pairId,
+  symbol: 'BTCUSDT',
+  market,
+  baseAsset: 'BTC',
+  quoteAsset: 'USDT',
+  baseAssetName: 'Bitcoin',
+  logoUrl: null,
+  tickSize: market === 'spot' ? '0.01' : '0.10',
+  stepSize: '0.001',
+  minNotional: '5',
+  displayOrder: 1,
+});
+const eth: MarketPair = {
+  ...btc('spot'),
+  pairId: 'eth-id',
+  symbol: 'ETHUSDT',
+  baseAsset: 'ETH',
+  baseAssetName: 'Ethereum',
+  displayOrder: 2,
+};
+
+/** BTC on both markets with the plans' pair id; ETH on Spot only. */
+const fakeMarket = (): MarketService => ({
+  listPairs: vi.fn(async (market: MarketType) =>
+    market === 'spot' ? [btc('spot'), eth] : [btc('futures')],
+  ),
+  getCandles: vi.fn(async () => []),
+  getFuturesMetrics: vi.fn(),
+  getTicker: vi.fn(async () => null),
+});
+
 async function open(
   path: string,
   service = fakePlans(),
   tier: 'FREE' | 'PRO' = 'FREE',
+  market = fakeMarket(),
 ) {
   const session: Session = { ...testTrader, entitlements: plan(tier) };
   await renderRoutes(
@@ -152,7 +190,7 @@ async function open(
     ],
     path,
     fakeAuth({ restoreSession: async () => session }),
-    { tradingPlan: service },
+    { tradingPlan: service, market },
   );
   return service;
 }
@@ -181,11 +219,38 @@ describe('SCR-16 plan list (T-041)', () => {
         .getByRole('link', { name: 'Open plan 0000a1b2' })
         .getAttribute('href'),
     ).toBe('/plans/' + ROW.id);
-    // FEQ-01: no pair symbol yet, and the screen says why.
-    expect(cells.getByTitle('Pair name not available')).toBeTruthy();
-    expect(
-      screen.getByText(/Pair names are not returned by the server yet/),
-    ).toBeTruthy();
+    // The pair is named from the market lists by its id (FEQ-01).
+    expect(await cells.findByText('BTC/USDT')).toBeTruthy();
+  });
+
+  it('filters the list by pair (FEQ-01)', async () => {
+    const service = await open('/plans');
+    await screen.findByText('Short');
+    const pair = screen.getByLabelText('Pair');
+    await waitFor(() =>
+      expect(
+        within(pair)
+          .getAllByRole('option')
+          .map((option) => option.textContent),
+      ).toEqual(['All pairs', 'BTC/USDT', 'ETH/USDT']),
+    );
+    await userEvent.selectOptions(pair, ROW.pairId);
+    await waitFor(() => expect(lastList(service)?.pairId).toBe(ROW.pairId));
+    await userEvent.click(screen.getByRole('button', { name: 'Reset' }));
+    await waitFor(() => expect(lastList(service)?.pairId).toBeUndefined());
+  });
+
+  it('shows a dash for a pair the market lists no longer give', async () => {
+    const market = fakeMarket();
+    vi.mocked(market.listPairs).mockResolvedValue([eth]);
+    await open('/plans', fakePlans(), 'FREE', market);
+    const row = (await screen.findByText('Short')).closest('tr') as HTMLElement;
+    await waitFor(() =>
+      expect(
+        within(screen.getByLabelText('Pair')).getAllByRole('option'),
+      ).toHaveLength(2),
+    );
+    expect(within(row).getByTitle('Pair name not available')).toBeTruthy();
   });
 
   it('reads the chosen tab, market and period', async () => {

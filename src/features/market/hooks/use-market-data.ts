@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useServices } from '../../../hooks/use-services';
 import type { MarketPair, MarketType } from '../../../types/domain';
@@ -40,6 +41,29 @@ export function useListedPair(pair: MarketPair):
     spotListed: on(spot.data),
     futuresListed: on(futures.data),
   };
+}
+
+/**
+ * The pair of an id, from its market's list or else the other one (one id
+ * per symbol, FEQ-01): undefined while the lists are read or for an id
+ * neither lists, e.g. a pair Admin disabled.
+ */
+export function usePairLookup(): (
+  pairId: string,
+  market: MarketType,
+) => MarketPair | undefined {
+  const spot = useMarketPairs('spot').data;
+  const futures = useMarketPairs('futures').data;
+  return useCallback(
+    (pairId, market) => {
+      const [first, second] =
+        market === 'spot' ? [spot, futures] : [futures, spot];
+      const find = (list: readonly MarketPair[] | undefined) =>
+        list?.find((pair) => pair.pairId === pairId);
+      return find(first) ?? find(second);
+    },
+    [spot, futures],
+  );
 }
 
 /** Closed daily candles for the basic chart; idle without a symbol. */

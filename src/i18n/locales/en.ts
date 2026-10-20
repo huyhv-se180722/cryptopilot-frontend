@@ -412,6 +412,8 @@ export const en = {
     directionSHORT: 'Short',
     entryLIMIT: 'Limit',
     entryMARKET: 'Market',
+    filterPair: 'Pair',
+    filterAllPairs: 'All pairs',
     filterMarket: 'Market',
     filterAllMarkets: 'All markets',
     filterPeriod: 'Created',
@@ -432,8 +434,6 @@ export const en = {
     colCreated: 'Created',
     colPosition: 'Position',
     colPnl: 'P/L (USDT)',
-    pairPending:
-      'Pair names are not returned by the server yet; plans are listed by market and prices.',
     pairUnknown: 'Pair name not available',
     positionPending:
       'Position status and P/L appear once simulated execution is available.',

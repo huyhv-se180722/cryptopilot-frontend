@@ -3,29 +3,38 @@ import { NumericText } from '../../../components/ui/NumericText';
 import { Table, type Column } from '../../../components/ui/Table';
 import { useCopy } from '../../../hooks/use-copy';
 import { formatCopy } from '../../../i18n/copy';
-import type { PlanTab, TradingPlanSummary } from '../../../types/domain';
+import type {
+  MarketPair,
+  PlanTab,
+  TradingPlanSummary,
+} from '../../../types/domain';
 import {
   formatInstantLocal,
   formatInstantUtc,
 } from '../../../utils/instant-format';
+import { pairLabel } from '../../../utils/pair-label';
 import { DirectionText, PlanStatusBadge } from './PlanBadges';
 import { planPrice, planRatio, shortPlanId } from './plan-format';
 
 /**
  * SCR-16 table (SRS 3.5.2): pair, market, direction, entry, stop loss,
  * take profit, reward/risk, status and created time; the Executed tab adds
- * position status and P/L. The API names the pair by id only (FEQ-01), so
- * the plan id is the link to SCR-18 and the pair cell shows a dash; the
- * position columns wait for simulated execution (M-10).
+ * position status and P/L. The API names the pair by id only, so the pair
+ * comes from the market lists by that id (FEQ-01); a pair no list has any
+ * more shows a dash. The plan id is the link to SCR-18; the position
+ * columns wait for simulated execution (M-10).
  */
 export function PlanTable({
   tab,
   rows,
   emptyMessage,
+  pairOf,
 }: {
   tab: PlanTab;
   rows: readonly TradingPlanSummary[];
   emptyMessage: string;
+  /** The row's pair from the market lists; undefined when not known. */
+  pairOf: (row: TradingPlanSummary) => MarketPair | undefined;
 }) {
   const copy = useCopy();
   const p = copy.plan;
@@ -51,7 +60,18 @@ export function PlanTable({
         </Link>
       ),
     },
-    { id: 'pair', header: p.colPair, render: () => none },
+    {
+      id: 'pair',
+      header: p.colPair,
+      render: (row) => {
+        const pair = pairOf(row);
+        return pair ? (
+          <span className="font-medium text-fg">{pairLabel(pair.symbol)}</span>
+        ) : (
+          none
+        );
+      },
+    },
     {
       id: 'market',
       header: p.colMarket,
