@@ -144,7 +144,7 @@ export function TradePnlPage() {
         </div>
         <PaperQueryState query={equity}>
           {() =>
-            equity.data && equity.data.history.length > 0 ? (
+            equity.data && equity.data.history.length > 1 ? (
               <MetricChart
                 label={formatCopy(p.pnlChartLabel, { days })}
                 lines={lines}

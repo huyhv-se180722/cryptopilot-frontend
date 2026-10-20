@@ -107,13 +107,22 @@ describe('Demo PnL analysis (TR-F5, TR-13)', () => {
         totalEquity: '15000',
         todayPnl: null,
         todayPnlPercent: null,
-        history: [],
+        history: [
+          {
+            date: '2026-10-21',
+            spotEquity: '10000',
+            futuresEquity: '5000',
+            totalEquity: '15000',
+          },
+        ],
       }),
     });
     expect(
       await screen.findByText(/Some coins have no cost or price yet/),
     ).toBeTruthy();
     expect(screen.getByText('Known once today has a snapshot.')).toBeTruthy();
-    expect(screen.getByText('No day has a snapshot yet.')).toBeTruthy();
+    expect(
+      screen.getByText('The chart starts once two days have a snapshot.'),
+    ).toBeTruthy();
   });
 });

@@ -886,7 +886,7 @@ export const en = {
     pnlChartTitle: 'Account worth at the start of each day',
     pnlChartLabel: 'Account worth over the last {days} days, in USDT',
     pnlPeriod: 'Period',
-    pnlNoHistory: 'No day has a snapshot yet.',
+    pnlNoHistory: 'The chart starts once two days have a snapshot.',
     pnlCoinsTitle: 'Spot coins',
     pnlQuantity: 'Amount',
     pnlAverageCost: 'Avg cost (USDT)',

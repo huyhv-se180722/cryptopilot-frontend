@@ -53,6 +53,10 @@ export function MetricChart({
         visible: left,
         borderColor: options.rightPriceScale.borderColor,
       },
+      // Daily points carry no time of day worth showing.
+      ...(daily
+        ? { timeScale: { ...options.timeScale, timeVisible: false } }
+        : {}),
     });
     for (const line of lines) {
       const series = chart.addSeries(LineSeries, {
@@ -76,7 +80,7 @@ export function MetricChart({
     }
     chart.timeScale().fitContent();
     return () => chart.remove();
-  }, [lines, theme, offset, locale]);
+  }, [lines, theme, offset, locale, daily]);
 
   return (
     <>
