@@ -252,3 +252,75 @@ describe('HTTP depth and trades adapter (TR-03, D-104)', () => {
     ]);
   });
 });
+
+describe('account pushes (TR-08)', () => {
+  it('follows the three user queues and decodes each push', () => {
+    const { http } = setup(() => json(200, {}));
+    const listeners = new Map<string, (body: unknown) => void>();
+    let status: 'open' | 'connecting' = 'connecting';
+    const feed = {
+      subscribeTopic: <T>(
+        destination: string,
+        decode: (body: unknown) => T,
+        listener: (value: T) => void,
+      ) => {
+        listeners.set(destination, (body) => listener(decode(body)));
+        return () => listeners.delete(destination);
+      },
+      status: () => status,
+      onStatus: () => () => undefined,
+    };
+    const paper = createHttpPaperTradingService(http, feed);
+    const events: unknown[] = [];
+    const stop = paper.subscribeAccount((event) => events.push(event));
+    expect([...listeners.keys()]).toEqual([
+      '/user/queue/orders',
+      '/user/queue/fills',
+      '/user/queue/balances',
+    ]);
+    listeners.get('/user/queue/orders')?.({ ...ORDER, status: 'FILLED' });
+    listeners.get('/user/queue/fills')?.({
+      fillId: 'f-1',
+      orderId: ORDER.orderId,
+      pairId: ORDER.pairId,
+      symbol: 'BTCUSDT',
+      market: 'SPOT',
+      side: 'BUY',
+      price: '59000.00',
+      quantity: '0.01000',
+      quoteAmount: '590.00',
+      fee: '0.00001',
+      feeAsset: 'BTC',
+      liquidity: 'MAKER',
+      source: 'LIVE',
+      tradedAt: '2026-10-13T09:00:01Z',
+    });
+    listeners.get('/user/queue/balances')?.({
+      wallet: 'SPOT',
+      coinId: 'c-btc',
+      asset: 'BTC',
+      free: '0.10999000',
+      locked: '0.00000000',
+      total: '0.10999000',
+    });
+    expect(events).toMatchObject([
+      { kind: 'order', order: { status: 'FILLED', market: 'spot' } },
+      { kind: 'fill', fill: { fillId: 'f-1', liquidity: 'MAKER' } },
+      {
+        kind: 'balance',
+        balance: { wallet: 'SPOT', asset: 'BTC', free: '0.10999000' },
+      },
+    ]);
+    status = 'open';
+    expect(paper.accountFeedStatus()).toBe('open');
+    stop();
+    expect(listeners.size).toBe(0);
+  });
+
+  it('has no pushes without a signed-in connection', () => {
+    const { http } = setup(() => json(200, {}));
+    const paper = createHttpPaperTradingService(http);
+    expect(paper.accountFeedStatus()).toBe('unavailable');
+    expect(() => paper.subscribeAccount(() => undefined)()).not.toThrow();
+  });
+});

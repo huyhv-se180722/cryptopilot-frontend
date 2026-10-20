@@ -3,6 +3,7 @@ import type {
   PaperTradingService,
 } from '../services/api/contracts';
 import { ServiceError } from '../services/api/errors';
+import { noAccountFeed } from '../services/api/paper-trading';
 import type {
   MarketPair,
   OrderSide,
@@ -453,6 +454,8 @@ export function createDevelopmentPaperTrading(
   });
 
   const paperTrading: PaperTradingService = {
+    // No push here: the screens read the development exchange on a rhythm.
+    ...noAccountFeed,
     async openAccount() {
       await signedIn();
       if (!account) {

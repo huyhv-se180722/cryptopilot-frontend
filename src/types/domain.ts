@@ -548,6 +548,23 @@ export interface PaperBalance {
   /** Valued at the Spot last price; null without a current price. */
   usdtValue: Decimal | null;
 }
+/** A balance that moved, as the account's push names it (TR-08). */
+export interface PaperBalanceUpdate {
+  wallet: PaperWalletType;
+  coinId: string;
+  asset: string;
+  free: Decimal;
+  locked: Decimal;
+  total: Decimal;
+}
+/**
+ * What a committed change of the caller's demo account pushes (TR-08): each
+ * order whose state changed, each new fill, each balance that moved.
+ */
+export type PaperAccountEvent =
+  | { kind: 'order'; order: PaperOrder }
+  | { kind: 'fill'; fill: PaperFill }
+  | { kind: 'balance'; balance: PaperBalanceUpdate };
 export interface PaperWallet {
   wallet: PaperWalletType;
   /** Largest value first. */

@@ -30,7 +30,10 @@ import { TradePanel } from '../../features/paper-trading/components/TradePanel';
 import { TradeTickerStrip } from '../../features/paper-trading/components/TradeTickerStrip';
 import { useChartOrders } from '../../features/paper-trading/hooks/use-chart-orders';
 import { usePaperAccount } from '../../features/paper-trading/hooks/use-paper-account';
-import { usePaperWallet } from '../../features/paper-trading/hooks/use-paper-orders';
+import {
+  usePaperPush,
+  usePaperWallet,
+} from '../../features/paper-trading/hooks/use-paper-orders';
 import {
   readLastSpotPair,
   useRememberSpotPair,
@@ -61,6 +64,7 @@ function TradeSpot({
   const chartOrders = useChartOrders(pair);
   const spot = usePaperWallet('SPOT');
   const account = usePaperAccount();
+  usePaperPush();
   const balance = (asset: string) =>
     spot.data?.balances.find((row) => row.asset === asset)?.free ?? '0';
   const funds = spot.data

@@ -71,6 +71,19 @@ describe('TokenSession', () => {
     expect(session.accessToken()).toBe('access-2');
   });
 
+  it('hands a valid access token, renewing one about to expire first', async () => {
+    const renew = vi.fn(async () => pair(2, 30));
+    const session = new TokenSession(renew);
+    expect(await session.validAccessToken()).toBeNull();
+    session.set(pair(1, 15));
+    expect(await session.validAccessToken()).toBe('access-1');
+    expect(renew).not.toHaveBeenCalled();
+    // Woken up after the expiry, before the scheduled renewal ran.
+    vi.setSystemTime(NOW + 15 * 60_000);
+    expect(await session.validAccessToken()).toBe('access-2');
+    expect(renew).toHaveBeenCalledTimes(1);
+  });
+
   it('forgets tokens on local sign-out without reporting an expiry', async () => {
     const renew = vi.fn(async () => pair(2));
     const session = new TokenSession(renew);

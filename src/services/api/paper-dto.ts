@@ -2,6 +2,7 @@ import type {
   MarketType,
   PaperAccount,
   PaperBalance,
+  PaperBalanceUpdate,
   PaperFill,
   PaperLedgerEntry,
   PaperOrder,
@@ -105,6 +106,19 @@ function decodeBalance(item: unknown): PaperBalance {
     locked: decimal(value.locked, 'locked'),
     total: decimal(value.total, 'total'),
     usdtValue: nullableDecimal(value.usdtValue, 'usdtValue'),
+  };
+}
+
+/** A `/user/queue/balances` push (TR-08). */
+export function decodeBalanceUpdate(body: unknown): PaperBalanceUpdate {
+  const value = record(body, 'balance');
+  return {
+    wallet: walletOf(value.wallet, 'wallet'),
+    coinId: text(value.coinId, 'coinId'),
+    asset: text(value.asset, 'asset'),
+    free: decimal(value.free, 'free'),
+    locked: decimal(value.locked, 'locked'),
+    total: decimal(value.total, 'total'),
   };
 }
 

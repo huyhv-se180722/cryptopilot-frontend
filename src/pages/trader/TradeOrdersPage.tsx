@@ -20,6 +20,7 @@ import {
   useOpenOrders,
   useOrderHistory,
   usePaperActions,
+  usePaperPush,
 } from '../../features/paper-trading/hooks/use-paper-orders';
 import {
   periodStart,
@@ -44,6 +45,7 @@ const STATUSES: readonly PaperOrderStatus[] = [
  * pair filter lists every Spot pair of the market list.
  */
 export function TradeOrdersPage() {
+  usePaperPush();
   const copy = useCopy();
   const p = copy.paper;
   const [tab, setTab] = useState('open');

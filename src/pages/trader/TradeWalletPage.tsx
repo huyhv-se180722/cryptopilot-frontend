@@ -17,7 +17,10 @@ import {
   TransferHistory,
 } from '../../features/paper-trading/components/WalletHistory';
 import { PaperQueryState } from '../../features/paper-trading/components/paper-tables';
-import { usePaperWallet } from '../../features/paper-trading/hooks/use-paper-orders';
+import {
+  usePaperPush,
+  usePaperWallet,
+} from '../../features/paper-trading/hooks/use-paper-orders';
 import { groupThousands, toFixedDecimal } from '../../utils/decimal-format';
 import { add } from '../../utils/decimal-math';
 
@@ -29,6 +32,7 @@ import { add } from '../../utils/decimal-math';
  * USDT transfer between the wallets. Virtual funds only.
  */
 export function TradeWalletPage() {
+  usePaperPush();
   const copy = useCopy();
   const p = copy.paper;
   const [tab, setTab] = useState('spot');

@@ -20,6 +20,7 @@ import type {
   MarketType,
   PairAnalysis,
   PaperAccount,
+  PaperAccountEvent,
   PaperFill,
   PaperHistoryQuery,
   PaperLedgerEntry,
@@ -276,6 +277,14 @@ export interface PaperTradingService {
     query: PaperHistoryQuery,
     signal?: AbortSignal,
   ): Promise<PaperPage<PaperFill>>;
+  /**
+   * The pushes of the caller's account (TR-08), each after its change was
+   * committed. A push missed (while not open) shows on the next read.
+   */
+  subscribeAccount(listener: (event: PaperAccountEvent) => void): () => void;
+  /** 'open' while the pushes arrive; screens read on a rhythm otherwise. */
+  accountFeedStatus(): FeedStatus;
+  onAccountFeedStatus(listener: () => void): () => void;
 }
 export type JournalService = ReadService<JournalEntry>;
 export type CommunityService = ReadService<CommunityPost>;

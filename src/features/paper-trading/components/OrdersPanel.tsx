@@ -28,8 +28,8 @@ type Tab = 'open' | 'orders' | 'fills' | 'funds';
  * Bottom panel of the Spot demo screen (plan section 6.2): open orders
  * with cancel and cancel all, order history, trade history (fills) and
  * the Spot funds with a transfer to Futures. "This pair only" narrows
- * the lists to the pair on screen. Data is read again every few seconds
- * until the backend pushes it (TR-08).
+ * the lists to the pair on screen. The account's pushes keep it current
+ * (TR-08), and it is read every few seconds while they do not arrive.
  */
 export function OrdersPanel({
   pair,
