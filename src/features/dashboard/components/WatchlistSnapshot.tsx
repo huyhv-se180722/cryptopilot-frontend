@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { EmptyState, ErrorState } from '../../../components/feedback/States';
+import { Badge } from '../../../components/ui/Badge';
 import { NumericText } from '../../../components/ui/NumericText';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { useCopy } from '../../../hooks/use-copy';
@@ -9,6 +10,7 @@ import type { MarketPair, MarketTicker } from '../../../types/domain';
 import { classNames } from '../../../utils/class-names';
 import { formatPrice, toFixedDecimal } from '../../../utils/decimal-format';
 import { signOf } from '../../../utils/decimal-sign';
+import { pairLabel } from '../../../utils/pair-label';
 import { useWatchlist } from '../../watchlist/hooks/use-watchlist';
 import { DashboardCard } from './DashboardCard';
 
@@ -17,7 +19,9 @@ const ROWS = 8;
 /**
  * Watchlist snapshot (SCR-08): the first watched pairs in the Trader's
  * order with the live Spot price and 24h change (a Futures-only pair shows
- * a dash, M-09); a row opens the pair's analysis.
+ * a dash, M-09); a row opens the pair's analysis. A pair no longer listed
+ * on either market stays, named and marked Not listed without a link, as on
+ * SCR-12 (Q-29).
  */
 export function WatchlistSnapshot({
   pairs,
@@ -63,6 +67,36 @@ export function WatchlistSnapshot({
             const down = change !== null && signOf(change) === 'negative';
             const Arrow = down ? ArrowDownRight : ArrowUpRight;
             const market = item.spotListed ? 'spot' : 'futures';
+            const listed = item.spotListed || item.futuresListed;
+            // The list may no longer give the pair: its symbol still splits.
+            const [base, quote] = pair
+              ? [pair.baseAsset ?? item.symbol, pair.quoteAsset]
+              : pairLabel(item.symbol).split('/');
+            const name = (
+              <span className="w-20 shrink-0 font-semibold text-fg-2">
+                {base}
+                {quote && (
+                  <span className="font-normal text-muted-dim">/{quote}</span>
+                )}
+              </span>
+            );
+            const row =
+              'flex items-center gap-3 px-4 py-2.5 text-xs no-underline';
+            if (!listed)
+              return (
+                <li
+                  key={item.id}
+                  className="border-b border-line last:border-b-0"
+                >
+                  <div className={row}>
+                    {name}
+                    <span className="ml-auto" title={w.delistedHint}>
+                      <Badge>{w.delisted}</Badge>
+                      <span className="sr-only"> {w.delistedHint}</span>
+                    </span>
+                  </div>
+                </li>
+              );
             return (
               <li
                 key={item.id}
@@ -70,19 +104,9 @@ export function WatchlistSnapshot({
               >
                 <Link
                   to={`/markets/${market}/${item.symbol}`}
-                  className={classNames(
-                    'flex items-center gap-3 px-4 py-2.5 text-xs no-underline hover:bg-raised-hover',
-                    !item.spotListed && !item.futuresListed && 'opacity-50',
-                  )}
+                  className={classNames(row, 'hover:bg-raised-hover')}
                 >
-                  <span className="w-20 shrink-0 font-semibold text-fg-2">
-                    {pair?.baseAsset ?? item.symbol}
-                    {pair && (
-                      <span className="font-normal text-muted-dim">
-                        /{pair.quoteAsset ?? ''}
-                      </span>
-                    )}
-                  </span>
+                  {name}
                   <span className="flex-1 text-right text-fg">
                     {ticker?.lastPrice ? (
                       <NumericText

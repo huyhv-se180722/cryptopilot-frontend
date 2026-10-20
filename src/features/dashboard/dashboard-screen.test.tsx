@@ -151,7 +151,12 @@ async function open(locale: Locale = 'en') {
   } as unknown as TradingPlanService;
   const watchlist: WatchlistService = {
     get: vi.fn(async () => ({
-      items: [watched('ETHUSDT'), watched('XRPUSDT', false)],
+      items: [
+        watched('ETHUSDT'),
+        watched('XRPUSDT', false),
+        // No longer listed on either market, nor in the market list (Q-29).
+        { ...watched('MATICUSDT', false), futuresListed: false },
+      ],
       limit: 10,
     })),
     add: vi.fn(),
@@ -204,8 +209,8 @@ describe('SCR-08 Trader dashboard (T-111)', () => {
     await screen.findByRole('heading', { level: 1, name: 'Overview' });
     await waitFor(() => expect(screen.getByText('6 / 5')).toBeTruthy());
     expect(screen.getByText('Limit reached on PRO')).toBeTruthy();
-    expect(screen.getByText('2 / 10')).toBeTruthy();
-    expect(screen.getByText('8 slots left on PRO')).toBeTruthy();
+    expect(screen.getByText('3 / 10')).toBeTruthy();
+    expect(screen.getByText('7 slots left on PRO')).toBeTruthy();
     expect(screen.getByText(/6 of 5 active plans/)).toBeTruthy();
     expect(
       screen.getByRole('link', { name: 'New plan' }).getAttribute('href'),
@@ -236,7 +241,7 @@ describe('SCR-08 Trader dashboard (T-111)', () => {
     ).toBe('/plans?tab=EXECUTED');
   });
 
-  it('shows the watched pairs with live Spot prices and a dash for Futures only', async () => {
+  it('shows the watched pairs with live Spot prices, a dash for Futures only and a delisted pair', async () => {
     const { pushOverview } = await open();
     const block = await screen.findByRole('region', { name: 'Watchlist' });
     pushOverview([ticker('ETHUSDT', '2500.10', '-1.20')]);
@@ -249,6 +254,11 @@ describe('SCR-08 Trader dashboard (T-111)', () => {
       '/markets/spot/ETHUSDT',
       '/markets/futures/XRPUSDT',
     ]);
+    // The delisted pair keeps its name, says so, and opens nothing.
+    const delisted = within(block).getByText('Not listed').closest('li');
+    expect(delisted?.textContent).toContain('MATIC/USDT');
+    expect(delisted?.textContent).toContain('no longer enabled');
+    expect(within(delisted as HTMLElement).queryByRole('link')).toBeNull();
   });
 
   it('says which blocks are not connected yet instead of inventing data', async () => {
