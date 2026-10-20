@@ -473,6 +473,9 @@ export const en = {
     rewardAmount: 'Reward (USDT)',
     riskReward: 'Reward / risk',
     liquidation: 'Est. liquidation price',
+    lineLiquidation: 'Liquidation (est.)',
+    chartUnlisted:
+      'No chart: this pair is no longer listed on the market of the plan.',
     warningsTitle: 'Warnings',
     noWarnings: 'No warnings for this plan.',
     severityINFO: 'Info',

@@ -8,13 +8,14 @@ import { errorText } from '../../i18n/messages';
 import { PlanStatusBadge } from '../../features/trading-plan/components/PlanBadges';
 import { PlanEditor } from '../../features/trading-plan/components/PlanEditor';
 import { shortPlanId } from '../../features/trading-plan/components/plan-format';
+import { usePairLookup } from '../../features/market/hooks/use-market-data';
 import { usePlan } from '../../features/trading-plan/hooks/use-plans';
 
 /**
  * SCR-17 Edit Trading Plan (SRS 3.5.1, UC-17) for a DRAFT; any other status
- * is read-only (BR-32) and links back to SCR-18. Creating a plan waits for
- * pair ids (FEQ-01); the chart with the plan's lines waits for the pair
- * symbol (FEQ-01).
+ * is read-only (BR-32) and links back to SCR-18. The pair is named from
+ * the market lists by its id (FEQ-01). Creating a plan, and the chart whose
+ * lines follow the inputs, come with the new plan form (T-040).
  */
 export function PlanEditPage() {
   const copy = useCopy();
@@ -23,6 +24,7 @@ export function PlanEditPage() {
   const query = usePlan(planId);
   const plan = query.data;
   const id = shortPlanId(planId);
+  const pairOf = usePairLookup();
 
   return (
     <div className="mx-auto w-full max-w-7xl">
@@ -66,7 +68,11 @@ export function PlanEditPage() {
           </Link>
         </p>
       ) : (
-        <PlanEditor key={plan.id} plan={plan} />
+        <PlanEditor
+          key={plan.id}
+          plan={plan}
+          pair={pairOf(plan.pairId, plan.market)}
+        />
       )}
     </div>
   );

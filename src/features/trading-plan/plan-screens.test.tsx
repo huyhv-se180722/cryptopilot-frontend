@@ -20,6 +20,34 @@ import type {
 } from '../../types/domain';
 import { fakeAuth, page, renderRoutes, testTrader } from '../../test/render';
 
+const priceLines: string[] = [];
+vi.mock('lightweight-charts', () => ({
+  createSeriesMarkers: () => ({ setMarkers: vi.fn() }),
+  CandlestickSeries: { name: 'candles' },
+  LineSeries: { name: 'line' },
+  HistogramSeries: { name: 'histogram' },
+  ColorType: { Solid: 'solid' },
+  createChart: () => ({
+    addSeries: () => ({
+      setData: vi.fn(),
+      createPriceLine: vi.fn((line: { title: string; price: number }) => {
+        priceLines.push(`${line.title} ${line.price}`);
+        return line;
+      }),
+      removePriceLine: vi.fn(),
+    }),
+    panes: () => [0, 1, 2, 3].map(() => ({ setStretchFactor: vi.fn() })),
+    timeScale: () => ({
+      fitContent: vi.fn(),
+      getVisibleLogicalRange: () => null,
+      setVisibleLogicalRange: vi.fn(),
+      subscribeVisibleLogicalRangeChange: vi.fn(),
+      unsubscribeVisibleLogicalRangeChange: vi.fn(),
+    }),
+    remove: vi.fn(),
+  }),
+}));
+
 // jsdom has no modal dialog; the component only needs open/close.
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal ??= function (this: HTMLDialogElement) {
@@ -170,7 +198,17 @@ const fakeMarket = (): MarketService => ({
   listPairs: vi.fn(async (market: MarketType) =>
     market === 'spot' ? [btc('spot'), eth] : [btc('futures')],
   ),
-  getCandles: vi.fn(async () => []),
+  getCandles: vi.fn(async () =>
+    [0, 1, 2].map((i) => ({
+      openTime: new Date(Date.UTC(2026, 9, 9, i)).toISOString(),
+      open: '62000',
+      high: '62100',
+      low: '61900',
+      close: '62050',
+      baseVolume: '10',
+      quoteVolume: '620500',
+    })),
+  ),
   getFuturesMetrics: vi.fn(),
   getTicker: vi.fn(async () => null),
 });
@@ -338,10 +376,25 @@ describe('SCR-18 plan detail (T-041)', () => {
   });
 
   it('shows inputs, snapshot, warnings by severity and the status history', async () => {
+    priceLines.length = 0;
     await open('/plans/' + PLAN.id);
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Plan 0000a1b2' }),
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'BTC/USDT Plan 0000a1b2',
+      }),
     ).toBeTruthy();
+    // The chart of the plan's market carries its lines (FEQ-01 gives the pair).
+    await waitFor(() =>
+      expect(priceLines).toEqual(
+        expect.arrayContaining([
+          'Entry 62000',
+          'Stop loss 63000',
+          'Take profit 59000',
+          'Liquidation (est.) 74103.1',
+        ]),
+      ),
+    );
     const inputs = within(screen.getByRole('region', { name: 'Plan inputs' }));
     expect(inputs.getByText('Stop loss').nextSibling?.textContent).toBe(
       '63,000.00',
@@ -582,6 +635,8 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
       calculate: vi.fn(async () => calculation()),
     });
     await open(editPath, service);
+    // The fixed pair is named from the market lists.
+    expect(await screen.findByText('BTC/USDT')).toBeTruthy();
     const user = userEvent.setup();
     await user.click(
       await screen.findByRole('button', { name: 'Save as draft' }),
@@ -593,7 +648,10 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
       false,
     );
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Plan 0000a1b2' }),
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'BTC/USDT Plan 0000a1b2',
+      }),
     ).toBeTruthy();
   });
 
