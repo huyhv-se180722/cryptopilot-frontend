@@ -349,6 +349,8 @@ export interface PlanCalculation {
 
 export interface PlanListQuery {
   tab: PlanTab;
+  /** One pair, by the id the market list gives (FEQ-01). */
+  pairId?: string;
   market?: MarketType;
   /** Created at or after. */
   from?: ISODateTime;

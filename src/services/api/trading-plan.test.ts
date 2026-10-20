@@ -146,7 +146,7 @@ describe('HTTP trading plan adapter', () => {
     return { plans: createHttpTradingPlanService(http), calls };
   }
 
-  it('lists a tab with the upper-case market and the period start', async () => {
+  it('lists a tab of one pair with the upper-case market and the period start', async () => {
     const { plans, calls } = setup({
       items: [],
       page: 2,
@@ -155,6 +155,7 @@ describe('HTTP trading plan adapter', () => {
     });
     await plans.list({
       tab: 'CANCELLED_EXPIRED',
+      pairId: 'pair-1',
       market: 'futures',
       from: '2026-09-09T00:00:00.000Z',
       page: 2,
@@ -164,6 +165,7 @@ describe('HTTP trading plan adapter', () => {
     expect(url?.pathname).toBe('/api/v1/plans');
     expect(Object.fromEntries(url?.searchParams ?? [])).toEqual({
       tab: 'CANCELLED_EXPIRED',
+      pairId: 'pair-1',
       market: 'FUTURES',
       from: '2026-09-09T00:00:00.000Z',
       page: '2',

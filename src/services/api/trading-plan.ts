@@ -31,12 +31,13 @@ export function createHttpTradingPlanService(
   http: HttpClient,
 ): TradingPlanService {
   return {
-    list: ({ tab, market, from, page, pageSize }, signal) => {
+    list: ({ tab, pairId, market, from, page, pageSize }, signal) => {
       const params = new URLSearchParams({
         tab,
         page: String(page),
         pageSize: String(pageSize),
       });
+      if (pairId) params.set('pairId', pairId);
       if (market) params.set('market', market.toUpperCase());
       if (from) params.set('from', from);
       return http.request({

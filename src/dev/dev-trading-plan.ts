@@ -208,10 +208,11 @@ export function createDevelopmentTradingPlan(
       plans.set(id, saved);
       return activate ? move(saved, 'ACTIVE') : saved;
     },
-    async list({ tab, market, from, page, pageSize }, signal) {
+    async list({ tab, pairId, market, from, page, pageSize }, signal) {
       await pause(signal);
       const rows = [...plans.values()]
         .filter((plan) => TABS[tab].includes(plan.status))
+        .filter((plan) => !pairId || plan.pairId === pairId)
         .filter((plan) => !market || plan.market === market)
         .map(summaryOf)
         .filter((row) => !from || Date.parse(row.createdAt) >= Date.parse(from))
