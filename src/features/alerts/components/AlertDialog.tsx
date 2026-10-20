@@ -42,21 +42,30 @@ import {
   type ClientError,
 } from './alert-form';
 
+/**
+ * A pair an alert can be set on: a watchlist row, or a pair of the market
+ * lists not watched yet, which the server adds to the watchlist (BR-16).
+ */
+export type AlertPair = Pick<
+  WatchlistItem,
+  'pairId' | 'symbol' | 'spotListed' | 'futuresListed'
+>;
+
 export type AlertDialogTarget =
-  /** New alert on one of the watched pairs (the pair id comes from the row). */
+  /** New alert on one of `pairs`, or on `pairId` when given. */
   | {
       mode: 'create';
-      pairs: readonly WatchlistItem[];
+      pairs: readonly AlertPair[];
       pairId?: string;
       /** Preferred market, e.g. the analysis screen's; used when listed. */
       market?: MarketType;
     }
-  | { mode: 'edit'; alert: Alert; item?: WatchlistItem };
+  | { mode: 'edit'; alert: Alert; item?: AlertPair };
 
 /** The lowest tier with alert features (D-58; display only). */
 const UPSELL_PLAN = 'PRO';
 
-function listedOn(item: WatchlistItem | undefined, market: MarketType) {
+function listedOn(item: AlertPair | undefined, market: MarketType) {
   if (!item) return true;
   return market === 'spot' ? item.spotListed : item.futuresListed;
 }
