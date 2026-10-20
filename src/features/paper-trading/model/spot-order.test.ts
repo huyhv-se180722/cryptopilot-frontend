@@ -4,6 +4,8 @@ import {
   amountOf,
   checkSpotOrder,
   EMPTY_DRAFT,
+  maxOrder,
+  shareInUse,
   shareOfFunds,
   stopTypeFor,
   totalOf,
@@ -388,6 +390,42 @@ describe('Spot order check (TR-F3)', () => {
         '60000',
       ),
     ).toEqual({ amount: '0.01', total: '1000.00' });
+    // 0 % empties the size.
+    expect(shareOfFunds(draft(), BTC, FUNDS, 0, null)).toEqual({
+      amount: '',
+      total: '',
+    });
+  });
+
+  it('tells the share of the free balance an order uses, for the slider', () => {
+    // A buy: its total against 1,000 USDT free.
+    expect(shareInUse(draft({ total: '250' }), FUNDS, null)).toBe(25);
+    expect(shareInUse(draft({ total: '5000' }), FUNDS, null)).toBe(100);
+    expect(shareInUse(draft({ total: '' }), FUNDS, null)).toBe(0);
+    // A sale: its amount against 0.1 BTC free, or its total at the last price.
+    expect(
+      shareInUse(draft({ side: 'SELL', amount: '0.033' }), FUNDS, null),
+    ).toBe(33);
+    expect(
+      shareInUse(
+        draft({ side: 'SELL', type: 'MARKET', byTotal: true, total: '3000' }),
+        FUNDS,
+        '60000',
+      ),
+    ).toBe(50);
+    expect(shareInUse(draft(), { quote: '0', base: '0' }, null)).toBe(0);
+  });
+
+  it('tells the most a buy gets and a sale brings at the order price', () => {
+    expect(maxOrder(draft({ price: '60000' }), BTC, FUNDS, null)).toBe(
+      '0.01666',
+    );
+    expect(maxOrder(draft({ side: 'SELL' }), BTC, FUNDS, null)).toBe('6000.00');
+    // A market order is valued at the last price; none known, no maximum.
+    expect(maxOrder(draft({ type: 'MARKET' }), BTC, FUNDS, '50000')).toBe(
+      '0.02000',
+    );
+    expect(maxOrder(draft({ type: 'MARKET' }), BTC, FUNDS, null)).toBeNull();
   });
 
   it('keeps amount and total in step both ways', () => {

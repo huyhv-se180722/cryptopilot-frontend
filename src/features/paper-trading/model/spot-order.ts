@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   Decimal,
   MarketPair,
   OrderSide,
@@ -98,7 +98,7 @@ export interface SpotOrderCheck {
   /** What to send, or null while a field is wrong or missing. */
   request: SpotOrderRequest | null;
   errors: Partial<Record<SpotOrderField, SpotOrderProblem>>;
-  /** Price × quantity in the quote asset (an estimate for MARKET). */
+  /** Price Ã— quantity in the quote asset (an estimate for MARKET). */
   notional: Decimal | null;
 }
 
@@ -413,9 +413,14 @@ export function shareOfFunds(
 ): Pick<SpotOrderDraft, 'amount' | 'total'> {
   const step = pair.stepSize ?? '0.00000001';
   const buy = draft.side === 'BUY';
+  const byTotal = draft.type === 'MARKET' && draft.byTotal;
+  if (percent <= 0)
+    return byTotal
+      ? { amount: draft.amount, total: '' }
+      : { amount: '', total: '' };
   if (!buy) {
     const amount = toStep(percentOf(funds.base, percent, 12), step, 'down');
-    if (draft.type === 'MARKET' && draft.byTotal)
+    if (byTotal)
       return {
         amount: draft.amount,
         total: lastPrice
@@ -425,15 +430,61 @@ export function shareOfFunds(
     return { amount, total: totalOf(draft, amount, lastPrice) };
   }
   const spend = percentOf(funds.quote, percent, 2);
-  if (draft.type === 'MARKET' && draft.byTotal)
-    return { amount: draft.amount, total: spend };
+  if (byTotal) return { amount: draft.amount, total: spend };
   const price = orderPrice(draft, lastPrice);
   if (!price) return { amount: draft.amount, total: spend };
   const amount = toStep(divide(spend, price), step, 'down');
   return { amount, total: totalOf(draft, amount, lastPrice) };
 }
 
-/** Price × amount for the total field; empty while either is missing. */
+/**
+ * The share of the free balance (0 to 100, whole) the order would use, for
+ * the slider to follow what was typed: a buy's total against the free quote
+ * asset, a sale's amount (or total at the last price) against the free coin.
+ */
+export function shareInUse(
+  draft: SpotOrderDraft,
+  funds: Funds,
+  lastPrice: Decimal | null,
+): number {
+  const ratio = (part: Decimal | null, whole: Decimal) =>
+    part && valid(part) && isPositive(whole)
+      ? Number(divide(part.trim(), whole, 6)) * 100
+      : 0;
+  const percent =
+    draft.side === 'BUY'
+      ? ratio(draft.total, funds.quote)
+      : draft.type === 'MARKET' && draft.byTotal
+        ? ratio(
+            lastPrice && valid(draft.total)
+              ? divide(draft.total.trim(), lastPrice)
+              : null,
+            funds.base,
+          )
+        : ratio(draft.amount, funds.base);
+  return Math.min(100, Math.max(0, Math.round(percent)));
+}
+
+/**
+ * The most the free balance buys (in the coin) or a sale of the free coin
+ * brings (in the quote asset) at the order's price, as the exchange's panel
+ * shows "Max buy" and "Max sell"; before fees, which the form does not know
+ * (D-99). Null while the order has no price.
+ */
+export function maxOrder(
+  draft: SpotOrderDraft,
+  pair: MarketPair,
+  funds: Funds,
+  lastPrice: Decimal | null,
+): Decimal | null {
+  const price = orderPrice(draft, lastPrice);
+  if (!price) return null;
+  return draft.side === 'BUY'
+    ? toStep(divide(funds.quote, price), pair.stepSize ?? '0.00000001', 'down')
+    : toStep(multiply(funds.base, price), '0.01', 'down');
+}
+
+/** Price Ã— amount for the total field; empty while either is missing. */
 export function totalOf(
   draft: Pick<SpotOrderDraft, 'type' | 'price' | 'stop'>,
   amount: string,
