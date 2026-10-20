@@ -248,6 +248,21 @@ describe('Spot order check (TR-F3)', () => {
         '60000',
       ).errors,
     ).toEqual({ trailing: 'trailingRange' });
+    // An activation at the last price would trigger at once: not sent.
+    const atLast = checkSpotOrder(
+      draft({
+        type: 'TRAILING',
+        side: 'SELL',
+        trailing: '1',
+        stop: '60000',
+        price: '59000',
+      }),
+      BTC,
+      FUNDS,
+      '60000',
+    );
+    expect(atLast.errors).toEqual({ stop: 'atLastPrice' });
+    expect(atLast.request).toBeNull();
   });
 
   it('sends an OCO with its prices around the last price, the stop limit optional', () => {
@@ -311,6 +326,49 @@ describe('Spot order check (TR-F3)', () => {
         null,
       ).errors,
     ).toEqual({ takeProfit: 'priceOrder', stopLoss: 'priceOrder' });
+  });
+
+  it('puts the TP/SL of a buy on the tick as the sells they are', () => {
+    const list = listOf(
+      checkSpotOrder(
+        draft({
+          price: '60000.019',
+          tpsl: true,
+          takeProfit: '63000.001',
+          stopLoss: '58000.001',
+        }),
+        BTC,
+        FUNDS,
+        '60500',
+      ),
+    );
+    // The working buy rounds down; its take profit and stop loss round up.
+    expect(list?.working?.price).toBe('60000.01');
+    expect(list?.oco).toMatchObject({
+      takeProfitPrice: '63000.01',
+      stopPrice: '58000.01',
+    });
+    const sell = listOf(
+      checkSpotOrder(
+        draft({
+          side: 'SELL',
+          price: '60000.011',
+          amount: '0.05',
+          tpsl: true,
+          takeProfit: '57000.019',
+          stopLoss: '62000.019',
+        }),
+        BTC,
+        FUNDS,
+        '59500',
+      ),
+    );
+    expect(sell?.working?.price).toBe('60000.02');
+    expect(sell?.oco).toMatchObject({
+      side: 'BUY',
+      takeProfitPrice: '57000.01',
+      stopPrice: '62000.01',
+    });
   });
 
   it('fills the amount from a share of the free balance', () => {

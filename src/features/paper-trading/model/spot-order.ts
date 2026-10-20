@@ -152,8 +152,9 @@ function orderPrice(
 
 /**
  * Checks a Spot order the way the exchange form does before sending it:
- * numbers present and positive, prices put on the tick (up for a sell,
- * down for a buy, so it never asks more than typed), quantity floored to
+ * numbers present and positive, prices put on the tick by the side of the
+ * order they belong to (up for a sell, down for a buy, so it never asks
+ * more than typed; the TP/SL of a buy are sells), quantity floored to
  * the step, at least the minimum order value, enough free balance, a stop
  * not at the last price, a trailing delta of 0.1 % to 20 %, and the take
  * profit and stop of an OCO or TP/SL on either side of the price. MARKET
@@ -171,9 +172,13 @@ export function checkSpotOrder(
   const buy = draft.side === 'BUY';
   const type = draft.type;
   const byTotal = type === 'MARKET' && draft.byTotal;
-  const onTick = (value: string) =>
-    toStep(value.trim(), tick, buy ? 'down' : 'up');
-  const priceOf = (field: SpotOrderField, value: string, required = true) => {
+  // Each price is put on the tick by the side of the order it belongs to.
+  const priceOf = (
+    field: SpotOrderField,
+    value: string,
+    required = true,
+    side: OrderSide = draft.side,
+  ) => {
     if (!filled(value)) {
       if (required) errors[field] = 'required';
       return null;
@@ -182,7 +187,7 @@ export function checkSpotOrder(
       errors[field] = 'invalid';
       return null;
     }
-    return onTick(value);
+    return toStep(value.trim(), tick, side === 'BUY' ? 'down' : 'up');
   };
 
   const price = hasLimitPrice(type) ? priceOf('price', draft.price) : null;
@@ -235,10 +240,11 @@ export function checkSpotOrder(
     }
   }
   if (type === 'TRAILING') {
-    if (stop && lastPrice)
-      stopType =
-        stopTypeFor(draft.side, stop, lastPrice, true) ?? 'STOP_LOSS_LIMIT';
-    else if (stop && !lastPrice) errors.stop = 'noLastPrice';
+    if (stop && lastPrice) {
+      // An activation at the last price would trigger at once.
+      stopType = stopTypeFor(draft.side, stop, lastPrice, true);
+      if (!stopType) errors.stop = 'atLastPrice';
+    } else if (stop && !lastPrice) errors.stop = 'noLastPrice';
     else stopType = 'STOP_LOSS_LIMIT';
   }
   // An OCO's take profit lies beyond the last price, its stop on this side.
@@ -255,8 +261,9 @@ export function checkSpotOrder(
   let stopLoss: Decimal | null = null;
   const tpsl = type === 'LIMIT' && draft.tpsl;
   if (tpsl) {
-    takeProfit = priceOf('takeProfit', draft.takeProfit);
-    stopLoss = priceOf('stopLoss', draft.stopLoss);
+    const exitSide: OrderSide = buy ? 'SELL' : 'BUY';
+    takeProfit = priceOf('takeProfit', draft.takeProfit, true, exitSide);
+    stopLoss = priceOf('stopLoss', draft.stopLoss, true, exitSide);
     if (price && takeProfit && compare(takeProfit, price) * (buy ? 1 : -1) <= 0)
       errors.takeProfit = 'priceOrder';
     if (price && stopLoss && compare(stopLoss, price) * (buy ? 1 : -1) >= 0)
