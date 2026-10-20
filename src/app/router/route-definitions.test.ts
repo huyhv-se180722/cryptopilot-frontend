@@ -74,7 +74,7 @@ describe('route definitions', () => {
     ]);
     const others = [...publicRoutes, ...guestOnlyRoutes, ...traderRoutes];
     expect(others.some((route) => route.path.startsWith('/trade'))).toBe(false);
-    // VITE_ENABLE_PAPER_TRADING is not set in tests (D-94).
+    // VITE_ENABLE_PAPER_TRADING is not set in tests (D-101).
     expect(traderNav.some((item) => item.to.startsWith('/trade'))).toBe(false);
   });
 });

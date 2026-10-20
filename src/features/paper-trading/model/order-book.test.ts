@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { groupLevels, groupSteps, toStep } from './order-book';
 
 describe('order book grouping', () => {
-  it('offers the tick and 10× a power-of-ten tick (D-98: 20 levels)', () => {
+  it('offers the tick and 10× a power-of-ten tick (D-105: 20 levels)', () => {
     expect(groupSteps('0.01000000')).toEqual(['0.01', '0.1']);
     expect(groupSteps('0.00001')).toEqual(['0.00001', '0.0001']);
     expect(groupSteps('1')).toEqual(['1', '10']);

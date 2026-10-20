@@ -78,7 +78,7 @@ function listedOn(item: AlertPair | undefined, market: MarketType) {
  * channels and an optional expiry within 90 days. On FREE, INDICATOR,
  * Futures and the e-mail / push channels show a lock and MSG29 (CR-08);
  * the server decides in the end. FUNDING_RATE is typed in percent and
- * sent as a fraction (D-100).
+ * sent as a fraction (D-107).
  */
 export function AlertDialog({
   target,

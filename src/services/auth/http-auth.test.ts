@@ -211,7 +211,7 @@ describe('HTTP auth adapter', () => {
     expect(await auth.restoreSession()).toBeNull();
   });
 
-  it('keeps the refresh token in the tab and resumes after a reload (D-102)', async () => {
+  it('keeps the refresh token in the tab and resumes after a reload (D-109)', async () => {
     const storage = fakeStorage();
     const profile = () =>
       json(200, { email: 'a@b.test', displayName: 'A', avatarUrl: null });

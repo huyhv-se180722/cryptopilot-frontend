@@ -98,7 +98,7 @@ function merge(...lists: (readonly Candle[])[]): Candle[] {
  * Closed candles from REST plus the kline topic: a closed kline is added
  * after the history, the forming one is kept apart (SRS 3.3.2). After a
  * reconnect the history is read again to fill the gap. Indicator series
- * are computed over every closed candle (D-96) and cut to the visible
+ * are computed over every closed candle (D-103) and cut to the visible
  * window. An `extendable` chart (the trading screens) shows every candle
  * it has and reads earlier pages on demand (`loadOlder`); SCR-10 and
  * SCR-11 keep the latest 500 (SRS 3.3.2).

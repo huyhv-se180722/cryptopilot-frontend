@@ -78,7 +78,7 @@ export const FUTURES_INDICATORS: ReadonlySet<AlertIndicator> = new Set([
   'OPEN_INTEREST_CHANGE',
 ]);
 /**
- * D-100: a FUNDING_RATE threshold is typed and shown in percent (0.01 %)
+ * D-107: a FUNDING_RATE threshold is typed and shown in percent (0.01 %)
  * and stored as the fraction the market module returns (0.0001). Up to 10
  * decimals in percent keep the stored value within the server's 12.
  */

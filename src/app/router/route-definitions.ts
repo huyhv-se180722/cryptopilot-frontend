@@ -3,7 +3,7 @@ import type { Copy } from '../../i18n/locales/en';
 /**
  * Route metadata is UI configuration, never business data.
  * `screen` traces each route to the SRS screen inventory (SCR-01…44);
- * demo trading is not in SRS v1.0 and traces to its decision D-86 (D-94).
+ * demo trading is not in SRS v1.0 and traces to its decision D-86 (D-101).
  * Dialog screens (SCR-14, SCR-19, SCR-27) have no route of their own.
  */
 export type ScreenId = `SCR-${string}` | 'D-86';
@@ -74,7 +74,7 @@ export const traderRoutes = [
   { path: '/profile', screen: 'SCR-07', titleKey: 'profile' },
 ] as const satisfies readonly RouteDefinition[];
 
-/** Demo trading (D-86), registered only behind its flag (D-94). */
+/** Demo trading (D-86), registered only behind its flag (D-101). */
 export const paperRoutes = [
   { path: '/trade/spot', screen: 'D-86', titleKey: 'tradeSpot' },
   { path: '/trade/spot/:symbol', screen: 'D-86', titleKey: 'tradeSpot' },

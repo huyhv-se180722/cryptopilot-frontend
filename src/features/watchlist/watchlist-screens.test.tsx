@@ -473,7 +473,7 @@ describe('SCR-14 alert dialog (T-059)', () => {
     expect(alerts.create).not.toHaveBeenCalled();
   });
 
-  it('takes a funding rate threshold in percent and sends a fraction (D-100)', async () => {
+  it('takes a funding rate threshold in percent and sends a fraction (D-107)', async () => {
     const { alerts, user } = await open('/watchlist');
     await user.click(
       await screen.findByRole('button', { name: 'Create alert for ETH/USDT' }),

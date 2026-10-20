@@ -53,7 +53,7 @@ const newClientOrderId = () => 'web-' + crypto.randomUUID();
  * under Stop the Stop Limit, Stop Market, Trailing Stop and OCO forms. A
  * stop is sent as a stop loss or a take profit by where it lies against
  * the last price, as the exchange's panel does. It checks tick, step,
- * minimum value and balance before sending (exact decimals, D-95), keeps
+ * minimum value and balance before sending (exact decimals, D-102), keeps
  * the idempotency key when the same order is sent again, and says why it
  * cannot trade while the demo account is not available. Demo funds only:
  * nothing reaches an exchange.

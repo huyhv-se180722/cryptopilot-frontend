@@ -190,7 +190,7 @@ async function open(locale: Locale = 'en') {
   };
 }
 
-describe('SCR-08 Trader dashboard (T-111)', () => {
+describe('SCR-08 Trader dashboard (T-112)', () => {
   it('dates the header in the interface language, not the browser one', async () => {
     // The date follows the interface's locale: Vietnamese copy (the 'vi'
     // stub) gets "14 thg 10, 2026", English copy "Oct 14, 2026", whatever

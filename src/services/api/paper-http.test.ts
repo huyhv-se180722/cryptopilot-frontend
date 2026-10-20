@@ -50,7 +50,7 @@ function setup(reply: (url: URL, init: RequestInit) => Response) {
   return { http, calls };
 }
 
-describe('HTTP demo trading adapter (D-97)', () => {
+describe('HTTP demo trading adapter (D-104)', () => {
   it('places an order with the market upper case and decodes it', async () => {
     const { http, calls } = setup(() => json(201, ORDER));
     const paper = createHttpPaperTradingService(http);
@@ -193,7 +193,7 @@ describe('HTTP demo trading adapter (D-97)', () => {
   });
 });
 
-describe('HTTP depth and trades adapter (TR-03, D-97)', () => {
+describe('HTTP depth and trades adapter (TR-03, D-104)', () => {
   it('reads depth and trades anonymously and follows the topics in upper case', async () => {
     const { http, calls } = setup((url) =>
       url.pathname.endsWith('/depth')

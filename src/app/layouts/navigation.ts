@@ -51,7 +51,7 @@ export interface AdminNavGroup {
 export const traderNav: readonly NavItem[] = [
   { to: '/dashboard', labelKey: 'overview', icon: LayoutDashboard },
   { to: '/markets', labelKey: 'markets', icon: TrendingUp },
-  // Demo trading (D-86) only behind its flag (D-94).
+  // Demo trading (D-86) only behind its flag (D-101).
   ...(paperTradingEnabled
     ? [
         {
