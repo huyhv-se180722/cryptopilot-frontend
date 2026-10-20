@@ -59,6 +59,8 @@ export type AlertDialogTarget =
       pairId?: string;
       /** Preferred market, e.g. the analysis screen's; used when listed. */
       market?: MarketType;
+      /** The pair is not watched yet: the server adds it (BR-16). */
+      addsToWatchlist?: boolean;
     }
   | { mode: 'edit'; alert: Alert; item?: AlertPair };
 
@@ -317,13 +319,20 @@ function AlertForm({
             ))}
           </Select>
         ) : (
-          <p className="text-sm font-semibold text-fg">
-            {pairLabel(
-              target.mode === 'edit'
-                ? target.alert.symbol
-                : (item?.symbol ?? ''),
+          <div>
+            <p className="text-sm font-semibold text-fg">
+              {pairLabel(
+                target.mode === 'edit'
+                  ? target.alert.symbol
+                  : (item?.symbol ?? ''),
+              )}
+            </p>
+            {target.mode === 'create' && target.addsToWatchlist && (
+              <p className="mt-0.5 text-[11px] text-muted-dim">
+                {a.addsToWatchlist}
+              </p>
             )}
-          </p>
+          </div>
         )}
 
         <div className="flex flex-wrap gap-x-6 gap-y-3">

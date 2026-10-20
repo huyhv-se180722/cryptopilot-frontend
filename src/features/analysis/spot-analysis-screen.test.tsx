@@ -364,6 +364,9 @@ describe('SCR-10 Spot analysis (T-033)', () => {
     await user.click(button);
     const dialog = within(screen.getByRole('dialog'));
     expect(dialog.getByText('BTC/USDT')).toBeTruthy();
+    expect(
+      dialog.getByText('This pair is added to your watchlist with the alert.'),
+    ).toBeTruthy();
     await user.type(dialog.getByLabelText('Target price (USDT)'), '70000');
     await user.click(screen.getByRole('button', { name: 'Save alert' }));
     await waitFor(() => expect(create).toHaveBeenCalledTimes(1));

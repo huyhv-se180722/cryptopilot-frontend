@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Info, Plus, Star } from 'lucide-react';
+import { Plus, Star } from 'lucide-react';
 import { EmptyState, ErrorState } from '../../components/feedback/States';
 import { Button } from '../../components/ui/Button';
 import { buttonClassName } from '../../components/ui/button-styles';
@@ -15,6 +15,8 @@ import {
 } from '../../features/alerts/components/AlertDialog';
 import { useMarketPairs } from '../../features/market/hooks/use-market-data';
 import { useMarketTickers } from '../../features/market/hooks/use-market-tickers';
+import { AddPairDialog } from '../../features/watchlist/components/AddPairDialog';
+import { addablePairs } from '../../features/watchlist/components/addable-pairs';
 import {
   WatchlistEditDialog,
   WatchlistRemoveDialog,
@@ -25,6 +27,7 @@ import {
 } from '../../features/watchlist/components/WatchlistGroups';
 import {
   confirmationCount,
+  useAddToWatchlist,
   useWatchlist,
   useWatchlistActions,
   useWatchlistScores,
@@ -35,8 +38,8 @@ import { pairLabel } from '../../utils/pair-label';
 /**
  * SCR-12 Watchlist (SRS 3.4.1, UC-12): the Trader's pairs grouped by label
  * with live price, 24h change, setup score and active alerts; edit, reorder,
- * remove (MSG26, D-76) and create an alert (SCR-14). Adding a pair here
- * waits for pair ids (FEQ-01); creating an alert adds its pair (BR-16).
+ * remove (MSG26, D-76), create an alert (SCR-14), and add a pair from both
+ * market lists by its id (FEQ-01); creating an alert adds its pair (BR-16).
  */
 export function WatchlistPage() {
   const copy = useCopy();
@@ -135,6 +138,42 @@ export function WatchlistPage() {
   const limit = list.data?.limit;
   const busy = reorder.pending || removal.pending;
 
+  const add = useAddToWatchlist();
+  const [addOpen, setAddOpen] = useState(false);
+  const [addingId, setAddingId] = useState<string | null>(null);
+  const [addNotice, setAddNotice] = useState<string | null>(null);
+  const addable = useMemo(
+    () =>
+      spotPairs.data && futuresPairs.data
+        ? addablePairs(spotPairs.data, futuresPairs.data)
+        : undefined,
+    [spotPairs.data, futuresPairs.data],
+  );
+  const watchedIds = useMemo(
+    () => new Set(items.map((item) => item.pairId)),
+    [items],
+  );
+  const full = limit !== null && limit !== undefined && items.length >= limit;
+  const pairsError = spotPairs.error ?? futuresPairs.error;
+  const addPair = useCallback(
+    async (pairId: string) => {
+      setAddingId(pairId);
+      setAddNotice(null);
+      const result = await add.run(pairId);
+      setAddingId(null);
+      if (result.status === 'success')
+        show({
+          tone: 'success',
+          message: formatCopy(w.addedToast, {
+            pair: pairLabel(result.data.symbol),
+          }),
+        });
+      else if (result.status === 'error')
+        setAddNotice(errorText(copy, result.error));
+    },
+    [add, show, copy, w.addedToast],
+  );
+
   const body = list.isPending ? (
     <div className="grid gap-3">
       {[0, 1, 2].map((n) => (
@@ -190,19 +229,38 @@ export function WatchlistPage() {
               : formatCopy(w.count, { count: items.length, limit })}
           </span>
         )}
-        <Button disabled aria-describedby="watchlist-add-pending">
+        <Button
+          disabled={!list.data}
+          onClick={() => {
+            setAddNotice(null);
+            setAddOpen(true);
+          }}
+        >
           <Plus size={14} aria-hidden="true" />
           {w.addPair}
         </Button>
       </header>
-      <p
-        id="watchlist-add-pending"
-        className="-mt-4 mb-5 flex items-start gap-1.5 text-[11px] text-muted-dim"
-      >
-        <Info size={12} aria-hidden="true" className="mt-0.5 shrink-0" />
-        {w.addPending}
-      </p>
       {body}
+      <AddPairDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        pairs={addable}
+        loadError={pairsError ? errorText(copy, pairsError) : null}
+        onRetry={() => {
+          void spotPairs.refetch();
+          void futuresPairs.refetch();
+        }}
+        watched={watchedIds}
+        full={full}
+        addingId={addingId}
+        notice={
+          addNotice ??
+          (full && limit != null
+            ? formatCopy(w.fullHint, { count: items.length, limit })
+            : null)
+        }
+        onAdd={(pairId) => void addPair(pairId)}
+      />
       <AlertDialog target={alertTarget} onClose={() => setAlertTarget(null)} />
       <WatchlistEditDialog
         item={editing}

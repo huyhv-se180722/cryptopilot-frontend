@@ -160,6 +160,7 @@ function FuturesAnalysis({ pair }: { pair: MarketPair }) {
                       mode: 'create',
                       pairs: [watched ?? listed],
                       pairId: pair.pairId,
+                      addsToWatchlist: watched === null,
                       market: 'futures',
                     })
                 : undefined
