@@ -16,6 +16,7 @@ import type {
   PairAnalysis,
   PlanEntitlements,
   Session,
+  WatchlistItem,
 } from '../../types/domain';
 import { fakeAuth, page, renderRoutes, testTrader } from '../../test/render';
 
@@ -130,6 +131,7 @@ async function open({
   const market: MarketService = {
     listPairs: vi.fn(async () => [
       {
+        pairId: '0199a0f0-1111-7aaa-8bbb-000000000001',
         symbol: 'BTCUSDT',
         market: 'spot' as const,
         baseAsset: 'BTC',
@@ -248,24 +250,129 @@ describe('SCR-10 Spot analysis (T-033)', () => {
     ).toBeTruthy();
   });
 
-  it('keeps the pair actions disabled while the pair id is not exposed', async () => {
-    await open();
-    for (const name of [
-      'Add to watchlist',
-      'Create alert',
-      'Create trading plan',
-    ])
-      expect(
-        (screen.getByRole('button', { name }) as HTMLButtonElement).disabled,
-      ).toBe(true);
+  it('adds a pair to the watchlist by its market list id (FEQ-01)', async () => {
+    const pairId = '0199a0f0-1111-7aaa-8bbb-000000000001';
+    let items: WatchlistItem[] = [];
+    const add = vi.fn<WatchlistService['add']>(async (id) => {
+      const row: WatchlistItem = {
+        id: 'row-1',
+        pairId: id,
+        symbol: 'BTCUSDT',
+        spotListed: true,
+        futuresListed: true,
+        label: null,
+        note: null,
+        sortOrder: 0,
+        activeAlerts: 0,
+        addedAt: '2026-10-01T00:00:00Z',
+      };
+      items = [row];
+      return row;
+    });
+    await open({
+      watchlist: {
+        get: async () => ({ items, limit: 50 }),
+        add,
+        update: vi.fn(),
+        remove: vi.fn(),
+      },
+    });
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole('button', { name: 'Add to watchlist' }),
+    );
+    expect(add).toHaveBeenCalledWith(pairId);
+    expect(
+      await screen.findByText('BTC/USDT added to your watchlist.'),
+    ).toBeTruthy();
+    expect(
+      (
+        (await screen.findByRole('button', {
+          name: 'In watchlist',
+        })) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    // Plans from here wait for the new plan form, and the screen says so.
+    const plan = screen.getByRole('button', { name: 'Create trading plan' });
+    expect((plan as HTMLButtonElement).disabled).toBe(true);
+    expect(
+      screen.getByText(
+        'Creating a trading plan from this screen is not available yet.',
+      ),
+    ).toBeTruthy();
     expect(
       screen.getByRole('link', { name: 'Ask AI' }).getAttribute('href'),
     ).toBe('/ai?symbol=BTCUSDT&market=spot');
+  });
+
+  it('says why the watchlist refused the pair', async () => {
+    await open({
+      watchlist: {
+        get: async () => ({ items: [], limit: 5 }),
+        add: vi.fn(async () => {
+          throw new ServiceError('refused', 'HTTP_ERROR', 409, {
+            status: 409,
+            code: 'WATCHLIST_PAIR_ALREADY_WATCHED',
+            messageCode: 'MSG45',
+            messageArgs: ['BTCUSDT'],
+            fieldErrors: {},
+          });
+        }),
+        update: vi.fn(),
+        remove: vi.fn(),
+      },
+    });
+    await userEvent
+      .setup()
+      .click(await screen.findByRole('button', { name: 'Add to watchlist' }));
     expect(
-      await screen.findByText(
-        'This feature is not connected to the server yet. Please try again later.',
-      ),
+      await screen.findByText(/is already in your watchlist/),
     ).toBeTruthy();
+  });
+
+  it('creates an alert on a pair not watched yet, by its market list id', async () => {
+    const create = vi.fn<AlertsService['create']>(async () => {
+      throw new ServiceError('refused', 'HTTP_ERROR', 403, {
+        status: 403,
+        code: 'PLAN_FEATURE_NOT_INCLUDED',
+        messageCode: 'MSG29',
+        messageArgs: ['PRO'],
+        fieldErrors: {},
+      });
+    });
+    await open({
+      watchlist: {
+        get: async () => ({ items: [], limit: 50 }),
+        add: vi.fn(),
+        update: vi.fn(),
+        remove: vi.fn(),
+      },
+      alerts: {
+        list: vi.fn(),
+        create,
+        update: vi.fn(),
+        remove: vi.fn(),
+        pause: vi.fn(),
+        resume: vi.fn(),
+      },
+    });
+    const user = userEvent.setup();
+    const button = await screen.findByRole('button', { name: 'Create alert' });
+    await waitFor(() =>
+      expect((button as HTMLButtonElement).disabled).toBe(false),
+    );
+    await user.click(button);
+    const dialog = within(screen.getByRole('dialog'));
+    expect(dialog.getByText('BTC/USDT')).toBeTruthy();
+    expect(
+      dialog.getByText('This pair is added to your watchlist with the alert.'),
+    ).toBeTruthy();
+    await user.type(dialog.getByLabelText('Target price (USDT)'), '70000');
+    await user.click(screen.getByRole('button', { name: 'Save alert' }));
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+    expect(create.mock.calls[0]?.[0]).toBe(
+      '0199a0f0-1111-7aaa-8bbb-000000000001',
+    );
   });
 
   it('creates an alert for a watched pair with the pair id of its row', async () => {

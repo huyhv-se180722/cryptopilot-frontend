@@ -33,11 +33,9 @@ type Tab = 'open' | 'orders' | 'fills' | 'funds';
  */
 export function OrdersPanel({
   pair,
-  pairId,
   pairs,
 }: {
   pair: MarketPair;
-  pairId: string | null;
   pairs: readonly MarketPair[];
 }) {
   const copy = useCopy();
@@ -49,6 +47,7 @@ export function OrdersPanel({
   const [fillsPage, setFillsPage] = useState(1);
   const [transferOpen, setTransferOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const pairId = pair.pairId;
   const filterId = onlyThis ? pairId : null;
   const open = useOpenOrders(filterId);
   const orders = useOrderHistory(
@@ -65,11 +64,6 @@ export function OrdersPanel({
   const { cancel, cancelAll } = usePaperActions();
 
   const { orderColumns, fillColumns, money } = usePaperColumns(pairs);
-  // Without the pair's id (FEQ-01, older backend) the lists are narrowed
-  // by symbol here.
-  const mine = <T extends { symbol: string }>(rows: readonly T[]) =>
-    onlyThis ? rows.filter((row) => row.symbol === pair.symbol) : rows;
-
   const failed = (error: unknown) => setNotice(paperErrorText(copy, error));
   const cancelCell = (row: PaperOrder) => (
     <button
@@ -87,7 +81,7 @@ export function OrdersPanel({
     </button>
   );
 
-  const openRows = mine(open.data ?? []);
+  const openRows = open.data ?? [];
   return (
     <TradePanel
       title={p.ordersAndFunds}
@@ -121,7 +115,7 @@ export function OrdersPanel({
               <PaperQueryState query={open}>
                 {() => (
                   <>
-                    {onlyThis && pairId && openRows.length > 0 && (
+                    {onlyThis && openRows.length > 0 && (
                       <div className="mb-2 flex justify-end">
                         <button
                           type="button"
@@ -160,7 +154,7 @@ export function OrdersPanel({
                     <Table
                       caption={p.orderHistory}
                       columns={orderColumns()}
-                      rows={mine(orders.data?.items ?? [])}
+                      rows={orders.data?.items ?? []}
                       rowKey={(row) => row.orderId}
                       emptyMessage={p.noOrders}
                     />
@@ -184,7 +178,7 @@ export function OrdersPanel({
                     <Table
                       caption={p.tradeHistory}
                       columns={fillColumns}
-                      rows={mine(fills.data?.items ?? [])}
+                      rows={fills.data?.items ?? []}
                       rowKey={(row) => row.fillId}
                       emptyMessage={p.noFills}
                     />

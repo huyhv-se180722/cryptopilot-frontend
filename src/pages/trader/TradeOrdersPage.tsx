@@ -26,7 +26,6 @@ import {
   type Period,
 } from '../../features/paper-trading/model/period';
 import { paperErrorText } from '../../features/paper-trading/model/paper-errors';
-import { useWatchlist } from '../../features/watchlist/hooks/use-watchlist';
 import type { PaperOrder, PaperOrderStatus } from '../../types/domain';
 
 const STATUSES: readonly PaperOrderStatus[] = [
@@ -42,8 +41,7 @@ const STATUSES: readonly PaperOrderStatus[] = [
  * exchange's Order History without a Figma frame): open orders with
  * cancel and cancel all, the order history and the trade history of
  * every pair, filtered by pair, status and period, 20 rows a page. The
- * pair filter lists the Spot pairs whose id the market list gives
- * (FEQ-01), and the watched pairs when a backend does not give it yet.
+ * pair filter lists every Spot pair of the market list.
  */
 export function TradeOrdersPage() {
   const copy = useCopy();
@@ -56,7 +54,6 @@ export function TradeOrdersPage() {
   const [fillsPage, setFillsPage] = useState(1);
   const [notice, setNotice] = useState<string | null>(null);
   const pairs = useMarketPairs('spot');
-  const watchlist = useWatchlist();
   const { orderColumns, fillColumns } = usePaperColumns(pairs.data ?? []);
   const { cancel, cancelAll } = usePaperActions();
   const from = periodStart(period);
@@ -68,17 +65,7 @@ export function TradeOrdersPage() {
   const open = useOpenOrders(pairId || null);
   const orders = useOrderHistory(filter, ordersPage, tab === 'orders');
   const fills = useFillHistory(filter, fillsPage, tab === 'fills');
-  const listed = (pairs.data ?? []).flatMap((pair) =>
-    pair.pairId ? [{ pairId: pair.pairId, symbol: pair.symbol }] : [],
-  );
-  const withoutId = (pairs.data ?? []).some((pair) => !pair.pairId);
-  const choices = [
-    ...listed,
-    ...(watchlist.data?.items ?? []).filter(
-      (item) =>
-        item.spotListed && !listed.some((pair) => pair.pairId === item.pairId),
-    ),
-  ];
+  const choices = pairs.data ?? [];
 
   const restart = () => {
     setOrdersPage(1);
@@ -186,9 +173,6 @@ export function TradeOrdersPage() {
           </button>
         )}
       </div>
-      {withoutId && (
-        <p className="mb-3 text-[11px] text-muted-dim">{p.pairFilterHint}</p>
-      )}
       {notice && <FormNotice tone="error">{notice}</FormNotice>}
       <Tabs
         label={p.ordersTitle}

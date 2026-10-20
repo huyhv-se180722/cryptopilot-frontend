@@ -1,5 +1,6 @@
+import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Info, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Alert, ErrorState } from '../../components/feedback/States';
 import { Button } from '../../components/ui/Button';
 import { buttonClassName } from '../../components/ui/button-styles';
@@ -9,6 +10,10 @@ import { useCopy } from '../../hooks/use-copy';
 import { usePlanLimit, usePlanTier } from '../../hooks/use-entitlement';
 import { formatCopy } from '../../i18n/copy';
 import { errorText } from '../../i18n/messages';
+import {
+  useMarketPairs,
+  usePairLookup,
+} from '../../features/market/hooks/use-market-data';
 import { PlanFilters } from '../../features/trading-plan/components/PlanFilters';
 import { PlanTable } from '../../features/trading-plan/components/PlanTable';
 import {
@@ -64,20 +69,34 @@ function ActiveLimit() {
 /**
  * SCR-16 Trading Plans (SRS 3.5.2, UC-20): status tabs, market and period
  * filters, 20 rows per page (CR-04); tab, filters and page live in the URL.
- * A row opens SCR-18. Pair names wait for FEQ-01, position status and
- * P/L for simulated execution (M-10).
+ * A row opens SCR-18. Pairs are named and filtered by the id the market
+ * lists give (FEQ-01); position status and P/L wait for simulated
+ * execution (M-10).
  */
 export function PlansPage() {
   const copy = useCopy();
   const p = copy.plan;
   const [params, setParams] = useSearchParams();
   const tab = tabOf(params.get('tab'));
+  const pairId = params.get('pair') ?? '';
   const market = marketOf(params.get('market'));
+  const pairOf = usePairLookup();
+  const spotPairs = useMarketPairs('spot').data;
+  const futuresPairs = useMarketPairs('futures').data;
+  const pairs = useMemo(() => {
+    const spot = spotPairs ?? [];
+    const onSpot = new Set(spot.map((pair) => pair.pairId));
+    return [
+      ...spot,
+      ...(futuresPairs ?? []).filter((pair) => !onSpot.has(pair.pairId)),
+    ];
+  }, [spotPairs, futuresPairs]);
   const period = periodOf(params.get('period'));
   const page = Math.max(1, Number(params.get('page')) || 1);
   const list = usePlanList({
     tab,
     page,
+    ...(pairId ? { pairId } : {}),
     ...(market === 'all' ? {} : { market }),
     ...(period === 'all' ? {} : { periodDays: Number(period) }),
   });
@@ -85,7 +104,7 @@ export function PlansPage() {
     1,
     Math.ceil((list.data?.total ?? 0) / PLAN_PAGE_SIZE),
   );
-  const filtered = market !== 'all' || period !== 'all';
+  const filtered = pairId !== '' || market !== 'all' || period !== 'all';
 
   function update(changes: Record<string, string | null>) {
     const next = new URLSearchParams(params);
@@ -109,6 +128,7 @@ export function PlansPage() {
         tab={tab}
         rows={list.data.items}
         emptyMessage={filtered ? p.emptyFiltered : p.empty}
+        pairOf={(row) => pairOf(row.pairId, row.market)}
       />
       {tab === 'EXECUTED' && (
         <p className="mt-2 text-[11px] text-muted-dim">{p.positionPending}</p>
@@ -156,20 +176,19 @@ export function PlansPage() {
       </header>
       <ActiveLimit />
       <PlanFilters
+        pairs={pairs}
+        pairId={pairId}
         market={market}
         period={period}
+        onPairChange={(value) => update({ pair: value || null })}
         onMarketChange={(value) =>
           update({ market: value === 'all' ? null : value })
         }
         onPeriodChange={(value) =>
           update({ period: value === 'all' ? null : value })
         }
-        onReset={() => update({ market: null, period: null })}
+        onReset={() => update({ pair: null, market: null, period: null })}
       />
-      <p className="mb-3 flex items-start gap-1.5 text-[11px] text-muted-dim">
-        <Info size={12} aria-hidden="true" className="mt-0.5 shrink-0" />
-        {p.pairPending}
-      </p>
       <Tabs
         label={p.tabsLabel}
         value={tab}

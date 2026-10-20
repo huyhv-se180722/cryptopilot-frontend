@@ -4,7 +4,7 @@ import { createDevelopmentAuth } from './dev-auth';
 import { createDevelopmentMarket } from './dev-market';
 import { createDevelopmentTradingPlan } from './dev-trading-plan';
 import { createDevelopmentWatchlist } from './dev-watchlist';
-import { DEV_PAIR_IDS } from './fixtures/watchlist';
+import { DEV_PAIR_IDS } from './fixtures/market';
 import { DEV_PASSWORD, DEV_TOKENS, devPrincipals } from './fixtures/auth';
 import type { AlertRule, PlanInputs, Session } from '../types/domain';
 import { createServices } from '../app/providers/create-services';
@@ -389,6 +389,38 @@ describe('development watchlist and alert seam', () => {
       label: ' ',
     });
     expect(moved.label).toBeNull();
+  });
+
+  it('adds a pair of the market lists by its id, as the backend does', async () => {
+    const { watchlist } = createDevelopmentWatchlist(async () => free);
+    await expect(watchlist.add(DEV_PAIR_IDS.BTCUSDT!)).rejects.toMatchObject({
+      problem: { messageCode: 'MSG45', messageArgs: ['BTCUSDT'] },
+    });
+    // The FREE fixture already holds 5 rows: its limit.
+    await expect(watchlist.add(DEV_PAIR_IDS.LINKUSDT!)).rejects.toMatchObject({
+      problem: { messageCode: 'MSG27' },
+    });
+    const { watchlist: proList } = createDevelopmentWatchlist(async () => pro);
+    await expect(proList.add('unknown')).rejects.toMatchObject({
+      problem: { messageCode: 'MSG41' },
+    });
+    const link = await proList.add(DEV_PAIR_IDS.LINKUSDT!);
+    expect(link).toMatchObject({
+      symbol: 'LINKUSDT',
+      spotListed: true,
+      futuresListed: false,
+      sortOrder: 5,
+    });
+    expect((await proList.get()).items.at(-1)?.symbol).toBe('LINKUSDT');
+  });
+
+  it('adds the row of a pair not watched yet with its alert (BR-16)', async () => {
+    const { watchlist, alerts } = createDevelopmentWatchlist(async () => pro);
+    const alert = await alerts.create(DEV_PAIR_IDS.XRPUSDT!, price);
+    const rows = (await watchlist.get()).items;
+    const xrp = rows.find((row) => row.symbol === 'XRPUSDT');
+    expect(xrp?.activeAlerts).toBe(1);
+    expect(alert.watchlistId).toBe(xrp?.id);
   });
 
   it('asks MSG26 with every alert of the row before removing it (D-76)', async () => {

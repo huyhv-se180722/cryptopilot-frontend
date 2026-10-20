@@ -5,6 +5,7 @@ import { Skeleton } from '../../../components/ui/Skeleton';
 import { useCopy } from '../../../hooks/use-copy';
 import { formatCopy } from '../../../i18n/copy';
 import { errorText } from '../../../i18n/messages';
+import { usePairLookup } from '../../market/hooks/use-market-data';
 import { PlanTable } from '../../trading-plan/components/PlanTable';
 import { usePlanList } from '../../trading-plan/hooks/use-plans';
 import { DashboardCard } from './DashboardCard';
@@ -23,6 +24,7 @@ export function PlanSnapshot() {
   const p = copy.plan;
   const [tab, setTab] = useState<Shown>('ACTIVE');
   const list = usePlanList({ tab, page: 1 });
+  const pairOf = usePairLookup();
   const rows = list.data?.items.slice(0, ROWS) ?? [];
   const total = list.data?.total ?? 0;
   return (
@@ -52,7 +54,12 @@ export function PlanSnapshot() {
         </div>
       ) : (
         <>
-          <PlanTable tab={tab} rows={rows} emptyMessage={p.empty} />
+          <PlanTable
+            tab={tab}
+            rows={rows}
+            emptyMessage={p.empty}
+            pairOf={(row) => pairOf(row.pairId, row.market)}
+          />
           {total > ROWS && (
             <p className="border-t border-line px-4 py-2 text-[11px] text-muted-dim">
               {formatCopy(d.plansMore, { shown: ROWS, total })}

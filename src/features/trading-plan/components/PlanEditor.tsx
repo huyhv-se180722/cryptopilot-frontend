@@ -20,7 +20,12 @@ import { formatCopy } from '../../../i18n/copy';
 import type { Copy } from '../../../i18n/locales/en';
 import { errorText, fieldErrorText, messageText } from '../../../i18n/messages';
 import { problemOf } from '../../../services/api/errors';
-import type { PlanDirection, TradingPlan } from '../../../types/domain';
+import type {
+  MarketPair,
+  PlanDirection,
+  TradingPlan,
+} from '../../../types/domain';
+import { pairLabel } from '../../../utils/pair-label';
 import { usePlanCalculation, useSavePlan } from '../hooks/use-plan-editor';
 import { Panel, PlanSnapshotRows, PlanWarningsPanel } from './PlanDetailPanels';
 import { planPrice } from './plan-format';
@@ -100,9 +105,17 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
  * the left; on the right the risk panel recalculated by the server as the
  * Trader types (BR-23…BR-27), the warnings with their severity (MSG17), and
  * Save as Draft (MSG14) or Save and Activate (MSG19; refused with MSG18 or
- * MSG27, nothing saved). The pair is fixed and has no name yet (FEQ-01).
+ * MSG27, nothing saved). The pair is fixed, named from the market lists
+ * by its id (FEQ-01) when they still give it.
  */
-export function PlanEditor({ plan }: { plan: TradingPlan }) {
+export function PlanEditor({
+  plan,
+  pair,
+}: {
+  plan: TradingPlan;
+  /** The plan's pair from the market lists; undefined when not known. */
+  pair: MarketPair | undefined;
+}) {
   const copy = useCopy();
   const p = copy.plan;
   const navigate = useNavigate();
@@ -188,10 +201,16 @@ export function PlanEditor({ plan }: { plan: TradingPlan }) {
         <Section title={p.sectionPair}>
           <div>
             <span className={fieldLabelClass}>{p.pairField}</span>
-            <p className="text-sm text-muted-x" title={p.pairUnknown}>
-              {copy.market.noValue}
-              <span className="sr-only"> {p.pairUnknown}</span>
-            </p>
+            {pair ? (
+              <p className="text-sm font-medium text-fg">
+                {pairLabel(pair.symbol)}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-x" title={p.pairUnknown}>
+                {copy.market.noValue}
+                <span className="sr-only"> {p.pairUnknown}</span>
+              </p>
+            )}
           </div>
           <div>
             <span className={fieldLabelClass}>{p.marketField}</span>

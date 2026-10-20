@@ -11,6 +11,7 @@ import {
 } from './market-movers';
 
 const pair = (base: string, displayOrder: number): MarketPair => ({
+  pairId: 'p-' + base,
   symbol: base + 'USDT',
   market: 'spot',
   baseAsset: base,

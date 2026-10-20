@@ -5,15 +5,48 @@ import userEvent from '@testing-library/user-event';
 import { PlanDetailPage } from '../../pages/trader/PlanDetailPage';
 import { PlanEditPage } from '../../pages/trader/PlanEditPage';
 import { PlansPage } from '../../pages/trader/PlansPage';
-import type { TradingPlanService } from '../../services/api/contracts';
+import type {
+  MarketService,
+  TradingPlanService,
+} from '../../services/api/contracts';
 import { ServiceError } from '../../services/api/errors';
 import type {
+  MarketPair,
+  MarketType,
   PlanEntitlements,
   Session,
   TradingPlan,
   TradingPlanSummary,
 } from '../../types/domain';
 import { fakeAuth, page, renderRoutes, testTrader } from '../../test/render';
+
+const priceLines: string[] = [];
+vi.mock('lightweight-charts', () => ({
+  createSeriesMarkers: () => ({ setMarkers: vi.fn() }),
+  CandlestickSeries: { name: 'candles' },
+  LineSeries: { name: 'line' },
+  HistogramSeries: { name: 'histogram' },
+  ColorType: { Solid: 'solid' },
+  createChart: () => ({
+    addSeries: () => ({
+      setData: vi.fn(),
+      createPriceLine: vi.fn((line: { title: string; price: number }) => {
+        priceLines.push(`${line.title} ${line.price}`);
+        return line;
+      }),
+      removePriceLine: vi.fn(),
+    }),
+    panes: () => [0, 1, 2, 3].map(() => ({ setStretchFactor: vi.fn() })),
+    timeScale: () => ({
+      fitContent: vi.fn(),
+      getVisibleLogicalRange: () => null,
+      setVisibleLogicalRange: vi.fn(),
+      subscribeVisibleLogicalRangeChange: vi.fn(),
+      unsubscribeVisibleLogicalRangeChange: vi.fn(),
+    }),
+    remove: vi.fn(),
+  }),
+}));
 
 // jsdom has no modal dialog; the component only needs open/close.
 beforeAll(() => {
@@ -138,10 +171,53 @@ function fakePlans(overrides: Partial<TradingPlanService> = {}) {
   return service;
 }
 
+const btc = (market: MarketType): MarketPair => ({
+  pairId: ROW.pairId,
+  symbol: 'BTCUSDT',
+  market,
+  baseAsset: 'BTC',
+  quoteAsset: 'USDT',
+  baseAssetName: 'Bitcoin',
+  logoUrl: null,
+  tickSize: market === 'spot' ? '0.01' : '0.10',
+  stepSize: '0.001',
+  minNotional: '5',
+  displayOrder: 1,
+});
+const eth: MarketPair = {
+  ...btc('spot'),
+  pairId: 'eth-id',
+  symbol: 'ETHUSDT',
+  baseAsset: 'ETH',
+  baseAssetName: 'Ethereum',
+  displayOrder: 2,
+};
+
+/** BTC on both markets with the plans' pair id; ETH on Spot only. */
+const fakeMarket = (): MarketService => ({
+  listPairs: vi.fn(async (market: MarketType) =>
+    market === 'spot' ? [btc('spot'), eth] : [btc('futures')],
+  ),
+  getCandles: vi.fn(async () =>
+    [0, 1, 2].map((i) => ({
+      openTime: new Date(Date.UTC(2026, 9, 9, i)).toISOString(),
+      open: '62000',
+      high: '62100',
+      low: '61900',
+      close: '62050',
+      baseVolume: '10',
+      quoteVolume: '620500',
+    })),
+  ),
+  getFuturesMetrics: vi.fn(),
+  getTicker: vi.fn(async () => null),
+});
+
 async function open(
   path: string,
   service = fakePlans(),
   tier: 'FREE' | 'PRO' = 'FREE',
+  market = fakeMarket(),
 ) {
   const session: Session = { ...testTrader, entitlements: plan(tier) };
   await renderRoutes(
@@ -152,7 +228,7 @@ async function open(
     ],
     path,
     fakeAuth({ restoreSession: async () => session }),
-    { tradingPlan: service },
+    { tradingPlan: service, market },
   );
   return service;
 }
@@ -181,11 +257,38 @@ describe('SCR-16 plan list (T-041)', () => {
         .getByRole('link', { name: 'Open plan 0000a1b2' })
         .getAttribute('href'),
     ).toBe('/plans/' + ROW.id);
-    // FEQ-01: no pair symbol yet, and the screen says why.
-    expect(cells.getByTitle('Pair name not available')).toBeTruthy();
-    expect(
-      screen.getByText(/Pair names are not returned by the server yet/),
-    ).toBeTruthy();
+    // The pair is named from the market lists by its id (FEQ-01).
+    expect(await cells.findByText('BTC/USDT')).toBeTruthy();
+  });
+
+  it('filters the list by pair (FEQ-01)', async () => {
+    const service = await open('/plans');
+    await screen.findByText('Short');
+    const pair = screen.getByLabelText('Pair');
+    await waitFor(() =>
+      expect(
+        within(pair)
+          .getAllByRole('option')
+          .map((option) => option.textContent),
+      ).toEqual(['All pairs', 'BTC/USDT', 'ETH/USDT']),
+    );
+    await userEvent.selectOptions(pair, ROW.pairId);
+    await waitFor(() => expect(lastList(service)?.pairId).toBe(ROW.pairId));
+    await userEvent.click(screen.getByRole('button', { name: 'Reset' }));
+    await waitFor(() => expect(lastList(service)?.pairId).toBeUndefined());
+  });
+
+  it('shows a dash for a pair the market lists no longer give', async () => {
+    const market = fakeMarket();
+    vi.mocked(market.listPairs).mockResolvedValue([eth]);
+    await open('/plans', fakePlans(), 'FREE', market);
+    const row = (await screen.findByText('Short')).closest('tr') as HTMLElement;
+    await waitFor(() =>
+      expect(
+        within(screen.getByLabelText('Pair')).getAllByRole('option'),
+      ).toHaveLength(2),
+    );
+    expect(within(row).getByTitle('Pair name not available')).toBeTruthy();
   });
 
   it('reads the chosen tab, market and period', async () => {
@@ -273,10 +376,25 @@ describe('SCR-18 plan detail (T-041)', () => {
   });
 
   it('shows inputs, snapshot, warnings by severity and the status history', async () => {
+    priceLines.length = 0;
     await open('/plans/' + PLAN.id);
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Plan 0000a1b2' }),
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'BTC/USDT Plan 0000a1b2',
+      }),
     ).toBeTruthy();
+    // The chart of the plan's market carries its lines (FEQ-01 gives the pair).
+    await waitFor(() =>
+      expect(priceLines).toEqual(
+        expect.arrayContaining([
+          'Entry 62000',
+          'Stop loss 63000',
+          'Take profit 59000',
+          'Liquidation (est.) 74103.1',
+        ]),
+      ),
+    );
     const inputs = within(screen.getByRole('region', { name: 'Plan inputs' }));
     expect(inputs.getByText('Stop loss').nextSibling?.textContent).toBe(
       '63,000.00',
@@ -517,6 +635,8 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
       calculate: vi.fn(async () => calculation()),
     });
     await open(editPath, service);
+    // The fixed pair is named from the market lists.
+    expect(await screen.findByText('BTC/USDT')).toBeTruthy();
     const user = userEvent.setup();
     await user.click(
       await screen.findByRole('button', { name: 'Save as draft' }),
@@ -528,7 +648,10 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
       false,
     );
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Plan 0000a1b2' }),
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'BTC/USDT Plan 0000a1b2',
+      }),
     ).toBeTruthy();
   });
 

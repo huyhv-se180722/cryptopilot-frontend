@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { MarketService } from '../services/api/contracts';
 import type { MarketTicker, Session } from '../types/domain';
 import { createDevelopmentPaperTrading } from './dev-paper-trading';
-import { DEV_PAIR_IDS } from './fixtures/watchlist';
+import { DEV_PAIR_IDS } from './fixtures/market';
 
 const BTC = DEV_PAIR_IDS.BTCUSDT!;
 const session = { user: { id: 'u-1' } } as unknown as Session;

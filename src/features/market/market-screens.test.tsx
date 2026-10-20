@@ -45,6 +45,7 @@ const pair = (
   market: MarketType,
   displayOrder: number,
 ): MarketPair => ({
+  pairId: 'p-' + base,
   symbol: base + 'USDT',
   market,
   baseAsset: base,

@@ -1,4 +1,5 @@
-import type { Alert, AlertRule, WatchlistItem } from '../../types/domain';
+﻿import type { Alert, AlertRule, WatchlistItem } from '../../types/domain';
+import { DEV_PAIR_IDS } from './market';
 
 /**
  * DEVELOPMENT ONLY. Labelled watchlist rows and alerts covering both
@@ -7,13 +8,6 @@ import type { Alert, AlertRule, WatchlistItem } from '../../types/domain';
  */
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
-export const DEV_PAIR_IDS: Readonly<Record<string, string>> = {
-  BTCUSDT: '0199a0f0-1111-7aaa-8bbb-000000000001',
-  ETHUSDT: '0199a0f0-1111-7aaa-8bbb-000000000002',
-  SOLUSDT: '0199a0f0-1111-7aaa-8bbb-000000000004',
-  DOGEUSDT: '0199a0f0-1111-7aaa-8bbb-000000000007',
-  MATICUSDT: '0199a0f0-1111-7aaa-8bbb-000000000099',
-};
 
 const row = (
   n: number,

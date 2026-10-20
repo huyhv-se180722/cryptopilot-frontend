@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createDevelopmentPaperTrading } from '../../dev/dev-paper-trading';
-import { DEV_PAIR_IDS } from '../../dev/fixtures/watchlist';
+import { DEV_PAIR_IDS } from '../../dev/fixtures/market';
 import { TradeSpotPage } from '../../pages/trader/TradeSpotPage';
 import type {
   MarketFeed,
@@ -54,6 +54,7 @@ beforeAll(() => {
 });
 
 const pair = (symbol: string, base: string, order: number): MarketPair => ({
+  pairId: DEV_PAIR_IDS[symbol] as string,
   symbol,
   market: 'spot',
   baseAsset: base,
@@ -406,21 +407,8 @@ describe('Spot demo orders (TR-F3)', () => {
     expect((field(form, /^Price/) as HTMLInputElement).value).toBe('59,990.00');
   });
 
-  it('says why a pair without an id cannot be traded (FEQ-01)', async () => {
-    const { form } = await open('/trade/spot/ETHUSDT');
-    const submit = within(form).getByRole('button', { name: 'Buy ETH' });
-    expect(submit).toHaveProperty('disabled', true);
-    expect(submit.getAttribute('aria-describedby')).toBeTruthy();
-    expect(form.textContent).toContain('Add this pair to your watchlist');
-  });
-
-  it('trades a pair off the watchlist when the market list gives its id (FEQ-01)', async () => {
-    const withIds = PAIRS.map((row) => ({
-      ...row,
-      pairId: DEV_PAIR_IDS[row.symbol]!,
-    }));
-    const { form, user } = await open('/trade/spot/ETHUSDT', withIds);
-    expect(form.textContent).not.toContain('Add this pair to your watchlist');
+  it('trades a pair off the watchlist by its market list id (FEQ-01)', async () => {
+    const { form, user } = await open('/trade/spot/ETHUSDT');
     await user.type(field(form, /^Price/), '2400');
     await user.type(field(form, /Amount/), '0.1');
     await user.click(within(form).getByRole('button', { name: 'Buy ETH' }));

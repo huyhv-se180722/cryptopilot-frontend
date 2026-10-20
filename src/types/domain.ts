@@ -52,9 +52,9 @@ export interface Session {
 export interface MarketPair {
   /**
    * The id requests name the pair by (watchlist, alerts, plans, demo
-   * orders). Absent from a backend that does not send it yet (FEQ-01).
+   * orders); one id per symbol on both markets (FEQ-01).
    */
-  pairId?: string;
+  pairId: string;
   symbol: string;
   market: MarketType;
   baseAsset: string | null;
@@ -265,8 +265,9 @@ export interface PlanSnapshot {
 }
 
 /**
- * A row of SCR-16. The pair is named by its id only: no symbol is returned
- * yet (FEQ-01), and position status and P/L wait for the matching engine.
+ * A row of SCR-16. The pair is named by its id only, which the market lists
+ * resolve to a symbol (FEQ-01); position status and P/L wait for the
+ * matching engine.
  */
 export interface TradingPlanSummary {
   id: string;
@@ -349,6 +350,8 @@ export interface PlanCalculation {
 
 export interface PlanListQuery {
   tab: PlanTab;
+  /** One pair, by the id the market list gives (FEQ-01). */
+  pairId?: string;
   market?: MarketType;
   /** Created at or after. */
   from?: ISODateTime;

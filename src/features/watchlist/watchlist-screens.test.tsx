@@ -6,11 +6,14 @@ import { AlertsPage } from '../../pages/trader/AlertsPage';
 import { WatchlistPage } from '../../pages/trader/WatchlistPage';
 import type {
   AlertsService,
+  MarketService,
   WatchlistService,
 } from '../../services/api/contracts';
 import { ServiceError } from '../../services/api/errors';
 import type {
   Alert,
+  MarketPair,
+  MarketType,
   PlanEntitlements,
   Session,
   WatchlistItem,
@@ -146,6 +149,45 @@ function fakeAlerts(overrides: Partial<AlertsService> = {}) {
   return service;
 }
 
+const listed = (
+  n: number,
+  base: string,
+  market: MarketType,
+  name: string,
+): MarketPair => ({
+  pairId: 'pair-' + n,
+  symbol: base + 'USDT',
+  market,
+  baseAsset: base,
+  quoteAsset: 'USDT',
+  baseAssetName: name,
+  logoUrl: null,
+  tickSize: '0.01',
+  stepSize: '0.001',
+  minNotional: '5',
+  displayOrder: n,
+});
+
+/** BTC on both markets (watched), LINK on Spot only, SOL on Futures only. */
+function fakeMarket(): MarketService {
+  return {
+    listPairs: vi.fn(async (market: MarketType) =>
+      market === 'spot'
+        ? [
+            listed(2, 'BTC', 'spot', 'Bitcoin'),
+            listed(8, 'LINK', 'spot', 'Chainlink'),
+          ]
+        : [
+            listed(2, 'BTC', 'futures', 'Bitcoin'),
+            listed(9, 'SOL', 'futures', 'Solana'),
+          ],
+    ),
+    getCandles: vi.fn(async () => []),
+    getFuturesMetrics: vi.fn(),
+    getTicker: vi.fn(async () => null),
+  };
+}
+
 const entitlements = (tier: 'FREE' | 'PRO'): PlanEntitlements => ({
   tier,
   features:
@@ -160,10 +202,12 @@ async function open(
   {
     watchlist = fakeWatchlist(),
     alerts = fakeAlerts(),
+    market = fakeMarket(),
     tier = 'PRO',
   }: {
     watchlist?: WatchlistService;
     alerts?: AlertsService;
+    market?: MarketService;
     tier?: 'FREE' | 'PRO';
   } = {},
 ) {
@@ -172,7 +216,7 @@ async function open(
     [page('/watchlist', <WatchlistPage />), page('/alerts', <AlertsPage />)],
     path,
     fakeAuth({ restoreSession: async () => session }),
-    { watchlist, alerts },
+    { watchlist, alerts, market },
   );
   return { watchlist, alerts, user: userEvent.setup() };
 }
@@ -194,11 +238,88 @@ describe('SCR-12 watchlist (T-059)', () => {
     const unlabelled = within(groups[1]!);
     expect(unlabelled.getByText('Not listed')).toBeTruthy();
     expect(unlabelled.queryByRole('link', { name: 'MATIC/USDT' })).toBeNull();
-    // Adding waits for pair ids (FEQ-01).
+  });
+
+  it('adds a pair from both market lists by its id (FEQ-01)', async () => {
+    const add = vi.fn<WatchlistService['add']>(async (pairId) => ({
+      ...row(9, 'SOLUSDT', null, { spotListed: false }),
+      pairId,
+    }));
+    const { user } = await open('/watchlist', {
+      watchlist: fakeWatchlist({ add }),
+    });
+    await user.click(await screen.findByRole('button', { name: 'Add pair' }));
+    const dialog = within(
+      await screen.findByRole('dialog', { name: 'Add pair' }),
+    );
+    const list = await dialog.findByRole('list', { name: 'Pairs' });
+    // BTC is watched; LINK is listed on Spot only and SOL on Futures only.
     expect(
-      (screen.getByRole('button', { name: 'Add pair' }) as HTMLButtonElement)
-        .disabled,
+      within(list)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent),
+    ).toEqual([
+      'BTC/USDTBitcoinSpotFuturesAdded',
+      'LINK/USDTChainlinkSpotAdd',
+      'SOL/USDTSolanaFuturesAdd',
+    ]);
+    expect(
+      (
+        dialog.getByRole('button', {
+          name: 'BTC/USDT is on your watchlist',
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(true);
+    await user.type(dialog.getByRole('searchbox'), 'sol');
+    expect(within(list).getAllByRole('listitem')).toHaveLength(1);
+    await user.click(dialog.getByRole('button', { name: 'Add SOL/USDT' }));
+    expect(add).toHaveBeenCalledWith('pair-9');
+    expect(
+      await screen.findByText('SOL/USDT added to your watchlist.'),
+    ).toBeTruthy();
+    await user.clear(dialog.getByRole('searchbox'));
+    await user.type(dialog.getByRole('searchbox'), 'doge');
+    expect(dialog.getByText('No pair matches.')).toBeTruthy();
+  });
+
+  it('says why a pair was refused and stops adding at the plan limit', async () => {
+    const add = vi.fn<WatchlistService['add']>(async () => {
+      throw refusal(409, 'PLAN_LIMIT_REACHED', 'MSG27', [
+        '5',
+        'watchlist items',
+        'FREE',
+      ]);
+    });
+    const { user } = await open('/watchlist', {
+      watchlist: fakeWatchlist({ add }),
+    });
+    await user.click(await screen.findByRole('button', { name: 'Add pair' }));
+    const dialog = within(
+      await screen.findByRole('dialog', { name: 'Add pair' }),
+    );
+    await user.click(
+      await dialog.findByRole('button', { name: 'Add LINK/USDT' }),
+    );
+    expect(await dialog.findByText(/reached the limit of 5/)).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'Add pair' })).toBeTruthy();
+  });
+
+  it('disables every Add once the watchlist is full', async () => {
+    const full = [...ROWS, row(5, 'XRPUSDT', null)];
+    const { user } = await open('/watchlist', {
+      watchlist: fakeWatchlist({
+        get: vi.fn(async () => ({ items: full, limit: 5 })),
+      }),
+    });
+    await user.click(await screen.findByRole('button', { name: 'Add pair' }));
+    const dialog = within(
+      await screen.findByRole('dialog', { name: 'Add pair' }),
+    );
+    const link = await dialog.findByRole('button', { name: 'Add LINK/USDT' });
+    expect((link as HTMLButtonElement).disabled).toBe(true);
+    expect(
+      dialog.getByText(/Your watchlist is full \(5 \/ 5 pairs\)/),
+    ).toBeTruthy();
   });
 
   it('asks MSG26 with the server count and asks again when it changed (D-76)', async () => {

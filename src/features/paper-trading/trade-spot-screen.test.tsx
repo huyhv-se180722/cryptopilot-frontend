@@ -85,6 +85,7 @@ const pair = (
   baseAssetName: string,
   displayOrder: number,
 ): MarketPair => ({
+  pairId: 'p-' + symbol,
   symbol,
   market: 'spot',
   baseAsset,

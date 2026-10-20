@@ -125,6 +125,7 @@ async function open({
   const market: MarketService = {
     listPairs: vi.fn(async () => [
       {
+        pairId: '0199a0f0-1111-7aaa-8bbb-000000000001',
         symbol: 'BTCUSDT',
         market: 'futures' as const,
         baseAsset: 'BTC',
@@ -283,7 +284,7 @@ describe('SCR-11 Futures analysis (T-034)', () => {
     ).toBeTruthy();
   });
 
-  it('carries the market into Ask AI and keeps the pair actions disabled', async () => {
+  it('carries the market into Ask AI and keeps Create trading plan disabled', async () => {
     await open();
     expect(
       (await screen.findByRole('link', { name: 'Ask AI' })).getAttribute(

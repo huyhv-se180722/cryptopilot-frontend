@@ -21,9 +21,8 @@ export function useWatchlist() {
 }
 
 /**
- * The watchlist row of a pair, which carries the pair id the alert API
- * needs (FEQ-01): null when the pair is not watched, undefined while the
- * list is unknown.
+ * The watchlist row of a pair: null when the pair is not watched,
+ * undefined while the list is unknown.
  */
 export function useWatchedPair(
   symbol: string,
@@ -31,6 +30,25 @@ export function useWatchedPair(
   const list = useWatchlist();
   if (!list.data) return undefined;
   return list.data.items.find((item) => item.symbol === symbol) ?? null;
+}
+
+/**
+ * Adds a pair by its market list id (UC-12) and reads the list again.
+ * The server refuses a watched pair (MSG45) and a full list (MSG27, BR-15).
+ */
+export function useAddToWatchlist() {
+  const { watchlist } = useServices();
+  const client = useQueryClient();
+  return useMutation(
+    useCallback(
+      async (pairId: string) => {
+        const item = await watchlist.add(pairId);
+        await client.invalidateQueries({ queryKey: WATCHLIST_KEY });
+        return item;
+      },
+      [watchlist, client],
+    ),
+  );
 }
 
 /** Rows read at most this many at a time (120 API calls a minute, D-82). */

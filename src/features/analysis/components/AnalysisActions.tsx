@@ -10,35 +10,36 @@ import { messageText } from '../../../i18n/messages';
 import type { MarketType } from '../../../types/domain';
 
 /**
- * SCR-10 / SCR-11 actions (SRS 3.3.2, 3.3.3). Watchlist, alert and plan
- * (pre-filled with the market) take the pair's id, which no market endpoint
- * returns yet (FEQ-01): they stay disabled and say so. A watched pair's id
- * comes from its watchlist row, so Create alert works for it (SCR-14).
- * Ask AI is PRO and PREMIUM only: on a plan without AI questions it shows
- * MSG29; otherwise it opens SCR-29 with the pair.
+ * SCR-10 / SCR-11 actions (SRS 3.3.2, 3.3.3), on the pair id the market
+ * list gives (FEQ-01). Add to watchlist appends the pair (UC-12), or shows
+ * it is watched; Create alert opens SCR-14 on the pair, which the server
+ * adds to the watchlist when it is not there yet (BR-16). Creating a plan
+ * from here waits for the new plan form and says so. Ask AI is PRO and
+ * PREMIUM only: on a plan without AI questions it shows MSG29; otherwise it
+ * opens SCR-29 with the pair.
  */
 export function AnalysisActions({
   market,
   symbol,
-  watched = false,
+  watched,
+  adding,
+  onAddWatchlist,
   onCreateAlert,
 }: {
   market: MarketType;
   symbol: string;
-  /** The pair is in the Trader's watchlist. */
-  watched?: boolean;
-  /** Opens SCR-14 for a watched pair. */
-  onCreateAlert?: () => void;
+  /** The pair is in the Trader's watchlist; undefined while unknown. */
+  watched: boolean | undefined;
+  /** An add is on its way. */
+  adding: boolean;
+  onAddWatchlist: () => void;
+  /** Opens SCR-14 on the pair; absent while its markets are unknown. */
+  onCreateAlert: (() => void) | undefined;
 }) {
   const copy = useCopy();
   const a = copy.analysis;
   const aiQuota = usePlanLimit('AI_CHAT_DAILY');
   const [upsell, setUpsell] = useState(false);
-  const blocked = [
-    { label: watched ? a.inWatchlist : a.addWatchlist, icon: Star },
-    ...(onCreateAlert ? [] : [{ label: a.createAlert, icon: Bell }]),
-    { label: a.createPlan, icon: ClipboardList },
-  ];
   return (
     <section
       aria-labelledby="analysis-actions-title"
@@ -51,28 +52,37 @@ export function AnalysisActions({
         {a.actionsTitle}
       </h2>
       <div className="grid grid-cols-1 gap-2">
-        {blocked.map(({ label, icon: Icon }) => (
-          <Button
-            key={label}
-            variant="secondary"
-            disabled
-            aria-describedby="analysis-actions-note"
-            className="justify-start"
-          >
-            <Icon size={14} aria-hidden="true" />
-            {label}
-          </Button>
-        ))}
-        {onCreateAlert && (
-          <Button
-            variant="secondary"
-            className="justify-start"
-            onClick={onCreateAlert}
-          >
-            <Bell size={14} aria-hidden="true" />
-            {a.createAlert}
-          </Button>
-        )}
+        <Button
+          variant="secondary"
+          className="justify-start"
+          disabled={watched !== false || adding}
+          onClick={onAddWatchlist}
+        >
+          <Star
+            size={14}
+            aria-hidden="true"
+            className={watched ? 'fill-warning text-warning' : undefined}
+          />
+          {watched ? a.inWatchlist : a.addWatchlist}
+        </Button>
+        <Button
+          variant="secondary"
+          className="justify-start"
+          disabled={!onCreateAlert}
+          onClick={onCreateAlert}
+        >
+          <Bell size={14} aria-hidden="true" />
+          {a.createAlert}
+        </Button>
+        <Button
+          variant="secondary"
+          disabled
+          aria-describedby="analysis-actions-note"
+          className="justify-start"
+        >
+          <ClipboardList size={14} aria-hidden="true" />
+          {a.createPlan}
+        </Button>
         {aiQuota === 0 ? (
           <Button
             variant="secondary"
@@ -97,7 +107,7 @@ export function AnalysisActions({
         )}
       </div>
       <p id="analysis-actions-note" className="mt-2 text-[11px] text-muted-dim">
-        {onCreateAlert ? a.actionsPendingWatched : a.actionsPending}
+        {a.planPending}
       </p>
       <Dialog
         open={upsell}

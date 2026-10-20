@@ -364,10 +364,9 @@ export const en = {
     createAlert: 'Create alert',
     createPlan: 'Create trading plan',
     askAi: 'Ask AI',
-    actionsPending:
-      'Adding to the watchlist, alerts and plans from this screen is not connected yet.',
-    actionsPendingWatched:
-      'Adding to the watchlist and plans from this screen is not connected yet.',
+    planPending:
+      'Creating a trading plan from this screen is not available yet.',
+    addedWatchlist: '{pair} added to your watchlist.',
     newsTitle: 'Latest {coin} news',
     futuresTitle: 'Mark price and funding',
     statMark: 'Mark price',
@@ -413,6 +412,8 @@ export const en = {
     directionSHORT: 'Short',
     entryLIMIT: 'Limit',
     entryMARKET: 'Market',
+    filterPair: 'Pair',
+    filterAllPairs: 'All pairs',
     filterMarket: 'Market',
     filterAllMarkets: 'All markets',
     filterPeriod: 'Created',
@@ -433,8 +434,6 @@ export const en = {
     colCreated: 'Created',
     colPosition: 'Position',
     colPnl: 'P/L (USDT)',
-    pairPending:
-      'Pair names are not returned by the server yet; plans are listed by market and prices.',
     pairUnknown: 'Pair name not available',
     positionPending:
       'Position status and P/L appear once simulated execution is available.',
@@ -474,6 +473,9 @@ export const en = {
     rewardAmount: 'Reward (USDT)',
     riskReward: 'Reward / risk',
     liquidation: 'Est. liquidation price',
+    lineLiquidation: 'Liquidation (est.)',
+    chartUnlisted:
+      'No chart: this pair is no longer listed on the market of the plan.',
     warningsTitle: 'Warnings',
     noWarnings: 'No warnings for this plan.',
     severityINFO: 'Info',
@@ -546,10 +548,19 @@ export const en = {
     count: '{count} / {limit} pairs',
     countUnlimited: '{count} pairs',
     addPair: 'Add pair',
-    addPending:
-      'Adding a pair from here is not connected yet. Pairs you create an alert for are added automatically.',
+    addPairTitle: 'Add pair',
+    addPairSearch: 'Search pair or coin',
+    addPairList: 'Pairs',
+    addPairNone: 'No pair matches.',
+    addPairFor: 'Add {pair}',
+    addedPair: '{pair} is on your watchlist',
+    add: 'Add',
+    added: 'Added',
+    addedToast: '{pair} added to your watchlist.',
+    fullHint:
+      'Your watchlist is full ({count} / {limit} pairs). Remove a pair or upgrade the plan to add another.',
     empty: 'Your watchlist is empty.',
-    emptyHint: 'Open a pair from Markets to follow it.',
+    emptyHint: 'Add a pair, or open one from Markets to follow it.',
     browseMarkets: 'Browse markets',
     unlabelled: 'No label',
     groupCount: '{label} ({count})',
@@ -651,6 +662,7 @@ export const en = {
     dialogEdit: 'Edit alert',
     pairField: 'Pair',
     pairNone: 'Add a pair to your watchlist first.',
+    addsToWatchlist: 'This pair is added to your watchlist with the alert.',
     marketField: 'Market',
     typeField: 'Alert type',
     indicatorField: 'Indicator',
@@ -803,8 +815,6 @@ export const en = {
     listPlaced: '{type} placed.',
     insufficientServer: 'Not enough available balance for this order.',
     orderNotOpen: 'This order is no longer open.',
-    needPairId:
-      'Add this pair to your watchlist to trade it here: demo orders name a pair by an id the market list does not give yet.',
     placed: '{side} order {status}.',
     statusNEW: 'Open',
     statusPENDING_NEW: 'Pending',
@@ -899,8 +909,6 @@ export const en = {
     period90: '90D',
     periodAll: 'All',
     resetFilters: 'Reset',
-    pairFilterHint:
-      'Only pairs on your watchlist can be chosen: the order history names a pair by an id the market list does not give yet.',
     noLedger: 'No balance change in this period.',
     noTransfers: 'No transfers yet.',
     ordersTitle: 'Orders',

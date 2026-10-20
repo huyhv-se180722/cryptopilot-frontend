@@ -190,7 +190,7 @@ export interface TradingPlanService {
 /** The signed-in Trader's watchlist (`/watchlist/**`; SRS 3.4.1). */
 export interface WatchlistService {
   get(signal?: AbortSignal): Promise<Watchlist>;
-  /** Appends a pair; the UI cannot name one until FEQ-01 gives pair ids. */
+  /** Appends a pair, named by the id the market list gives (FEQ-01). */
   add(pairId: string): Promise<WatchlistItem>;
   update(id: string, update: WatchlistItemUpdate): Promise<WatchlistItem>;
   /**

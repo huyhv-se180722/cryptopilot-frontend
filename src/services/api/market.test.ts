@@ -11,6 +11,7 @@ import {
 
 /** Response shapes of the backend `/market/**` endpoints on develop @ 0d92def. */
 const pair = (symbol: string, displayOrder: number) => ({
+  pairId: 'p-' + symbol,
   symbol,
   market: 'SPOT',
   baseAsset: symbol.replace('USDT', ''),
@@ -110,14 +111,16 @@ describe('market decoders', () => {
     expect(() => decodePairPage({ items: [{}], total: 1 })).toThrow();
   });
 
-  it('keeps the pair id when the backend sends it (FEQ-01)', () => {
+  it('requires the pair id requests name the pair by (FEQ-01)', () => {
     const id = '0199a0f0-1111-7aaa-8bbb-000000000001';
     const page = decodePairPage({
-      items: [{ ...pair('BTCUSDT', 1), pairId: id }, pair('ETHUSDT', 2)],
-      total: 2,
+      items: [{ ...pair('BTCUSDT', 1), pairId: id }],
+      total: 1,
     });
     expect(page.items[0]?.pairId).toBe(id);
-    expect(page.items[1]).not.toHaveProperty('pairId');
+    const withoutId: Record<string, unknown> = pair('ETHUSDT', 2);
+    delete withoutId.pairId;
+    expect(() => decodePairPage({ items: [withoutId], total: 1 })).toThrow();
     expect(() =>
       decodePairPage({
         items: [{ ...pair('BTCUSDT', 1), pairId: 7 }],

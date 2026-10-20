@@ -19,6 +19,7 @@ const DAY_MS = 86_400_000;
 export interface PlanListFilter {
   tab: PlanTab;
   page: number;
+  pairId?: string;
   market?: MarketType;
   /** Plans created in the last n days; all when absent. */
   periodDays?: number;
@@ -28,16 +29,23 @@ export interface PlanListFilter {
  * One page of the Trader's plans (SCR-16). The period starts when the page
  * is read; the previous page stays on screen while the next one loads.
  */
-export function usePlanList({ tab, page, market, periodDays }: PlanListFilter) {
+export function usePlanList({
+  tab,
+  page,
+  pairId,
+  market,
+  periodDays,
+}: PlanListFilter) {
   const { tradingPlan } = useServices();
   return useQuery({
-    queryKey: [...LIST_KEY, { tab, page, market, periodDays }],
+    queryKey: [...LIST_KEY, { tab, page, pairId, market, periodDays }],
     queryFn: ({ signal }) =>
       tradingPlan.list(
         {
           tab,
           page,
           pageSize: PLAN_PAGE_SIZE,
+          ...(pairId ? { pairId } : {}),
           ...(market ? { market } : {}),
           ...(periodDays
             ? {

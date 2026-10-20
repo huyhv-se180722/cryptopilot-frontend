@@ -114,6 +114,7 @@ const candles = (count: number): Candle[] =>
 const fakeMarket = (count: number): MarketService => ({
   listPairs: vi.fn(async () => [
     {
+      pairId: '0199a0f0-1111-7aaa-8bbb-000000000001',
       symbol: 'BTCUSDT',
       market: 'spot' as const,
       baseAsset: 'BTC',
