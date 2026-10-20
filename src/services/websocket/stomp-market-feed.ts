@@ -20,9 +20,24 @@ export type StompConnection = Pick<
  * sends them a missed one closes the socket. Meanwhile the feed watches
  * the messages themselves (see `SILENCE_LIMIT_MS`).
  */
-function createStompClient(url: string): StompConnection {
+function createStompClient(
+  url: string,
+  token?: () => Promise<string | null>,
+): StompConnection {
   return new Client({
     brokerURL: url,
+    // Read before every (re)connect, so a reconnect presents the current
+    // token; the backend checks it once, when the session connects.
+    ...(token
+      ? {
+          beforeConnect: async (client: Client) => {
+            const current = await token();
+            client.connectHeaders = current
+              ? { Authorization: 'Bearer ' + current }
+              : {};
+          },
+        }
+      : {}),
     reconnectDelay: 1_000,
     maxReconnectDelay: 60_000,
     reconnectTimeMode: ReconnectionTimeMode.EXPONENTIAL,
@@ -32,6 +47,16 @@ function createStompClient(url: string): StompConnection {
     // instead of waiting for a closing handshake a dead peer never answers.
     discardWebsocketOnCommFailure: true,
   });
+}
+
+/**
+ * A connection signed in with `token` (`Authorization` in the CONNECT
+ * frame), for the user queues of TR-08; the public topics need none.
+ */
+export function signedInStompClient(
+  token: () => Promise<string | null>,
+): (url: string) => StompConnection {
+  return (url) => createStompClient(url, token);
 }
 
 /**

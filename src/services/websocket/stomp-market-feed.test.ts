@@ -3,6 +3,7 @@ import type { MarketOverview } from '../../types/domain';
 import {
   SILENCE_LIMIT_MS,
   createStompMarketFeed,
+  signedInStompClient,
   type FeedClock,
   type StompConnection,
 } from './stomp-market-feed';
@@ -252,5 +253,25 @@ describe('STOMP market feed', () => {
     expect(fake.unsubscribed).toEqual(['/topic/overview.SPOT']);
     expect(fake.connection.deactivate).toHaveBeenCalledTimes(1);
     expect(statuses).toEqual(['connecting', 'open', 'closed']);
+  });
+});
+
+describe('signed-in STOMP client (TR-08)', () => {
+  it('presents the current token in each CONNECT frame, none when signed out', async () => {
+    let token: string | null = 'access-1';
+    const client = signedInStompClient(async () => token)(
+      'ws://localhost/ws',
+    ) as unknown as {
+      beforeConnect: (client: unknown) => Promise<void>;
+      connectHeaders: Record<string, string>;
+    };
+    await client.beforeConnect(client);
+    expect(client.connectHeaders).toEqual({ Authorization: 'Bearer access-1' });
+    token = 'access-2';
+    await client.beforeConnect(client);
+    expect(client.connectHeaders).toEqual({ Authorization: 'Bearer access-2' });
+    token = null;
+    await client.beforeConnect(client);
+    expect(client.connectHeaders).toEqual({});
   });
 });

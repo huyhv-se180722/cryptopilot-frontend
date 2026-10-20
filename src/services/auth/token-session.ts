@@ -58,6 +58,19 @@ export class TokenSession {
     return this.tokens !== null;
   }
 
+  /**
+   * The access token, renewed first when it expires within `margin` (a
+   * laptop that slept past the scheduled renewal); null when signed out or
+   * when the session could not be renewed.
+   */
+  async validAccessToken(margin = 5_000): Promise<string | null> {
+    const current = this.tokens;
+    if (!current) return null;
+    if (Date.parse(current.accessTokenExpiresAt) - this.timers.now() > margin)
+      return current.accessToken;
+    return (await this.refresh()) === 'renewed' ? this.accessToken() : null;
+  }
+
   /** Store a new pair (sign-in or rotation) and schedule the next renewal. */
   set(pair: TokenPair): void {
     this.tokens = pair;

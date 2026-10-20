@@ -1,8 +1,11 @@
-import type { PaperTradingService } from './contracts';
+import type { StompTopics } from '../websocket/stomp-market-feed';
+import type { FeedStatus, MarketFeed, PaperTradingService } from './contracts';
+import type { PaperAccountEvent } from '../../types/domain';
 import { integrationPending } from './errors';
 import type { HttpClient } from './http-client';
 import {
   decodeAccount,
+  decodeBalanceUpdate,
   decodeFill,
   decodeLedgerEntry,
   decodeOrder,
@@ -32,6 +35,48 @@ export function createPendingPaperTradingService(): PaperTradingService {
     openOrders: async () => integrationPending(),
     orders: async () => integrationPending(),
     fills: async () => integrationPending(),
+    ...noAccountFeed,
+  };
+}
+
+/** No push of the account: screens read their data on a rhythm. */
+export const noAccountFeed: Pick<
+  PaperTradingService,
+  'subscribeAccount' | 'accountFeedStatus' | 'onAccountFeedStatus'
+> = {
+  subscribeAccount: () => () => undefined,
+  accountFeedStatus: (): FeedStatus => 'unavailable',
+  onAccountFeedStatus: () => () => undefined,
+};
+
+/** The signed-in connection the account's queues ride on (TR-08). */
+export type AccountFeed = StompTopics & Pick<MarketFeed, 'status' | 'onStatus'>;
+
+/**
+ * The three queues of TR-08 on `feed`, one listener for all: orders and
+ * fills decode as their REST rows, balances as the moved row.
+ */
+function accountPushes(feed: AccountFeed | null) {
+  if (!feed) return noAccountFeed;
+  return {
+    subscribeAccount: (listener: (event: PaperAccountEvent) => void) => {
+      const stops = [
+        feed.subscribeTopic('/user/queue/orders', decodeOrder, (order) =>
+          listener({ kind: 'order', order }),
+        ),
+        feed.subscribeTopic('/user/queue/fills', decodeFill, (fill) =>
+          listener({ kind: 'fill', fill }),
+        ),
+        feed.subscribeTopic(
+          '/user/queue/balances',
+          decodeBalanceUpdate,
+          (balance) => listener({ kind: 'balance', balance }),
+        ),
+      ];
+      return () => stops.forEach((stop) => stop());
+    },
+    accountFeedStatus: feed.status,
+    onAccountFeedStatus: feed.onStatus,
   };
 }
 
@@ -54,8 +99,10 @@ function queryOf(values: Record<string, string | number | undefined>) {
  */
 export function createHttpPaperTradingService(
   http: HttpClient,
+  accountFeed: AccountFeed | null = null,
 ): PaperTradingService {
   return {
+    ...accountPushes(accountFeed),
     openAccount: () =>
       http.request({
         path: 'paper/account',
