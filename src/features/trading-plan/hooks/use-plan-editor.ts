@@ -65,30 +65,33 @@ const STALE = new Set([
 ]);
 
 /**
- * Save as Draft or Save and Activate (UC-17). The answer replaces the plan
- * in the cache and the lists are read again; an activation refused with
- * MSG18 or MSG27 saves nothing, and a stale-plan refusal reads it again.
+ * Save as Draft or Save and Activate: a new plan on `pairId` (UC-16) when
+ * there is no `id`, else the DRAFT `id` (UC-17). The answer is put in the
+ * cache and the lists are read again; an activation refused with MSG18 or
+ * MSG27 saves nothing, and a stale-plan refusal reads the plan again.
  */
-export function useSavePlan(id: string) {
+export function useSavePlan(id: string | null, pairId: string) {
   const { tradingPlan } = useServices();
   const client = useQueryClient();
   return useMutation(
     useCallback(
       async (inputs: PlanInputs, activate: boolean): Promise<TradingPlan> => {
         try {
-          const plan = await tradingPlan.update(id, inputs, activate);
-          client.setQueryData(['plans', 'detail', id], plan);
+          const plan = id
+            ? await tradingPlan.update(id, inputs, activate)
+            : await tradingPlan.create(pairId, inputs, activate);
+          client.setQueryData(['plans', 'detail', plan.id], plan);
           void client.invalidateQueries({ queryKey: ['plans', 'list'] });
           return plan;
         } catch (error) {
-          if (STALE.has(problemOf(error)?.code ?? ''))
+          if (id && STALE.has(problemOf(error)?.code ?? ''))
             void client.invalidateQueries({
               queryKey: ['plans', 'detail', id],
             });
           throw error;
         }
       },
-      [tradingPlan, client, id],
+      [tradingPlan, client, id, pairId],
     ),
   );
 }

@@ -297,14 +297,12 @@ describe('SCR-10 Spot analysis (T-033)', () => {
         })) as HTMLButtonElement
       ).disabled,
     ).toBe(true);
-    // Plans from here wait for the new plan form, and the screen says so.
-    const plan = screen.getByRole('button', { name: 'Create trading plan' });
-    expect((plan as HTMLButtonElement).disabled).toBe(true);
+    // Create trading plan opens SCR-17 on the pair (T-040).
     expect(
-      screen.getByText(
-        'Creating a trading plan from this screen is not available yet.',
-      ),
-    ).toBeTruthy();
+      screen
+        .getByRole('link', { name: 'Create trading plan' })
+        .getAttribute('href'),
+    ).toBe('/plans/new?symbol=BTCUSDT');
     expect(
       screen.getByRole('link', { name: 'Ask AI' }).getAttribute('href'),
     ).toBe('/ai?symbol=BTCUSDT&market=spot');

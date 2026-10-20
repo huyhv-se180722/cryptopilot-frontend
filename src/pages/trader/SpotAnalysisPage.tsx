@@ -139,6 +139,7 @@ function SpotAnalysis({ pair }: { pair: MarketPair }) {
                   });
               })
             }
+            planHref={`/plans/new?symbol=${encodeURIComponent(pair.symbol)}`}
             onCreateAlert={
               listed
                 ? () =>

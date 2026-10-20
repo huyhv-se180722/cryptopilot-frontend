@@ -2,6 +2,7 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { PlanCreatePage } from '../../pages/trader/PlanCreatePage';
 import { PlanDetailPage } from '../../pages/trader/PlanDetailPage';
 import { PlanEditPage } from '../../pages/trader/PlanEditPage';
 import { PlansPage } from '../../pages/trader/PlansPage';
@@ -226,6 +227,7 @@ async function open(
   await renderRoutes(
     [
       page('/plans', <PlansPage />),
+      page('/plans/new', <PlanCreatePage />),
       page('/plans/:planId', <PlanDetailPage />),
       page('/plans/:planId/edit', <PlanEditPage />),
     ],
@@ -562,6 +564,112 @@ const SPOT_DRAFT: TradingPlan = {
     estimatedLiquidationPrice: null,
   },
 };
+
+describe('SCR-17 new plan (T-040, UC-16)', () => {
+  const fill = async (entry: string, stop: string, take: string) => {
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText('Entry price'), entry);
+    await user.type(screen.getByLabelText('Stop loss'), stop);
+    await user.type(screen.getByLabelText('Take profit'), take);
+    return user;
+  };
+
+  it('starts on the analysis pair, calculates it and saves a draft', async () => {
+    priceLines.length = 0;
+    const service = fakePlans({
+      create: vi.fn(async () => ({ ...PLAN, id: 'new-plan' })),
+      get: vi.fn(async () => ({ ...PLAN, id: 'new-plan' })),
+    });
+    await open('/plans/new?symbol=ETHUSDT', service);
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'New trading plan',
+      }),
+    ).toBeTruthy();
+    const pair = screen.getByLabelText('Pair') as HTMLSelectElement;
+    expect(pair.value).toBe('eth-id');
+    expect(screen.getByText(/New plans are Spot for now/)).toBeTruthy();
+    const user = await fill('2500', '2400', '2800');
+    await waitFor(() =>
+      expect(service.calculate).toHaveBeenCalledWith(
+        'eth-id',
+        expect.objectContaining({ entryPrice: '2500', market: 'spot' }),
+        expect.anything(),
+      ),
+    );
+    // The chart of the pair shows the prices as typed.
+    await waitFor(() =>
+      expect(priceLines).toEqual(
+        expect.arrayContaining([
+          'Entry 2500',
+          'Stop loss 2400',
+          'Take profit 2800',
+        ]),
+      ),
+    );
+    await user.click(screen.getByRole('button', { name: 'Save as draft' }));
+    await waitFor(() =>
+      expect(service.create).toHaveBeenCalledWith(
+        'eth-id',
+        expect.objectContaining({
+          entryPrice: '2500',
+          stopLoss: '2400',
+          takeProfit: '2800',
+        }),
+        false,
+      ),
+    );
+    expect(await screen.findByText('Saved successfully.')).toBeTruthy();
+    // The new plan's detail page is read next.
+    await waitFor(() =>
+      expect(service.get).toHaveBeenCalledWith('new-plan', expect.anything()),
+    );
+  });
+
+  it('saves nothing when the server refuses the activation (MSG18)', async () => {
+    const service = fakePlans({
+      create: vi.fn(async () => {
+        throw new ServiceError('refused', 'HTTP_ERROR', 409, {
+          status: 409,
+          code: 'TRADING_BLOCKING_WARNING',
+          messageCode: 'MSG18',
+          messageArgs: [],
+          fieldErrors: {},
+        });
+      }),
+    });
+    await open('/plans/new', service);
+    const user = await fill('62000', '61000', '65000');
+    await user.click(
+      await screen.findByRole('button', { name: 'Save and activate' }),
+    );
+    await waitFor(() =>
+      expect(service.create).toHaveBeenCalledWith(
+        ROW.pairId,
+        expect.anything(),
+        true,
+      ),
+    );
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'New trading plan',
+      }),
+    ).toBeTruthy();
+  });
+
+  it('checks the price order before sending anything (BR-22)', async () => {
+    const service = fakePlans();
+    await open('/plans/new', service);
+    const user = await fill('62000', '63000', '65000');
+    await user.click(screen.getByRole('button', { name: 'Save as draft' }));
+    expect(service.create).not.toHaveBeenCalled();
+    expect(
+      (await screen.findAllByText(/For long positions/)).length,
+    ).toBeTruthy();
+  });
+});
 
 describe('SCR-17 edit a draft plan (T-040)', () => {
   const editPath = '/plans/' + SPOT_DRAFT.id + '/edit';

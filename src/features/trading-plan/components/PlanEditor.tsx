@@ -4,6 +4,7 @@ import { Info, Loader2, Play, Save } from 'lucide-react';
 import { Alert as Banner } from '../../../components/feedback/States';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { Select } from '../../../components/ui/Select';
 import { NumericText } from '../../../components/ui/NumericText';
 import { SegmentedControl } from '../../../components/ui/SegmentedControl';
 import { Skeleton } from '../../../components/ui/Skeleton';
@@ -26,12 +27,16 @@ import type {
   TradingPlan,
 } from '../../../types/domain';
 import { pairLabel } from '../../../utils/pair-label';
+import type { ChartPriceLine } from '../../chart/components/AnalysisChart';
 import { usePlanCalculation, useSavePlan } from '../hooks/use-plan-editor';
 import { Panel, PlanSnapshotRows, PlanWarningsPanel } from './PlanDetailPanels';
 import { planPrice } from './plan-format';
+import { priceLines } from './plan-lines';
 import {
+  EMPTY_PLAN_DRAFT,
   NOTE_MAX,
   draftOfPlan,
+  drawablePrice,
   serverFieldError,
   toInputs,
   type PlanDraft,
@@ -100,35 +105,67 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+/** What the editor works on: a DRAFT, or a new plan on a pair of a list. */
+export type PlanEditorTarget =
+  | {
+      mode: 'edit';
+      plan: TradingPlan;
+      /** The plan's pair from the market lists; undefined when not known. */
+      pair: MarketPair | undefined;
+    }
+  | {
+      mode: 'create';
+      /** The pairs a new plan can be on (Spot, by the id of the list). */
+      pairs: readonly MarketPair[];
+      /** The pair to start on, e.g. the analysis screen's. */
+      pairId: string | null;
+    };
+
 /**
- * SCR-17 in edit mode (SRS 3.5.1, UC-17) for a DRAFT (BR-32): the inputs on
- * the left; on the right the risk panel recalculated by the server as the
- * Trader types (BR-23…BR-27), the warnings with their severity (MSG17), and
- * Save as Draft (MSG14) or Save and Activate (MSG19; refused with MSG18 or
- * MSG27, nothing saved). The pair is fixed, named from the market lists
- * by its id (FEQ-01) when they still give it.
+ * SCR-17 (SRS 3.5.1): a new plan (UC-16) or a DRAFT (UC-17, BR-32). The
+ * inputs on the left, under the chart of the pair with the entry, stop loss
+ * and take profit as typed; on the right the risk panel recalculated by the
+ * server as the Trader types (BR-23…BR-27), the warnings with their severity
+ * (MSG17), and Save as Draft (MSG14) or Save and Activate (MSG19; refused
+ * with MSG18 or MSG27, nothing saved). A new plan picks its pair from the
+ * market list by id (FEQ-01); a DRAFT's pair is fixed. The page draws the
+ * chart, given the pair and the lines.
  */
 export function PlanEditor({
-  plan,
-  pair,
+  target,
+  chart,
 }: {
-  plan: TradingPlan;
-  /** The plan's pair from the market lists; undefined when not known. */
-  pair: MarketPair | undefined;
+  target: PlanEditorTarget;
+  chart?: (pair: MarketPair, lines: readonly ChartPriceLine[]) => ReactNode;
 }) {
   const copy = useCopy();
   const p = copy.plan;
   const navigate = useNavigate();
   const { show } = useToast();
-  const [draft, setDraft] = useState<PlanDraft>(() => draftOfPlan(plan));
+  const plan = target.mode === 'edit' ? target.plan : null;
+  const [draft, setDraft] = useState<PlanDraft>(() =>
+    plan ? draftOfPlan(plan) : EMPTY_PLAN_DRAFT,
+  );
+  const [chosenPairId, setChosenPairId] = useState(() =>
+    target.mode === 'create'
+      ? (target.pairs.find((each) => each.pairId === target.pairId)?.pairId ??
+        target.pairs[0]?.pairId ??
+        '')
+      : '',
+  );
+  const pairId = plan ? plan.pairId : chosenPairId;
+  const pair =
+    target.mode === 'edit'
+      ? target.pair
+      : target.pairs.find((each) => each.pairId === chosenPairId);
   const [touched, setTouched] = useState<ReadonlySet<PlanField>>(new Set());
   const [now] = useState(() => Date.now());
   const checked = useMemo(() => toInputs(draft, now), [draft, now]);
   const calculation = usePlanCalculation(
-    plan.pairId,
-    checked.ok ? checked.inputs : null,
+    pairId,
+    checked.ok && pairId ? checked.inputs : null,
   );
-  const save = useSavePlan(plan.id);
+  const save = useSavePlan(plan?.id ?? null, pairId);
 
   const change = (patch: Partial<PlanDraft>, field?: PlanField) => {
     setDraft((current) => ({ ...current, ...patch }));
@@ -159,7 +196,7 @@ export function PlanEditor({
   };
 
   async function submit(activate: boolean) {
-    if (!checked.ok) {
+    if (!checked.ok || !pairId) {
       setTouched(new Set(FIELDS));
       return;
     }
@@ -172,12 +209,33 @@ export function PlanEditor({
         result.data.status === 'DRAFT' ? 'MSG14' : 'MSG19',
       ),
     });
-    navigate(`/plans/${plan.id}`);
+    navigate(`/plans/${result.data.id}`);
   }
 
   const futures = draft.market === 'futures';
   const result = calculation.data;
-  const blocked = result?.blocksActivation ?? plan.blocksActivation;
+  const blocked = result?.blocksActivation ?? plan?.blocksActivation ?? false;
+  // The chart reads the candles of the plan's own market.
+  const charted = pair && pair.market === draft.market ? pair : null;
+  const lines = priceLines(
+    {
+      entry:
+        draft.entryType === 'LIMIT'
+          ? drawablePrice(draft.entryPrice)
+          : (result?.entryPrice ?? null),
+      stopLoss: drawablePrice(draft.stopLoss),
+      takeProfit: drawablePrice(draft.takeProfit),
+      liquidation: futures
+        ? (result?.snapshot.estimatedLiquidationPrice ?? null)
+        : null,
+    },
+    {
+      entry: p.colEntry,
+      stopLoss: p.colStopLoss,
+      takeProfit: p.colTakeProfit,
+      liquidation: p.lineLiquidation,
+    },
+  );
   const panelProblem = calculation.fieldErrors.quantity
     ? p.riskQuantity
     : calculation.fieldErrors.notional
@@ -198,18 +256,38 @@ export function PlanEditor({
       className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]"
     >
       <div className="flex min-w-0 flex-col gap-4">
+        {charted && chart?.(charted, lines)}
         <Section title={p.sectionPair}>
           <div>
-            <span className={fieldLabelClass}>{p.pairField}</span>
-            {pair ? (
-              <p className="text-sm font-medium text-fg">
-                {pairLabel(pair.symbol)}
-              </p>
+            {target.mode === 'create' ? (
+              <Select
+                label={p.pairField}
+                value={chosenPairId}
+                onChange={(event) => {
+                  setChosenPairId(event.target.value);
+                  save.reset();
+                }}
+              >
+                {target.pairs.map((each) => (
+                  <option key={each.pairId} value={each.pairId}>
+                    {pairLabel(each.symbol)}
+                  </option>
+                ))}
+              </Select>
             ) : (
-              <p className="text-sm text-muted-x" title={p.pairUnknown}>
-                {copy.market.noValue}
-                <span className="sr-only"> {p.pairUnknown}</span>
-              </p>
+              <>
+                <span className={fieldLabelClass}>{p.pairField}</span>
+                {pair ? (
+                  <p className="text-sm font-medium text-fg">
+                    {pairLabel(pair.symbol)}
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-x" title={p.pairUnknown}>
+                    {copy.market.noValue}
+                    <span className="sr-only"> {p.pairUnknown}</span>
+                  </p>
+                )}
+              </>
             )}
           </div>
           <div>
@@ -217,6 +295,9 @@ export function PlanEditor({
             <p className="text-sm font-medium text-fg">
               {futures ? copy.market.futures : copy.market.spot}
             </p>
+            {target.mode === 'create' && (
+              <span className={fieldHintClass}>{p.createSpotOnly}</span>
+            )}
           </div>
           <div className="sm:col-span-2">
             {futures ? (
@@ -439,7 +520,7 @@ export function PlanEditor({
           </p>
         </Panel>
         <PlanWarningsPanel
-          warnings={result?.warnings ?? plan.warnings}
+          warnings={result?.warnings ?? plan?.warnings ?? []}
           blocked={blocked}
         />
         {saveProblem && Object.keys(saveProblem.fieldErrors).length === 0 && (
@@ -459,13 +540,13 @@ export function PlanEditor({
           </Banner>
         )}
         <div className="flex flex-col gap-2">
-          <Button type="submit" disabled={save.pending}>
+          <Button type="submit" disabled={save.pending || !pairId}>
             <Save size={14} aria-hidden="true" />
             {p.saveDraft}
           </Button>
           <Button
             variant="secondary"
-            disabled={save.pending || blocked}
+            disabled={save.pending || blocked || !pairId}
             aria-describedby={blocked ? 'plan-activate-blocked' : undefined}
             onClick={() => void submit(true)}
           >
@@ -478,7 +559,7 @@ export function PlanEditor({
             </p>
           )}
           <Link
-            to={`/plans/${plan.id}`}
+            to={plan ? `/plans/${plan.id}` : '/plans'}
             className={buttonClassName('ghost', 'md', 'no-underline')}
           >
             {p.discard}
