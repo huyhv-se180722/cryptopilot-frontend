@@ -23,15 +23,26 @@ import { useLiveTicker } from '../../features/analysis/hooks/use-live-ticker';
 import { usePairAnalysis } from '../../features/analysis/hooks/use-pair-analysis';
 import { AnalysisChart } from '../../features/chart/components/AnalysisChart';
 import { FreshnessBadge } from '../../features/market/components/FreshnessBadge';
-import { useMarketPairs } from '../../features/market/hooks/use-market-data';
-import { useWatchedPair } from '../../features/watchlist/hooks/use-watchlist';
+import {
+  useListedPair,
+  useMarketPairs,
+} from '../../features/market/hooks/use-market-data';
+import {
+  useAddToWatchlist,
+  useWatchedPair,
+} from '../../features/watchlist/hooks/use-watchlist';
+import { useToast } from '../../hooks/use-toast';
+import { formatCopy } from '../../i18n/copy';
+import { pairLabel } from '../../utils/pair-label';
 import type { CandleTimeframe, MarketPair } from '../../types/domain';
 import { formatPrice, fractionToPercent } from '../../utils/decimal-format';
 
 /** The analysis of an enabled Futures pair (rendered once the pair is known). */
 function FuturesAnalysis({ pair }: { pair: MarketPair }) {
-  // A watched pair's row carries its id, so an alert can be created (FEQ-01).
   const watched = useWatchedPair(pair.symbol);
+  const listed = useListedPair(pair);
+  const add = useAddToWatchlist();
+  const toast = useToast();
   const [alertTarget, setAlertTarget] = useState<AlertDialogTarget | null>(
     null,
   );
@@ -124,18 +135,35 @@ function FuturesAnalysis({ pair }: { pair: MarketPair }) {
           <AnalysisActions
             market="futures"
             symbol={pair.symbol}
-            watched={Boolean(watched)}
-            {...(watched
-              ? {
-                  onCreateAlert: () =>
+            watched={watched === undefined ? undefined : watched !== null}
+            adding={add.pending}
+            onAddWatchlist={() =>
+              void add.run(pair.pairId).then((result) => {
+                if (result.status === 'success')
+                  toast.show({
+                    tone: 'success',
+                    message: formatCopy(copy.analysis.addedWatchlist, {
+                      pair: pairLabel(pair.symbol),
+                    }),
+                  });
+                else if (result.status === 'error')
+                  toast.show({
+                    tone: 'error',
+                    message: errorText(copy, result.error),
+                  });
+              })
+            }
+            onCreateAlert={
+              listed
+                ? () =>
                     setAlertTarget({
                       mode: 'create',
-                      pairs: [watched],
-                      pairId: watched.pairId,
+                      pairs: [watched ?? listed],
+                      pairId: pair.pairId,
                       market: 'futures',
-                    }),
-                }
-              : {})}
+                    })
+                : undefined
+            }
           />
           <AlertDialog
             target={alertTarget}

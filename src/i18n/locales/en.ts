@@ -364,10 +364,9 @@ export const en = {
     createAlert: 'Create alert',
     createPlan: 'Create trading plan',
     askAi: 'Ask AI',
-    actionsPending:
-      'Adding to the watchlist, alerts and plans from this screen is not connected yet.',
-    actionsPendingWatched:
-      'Adding to the watchlist and plans from this screen is not connected yet.',
+    planPending:
+      'Creating a trading plan from this screen is not available yet.',
+    addedWatchlist: '{pair} added to your watchlist.',
     newsTitle: 'Latest {coin} news',
     futuresTitle: 'Mark price and funding',
     statMark: 'Mark price',

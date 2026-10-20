@@ -284,7 +284,7 @@ describe('SCR-11 Futures analysis (T-034)', () => {
     ).toBeTruthy();
   });
 
-  it('carries the market into Ask AI and keeps the pair actions disabled', async () => {
+  it('carries the market into Ask AI and keeps Create trading plan disabled', async () => {
     await open();
     expect(
       (await screen.findByRole('link', { name: 'Ask AI' })).getAttribute(
