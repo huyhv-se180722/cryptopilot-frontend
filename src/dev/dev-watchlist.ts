@@ -11,6 +11,7 @@ import type {
   Session,
   WatchlistItem,
 } from '../types/domain';
+import { devPairs } from './fixtures/market';
 import { devAlertSeeds, devWatchlistSeeds } from './fixtures/watchlist';
 
 /**
@@ -18,8 +19,10 @@ import { devAlertSeeds, devWatchlistSeeds } from './fixtures/watchlist';
  * backend's answers: MSG26 with the alert count before a removal (D-76),
  * the rule table of `AlertRuleValidator` as field errors (MSG01 / MSG15),
  * plan features (MSG29), `ACTIVE_ALERT_MAX` and `WATCHLIST_MAX` (MSG27),
- * MSG45 and the status transitions (MSG43). Nothing is evaluated: trigger
- * counts are scripted. A reload restores the fixture.
+ * MSG45 and the status transitions (MSG43). A pair is added by the id of
+ * the development market lists, and an alert on a pair not watched yet
+ * adds its row first (BR-16). Nothing is evaluated: trigger counts are
+ * scripted. A reload restores the fixture.
  */
 function refuse(
   status: number,
@@ -156,6 +159,30 @@ export function createDevelopmentWatchlist(
         entitlements?.tier ?? '',
       ]);
   };
+  /** A new row for a pair of the market lists, not stored yet; MSG41 otherwise. */
+  let rowSequence = 100;
+  const newRow = (pairId: string): WatchlistItem => {
+    const on = (market: 'spot' | 'futures') =>
+      devPairs(market).find((pair) => pair.pairId === pairId);
+    const pair = on('spot') ?? on('futures');
+    if (!pair) return refuse(404, 'RESOURCE_NOT_FOUND', 'MSG41');
+    const last = Math.max(
+      -1,
+      ...[...rows.values()].map((row) => row.sortOrder),
+    );
+    return {
+      id: `0199a1b2-0000-7000-8000-${String(rowSequence++).padStart(12, '0')}`,
+      pairId,
+      symbol: pair.symbol,
+      spotListed: Boolean(on('spot')),
+      futuresListed: Boolean(on('futures')),
+      label: null,
+      note: null,
+      sortOrder: last + 1,
+      activeAlerts: 0,
+      addedAt: new Date(now()).toISOString(),
+    };
+  };
   const activeCount = () =>
     [...alerts.values()].filter((alert) => alert.status === 'ACTIVE').length;
 
@@ -197,8 +224,10 @@ export function createDevelopmentWatchlist(
         refuse(409, 'WATCHLIST_PAIR_ALREADY_WATCHED', 'MSG45', [
           existing.symbol,
         ]);
+      const row = newRow(pairId);
       limitReached(await plan(), 'WATCHLIST_MAX', rows.size, 'watchlist items');
-      return refuse(404, 'RESOURCE_NOT_FOUND', 'MSG41');
+      rows.set(row.id, row);
+      return withCounts(row);
     },
     async update(id, update) {
       await pause();
@@ -254,16 +283,24 @@ export function createDevelopmentWatchlist(
     },
     async create(pairId, rule) {
       await pause();
-      const item = [...rows.values()].find((row) => row.pairId === pairId);
-      // Every pair the dev UI offers is watched; an unknown id is not enabled.
-      if (!item) return refuse(404, 'RESOURCE_NOT_FOUND', 'MSG41');
+      const watched = [...rows.values()].find((row) => row.pairId === pairId);
+      // A pair not watched yet gets its row with the alert, or neither (BR-16).
+      const item = watched ?? newRow(pairId);
       const entitlements = await check(rule, item);
+      if (!watched)
+        limitReached(
+          entitlements,
+          'WATCHLIST_MAX',
+          rows.size,
+          'watchlist items',
+        );
       limitReached(
         entitlements,
         'ACTIVE_ALERT_MAX',
         activeCount(),
         'active alerts',
       );
+      if (!watched) rows.set(item.id, item);
       return save({
         ...rule,
         id: `0199a3d4-0000-7000-8000-000000000${sequence++}`,
