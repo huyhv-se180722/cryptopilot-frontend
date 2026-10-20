@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import {
   keepPreviousData,
   useQuery,
@@ -7,6 +7,7 @@ import {
 import { useMutation } from '../../../hooks/use-mutation';
 import { useServices } from '../../../hooks/use-services';
 import type {
+  PaperAccountEvent,
   PaperLedgerQuery,
   PaperOrderStatus,
   PaperWalletType,
@@ -19,14 +20,74 @@ const PAPER_KEY = ['paper', 'data'] as const;
 /** CR-04: 20 rows per page. */
 export const PAPER_PAGE_SIZE = 20;
 /**
- * The user queue that pushes orders, fills and balances (TR-08) is not
- * built yet, so the open data is read again on this rhythm meanwhile.
+ * While the account's pushes do not arrive (TR-08: connecting, no socket,
+ * the development exchange) the open data is read again on this rhythm.
  */
 export const PAPER_REFRESH_MS = 3_000;
+/** Pushes this close together are read in one go (one fill moves 3 rows). */
+export const PUSH_SETTLE_MS = 150;
 
 /** Reads run once the demo account is open (the backend answers MSG41 before). */
 function useAccountReady() {
   return usePaperAccount().isSuccess;
+}
+
+/** The reads a push makes stale, by what it changed. */
+const STALE: Record<PaperAccountEvent['kind'], readonly string[]> = {
+  order: ['open', 'orders'],
+  fill: ['fills', 'ledger'],
+  balance: ['wallet', 'ledger'],
+};
+
+/** The read rhythm: none while the pushes arrive, else `PAPER_REFRESH_MS`. */
+function useRefresh(): number | false {
+  const { paperTrading } = useServices();
+  const status = useSyncExternalStore(
+    paperTrading.onAccountFeedStatus,
+    paperTrading.accountFeedStatus,
+    paperTrading.accountFeedStatus,
+  );
+  return status === 'open' ? false : PAPER_REFRESH_MS;
+}
+
+/**
+ * Follows the account's pushes on a demo trading screen (TR-08): each push
+ * reads again what it changed, pushes close together in one go, and every
+ * read once the connection opens again, for what was missed meanwhile.
+ */
+export function usePaperPush() {
+  const { paperTrading } = useServices();
+  const client = useQueryClient();
+  const ready = useAccountReady();
+  useEffect(() => {
+    if (!ready) return;
+    let stale = new Set<string>();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const flush = () => {
+      timer = undefined;
+      const parts = stale;
+      stale = new Set();
+      parts.forEach(
+        (part) =>
+          void client.invalidateQueries({ queryKey: [...PAPER_KEY, part] }),
+      );
+    };
+    const stop = paperTrading.subscribeAccount((event) => {
+      STALE[event.kind].forEach((part) => stale.add(part));
+      timer ??= setTimeout(flush, PUSH_SETTLE_MS);
+    });
+    let open = paperTrading.accountFeedStatus() === 'open';
+    const stopStatus = paperTrading.onAccountFeedStatus(() => {
+      const now = paperTrading.accountFeedStatus() === 'open';
+      if (now && !open) void client.invalidateQueries({ queryKey: PAPER_KEY });
+      open = now;
+    });
+    return () => {
+      stop();
+      stopStatus();
+      if (timer) clearTimeout(timer);
+    };
+  }, [ready, paperTrading, client]);
 }
 
 /** One wallet with its balances (TR-04), kept fresh while shown. */
@@ -36,7 +97,7 @@ export function usePaperWallet(wallet: PaperWalletType) {
     queryKey: [...PAPER_KEY, 'wallet', wallet],
     queryFn: ({ signal }) => paperTrading.getWallet(wallet, signal),
     enabled: useAccountReady(),
-    refetchInterval: PAPER_REFRESH_MS,
+    refetchInterval: useRefresh(),
   });
 }
 
@@ -47,7 +108,7 @@ export function useOpenOrders(pairId: string | null) {
     queryKey: [...PAPER_KEY, 'open', pairId],
     queryFn: ({ signal }) => paperTrading.openOrders(pairId, signal),
     enabled: useAccountReady(),
-    refetchInterval: PAPER_REFRESH_MS,
+    refetchInterval: useRefresh(),
   });
 }
 
@@ -80,7 +141,7 @@ export function useOrderHistory(
     queryFn: ({ signal }) =>
       paperTrading.orders(historyQuery(filter, page), signal),
     enabled: useAccountReady() && enabled,
-    refetchInterval: PAPER_REFRESH_MS,
+    refetchInterval: useRefresh(),
     placeholderData: keepPreviousData,
   });
 }
@@ -100,7 +161,7 @@ export function useFillHistory(
         signal,
       ),
     enabled: useAccountReady() && enabled,
-    refetchInterval: PAPER_REFRESH_MS,
+    refetchInterval: useRefresh(),
     placeholderData: keepPreviousData,
   });
 }
@@ -112,7 +173,7 @@ export function useLedger(query: PaperLedgerQuery, enabled: boolean) {
     queryKey: [...PAPER_KEY, 'ledger', query],
     queryFn: ({ signal }) => paperTrading.ledger(query, signal),
     enabled: useAccountReady() && enabled,
-    refetchInterval: PAPER_REFRESH_MS,
+    refetchInterval: useRefresh(),
     placeholderData: keepPreviousData,
   });
 }
