@@ -40,9 +40,14 @@ vi.mock('lightweight-charts', () => ({
   createChart: () => ({
     addSeries: () => ({
       setData: vi.fn(),
+      priceScale: () => ({ applyOptions: vi.fn() }),
+      priceToCoordinate: vi.fn(() => null),
       createPriceLine: (line: { price: number; title: string }) => {
         priceLines.push(line);
-        return line;
+        return Object.assign(line, {
+          applyOptions: (next: Partial<typeof line>) =>
+            Object.assign(line, next),
+        });
       },
       removePriceLine: (line: { price: number; title: string }) => {
         const at = priceLines.indexOf(line);
