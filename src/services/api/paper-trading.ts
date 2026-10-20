@@ -6,6 +6,8 @@ import type { HttpClient } from './http-client';
 import {
   decodeAccount,
   decodeBalanceUpdate,
+  decodeEquity,
+  decodeSpotPnl,
   decodeFill,
   decodeLedgerEntry,
   decodeOrder,
@@ -35,6 +37,8 @@ export function createPendingPaperTradingService(): PaperTradingService {
     openOrders: async () => integrationPending(),
     orders: async () => integrationPending(),
     fills: async () => integrationPending(),
+    spotPnl: async () => integrationPending(),
+    equity: async () => integrationPending(),
     ...noAccountFeed,
   };
 }
@@ -185,6 +189,18 @@ export function createHttpPaperTradingService(
       http.request({
         path: 'paper/fills' + queryOf({ pairId, from, to, page, pageSize }),
         decode: decodePage(decodeFill),
+        ...withSignal(signal),
+      }),
+    spotPnl: (signal) =>
+      http.request({
+        path: 'paper/spot/pnl',
+        decode: decodeSpotPnl,
+        ...withSignal(signal),
+      }),
+    equity: (days, signal) =>
+      http.request({
+        path: 'paper/equity' + queryOf({ days }),
+        decode: decodeEquity,
         ...withSignal(signal),
       }),
   };

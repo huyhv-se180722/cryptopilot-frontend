@@ -13,6 +13,7 @@ export function PaperNav() {
     { to: '/trade/spot', label: p.navSpot },
     { to: '/trade/wallet', label: p.navWallet },
     { to: '/trade/orders', label: p.navOrders },
+    { to: '/trade/pnl', label: p.navPnl },
   ];
   return (
     <nav

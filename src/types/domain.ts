@@ -548,6 +548,51 @@ export interface PaperBalance {
   /** Valued at the Spot last price; null without a current price. */
   usdtValue: Decimal | null;
 }
+/**
+ * One coin of the Spot wallet with its cost and worth (TR-13), as the
+ * exchange's Spot PnL shows it; each null when the backend does not know it.
+ */
+export interface CoinPnl {
+  coinId: string;
+  asset: string;
+  /** Free plus locked. */
+  quantity: Decimal;
+  /** Of one unit, in USDT. */
+  averageCost: Decimal | null;
+  costBasis: Decimal | null;
+  lastPrice: Decimal | null;
+  value: Decimal | null;
+  unrealizedPnl: Decimal | null;
+  /** 2 decimals; null with no cost or a zero cost. */
+  unrealizedPnlPercent: Decimal | null;
+}
+/** The Spot wallet's coins, largest value first; USDT is not listed. */
+export interface SpotPnl {
+  coins: readonly CoinPnl[];
+  totalValue: Decimal;
+  totalUnrealizedPnl: Decimal;
+  /** False when a coin had no cost or price: the sums leave it out. */
+  complete: boolean;
+}
+/** The account at the start of one UTC day. */
+export interface PaperEquityPoint {
+  /** `YYYY-MM-DD`, UTC. */
+  date: string;
+  spotEquity: Decimal;
+  futuresEquity: Decimal;
+  totalEquity: Decimal;
+}
+/** What the demo account is worth now and was worth each day (TR-13). */
+export interface PaperEquity {
+  spotEquity: Decimal;
+  futuresEquity: Decimal;
+  totalEquity: Decimal;
+  /** Now less the day's snapshot; null while the day has none. */
+  todayPnl: Decimal | null;
+  todayPnlPercent: Decimal | null;
+  /** Oldest first. */
+  history: readonly PaperEquityPoint[];
+}
 /** A balance that moved, as the account's push names it (TR-08). */
 export interface PaperBalanceUpdate {
   wallet: PaperWalletType;

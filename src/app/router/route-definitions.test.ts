@@ -71,6 +71,7 @@ describe('route definitions', () => {
       ['/trade/spot/:symbol', 'D-86'],
       ['/trade/wallet', 'D-86'],
       ['/trade/orders', 'D-86'],
+      ['/trade/pnl', 'D-86'],
     ]);
     const others = [...publicRoutes, ...guestOnlyRoutes, ...traderRoutes];
     expect(others.some((route) => route.path.startsWith('/trade'))).toBe(false);

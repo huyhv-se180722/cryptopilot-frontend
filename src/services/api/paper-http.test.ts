@@ -324,3 +324,82 @@ describe('account pushes (TR-08)', () => {
     expect(() => paper.subscribeAccount(() => undefined)()).not.toThrow();
   });
 });
+
+describe('Spot PnL and account worth (TR-13)', () => {
+  const PNL = {
+    coins: [
+      {
+        coinId: 'c-btc',
+        asset: 'BTC',
+        quantity: '0.10000000',
+        averageCost: '61000.00',
+        costBasis: '6100.00',
+        lastPrice: '63000.00',
+        value: '6300.00',
+        unrealizedPnl: '200.00',
+        unrealizedPnlPercent: '3.28',
+      },
+      {
+        coinId: 'c-bnb',
+        asset: 'BNB',
+        quantity: '10.00000000',
+        averageCost: null,
+        costBasis: null,
+        lastPrice: '580.00',
+        value: '5800.00',
+        unrealizedPnl: null,
+        unrealizedPnlPercent: null,
+      },
+    ],
+    totalValue: '12100.00',
+    totalUnrealizedPnl: '200.00',
+    complete: false,
+  };
+  const EQUITY = {
+    spotEquity: '9500.00',
+    futuresEquity: '5000.00',
+    totalEquity: '14500.00',
+    todayPnl: '-25.50',
+    todayPnlPercent: '-0.18',
+    history: [
+      {
+        date: '2026-10-20',
+        spotEquity: '9525.50',
+        futuresEquity: '5000.00',
+        totalEquity: '14525.50',
+      },
+    ],
+  };
+
+  it('reads the Spot PnL and the worth of the last days', async () => {
+    const { http, calls } = setup((url) =>
+      url.pathname.endsWith('/spot/pnl') ? json(200, PNL) : json(200, EQUITY),
+    );
+    const paper = createHttpPaperTradingService(http);
+    const pnl = await paper.spotPnl();
+    expect(pnl.complete).toBe(false);
+    expect(pnl.coins[1]).toMatchObject({ asset: 'BNB', averageCost: null });
+    const equity = await paper.equity(30);
+    expect(equity).toMatchObject({
+      todayPnl: '-25.50',
+      totalEquity: '14500.00',
+    });
+    expect(equity.history[0]?.date).toBe('2026-10-20');
+    expect(calls.map((call) => call.url.pathname + call.url.search)).toEqual([
+      '/api/v1/paper/spot/pnl',
+      '/api/v1/paper/equity?days=30',
+    ]);
+  });
+
+  it('refuses a history day that is not a calendar date', async () => {
+    const { http } = setup(() =>
+      json(200, {
+        ...EQUITY,
+        history: [{ ...EQUITY.history[0], date: '2026-10-20T00:00:00Z' }],
+      }),
+    );
+    await expect(
+      createHttpPaperTradingService(http).equity(7),
+    ).rejects.toMatchObject({ code: 'INVALID_RESPONSE' });
+  });
+});
