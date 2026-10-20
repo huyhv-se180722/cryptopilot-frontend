@@ -57,7 +57,7 @@ const pause = (signal?: AbortSignal) =>
 const MAX_EXPIRY_MS = 90 * 24 * 3_600_000;
 const DECIMAL = /^-?\d{1,16}(\.\d{1,12})?$/;
 
-/** The rule table of fe-guide `watchlist.md` (`AlertRuleValidator`). */
+/** The rule table of the backend's `AlertRuleValidator`. */
 function ruleErrors(rule: AlertRule, now: number): Record<string, string> {
   const errors: Record<string, string> = {};
   const threshold = rule.threshold;
@@ -85,6 +85,13 @@ function ruleErrors(rule: AlertRule, now: number): Record<string, string> {
     } else {
       if (rule.timeframe !== null) errors.timeframe = 'MSG01';
       if (threshold === null) errors.threshold = 'MSG01';
+      // FUNDING_RATE in percent, at most 5 % either side (Q-30).
+      else if (
+        indicator === 'FUNDING_RATE' &&
+        number !== null &&
+        Math.abs(number) > 5
+      )
+        errors.threshold = 'MSG15';
       if (rule.market !== 'futures') errors.market = 'MSG01';
     }
   }

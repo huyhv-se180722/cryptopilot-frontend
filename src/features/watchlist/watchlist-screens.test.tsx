@@ -115,8 +115,8 @@ const FUNDING_ALERT: Alert = {
   symbol: 'DOGEUSDT',
   indicator: 'FUNDING_RATE',
   condition: 'LESS_THAN',
-  // Stored as a fraction: -0.005 %.
-  threshold: '-0.000050000000',
+  // Stored in percent (Q-30).
+  threshold: '-0.005000000000',
   status: 'ACTIVE',
 };
 
@@ -473,7 +473,7 @@ describe('SCR-14 alert dialog (T-059)', () => {
     expect(alerts.create).not.toHaveBeenCalled();
   });
 
-  it('takes a funding rate threshold in percent and sends a fraction (D-107)', async () => {
+  it('takes a funding rate threshold in percent and sends it as typed (Q-30)', async () => {
     const { alerts, user } = await open('/watchlist');
     await user.click(
       await screen.findByRole('button', { name: 'Create alert for ETH/USDT' }),
@@ -499,9 +499,29 @@ describe('SCR-14 alert dialog (T-059)', () => {
         indicator: 'FUNDING_RATE',
         timeframe: null,
         condition: 'GREATER_THAN',
-        threshold: '0.0001',
+        threshold: '0.01',
       }),
     );
+  });
+
+  it('refuses a funding rate beyond 5 % either side before sending', async () => {
+    const { alerts, user } = await open('/watchlist');
+    await user.click(
+      await screen.findByRole('button', { name: 'Create alert for ETH/USDT' }),
+    );
+    const dialog = within(await screen.findByRole('dialog'));
+    await user.click(dialog.getByRole('radio', { name: 'Futures' }));
+    await user.click(dialog.getByRole('radio', { name: 'Indicator' }));
+    await user.selectOptions(
+      dialog.getByLabelText('Indicator'),
+      'FUNDING_RATE',
+    );
+    await user.type(dialog.getByLabelText('Funding rate (%)'), '-6');
+    await user.click(screen.getByRole('button', { name: 'Save alert' }));
+    expect(
+      await dialog.findByText('Funding rate (%) must be between -5 and 5.'),
+    ).toBeTruthy();
+    expect(alerts.create).not.toHaveBeenCalled();
   });
 
   it('edits a Futures indicator alert without sending the server-set timeframe', async () => {

@@ -8,11 +8,10 @@ import type {
   CandleTimeframe,
   MarketType,
 } from '../../../types/domain';
-import { divide, multiply } from '../../../utils/decimal-math';
 
 /**
  * SCR-14 form model (SRS 3.4.2, BR-19, BR-20) and the client mirror of
- * `AlertRuleValidator` (fe-guide watchlist.md): which fields a type and an
+ * `AlertRuleValidator`: which fields a type and an
  * indicator take, their ranges and the 90-day expiry. The server checks
  * again; its field errors use the same keys.
  */
@@ -78,13 +77,10 @@ export const FUTURES_INDICATORS: ReadonlySet<AlertIndicator> = new Set([
   'OPEN_INTEREST_CHANGE',
 ]);
 /**
- * D-107: a FUNDING_RATE threshold is typed and shown in percent (0.01 %)
- * and stored as the fraction the market module returns (0.0001). Up to 10
- * decimals in percent keep the stored value within the server's 12.
+ * A FUNDING_RATE threshold is typed, sent and shown in percent (0.01 %),
+ * as the server stores and checks it (Q-30): at most 5 % either side.
  */
-export const FUNDING_PLACES = 10;
-const toFraction = (percent: string) => divide(percent, '100', 12);
-const toPercent = (fraction: string) => multiply(fraction, '100');
+export const FUNDING_MAX_PERCENT = '5';
 const LINE_CROSSES: ReadonlySet<AlertIndicator> = new Set([
   'MACD_CROSS',
   'EMA_CROSS',
@@ -145,11 +141,7 @@ export function draftOf(alert: Alert): AlertDraft {
         ? alert.timeframe
         : '1h',
     condition: alert.condition,
-    threshold: editable(
-      alert.indicator === 'FUNDING_RATE' && alert.threshold !== null
-        ? toPercent(alert.threshold)
-        : alert.threshold,
-    ),
+    threshold: editable(alert.threshold),
     triggerMode: alert.triggerMode,
     cooldown:
       alert.cooldownMinutes === null ? '' : String(alert.cooldownMinutes),
@@ -179,9 +171,13 @@ export function toRule(
       errors.threshold = { kind: 'positive' };
     else if (
       shape.indicator === 'FUNDING_RATE' &&
-      (threshold.split('.')[1]?.length ?? 0) > FUNDING_PLACES
+      Math.abs(Number(threshold)) > Number(FUNDING_MAX_PERCENT)
     )
-      errors.threshold = { kind: 'number' };
+      errors.threshold = {
+        kind: 'range',
+        min: '-' + FUNDING_MAX_PERCENT,
+        max: FUNDING_MAX_PERCENT,
+      };
     else if (
       shape.indicator === 'RSI_14' &&
       (Number(threshold) < 0 || Number(threshold) > 100)
@@ -216,11 +212,7 @@ export function toRule(
       indicator: shape.indicator,
       timeframe: shape.timeframe ? draft.timeframe : null,
       condition: draft.condition,
-      threshold: !shape.threshold
-        ? null
-        : shape.indicator === 'FUNDING_RATE'
-          ? toFraction(threshold)
-          : threshold,
+      threshold: shape.threshold ? threshold : null,
       triggerMode: draft.triggerMode,
       cooldownMinutes: cooldown,
       notifyEmail: draft.notifyEmail,

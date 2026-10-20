@@ -29,6 +29,7 @@ import {
   CROSSES,
   FUTURES_INDICATORS,
   INDICATORS,
+  FUNDING_MAX_PERCENT,
   MAX_EXPIRY_DAYS,
   MODES,
   TIMEFRAMES,
@@ -77,8 +78,8 @@ function listedOn(item: AlertPair | undefined, market: MarketType) {
  * the fields the combination takes, trigger mode with cooldown (BR-19),
  * channels and an optional expiry within 90 days. On FREE, INDICATOR,
  * Futures and the e-mail / push channels show a lock and MSG29 (CR-08);
- * the server decides in the end. FUNDING_RATE is typed in percent and
- * sent as a fraction (D-107).
+ * the server decides in the end. FUNDING_RATE is typed, sent and shown
+ * in percent, within 5 % either side (Q-30).
  */
 export function AlertDialog({
   target,
@@ -155,10 +156,17 @@ function serverError(
   if (messageId !== 'MSG15') return { kind: 'required' };
   if (field === 'expiresAt') return { kind: 'expiry' };
   if (field === 'cooldownMinutes') return { kind: 'cooldown' };
-  if (field === 'threshold')
-    return shapeOf(draft).indicator === 'RSI_14'
-      ? { kind: 'range', min: '0', max: '100' }
-      : { kind: 'positive' };
+  if (field === 'threshold') {
+    const indicator = shapeOf(draft).indicator;
+    if (indicator === 'RSI_14') return { kind: 'range', min: '0', max: '100' };
+    if (indicator === 'FUNDING_RATE')
+      return {
+        kind: 'range',
+        min: '-' + FUNDING_MAX_PERCENT,
+        max: FUNDING_MAX_PERCENT,
+      };
+    return { kind: 'positive' };
+  }
   return { kind: 'required' };
 }
 
