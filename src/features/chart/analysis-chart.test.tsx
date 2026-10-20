@@ -129,7 +129,7 @@ const fakeMarket = (count: number): MarketService => ({
   ]),
   getCandles: vi.fn(async () => candles(count)),
   getFuturesMetrics: vi.fn(),
-  getTicker: vi.fn(),
+  getTicker: vi.fn(async () => null),
 });
 
 function render(path = '/markets/spot/BTCUSDT', count = 260) {

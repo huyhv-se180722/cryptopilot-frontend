@@ -26,7 +26,8 @@ const newer = (current: MarketTicker | null, next: MarketTicker) =>
 
 /**
  * One pair's ticker from `/topic/ticker.*` with the CR-09 Live / Delayed
- * state; while Delayed, the stored snapshot is read every 10 s.
+ * state. The stored snapshot is read once when the pair opens, so prices
+ * show before the stream's first message, and every 10 s while Delayed.
  */
 export function useLiveTicker(market: MarketType, symbol: string) {
   const { market: service, marketFeed } = useServices();
@@ -39,6 +40,30 @@ export function useLiveTicker(market: MarketType, symbol: string) {
   const [state, setState] = useState(() => fresh(key));
   if (state.key !== key) setState(fresh(key));
   const [now, setNow] = useState(() => Date.now());
+  // The stored snapshot shows the pair at once; the stream's first message
+  // can take a second or more, and later messages replace the snapshot.
+  // Without a socket the Delayed poll below reads it already.
+  useEffect(() => {
+    if (marketFeed.status() === 'unavailable') return;
+    const controller = new AbortController();
+    service.getTicker(market, symbol, controller.signal).then(
+      (ticker) => {
+        if (!ticker || controller.signal.aborted) return;
+        // A stream message of the same instant wins over the snapshot.
+        setState((latest) =>
+          latest.key === key &&
+          (!latest.ticker ||
+            Date.parse(ticker.sourceTime) >
+              Date.parse(latest.ticker.sourceTime))
+            ? { ...latest, ticker }
+            : latest,
+        );
+      },
+      // The stream fills the ticker in.
+      () => undefined,
+    );
+    return () => controller.abort();
+  }, [market, symbol, key, service, marketFeed]);
 
   useEffect(
     () =>
