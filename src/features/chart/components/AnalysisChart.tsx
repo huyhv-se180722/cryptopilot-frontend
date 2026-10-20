@@ -48,6 +48,7 @@ import {
   type ChartMarker,
   type ChartTone,
 } from './chart-markers';
+import { labelsShown } from './chart-labels';
 
 export type { ChartMarker } from './chart-markers';
 
@@ -111,6 +112,13 @@ export interface ChartPriceLine {
   tone: ChartTone;
   dashed?: boolean;
   /**
+   * Its axis label and title give way while another label (the last price,
+   * a line that does not give way, or an earlier one that does) is closer
+   * than one label's height; the line itself stays. For the BR-14 levels,
+   * which often lie right beside the price and are listed beside the chart.
+   */
+  yields?: boolean;
+  /**
    * A button for the line, e.g. cancel an order. The line's label then
    * shows as a chip at the pane's left edge with the button in it (as the
    * exchange charts do), instead of beside the axis.
@@ -137,6 +145,9 @@ interface Anchor {
   id: string;
   y: number;
 }
+
+/** RSI reads from 0 to 100 whatever the data, so 30 and 70 stay in place. */
+const RSI_RANGE = () => ({ priceRange: { minValue: 0, maxValue: 100 } });
 
 const CHIP_TONES: Record<ChartTone, string> = {
   positive: 'border-positive-line text-positive',
@@ -270,8 +281,13 @@ function build(
     index: number,
     name: keyof typeof LINE_TOKENS,
     values: (indicators: ChartIndicators) => Series,
+    extra: { autoscaleInfoProvider?: typeof RSI_RANGE } = {},
   ) => {
-    const series = chart.addSeries(LineSeries, lineOptions(name), index);
+    const series = chart.addSeries(
+      LineSeries,
+      { ...lineOptions(name), ...extra },
+      index,
+    );
     writers.push(({ candles: closed, indicators }) =>
       series.setData(indicators ? line(time, closed, values(indicators)) : []),
     );
@@ -291,14 +307,21 @@ function build(
   }
   if (toggles.rsi) {
     const index = nextPane();
-    const rsiLine = paneLine(index, 'rsi', (i) => i.rsi14);
+    const rsiLine = paneLine(index, 'rsi', (i) => i.rsi14, {
+      autoscaleInfoProvider: RSI_RANGE,
+    });
+    // Thin margins, so the scale ends near 0 and 100 with no tick beyond.
+    rsiLine.priceScale().applyOptions({
+      scaleMargins: { top: 0.05, bottom: 0.05 },
+    });
+    // Guides without axis labels, which would cover the scale's own ticks.
     for (const level of [30, 70])
       rsiLine.createPriceLine({
         price: level,
         color: token('--cp-border-s'),
         lineWidth: 1,
         lineStyle: 2,
-        axisLabelVisible: true,
+        axisLabelVisible: false,
         title: '',
       });
   }
@@ -410,6 +433,7 @@ export function AnalysisChart({
             price: levels.support,
             label: copy.analysis.support,
             tone: 'positive' as const,
+            yields: true,
           },
         ]
       : []),
@@ -420,6 +444,7 @@ export function AnalysisChart({
             price: levels.resistance,
             label: copy.analysis.resistance,
             tone: 'negative' as const,
+            yields: true,
           },
         ]
       : []),
@@ -437,6 +462,7 @@ export function AnalysisChart({
     .join('|');
   const latestMarkers = useRef(markers ?? []);
   const hasActions = lines.some((line) => line.action);
+  const hasYielding = lines.some((line) => line.yields);
   const [anchors, setAnchors] = useState<readonly Anchor[]>([]);
 
   // Declared before the rebuild so a rebuild writes the newest data.
@@ -553,6 +579,46 @@ export function AnalysisChart({
     frame = requestAnimationFrame(place);
     return () => cancelAnimationFrame(frame);
   }, [hasActions]);
+
+  // Labels of the lines that yield are hidden while they would sit on
+  // another label; checked each frame as the chips are, set only on change.
+  useEffect(() => {
+    if (!hasYielding) return;
+    let frame = 0;
+    let drawn: readonly IPriceLine[] | null = null;
+    let shown = '';
+    const place = () => {
+      const candles = priceSeries.current;
+      if (candles) {
+        const all = latestLines.current;
+        const { candles: closed, forming } = latest.current;
+        const last = (forming ?? closed.at(-1))?.close;
+        const lastY = last ? candles.priceToCoordinate(Number(last)) : null;
+        const visible = labelsShown(
+          all.map((line) => ({
+            y: candles.priceToCoordinate(Number(line.price)),
+            ...(line.yields ? { yields: true } : {}),
+          })),
+          lastY === null ? [] : [lastY],
+        );
+        const key = visible.join(',');
+        if (drawn !== drawnLines.current || key !== shown) {
+          drawn = drawnLines.current;
+          shown = key;
+          all.forEach((line, i) => {
+            if (line.yields)
+              drawnLines.current[i]?.applyOptions({
+                axisLabelVisible: visible[i] ?? true,
+                title: visible[i] ? line.label : '',
+              });
+          });
+        }
+      }
+      frame = requestAnimationFrame(place);
+    };
+    frame = requestAnimationFrame(place);
+    return () => cancelAnimationFrame(frame);
+  }, [hasYielding]);
 
   useEffect(() => {
     // The forming candle moves every couple of seconds: when nothing else

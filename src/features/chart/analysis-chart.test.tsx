@@ -23,7 +23,12 @@ const drawn = vi.hoisted(() => ({
     updates: unknown[];
   }[],
   charts: 0,
-  lines: [] as { price: number; title: string; lineStyle: number }[],
+  lines: [] as {
+    price: number;
+    title: string;
+    lineStyle: number;
+    axisLabelVisible?: boolean;
+  }[],
   markers: [] as { time: number; shape: string; text?: string }[],
   locales: [] as (string | undefined)[],
 }));
@@ -72,13 +77,17 @@ vi.mock('lightweight-charts', () => {
             // Price-pane lines only; RSI 30 / 70 sit on their own pane.
             createPriceLine: (options: (typeof drawn.lines)[number]) => {
               if (definition.name === 'candles') drawn.lines.push(options);
-              return options;
+              return Object.assign(options, {
+                applyOptions: (next: Partial<typeof options>) =>
+                  Object.assign(options, next),
+              });
             },
             removePriceLine: (line: (typeof drawn.lines)[number]) => {
               const at = drawn.lines.indexOf(line);
               if (at >= 0) drawn.lines.splice(at, 1);
             },
             // 1 px per price unit from 62,100 down, so 62,000 sits at y 100.
+            priceScale: () => ({ applyOptions: vi.fn() }),
             priceToCoordinate: (price: number) => 62_100 - price,
           };
         },
@@ -350,6 +359,37 @@ describe('SCR-10 analysis chart (T-032)', () => {
     );
     expect(drawn.lines[1]?.lineStyle).toBe(0);
     expect(drawn.charts).toBe(charts);
+  });
+
+  it('lets a level label give way beside the last price (BR-14)', async () => {
+    // The last closed candle closes at 104; the mock puts y at 62,100 − price.
+    await renderRoutes(
+      [
+        page(
+          '/chart',
+          <AnalysisChart
+            market="spot"
+            symbol="BTCUSDT"
+            tickSize="0.01"
+            timeframe="1h"
+            onTimeframeChange={() => undefined}
+            levels={{ support: '103.50', resistance: '200.00' }}
+          />,
+        ),
+      ],
+      '/chart',
+      fakeAuth(),
+      { market: fakeMarket(260) },
+    );
+    await screen.findByRole('img');
+    await waitFor(() => {
+      const support = drawn.lines.find((line) => line.price === 103.5);
+      expect(support).toMatchObject({ axisLabelVisible: false, title: '' });
+    });
+    expect(drawn.lines.find((line) => line.price === 200)).toMatchObject({
+      axisLabelVisible: true,
+      title: 'Resistance',
+    });
   });
 
   it('puts a line action at its price, and markers on the bar of their time', async () => {

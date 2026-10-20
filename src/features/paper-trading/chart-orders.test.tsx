@@ -48,6 +48,7 @@ vi.mock('lightweight-charts', () => ({
         const at = drawn.lines.indexOf(line);
         if (at >= 0) drawn.lines.splice(at, 1);
       },
+      priceScale: () => ({ applyOptions: vi.fn() }),
       priceToCoordinate: () => 120,
     }),
     panes: () =>

@@ -37,6 +37,8 @@ vi.mock('lightweight-charts', () => ({
         if (definition.name === 'candles') view.bars = data.length;
       },
       createPriceLine: vi.fn(),
+      priceToCoordinate: vi.fn(() => null),
+      priceScale: () => ({ applyOptions: vi.fn() }),
       removePriceLine: vi.fn(),
     }),
     panes: () => [0, 1, 2, 3].map(() => ({ setStretchFactor: vi.fn() })),
