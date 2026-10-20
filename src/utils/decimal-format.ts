@@ -55,6 +55,31 @@ export function groupThousands(value: string): string {
   return sign + digits + (fraction !== undefined ? '.' + fraction : '');
 }
 
+/** Commas that group by thousands: "81,320", "1,234,567.5"; never "0,500". */
+const GROUPED = /^[1-9]\d{0,2}(,\d{3})+(\.\d*)?$/;
+/** One comma and no point. */
+const ONE_COMMA = /^\d*,\d*$/;
+
+/** Whether a typed text holds a lone comma that cannot group ("0,5"). */
+export function hasDecimalComma(text: string): boolean {
+  const typed = text.replace(/\s/g, '');
+  return ONE_COMMA.test(typed) && !GROUPED.test(typed);
+}
+
+/**
+ * The decimal a typed text stands for. Commas that group by thousands are
+ * dropped; a single comma that cannot group is the decimal mark, as in a
+ * Vietnamese "0,5"; anything else is left as typed, for a form to refuse
+ * rather than guess.
+ */
+export function readDecimal(text: string): string {
+  const typed = text.replace(/\s/g, '');
+  if (!typed.includes(',')) return typed;
+  if (GROUPED.test(typed)) return typed.replace(/,/g, '');
+  if (ONE_COMMA.test(typed)) return typed.replace(',', '.');
+  return typed;
+}
+
 /** A price at the pair's tick precision (CR-02), grouped for reading. */
 export function formatPrice(value: string, tickSize: string | null): string {
   return groupThousands(toFixedDecimal(value, decimalPlaces(tickSize)));

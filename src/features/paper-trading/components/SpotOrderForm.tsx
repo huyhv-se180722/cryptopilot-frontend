@@ -329,13 +329,12 @@ export function SpotOrderForm({
       {(type === 'STOP_LIMIT' || type === 'STOP_MARKET') &&
         priceInput('stop', formatCopy(p.fieldStop, { asset: quote }))}
       {type === 'TRAILING' && (
-        <Input
+        <DecimalInput
           label={p.fieldTrailing}
-          inputMode="decimal"
           autoComplete="off"
           value={draft.trailing}
           error={fieldError('trailing')}
-          onChange={(event) => update({ trailing: event.target.value })}
+          onValueChange={(trailing) => update({ trailing })}
         />
       )}
       {type === 'TRAILING' &&

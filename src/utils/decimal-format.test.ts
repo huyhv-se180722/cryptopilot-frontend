@@ -6,12 +6,37 @@ import {
   formatPrice,
   fractionToPercent,
   groupThousands,
+  hasDecimalComma,
+  readDecimal,
   shiftDecimal,
   addDecimal,
   subtractDecimal,
   toFixedDecimal,
   trimDecimal,
 } from './decimal-format';
+
+describe('readDecimal', () => {
+  it('drops commas that group by thousands', () => {
+    expect(readDecimal('81,320')).toBe('81320');
+    expect(readDecimal('1,234,567.5')).toBe('1234567.5');
+    expect(readDecimal(' 59 000 ')).toBe('59000');
+    expect(hasDecimalComma('81,320')).toBe(false);
+  });
+
+  it('takes a lone comma that cannot group as the decimal mark', () => {
+    expect(readDecimal('0,5')).toBe('0.5');
+    expect(readDecimal('0,500')).toBe('0.500');
+    expect(readDecimal('12,34')).toBe('12.34');
+    expect(readDecimal('1,2345')).toBe('1.2345');
+    expect(hasDecimalComma('0,500')).toBe(true);
+  });
+
+  it('leaves other commas as typed, for the form to refuse', () => {
+    expect(readDecimal('1,234,5')).toBe('1,234,5');
+    expect(readDecimal('1.234,56')).toBe('1.234,56');
+    expect(hasDecimalComma('1,234,5')).toBe(false);
+  });
+});
 
 describe('toFixedDecimal', () => {
   it('pads and rounds half-up to the requested places', () => {

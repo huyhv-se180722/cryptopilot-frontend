@@ -186,6 +186,13 @@ describe('Spot demo orders (TR-F3)', () => {
     expect((field(form, /Total/) as HTMLInputElement).value).toBe('0.81');
   });
 
+  it('reads an amount typed with a decimal comma ("0,5") as 0.5', async () => {
+    const { form, user } = await open();
+    await user.type(field(form, /^Price/), '1000');
+    await user.type(field(form, /Amount/), '0,5');
+    expect((field(form, /Total/) as HTMLInputElement).value).toBe('500.00');
+  });
+
   it('checks the order before sending it', async () => {
     const { form, user } = await open();
     await user.click(within(form).getByRole('button', { name: 'Buy BTC' }));
