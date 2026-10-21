@@ -562,8 +562,9 @@ export const en = {
     add: 'Add',
     added: 'Added',
     addedToast: '{pair} added to your watchlist.',
-    fullHint:
-      'Your watchlist is full ({count} / {limit} pairs). Remove a pair or upgrade the plan to add another.',
+    // MSG27 {items}, as the server names the watchlist limit.
+    limitItems: 'watchlist items',
+    viewPlans: 'View plans',
     empty: 'Your watchlist is empty.',
     emptyHint: 'Add a pair, or open one from Markets to follow it.',
     browseMarkets: 'Browse markets',
