@@ -150,26 +150,19 @@ test.describe('Watchlist and alerts: follow a pair, alert on it', () => {
 
   test(
     'UC-12 MSG27 · the watchlist limit is explained with MSG27',
-    {
-      tag: ['@exception', '@rbac', '@known-defect'],
-      annotation: {
-        type: 'defect',
-        description:
-          'SRS UC-12: adding beyond the plan limit shows MSG27. The web shows its own "Your watchlist is full" hint instead; reported, not fixed here.',
-      },
-    },
+    { tag: ['@exception', '@rbac'] },
     async ({ page }) => {
-      test.fail();
       await signIn(page, ACCOUNTS.free);
       await open(page, '/watchlist');
       await page.getByRole('button', { name: 'Add pair' }).first().click();
+      const dialog = page.getByRole('dialog');
       await expect(
-        page
-          .getByRole('dialog')
-          .getByText(
-            /You have reached the limit of 5 .+ plan\. Upgrade to increase the limit\?/,
-          ),
+        dialog.getByText(
+          /You have reached the limit of 5 .+ plan\. Upgrade to increase the limit\?/,
+        ),
       ).toBeVisible();
+      await dialog.getByRole('link', { name: 'View plans' }).click();
+      await expect(page).toHaveURL(/\/subscription$/);
     },
   );
 });
