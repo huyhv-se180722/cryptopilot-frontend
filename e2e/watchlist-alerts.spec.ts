@@ -31,10 +31,15 @@ test.describe('Watchlist and alerts: follow a pair, alert on it', () => {
         await page
           .getByRole('button', { name: 'Create alert for BNB/USDT' })
           .click();
+        // Opened from its row, the dialog is fixed to that pair: it names
+        // the pair and offers no pair choice (FEQ-01).
         const dialog = page.getByRole('dialog');
         await expect(
+          dialog.getByText('BNB/USDT', { exact: true }),
+        ).toBeVisible();
+        await expect(
           dialog.getByRole('combobox', { name: 'Pair' }),
-        ).toHaveValue(/.+/);
+        ).toHaveCount(0);
         await dialog
           .getByRole('combobox', { name: 'Condition' })
           .selectOption({ label: 'Crosses above' });
@@ -125,7 +130,7 @@ test.describe('Watchlist and alerts: follow a pair, alert on it', () => {
   );
 
   test(
-    'MSG27 · a Free Trader at the watchlist limit cannot add a pair',
+    'BR-15 BR-62 · a Free Trader at the watchlist limit cannot add a pair',
     { tag: ['@exception', '@rbac'] },
     async ({ page }) => {
       await signIn(page, ACCOUNTS.free);
@@ -134,13 +139,37 @@ test.describe('Watchlist and alerts: follow a pair, alert on it', () => {
         page.getByText('5 / 5 pairs', { exact: true }),
       ).toBeVisible();
       await page.getByRole('button', { name: 'Add pair' }).first().click();
-      await page
-        .getByRole('dialog')
-        .getByRole('button', { name: 'Add BNB/USDT' })
-        .click();
-      await expect(page.getByText(/limit|upgrade/i).first()).toBeVisible();
+      const dialog = page.getByRole('dialog');
+      await expect(
+        dialog.getByRole('button', { name: 'Add BNB/USDT' }),
+      ).toBeDisabled();
       await page.keyboard.press('Escape');
       await expect(page.getByRole('link', { name: 'BNB/USDT' })).toHaveCount(0);
+    },
+  );
+
+  test(
+    'UC-12 MSG27 · the watchlist limit is explained with MSG27',
+    {
+      tag: ['@exception', '@rbac', '@known-defect'],
+      annotation: {
+        type: 'defect',
+        description:
+          'SRS UC-12: adding beyond the plan limit shows MSG27. The web shows its own "Your watchlist is full" hint instead; reported, not fixed here.',
+      },
+    },
+    async ({ page }) => {
+      test.fail();
+      await signIn(page, ACCOUNTS.free);
+      await open(page, '/watchlist');
+      await page.getByRole('button', { name: 'Add pair' }).first().click();
+      await expect(
+        page
+          .getByRole('dialog')
+          .getByText(
+            /You have reached the limit of 5 .+ plan\. Upgrade to increase the limit\?/,
+          ),
+      ).toBeVisible();
     },
   );
 });
