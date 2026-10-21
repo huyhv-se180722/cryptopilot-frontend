@@ -1,0 +1,8 @@
+{
+  "extends": "../tsconfig.node.json",
+  "compilerOptions": {
+    // The callbacks of `page.evaluate` run in the browser.
+    "lib": ["ES2023", "DOM"]
+  },
+  "include": ["**/*.ts"]
+}

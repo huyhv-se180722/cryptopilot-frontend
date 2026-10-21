@@ -11,15 +11,14 @@
     "build": "npm run typecheck && vite build",
     "preview": "vite preview",
     "lint": "eslint . --max-warnings 0",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p e2e/tsconfig.json",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "npm run format:check && npm run typecheck && npm run lint && npm run test && npm run build",
     "test:ci": "vitest run --reporter=default --reporter=junit --outputFile.junit=reports/unit/junit.xml --reporter=json --outputFile.json=reports/unit/results.json",
-    "e2e": "playwright test",
-    "test:catalogue": "node scripts/test-catalogue.mjs"
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@fontsource/ibm-plex-sans": "^5.3.0",
