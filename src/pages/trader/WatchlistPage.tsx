@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { buttonClassName } from '../../components/ui/button-styles';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useCopy } from '../../hooks/use-copy';
+import { usePlanTier } from '../../hooks/use-entitlement';
 import { useToast } from '../../hooks/use-toast';
 import { formatCopy } from '../../i18n/copy';
 import { errorText, messageText } from '../../i18n/messages';
@@ -136,6 +137,7 @@ export function WatchlistPage() {
   );
 
   const limit = list.data?.limit;
+  const tier = usePlanTier();
   const busy = reorder.pending || removal.pending;
 
   const add = useAddToWatchlist();
@@ -256,7 +258,11 @@ export function WatchlistPage() {
         notice={
           addNotice ??
           (full && limit != null
-            ? formatCopy(w.fullHint, { count: items.length, limit })
+            ? messageText(copy, 'MSG27', [], {
+                max: limit,
+                items: w.limitItems,
+                plan: tier ?? '',
+              })
             : null)
         }
         onAdd={(pairId) => void addPair(pairId)}

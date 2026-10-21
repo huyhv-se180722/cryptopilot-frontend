@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Check, Plus, Search } from 'lucide-react';
 import { ErrorState } from '../../../components/feedback/States';
 import { FormNotice } from '../../../components/feedback/FormNotice';
@@ -16,7 +17,7 @@ import { matchesPair, type AddablePair } from './addable-pairs';
  * favorites): every pair of both market lists with a search by symbol or
  * coin, where it is listed, and Add, or Added for a watched pair. A refusal
  * (MSG45, MSG27, MSG41) shows in the dialog, which stays open; at the plan's
- * limit every Add is disabled.
+ * limit every Add is disabled and MSG27 links to the plans (UC-12).
  */
 export function AddPairDialog({
   open,
@@ -71,7 +72,19 @@ export function AddPairDialog({
             className="h-9 w-full rounded-lg border border-line bg-surface pr-3 pl-8 text-xs text-fg placeholder:text-muted-dim focus:border-primary focus:outline-none pointer-coarse:h-11"
           />
         </label>
-        {notice && <FormNotice tone="error">{notice}</FormNotice>}
+        {notice && (
+          <FormNotice tone="error">
+            {notice}
+            {full && (
+              <>
+                {' '}
+                <Link to="/subscription" className="font-medium underline">
+                  {w.viewPlans}
+                </Link>
+              </>
+            )}
+          </FormNotice>
+        )}
         {loadError ? (
           <ErrorState message={loadError} onRetry={onRetry} />
         ) : !pairs ? (

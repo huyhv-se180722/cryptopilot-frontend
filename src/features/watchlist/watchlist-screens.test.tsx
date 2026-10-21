@@ -304,9 +304,10 @@ describe('SCR-12 watchlist (T-059)', () => {
     expect(screen.getByRole('dialog', { name: 'Add pair' })).toBeTruthy();
   });
 
-  it('disables every Add once the watchlist is full', async () => {
+  it('disables every Add once the watchlist is full and shows MSG27 (UC-12)', async () => {
     const full = [...ROWS, row(5, 'XRPUSDT', null)];
     const { user } = await open('/watchlist', {
+      tier: 'FREE',
       watchlist: fakeWatchlist({
         get: vi.fn(async () => ({ items: full, limit: 5 })),
       }),
@@ -318,8 +319,11 @@ describe('SCR-12 watchlist (T-059)', () => {
     const link = await dialog.findByRole('button', { name: 'Add LINK/USDT' });
     expect((link as HTMLButtonElement).disabled).toBe(true);
     expect(
-      dialog.getByText(/Your watchlist is full \(5 \/ 5 pairs\)/),
+      dialog.getByText(
+        'You have reached the limit of 5 watchlist items of the FREE plan. Upgrade to increase the limit?',
+      ),
     ).toBeTruthy();
+    expect(dialog.getByRole('link', { name: 'View plans' })).toBeTruthy();
   });
 
   it('asks MSG26 with the server count and asks again when it changed (D-76)', async () => {
