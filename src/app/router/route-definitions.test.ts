@@ -4,6 +4,7 @@ import { traderNav } from '../layouts/navigation';
 import {
   DIALOG_SCREENS,
   adminRoutes,
+  communityReadRoutes,
   guestOnlyRoutes,
   paperRoutes,
   publicRoutes,
@@ -12,6 +13,7 @@ import {
 
 const all = [
   ...publicRoutes,
+  ...communityReadRoutes,
   ...guestOnlyRoutes,
   ...traderRoutes,
   ...adminRoutes,
@@ -39,6 +41,19 @@ describe('route definitions', () => {
     );
     const others = [...publicRoutes, ...guestOnlyRoutes, ...traderRoutes];
     expect(others.some((route) => route.path.startsWith('/admin'))).toBe(false);
+  });
+
+  it('lets guests read the community and keeps writing for traders (D-99)', () => {
+    expect(communityReadRoutes.map((route) => route.path)).toEqual([
+      '/community',
+      '/community/:postId',
+      '/community/members/:memberId',
+    ]);
+    expect(
+      traderRoutes
+        .filter((route) => route.path.startsWith('/community'))
+        .map((route) => route.screen),
+    ).toEqual(['SCR-26', 'SCR-26']);
   });
 
   it('gives guests only the registration and sign-in screens (SRS 3.1.3)', () => {

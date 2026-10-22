@@ -25,18 +25,20 @@ const navItemClass =
   'relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-[13px] font-medium pointer-coarse:py-3';
 
 /**
- * Figma GuestShell header, promo strip and footer. Community and News are
- * Trader-only (SRS 3.1.3), so for guests they open the access gate.
+ * Figma GuestShell header, promo strip and footer. Guests read the
+ * community (D-99); News is Trader-only (SRS 3.1.3), so for guests it
+ * opens the access gate.
  */
 export function GuestShell() {
   const copy = useCopy();
   const navigate = useNavigate();
   const [gate, setGate] = useState<GatedFeature | null>(null);
+  const open = [
+    { to: '/', end: true, label: copy.nav.markets, icon: TrendingUp },
+    { to: '/community', end: false, label: copy.nav.community, icon: Users },
+  ];
   const gated: { feature: GatedFeature; label: string; icon: typeof Users }[] =
-    [
-      { feature: 'community', label: copy.nav.community, icon: Users },
-      { feature: 'news', label: copy.nav.news, icon: Newspaper },
-    ];
+    [{ feature: 'news', label: copy.nav.news, icon: Newspaper }];
 
   return (
     <div className="flex min-h-[calc(100dvh-var(--cp-banner-h))] flex-col">
@@ -53,39 +55,36 @@ export function GuestShell() {
           aria-label={copy.nav.primary}
           className="mx-auto hidden items-center gap-0.5 md:flex"
         >
-          <NavLink
-            to="/"
-            end
-            title={copy.nav.markets}
-            className={({ isActive }) =>
-              classNames(
-                navItemClass,
-                isActive
-                  ? 'text-primary'
-                  : 'text-muted hover:bg-raised hover:text-fg-2',
-              )
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <TrendingUp
-                  size={14}
-                  aria-hidden="true"
-                  className="opacity-70"
-                />
-                {/* Icons only from md to lg, where the header is tight. */}
-                <span className="sr-only lg:not-sr-only">
-                  {copy.nav.markets}
-                </span>
-                {isActive && (
-                  <span
-                    aria-hidden="true"
-                    className="absolute inset-x-2 bottom-0 h-px rounded-full bg-primary"
-                  />
-                )}
-              </>
-            )}
-          </NavLink>
+          {open.map(({ to, end, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              title={label}
+              className={({ isActive }) =>
+                classNames(
+                  navItemClass,
+                  isActive
+                    ? 'text-primary'
+                    : 'text-muted hover:bg-raised hover:text-fg-2',
+                )
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <Icon size={14} aria-hidden="true" className="opacity-70" />
+                  {/* Icons only from md to lg, where the header is tight. */}
+                  <span className="sr-only lg:not-sr-only">{label}</span>
+                  {isActive && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute inset-x-2 bottom-0 h-px rounded-full bg-primary"
+                    />
+                  )}
+                </>
+              )}
+            </NavLink>
+          ))}
           {gated.map(({ feature, label, icon: Icon }) => (
             <button
               key={feature}
@@ -140,11 +139,11 @@ export function GuestShell() {
                 </span>
               }
               items={[
-                {
-                  id: 'markets',
-                  label: copy.nav.markets,
-                  onSelect: () => navigate('/'),
-                },
+                ...open.map(({ to, label }) => ({
+                  id: to,
+                  label,
+                  onSelect: () => navigate(to),
+                })),
                 ...gated.map(({ feature, label }) => ({
                   id: feature,
                   label,

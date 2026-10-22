@@ -452,11 +452,146 @@ export interface AlertPage {
   pageSize: number;
   total: number;
 }
-export interface CommunityPost {
+/** Community feed tabs (SRS 3.7.1); SAVED and MINE are the Trader's own. */
+export type FeedTab = 'LATEST' | 'MOST_LIKED' | 'SAVED' | 'MINE';
+/** HIDDEN shows only in the author's own views; DELETED never (BR-47). */
+export type PostStatus = 'PUBLISHED' | 'HIDDEN' | 'DELETED';
+export type PostType = 'TEXT' | 'VIDEO';
+export type PostMediaKind = 'IMAGE' | 'VIDEO';
+/** What an official post is (D-99). */
+export type OfficialCategory = 'ANNOUNCEMENT' | 'PLATFORM_UPDATE' | 'EDUCATION';
+export type ReportReason = 'SPAM' | 'SCAM' | 'ABUSE' | 'MISLEADING' | 'OTHER';
+
+export interface PostAuthor {
+  userId: string;
+  /** null for an account without a profile. */
+  displayName: string | null;
+  avatarUrl: string | null;
+}
+export interface PostMedia {
+  /** The key an edit names to keep the file. */
+  publicId: string;
+  kind: PostMediaKind;
+  url: string;
+  /** A still of a video; null for an image. */
+  thumbnailUrl: string | null;
+  width: number | null;
+  height: number | null;
+  durationSeconds: number | null;
+}
+interface PostBase {
   id: string;
-  authorId: string;
-  body: string;
-  publishedAt: ISODateTime;
+  author: PostAuthor;
+  title: string;
+  postType: PostType;
+  market: MarketType | null;
+  /** Announcements are pinned above the feed (BR-61). */
+  official: boolean;
+  officialCategory: OfficialCategory | null;
+  status: PostStatus;
+  /** Coin symbols, alphabetical. */
+  coins: readonly string[];
+  likeCount: number;
+  commentCount: number;
+  likedByMe: boolean;
+  savedByMe: boolean;
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
+}
+/** A feed card (SCR-24): the start of the text and the first media. */
+export interface PostSummary extends PostBase {
+  excerpt: string;
+  cover: PostMedia | null;
+}
+/** A post as SCR-25 shows it. */
+export interface PostDetail extends PostBase {
+  content: string;
+  media: readonly PostMedia[];
+  /** The caller wrote it, so Edit and Delete are offered. */
+  mine: boolean;
+}
+export interface PostPage {
+  items: readonly PostSummary[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+export interface FeedQuery {
+  tab: FeedTab;
+  coin?: string;
+  market?: MarketType;
+  /** Only the posts of this member (D-99). */
+  author?: string;
+  /** Search in titles and texts, 2–100 characters (D-99). */
+  q?: string;
+  page: number;
+  pageSize: number;
+}
+/** A file uploaded for a post, named by its key (D-98). */
+export interface PostMediaRef {
+  publicId: string;
+  kind: PostMediaKind;
+}
+/** The SCR-26 form: up to 4 images or 1 video (BR-44). */
+export interface PostDraft {
+  title: string;
+  content: string;
+  market: MarketType | null;
+  coins: readonly string[];
+  media: readonly PostMediaRef[];
+}
+/**
+ * A comment with its replies (one level, SRS 3.7.3). A deleted comment is
+ * listed only while it has replies, without its text or author.
+ */
+export interface PostComment {
+  id: string;
+  postId: string;
+  parentCommentId: string | null;
+  author: PostAuthor | null;
+  content: string | null;
+  deleted: boolean;
+  likeCount: number;
+  likedByMe: boolean;
+  mine: boolean;
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
+  replies: readonly PostComment[];
+}
+export interface CommentPage {
+  items: readonly PostComment[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+/** Where a like or save stands after a click (BR-45). */
+export interface Engagement {
+  active: boolean;
+  count: number;
+}
+export interface PostReport {
+  reason: ReportReason;
+  /** Required for OTHER, at most 500 characters. */
+  description: string | null;
+}
+/** How much the community talks about a coin (D-99). */
+export interface CoinDiscussion {
+  symbol: string;
+  name: string;
+  postsLastDay: number;
+  postsLastWeek: number;
+  totalPosts: number;
+  lastPostAt: ISODateTime | null;
+}
+/** A member's public page (D-99); nothing of their trading. */
+export interface MemberProfile {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  joinedAt: ISODateTime;
+  posts: number;
+  likesReceived: number;
+  me: boolean;
 }
 export interface NewsArticle {
   id: string;

@@ -5,7 +5,19 @@ import type {
   AlertListQuery,
   AlertPage,
   AlertRule,
-  CommunityPost,
+  CoinDiscussion,
+  CommentPage,
+  Engagement,
+  FeedQuery,
+  MemberProfile,
+  PostComment,
+  PostDetail,
+  PostDraft,
+  PostMediaKind,
+  PostMediaRef,
+  PostPage,
+  PostReport,
+  OfficialCategory,
   JournalEntry,
   Candle,
   CandleTimeframe,
@@ -293,7 +305,57 @@ export interface PaperTradingService {
   onAccountFeedStatus(listener: () => void): () => void;
 }
 export type JournalService = ReadService<JournalEntry>;
-export type CommunityService = ReadService<CommunityPost>;
+/** What a reaction is on: a post (like, save) or a comment (like only). */
+export type ReactionTarget =
+  | { kind: 'post'; id: string; action: 'like' | 'save' }
+  | { kind: 'comment'; id: string; action: 'like' };
+
+/**
+ * The community (SRS 3.7, D-98, D-99): Guests read the feed, a post, its
+ * comments and member pages; writing, reacting and reporting are a
+ * Trader's. Media goes straight from the browser to the media storage on a
+ * form the backend signs, and the post names it by its key.
+ */
+export interface CommunityService {
+  feed(query: FeedQuery, signal?: AbortSignal): Promise<PostPage>;
+  /** Published announcements, newest first (BR-61). */
+  pinned(
+    query: { category?: OfficialCategory; page: number; pageSize: number },
+    signal?: AbortSignal,
+  ): Promise<PostPage>;
+  coinDiscussion(symbol: string, signal?: AbortSignal): Promise<CoinDiscussion>;
+  post(id: string, signal?: AbortSignal): Promise<PostDetail>;
+  create(draft: PostDraft): Promise<PostDetail>;
+  /** Files of the post not named again are deleted. */
+  update(id: string, draft: PostDraft): Promise<PostDetail>;
+  remove(id: string): Promise<void>;
+  react(target: ReactionTarget, active: boolean): Promise<Engagement>;
+  comments(
+    postId: string,
+    page: number,
+    pageSize: number,
+    signal?: AbortSignal,
+  ): Promise<CommentPage>;
+  comment(
+    postId: string,
+    content: string,
+    parentCommentId: string | null,
+  ): Promise<PostComment>;
+  editComment(id: string, content: string): Promise<PostComment>;
+  removeComment(id: string): Promise<void>;
+  report(postId: string, report: PostReport): Promise<void>;
+  member(id: string, signal?: AbortSignal): Promise<MemberProfile>;
+  /**
+   * Signs a form, checks the file against its limits (MSG32) and uploads
+   * it; the key goes into the post. `onProgress` gets 0–1.
+   */
+  upload(
+    file: File,
+    kind: PostMediaKind,
+    onProgress?: (share: number) => void,
+    signal?: AbortSignal,
+  ): Promise<PostMediaRef>;
+}
 export type NewsService = ReadService<NewsArticle>;
 export type AiService = ReadService<AiConversation>;
 export type SubscriptionService = ReadService<SubscriptionPackage>;

@@ -2,6 +2,7 @@ import { createBrowserRouter, type RouteObject } from 'react-router-dom';
 import { NotFoundPage } from '../../pages/NotFoundPage';
 import { ProtectedRoute } from './ProtectedRoute';
 import { GuestOnlyRoute } from './GuestOnlyRoute';
+import { ReaderRoute } from './ReaderRoute';
 import { RouteFrame } from './RouteFrame';
 import { RouteError } from './RouteError';
 import { GuestShell } from '../layouts/GuestShell';
@@ -10,6 +11,7 @@ import { TraderShell } from '../layouts/TraderShell';
 import { AdminShell } from '../layouts/AdminShell';
 import {
   adminRoutes,
+  communityReadRoutes,
   guestOnlyRoutes,
   publicRoutes,
   toHandle,
@@ -44,6 +46,10 @@ export const routes: RouteObject[] = [
           ...publicRoutes.map(screenRoute),
           { path: '*', element: <NotFoundPage /> },
         ],
+      },
+      {
+        element: <ReaderRoute />,
+        children: communityReadRoutes.map(screenRoute),
       },
       {
         element: <GuestOnlyRoute />,
