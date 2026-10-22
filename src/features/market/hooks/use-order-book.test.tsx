@@ -13,7 +13,12 @@ import type {
 import { integrationPending } from '../../../services/api/errors';
 import type { Services } from '../../../services/api/services';
 import type { MarketTrade, OrderBook } from '../../../types/domain';
-import { TRADES_SHOWN, useMarketTrades, useOrderBook } from './use-order-book';
+import {
+  TRADES_READ,
+  TRADES_SHOWN,
+  useMarketTrades,
+  useOrderBook,
+} from './use-order-book';
 
 const book = (id: number, best: string): OrderBook => ({
   market: 'spot',
@@ -37,7 +42,7 @@ function setup(service: Partial<TradingMarketService>) {
   const tradingMarket: TradingMarketService = {
     getDepth: vi.fn(async () => book(10, '63000.00')),
     getTrades: vi.fn(async () =>
-      Array.from({ length: TRADES_SHOWN }, (_, i) => trade(100 - i)),
+      Array.from({ length: TRADES_READ }, (_, i) => trade(100 - i)),
     ),
     subscribeDepth: (_m, _s, listener) => {
       depth = listener;
@@ -78,6 +83,7 @@ function setup(service: Partial<TradingMarketService>) {
   );
   return {
     wrapper,
+    tradingMarket,
     pushDepth: (value: OrderBook) => act(() => depth?.(value)),
     pushTrades: (value: readonly MarketTrade[]) => act(() => trades?.(value)),
     setStatus,
@@ -114,8 +120,8 @@ describe('useOrderBook (TR-03)', () => {
 });
 
 describe('useMarketTrades (TR-03)', () => {
-  it('keeps the newest 50, newest first, once per trade id', async () => {
-    const { wrapper, pushTrades } = setup({});
+  it('reads 50, keeps the newest 100 as pushes come, newest first, once per trade id', async () => {
+    const { wrapper, pushTrades, tradingMarket } = setup({});
     const { result } = renderHook(() => useMarketTrades('spot', 'BTCUSDT'), {
       wrapper,
     });
@@ -127,11 +133,20 @@ describe('useMarketTrades (TR-03)', () => {
     expect(result.current.value.map((t) => t.id).slice(0, 5)).toEqual([
       103, 102, 101, 100, 99,
     ]);
+    expect(result.current.value).toHaveLength(TRADES_READ + 3);
+    expect(tradingMarket.getTrades).toHaveBeenCalledWith(
+      'spot',
+      'BTCUSDT',
+      TRADES_READ,
+      expect.anything(),
+    );
+    pushTrades(Array.from({ length: 60 }, (_, i) => trade(104 + i)));
+    await waitFor(() => expect(result.current.value[0]?.id).toBe(163));
     expect(result.current.value).toHaveLength(TRADES_SHOWN);
   });
 
   it('reads the stored trades again after a reconnect, filling the gap', async () => {
-    let stored = Array.from({ length: TRADES_SHOWN }, (_, i) => trade(100 - i));
+    let stored = Array.from({ length: TRADES_READ }, (_, i) => trade(100 - i));
     const getTrades = vi.fn(async () => stored);
     const { wrapper, setStatus } = setup({ getTrades });
     const { result } = renderHook(() => useMarketTrades('spot', 'BTCUSDT'), {
@@ -142,7 +157,7 @@ describe('useMarketTrades (TR-03)', () => {
 
     // Down while trades 101…104 happen, then open again.
     setStatus('connecting');
-    stored = Array.from({ length: TRADES_SHOWN }, (_, i) => trade(104 - i));
+    stored = Array.from({ length: TRADES_READ }, (_, i) => trade(104 - i));
     setStatus('open');
     await waitFor(() => expect(result.current.value[0]?.id).toBe(104));
     expect(getTrades.mock.calls.length).toBe(reads + 1);

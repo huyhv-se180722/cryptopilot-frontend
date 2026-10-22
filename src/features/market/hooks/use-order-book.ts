@@ -5,8 +5,13 @@ import { useServices } from '../../../hooks/use-services';
 import type { MarketTrade, MarketType, OrderBook } from '../../../types/domain';
 import { useFrameState } from './use-frame-state';
 
-/** The trades panel lists this many, newest first (plan section 5). */
-export const TRADES_SHOWN = 50;
+/** Trades read from the backend on open (its limit is 1–50). */
+export const TRADES_READ = 50;
+/**
+ * The trades panel keeps this many, newest first (plan section 5): the
+ * pushes add to the trades read, so a tall column fills.
+ */
+export const TRADES_SHOWN = 100;
 
 interface Live<T> {
   key: string;
@@ -101,7 +106,7 @@ export function useMarketTrades(
   const snapshot = useQuery({
     queryKey: ['market', 'trades', market, symbol],
     queryFn: ({ signal }) =>
-      tradingMarket.getTrades(market, symbol, TRADES_SHOWN, signal),
+      tradingMarket.getTrades(market, symbol, TRADES_READ, signal),
     staleTime: Infinity,
   });
   const { refetch } = snapshot;
