@@ -140,6 +140,9 @@ function TradeSpot({
             markers={chartOrders.markers}
             extraItems={[chartOrders.toggle]}
             extendable
+            // One height whatever panels are shown, as on an exchange's
+            // trading screen, so the book beside it keeps its rows.
+            height="h-[420px] xl:h-[480px]"
           />
         </div>
         <div
