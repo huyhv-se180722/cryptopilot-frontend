@@ -35,10 +35,10 @@ export function AuthShell() {
               <CryptoPilotLogo size="sm" />
             </Link>
           </div>
-          <div className="sm:rounded-2xl sm:border sm:border-line sm:bg-surface sm:p-6 sm:shadow-panel">
+          <div className="sm:rounded-2xl sm:border sm:border-line sm:bg-surface/85 sm:p-6 sm:shadow-overlay sm:backdrop-blur-xl">
             <Outlet />
           </div>
-          <p className="mx-auto mt-8 max-w-[340px] text-center text-[11px] leading-relaxed text-muted-x">
+          <p className="mx-auto mt-8 max-w-[360px] rounded-lg px-3 py-1.5 text-center text-[11px] leading-relaxed text-muted sm:bg-page/70 sm:backdrop-blur-sm">
             {copy.messages.MSG42}
           </p>
         </div>

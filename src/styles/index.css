@@ -397,6 +397,68 @@
   }
 }
 
+/*
+ * Sign-in backdrop (AuthBackdrop): the floor's grid drifts towards the
+ * viewer, the glass cards and the crystal float, the orbit's dashes run
+ * and the network's nodes pulse; all stand still under reduced motion.
+ */
+.auth-floor {
+  background-image:
+    linear-gradient(
+      color-mix(in oklab, var(--cp-primary) 38%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--cp-primary) 38%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 56px 56px;
+  transform: rotateX(64deg);
+  transform-origin: center bottom;
+  animation: auth-floor 5s linear infinite;
+}
+.auth-float {
+  animation: auth-float 9s ease-in-out infinite;
+}
+.auth-orbit {
+  animation: auth-orbit 14s linear infinite;
+}
+.auth-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: auth-pulse 3.6s ease-in-out infinite;
+}
+
+@keyframes auth-floor {
+  to {
+    background-position: 0 56px;
+  }
+}
+@keyframes auth-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+@keyframes auth-orbit {
+  to {
+    stroke-dashoffset: -160;
+  }
+}
+@keyframes auth-pulse {
+  0%,
+  100% {
+    transform: scale(0.8);
+  }
+  50% {
+    transform: scale(1.35);
+  }
+}
+
 @keyframes pulse-led {
   0%,
   100% {
