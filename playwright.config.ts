@@ -63,7 +63,6 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       VITE_ENABLE_DEV_FIXTURES: 'true',
-      VITE_ENABLE_PAPER_TRADING: 'true',
       VITE_API_BASE_URL: '',
       VITE_WS_URL: '',
     },

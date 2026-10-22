@@ -5,8 +5,8 @@ import type { HttpClient } from './http-client';
 import { decodeDepth, decodeMarketTrades } from './market-dto';
 
 /**
- * Depth and trades while demo trading is off (D-101) or no API is
- * configured: reads answer NOT_CONFIGURED and no topic is joined.
+ * Depth and trades while no API is configured: reads answer NOT_CONFIGURED
+ * and no topic is joined.
  */
 export function createPendingTradingMarketService(): TradingMarketService {
   return {

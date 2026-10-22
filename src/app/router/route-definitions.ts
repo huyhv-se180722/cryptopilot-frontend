@@ -74,7 +74,7 @@ export const traderRoutes = [
   { path: '/profile', screen: 'SCR-07', titleKey: 'profile' },
 ] as const satisfies readonly RouteDefinition[];
 
-/** Demo trading (D-86), registered only behind its flag (D-101). */
+/** Demo trading (D-86); its screens trace to that decision (D-101). */
 export const paperRoutes = [
   { path: '/trade/spot', screen: 'D-86', titleKey: 'tradeSpot' },
   { path: '/trade/spot/:symbol', screen: 'D-86', titleKey: 'tradeSpot' },

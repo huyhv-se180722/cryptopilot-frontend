@@ -19,8 +19,8 @@ import {
 } from './paper-dto';
 
 /**
- * Demo trading while it is off (D-101) or no API is configured: every call
- * answers NOT_CONFIGURED.
+ * Demo trading while no API is configured: every call answers
+ * NOT_CONFIGURED.
  */
 export function createPendingPaperTradingService(): PaperTradingService {
   return {
@@ -97,9 +97,9 @@ function queryOf(values: Record<string, string | number | undefined>) {
 
 /**
  * `/paper/**` of the backend's demo trading module (TR-04, TR-06, TR-07),
- * with the bearer token (Trader only). Used only while demo trading is on
- * (D-101), that is against a backend that has the module (D-104). Enums go
- * upper case, decimals as strings; every response is decoded.
+ * with the bearer token (Trader only); the module is on the backend's
+ * `develop` (D-104). Enums go upper case, decimals as strings; every
+ * response is decoded.
  */
 export function createHttpPaperTradingService(
   http: HttpClient,
