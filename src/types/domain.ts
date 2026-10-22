@@ -593,6 +593,29 @@ export interface MemberProfile {
   likesReceived: number;
   me: boolean;
 }
+/** What a notification is about (SRS 3.4.5; COMMENT from SRS 3.7.3). */
+export type NotificationType =
+  'ALERT' | 'PLAN' | 'MODERATION' | 'SUBSCRIPTION' | 'COMMENT';
+/** What opening a notification navigates to (SRS 3.4.5). */
+export type NotificationReferenceType =
+  'ALERT' | 'PLAN' | 'POST' | 'SUBSCRIPTION';
+/** One entry of the notification center (SCR-15, UC-15). */
+export interface AppNotification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  content: string;
+  reference: { type: NotificationReferenceType; id: string } | null;
+  read: boolean;
+  readAt: ISODateTime | null;
+  createdAt: ISODateTime;
+}
+export interface NotificationPage {
+  items: readonly AppNotification[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
 export interface NewsArticle {
   id: string;
   title: string;

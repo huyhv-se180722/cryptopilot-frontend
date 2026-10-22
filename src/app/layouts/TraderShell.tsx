@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
-  BellRing,
   Command,
   CreditCard,
   LogOut,
@@ -10,6 +9,7 @@ import {
   User,
 } from 'lucide-react';
 import { CryptoPilotLogo } from '../../components/brand/CryptoPilotLogo';
+import { NotificationBell } from '../../features/notifications/components/NotificationBell';
 import { DisclaimerFooter } from '../../components/layout/DisclaimerFooter';
 import { ThemeToggle } from '../../components/layout/ThemeToggle';
 import { Menu } from '../../components/ui/Menu';
@@ -135,21 +135,7 @@ export function TraderShell() {
             <ThemeToggle />
           </div>
 
-          <NavLink
-            to="/notifications"
-            aria-label={copy.nav.notifications}
-            title={copy.nav.notifications}
-            className={({ isActive }) =>
-              classNames(
-                'relative inline-flex size-8 shrink-0 items-center justify-center rounded-lg pointer-coarse:size-11',
-                isActive
-                  ? 'bg-raised text-primary'
-                  : 'text-muted-dim hover:bg-raised hover:text-fg-2',
-              )
-            }
-          >
-            <BellRing size={14} aria-hidden="true" />
-          </NavLink>
+          <NotificationBell />
 
           <Link
             to="/subscription"

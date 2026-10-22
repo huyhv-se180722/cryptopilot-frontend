@@ -18,6 +18,8 @@ import type {
   PostPage,
   PostReport,
   OfficialCategory,
+  AppNotification,
+  NotificationPage,
   JournalEntry,
   Candle,
   CandleTimeframe,
@@ -357,6 +359,28 @@ export interface CommunityService {
   ): Promise<PostMediaRef>;
 }
 export type NewsService = ReadService<NewsArticle>;
+
+/**
+ * The notification center and the bell (SRS 3.4.5, UC-15): the caller's
+ * notifications newest first, the unread count, marking read, and the
+ * pushes of new ones on the signed-in connection.
+ */
+export interface NotificationService {
+  list(
+    query: { unreadOnly: boolean; page: number; pageSize: number },
+    signal?: AbortSignal,
+  ): Promise<NotificationPage>;
+  unreadCount(signal?: AbortSignal): Promise<number>;
+  /** Opening a notification marks it read; a read one keeps its time. */
+  markRead(id: string): Promise<AppNotification>;
+  /** Resolves with the unread count after, zero. */
+  markAllRead(): Promise<number>;
+  /** New notifications as they are written; a missed one shows on the next read. */
+  subscribe(listener: (notification: AppNotification) => void): () => void;
+  /** 'open' while the pushes arrive; the bell reads on a rhythm otherwise. */
+  feedStatus(): FeedStatus;
+  onFeedStatus(listener: () => void): () => void;
+}
 export type AiService = ReadService<AiConversation>;
 export type SubscriptionService = ReadService<SubscriptionPackage>;
 export type AdminService = ReadService<AdminLog>;

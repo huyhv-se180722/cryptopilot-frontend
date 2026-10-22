@@ -2,6 +2,7 @@ import type { Services } from '../services/api/services';
 import { createDevelopmentAuth } from './dev-auth';
 import { createDevelopmentCommunity } from './dev-community';
 import { createDevelopmentMarket } from './dev-market';
+import { createDevelopmentNotifications } from './dev-notifications';
 import { createDevelopmentPaperTrading } from './dev-paper-trading';
 import { createDevelopmentProfile } from './dev-profile';
 import { createDevelopmentTradingPlan } from './dev-trading-plan';
@@ -24,5 +25,6 @@ export function createDevelopmentServices(base: Services): Services {
       market.market,
     ),
     ...createDevelopmentCommunity(() => auth.restoreSession()),
+    ...createDevelopmentNotifications(() => auth.restoreSession()),
   };
 }
