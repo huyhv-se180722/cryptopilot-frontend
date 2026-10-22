@@ -142,4 +142,22 @@ test.describe('Community: read, publish, discuss, report', () => {
       noErrors();
     },
   );
+
+  test(
+    'CF-01b · the Spot analysis shows the coin discussion and opens a post tagged with it',
+    { tag: ['@workflow', '@mobile'] },
+    async ({ page }) => {
+      const noErrors = failOnPageErrors(page);
+      await signIn(page, ACCOUNTS.free);
+      await open(page, '/markets/spot/BTCUSDT');
+      const card = page.getByRole('region', { name: '$BTC discussion' });
+      await expect(card.getByText('All posts')).toBeVisible();
+      await card.getByRole('link', { name: 'Post about BTC' }).click();
+      await page.waitForURL((url) => url.pathname === '/community/new');
+      await expect(
+        page.getByRole('button', { name: 'Remove BTC' }),
+      ).toBeVisible();
+      noErrors();
+    },
+  );
 });
