@@ -76,4 +76,34 @@ describe('development community', () => {
       (error as { problem: { fieldErrors: object } }).problem.fieldErrors,
     ).toEqual({ title: 'MSG01', content: 'MSG01', coins: 'MSG01' });
   });
+
+  it('moderates over the same posts: open, decide, restore (SCR-36)', async () => {
+    const admin = principal('dev-admin');
+    const both = createDevelopmentCommunity(async () => admin);
+    const queue = await both.moderation.queue(1, 20);
+    expect(queue.items.map((i) => i.post.id)).toEqual([
+      'dev-post-4',
+      'dev-post-3',
+      'dev-post-2',
+    ]);
+    const opened = await both.moderation.open('dev-post-4');
+    expect(opened.reports.every((r) => r.status === 'REVIEWING')).toBe(true);
+    const result = await both.moderation.decide(
+      'dev-post-4',
+      'HIDE_POST',
+      null,
+    );
+    expect(result).toMatchObject({ postStatus: 'HIDDEN', resolvedReports: 2 });
+    expect((await both.moderation.queue(1, 20)).total).toBe(2);
+    expect((await both.moderation.restore('dev-post-4')).status).toBe(
+      'PUBLISHED',
+    );
+  });
+
+  it('refuses moderation to a Trader', async () => {
+    const both = createDevelopmentCommunity(async () => principal('dev-free'));
+    expect(await both.moderation.queue(1, 20).catch(codeOf)).toBe(
+      'ACCESS_DENIED',
+    );
+  });
 });
