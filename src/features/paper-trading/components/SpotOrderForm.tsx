@@ -22,6 +22,7 @@ import {
   EMPTY_DRAFT,
   hasLimitPrice,
   maxOrder,
+  pickedPrice,
   shareInUse,
   shareOfFunds,
   totalOf,
@@ -98,14 +99,15 @@ export function SpotOrderForm({
   if (picked && picked.at !== seenPick) {
     setSeenPick(picked.at);
     setSharePicked(null);
+    const price = pickedPrice(picked.price, pair.tickSize);
     setDraft((current) => {
       const type = hasLimitPrice(current.type) ? current.type : 'LIMIT';
       return {
         ...current,
         type,
-        price: picked.price,
+        price,
         total: totalOf(
-          { type, price: picked.price, stop: current.stop },
+          { type, price, stop: current.stop },
           current.amount,
           lastPrice,
         ),

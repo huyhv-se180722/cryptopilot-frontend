@@ -5,6 +5,7 @@ import {
   checkSpotOrder,
   EMPTY_DRAFT,
   maxOrder,
+  pickedPrice,
   shareInUse,
   shareOfFunds,
   stopTypeFor,
@@ -437,5 +438,13 @@ describe('Spot order check (TR-F3)', () => {
     expect(
       totalOf(draft({ type: 'STOP_MARKET', stop: '59000' }), '0.01', '61000'),
     ).toBe('590.00');
+  });
+
+  it('writes a picked trade price at the pair tick, as its row shows it', () => {
+    expect(pickedPrice('81980.01000000', BTC.tickSize)).toBe('81980.01');
+    expect(pickedPrice('81980.00500000', BTC.tickSize)).toBe('81980.01');
+    expect(pickedPrice('81980', BTC.tickSize)).toBe('81980.00');
+    expect(pickedPrice('0.00001234', '0.00000001')).toBe('0.00001234');
+    expect(pickedPrice('81980.01000000', null)).toBe('81980.01000000');
   });
 });
