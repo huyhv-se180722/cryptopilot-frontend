@@ -120,6 +120,18 @@ export const hasLimitPrice = (type: SpotFormType) =>
   type === 'OCO';
 
 /**
+ * A price picked in the order book or trades, at the pair's tick as the
+ * row shows it: a trade's price comes with the exchange's 8 places
+ * ("81980.01000000" → "81980.01"). Unchanged without a tick or when it is
+ * not a plain decimal.
+ */
+export function pickedPrice(price: Decimal, tickSize: Decimal | null) {
+  return tickSize && valid(price) && valid(tickSize)
+    ? toStep(price.trim(), tickSize.trim(), 'half-up')
+    : price;
+}
+
+/**
  * The exchange's stop type for a trigger on one side of the last price, as
  * its order panel picks it: a stop the price rises to on a buy, or falls to
  * on a sale, is a stop loss; the other two are take profits. Null at the

@@ -22,6 +22,7 @@ import {
   EMPTY_DRAFT,
   hasLimitPrice,
   maxOrder,
+  pickedPrice,
   shareInUse,
   shareOfFunds,
   totalOf,
@@ -98,14 +99,15 @@ export function SpotOrderForm({
   if (picked && picked.at !== seenPick) {
     setSeenPick(picked.at);
     setSharePicked(null);
+    const price = pickedPrice(picked.price, pair.tickSize);
     setDraft((current) => {
       const type = hasLimitPrice(current.type) ? current.type : 'LIMIT';
       return {
         ...current,
         type,
-        price: picked.price,
+        price,
         total: totalOf(
-          { type, price: picked.price, stop: current.stop },
+          { type, price, stop: current.stop },
           current.amount,
           lastPrice,
         ),
@@ -256,6 +258,7 @@ export function SpotOrderForm({
 
   const priceInput = (field: 'price' | 'stop' | 'stopLimit', label: string) => (
     <DecimalInput
+      inline
       label={label}
       autoComplete="off"
       value={draft[field]}
@@ -274,7 +277,7 @@ export function SpotOrderForm({
     <form
       noValidate
       onSubmit={(event) => void submit(event)}
-      className="flex flex-col gap-3"
+      className="flex flex-col gap-2.5"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <SegmentedControl
@@ -300,6 +303,7 @@ export function SpotOrderForm({
 
       {isStopForm(type) && (
         <Select
+          inline
           label={p.stopFormLabel}
           value={type}
           onChange={(event) => {
@@ -316,8 +320,8 @@ export function SpotOrderForm({
         </Select>
       )}
 
-      <div className="flex flex-col gap-1">
-        <p className="flex items-baseline justify-between text-[11px] text-muted-dim">
+      <div className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
+        <p className="flex items-baseline justify-between gap-2 text-[11px] text-muted-dim">
           {p.available}
           <span className="text-fg-2">
             {funds ? (
@@ -341,7 +345,7 @@ export function SpotOrderForm({
             )}
           </span>
         </p>
-        <p className="flex items-baseline justify-between text-[11px] text-muted-dim">
+        <p className="flex items-baseline justify-between gap-2 text-[11px] text-muted-dim">
           {buy ? p.maxBuy : p.maxSell}
           <span className="text-fg-2">
             {max ? (
@@ -360,6 +364,7 @@ export function SpotOrderForm({
         priceInput('stop', formatCopy(p.fieldStop, { asset: quote }))}
       {type === 'TRAILING' && (
         <DecimalInput
+          inline
           label={p.fieldTrailing}
           autoComplete="off"
           value={draft.trailing}
@@ -372,6 +377,7 @@ export function SpotOrderForm({
 
       {market ? (
         <Input
+          inline
           label={formatCopy(p.fieldPrice, { asset: quote })}
           value={p.marketPrice}
           readOnly
@@ -403,6 +409,7 @@ export function SpotOrderForm({
 
       {!byTotal && (
         <DecimalInput
+          inline
           label={formatCopy(p.fieldAmount, { asset: base })}
           autoComplete="off"
           value={draft.amount}
@@ -416,6 +423,7 @@ export function SpotOrderForm({
       <ShareSlider value={shareShown} disabled={!funds} onChange={share} />
 
       <DecimalInput
+        inline
         label={formatCopy(p.fieldTotal, { asset: quote })}
         autoComplete="off"
         value={draft.total}
@@ -440,23 +448,47 @@ export function SpotOrderForm({
         />
       )}
 
-      {type === 'LIMIT' && (
-        <div className="flex flex-wrap gap-x-4 gap-y-2">
-          <Checkbox
-            label={p.postOnly}
-            checked={draft.postOnly}
-            onChange={(event) => update({ postOnly: event.target.checked })}
-          />
-          <Checkbox
-            label={p.tpsl}
-            checked={draft.tpsl}
-            onChange={(event) => update({ tpsl: event.target.checked })}
-          />
+      {(type === 'LIMIT' || type === 'STOP_LIMIT') && (
+        // Post only, TP/SL and the time in force share one row.
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          {type === 'LIMIT' && (
+            <>
+              <Checkbox
+                label={p.postOnly}
+                checked={draft.postOnly}
+                onChange={(event) => update({ postOnly: event.target.checked })}
+              />
+              <Checkbox
+                label={p.tpsl}
+                checked={draft.tpsl}
+                onChange={(event) => update({ tpsl: event.target.checked })}
+              />
+            </>
+          )}
+          {!(type === 'LIMIT' && draft.postOnly) && (
+            <Select
+              inline
+              label={p.tifLabel}
+              value={draft.timeInForce}
+              className="ml-auto min-w-56 flex-1 sm:flex-none"
+              onChange={(event) =>
+                update({
+                  timeInForce: event.target
+                    .value as SpotOrderDraft['timeInForce'],
+                })
+              }
+            >
+              <option value="GTC">{p.tifGTC}</option>
+              <option value="IOC">{p.tifIOC}</option>
+              <option value="FOK">{p.tifFOK}</option>
+            </Select>
+          )}
         </div>
       )}
       {type === 'LIMIT' && draft.tpsl && (
         <>
           <DecimalInput
+            inline
             label={formatCopy(p.fieldTakeProfit, { asset: quote })}
             autoComplete="off"
             value={draft.takeProfit}
@@ -464,6 +496,7 @@ export function SpotOrderForm({
             onValueChange={(takeProfit) => update({ takeProfit })}
           />
           <DecimalInput
+            inline
             label={formatCopy(p.fieldStopLoss, { asset: quote })}
             autoComplete="off"
             value={draft.stopLoss}
@@ -472,22 +505,6 @@ export function SpotOrderForm({
           />
           <p className="text-[10px] text-muted-dim">{p.tpslNote}</p>
         </>
-      )}
-
-      {((type === 'LIMIT' && !draft.postOnly) || type === 'STOP_LIMIT') && (
-        <Select
-          label={p.tifLabel}
-          value={draft.timeInForce}
-          onChange={(event) =>
-            update({
-              timeInForce: event.target.value as SpotOrderDraft['timeInForce'],
-            })
-          }
-        >
-          <option value="GTC">{p.tifGTC}</option>
-          <option value="IOC">{p.tifIOC}</option>
-          <option value="FOK">{p.tifFOK}</option>
-        </Select>
       )}
 
       {notice && <FormNotice tone="error">{notice}</FormNotice>}

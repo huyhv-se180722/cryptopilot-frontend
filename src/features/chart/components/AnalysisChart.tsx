@@ -371,7 +371,9 @@ function build(
  * and the choice is remembered on the device. `levels` (BR-14) and
  * `priceLines` are drawn on the price pane and redrawn without a rebuild.
  * `extendable` (trading screens) opens on the latest bars and reads older
- * candles when dragged to its start, keeping the view in place.
+ * candles when dragged to its start, keeping the view in place. `height`
+ * (a height class) fixes the drawing's height, the panels sharing it with
+ * the price pane, where a screen lays the chart out beside other regions.
  */
 export function AnalysisChart({
   market,
@@ -384,6 +386,7 @@ export function AnalysisChart({
   markers,
   extraItems,
   extendable = false,
+  height,
 }: {
   market: MarketType;
   symbol: string;
@@ -395,6 +398,7 @@ export function AnalysisChart({
   markers?: readonly ChartMarker[];
   extraItems?: readonly ChartExtraItem[];
   extendable?: boolean;
+  height?: string;
 }) {
   const copy = useCopy();
   const locale = useLocale();
@@ -668,6 +672,7 @@ export function AnalysisChart({
   const panels = (['volume', 'rsi', 'macd'] as const).filter(
     (item) => toggles[item],
   ).length;
+  const heightClass = height ?? HEIGHTS[panels];
 
   return (
     <section
@@ -738,7 +743,7 @@ export function AnalysisChart({
         </span>
       </div>
       {series.status === 'loading' ? (
-        <Skeleton className={classNames('w-full', HEIGHTS[panels])} />
+        <Skeleton className={classNames('w-full', heightClass)} />
       ) : series.status === 'error' ? (
         <ErrorState
           message={errorText(copy, series.error)}
@@ -759,7 +764,7 @@ export function AnalysisChart({
                 timeframe,
                 count: series.candles.length,
               })}
-              className={classNames('w-full', HEIGHTS[panels])}
+              className={classNames('w-full', heightClass)}
             />
             {(hasActions ? anchors : []).map((anchor) => {
               const line = lines.find((each) => each.id === anchor.id);

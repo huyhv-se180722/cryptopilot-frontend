@@ -140,12 +140,18 @@ function TradeSpot({
             markers={chartOrders.markers}
             extraItems={[chartOrders.toggle]}
             extendable
+            // One height whatever panels are shown, as on an exchange's
+            // trading screen, so the book beside it keeps its rows.
+            height="h-[420px] xl:h-[480px]"
           />
         </div>
         <div
           className={classNames(
             shown('book'),
-            'min-h-[320px] flex-col xl:col-start-1 xl:row-span-2 xl:row-start-1',
+            // The book and the trades take the height the chart and the
+            // order form give the row, adding none of their own, and fill
+            // it; below the wide layout they have a fixed height.
+            'relative h-[560px] flex-col xl:col-start-1 xl:row-span-2 xl:row-start-1 xl:h-auto',
           )}
         >
           <OrderBookPanel
@@ -153,21 +159,21 @@ function TradeSpot({
             stream={book}
             lastPrice={ticker?.lastPrice ?? null}
             onPickPrice={pick}
-            className="flex-1"
+            className="absolute inset-0"
           />
         </div>
         <div
           className={classNames(
             shown('trades'),
-            // The list scrolls inside: 50 rows would outgrow the row.
-            'h-[560px] flex-col xl:col-start-3 xl:row-span-2 xl:row-start-1 xl:h-auto',
+            // The list scrolls inside: 100 rows would outgrow the row.
+            'relative h-[560px] flex-col xl:col-start-3 xl:row-span-2 xl:row-start-1 xl:h-auto',
           )}
         >
           <MarketTradesPanel
             pair={pair}
             stream={trades}
             onPickPrice={pick}
-            className="min-h-0 flex-1"
+            className="absolute inset-0"
           />
         </div>
         <TradePanel

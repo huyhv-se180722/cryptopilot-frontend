@@ -1,4 +1,9 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import {
+  useMemo,
+  useState,
+  type PropsWithChildren,
+  type ReactNode,
+} from 'react';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { ErrorState } from '../../../components/feedback/States';
 import { NumericText } from '../../../components/ui/NumericText';
@@ -18,6 +23,7 @@ import {
   toFixedDecimal,
 } from '../../../utils/decimal-format';
 import type { MarketStream } from '../../market/hooks/use-order-book';
+import { useFitRows } from '../hooks/use-fit-rows';
 import { useTickDirection } from '../hooks/use-tick-direction';
 import {
   formatQuantity,
@@ -30,7 +36,9 @@ import { TradePanel } from './TradePanel';
 
 type View = 'both' | 'bids' | 'asks';
 
-/** Rows a side: half the book with both sides, all 20 levels with one. */
+/** Levels a side in the depth the backend relays (depth20). */
+const DEPTH_LEVELS = 20;
+/** Rows a side before the panel is measured: half the book with both sides. */
 const ROWS = { both: 12, one: 20 } as const;
 
 /** Share of `part` in `whole`, for bar widths and the B/S ratio (display only). */
@@ -51,7 +59,7 @@ export function PickRow({
   children: ReactNode;
 }) {
   const className =
-    'relative grid h-5 w-full grid-cols-3 items-center gap-2 px-1 text-[11px]';
+    'relative grid min-h-5 w-full grid-cols-3 items-center gap-2 px-1 text-[11px]';
   return onPick ? (
     <button
       type="button"
@@ -86,13 +94,20 @@ function Rows({
   const copy = useCopy();
   const p = copy.paper;
   const places = decimalPlaces(step ?? pair.tickSize);
+  // Rows share the height of their half; past what the depth holds they
+  // grow a little rather than leave the column empty.
   return (
-    <ul className="flex flex-col">
+    <ul
+      className={classNames(
+        'flex h-full flex-col',
+        side === 'ask' && 'justify-end',
+      )}
+    >
       {rows.map((row) => {
         const price = groupThousands(toFixedDecimal(row.price, places));
         const amount = formatQuantity(row.quantity, pair.stepSize);
         return (
-          <li key={row.price} className="relative">
+          <li key={row.price} className="relative flex max-h-8 min-h-5 flex-1">
             {/* Depth: the running total against the larger side's total. */}
             <span
               aria-hidden="true"
@@ -160,7 +175,9 @@ export function OrderBookPanel({
   const direction = useTickDirection(lastPrice);
   const Arrow = direction === 'down' ? ArrowDown : ArrowUp;
   const book = stream.value;
-  const count = view === 'both' ? ROWS.both : ROWS.one;
+  // As many levels as the column has room for, up to the depth held.
+  const fit = useFitRows(DEPTH_LEVELS, view === 'both' ? ROWS.both : ROWS.one);
+  const count = fit.rows;
   const bids = useMemo(
     () => (book ? groupLevels(book.bids, step, 'bid', count) : []),
     [book, step, count],
@@ -232,7 +249,7 @@ export function OrderBookPanel({
           {p.bookEmpty}
         </p>
       ) : (
-        <div className="flex flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col">
           <div className="grid grid-cols-3 gap-2 px-1 pb-1 text-[10px] text-muted-dim">
             <span>{formatCopy(p.colPrice, { asset: quote })}</span>
             <span className="text-right">
@@ -243,7 +260,7 @@ export function OrderBookPanel({
             </span>
           </div>
           {view !== 'bids' && (
-            <div className="flex flex-col justify-end">
+            <Half measure={fit.measure}>
               {/* Best ask nearest the last price, as on the exchange. */}
               <Rows
                 rows={[...asks].reverse()}
@@ -253,7 +270,7 @@ export function OrderBookPanel({
                 max={max}
                 onPick={onPickPrice}
               />
-            </div>
+            </Half>
           )}
           <div className="my-1 flex items-baseline justify-between gap-2 border-y border-line px-1 py-1.5">
             <span
@@ -291,14 +308,17 @@ export function OrderBookPanel({
             )}
           </div>
           {view !== 'asks' && (
-            <Rows
-              rows={bids}
-              side="bid"
-              pair={pair}
-              step={step}
-              max={max}
-              onPick={onPickPrice}
-            />
+            // Both halves are the same height: the asks' measure serves.
+            <Half measure={view === 'bids' ? fit.measure : undefined}>
+              <Rows
+                rows={bids}
+                side="bid"
+                pair={pair}
+                step={step}
+                max={max}
+                onPick={onPickPrice}
+              />
+            </Half>
           )}
           {view === 'both' && max > 0 && (
             <div
@@ -322,6 +342,20 @@ export function OrderBookPanel({
         </div>
       )}
     </TradePanel>
+  );
+}
+
+/** One side's share of the book's height, measured for its row count. */
+function Half({
+  measure,
+  children,
+}: PropsWithChildren<{
+  measure?: ((element: HTMLElement | null) => void) | undefined;
+}>) {
+  return (
+    <div ref={measure} className="min-h-0 flex-1 overflow-hidden">
+      {children}
+    </div>
   );
 }
 
