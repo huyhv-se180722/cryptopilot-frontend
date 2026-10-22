@@ -1231,7 +1231,7 @@ export const en = {
     title: 'Report moderation',
     subtitle:
       'Posts with open reports, reported longest ago first. Each decision resolves every open report of the post and is audited.',
-    pending: '{n} posts to review',
+    pending: 'To review: {n}',
     queueCaption: 'Posts with open reports',
     colPost: 'Post',
     colAuthor: 'Author',
