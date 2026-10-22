@@ -10,10 +10,10 @@ import { Dialog } from '../../../components/ui/Dialog';
 import { buttonClassName } from '../../../components/ui/button-styles';
 import { useCopy } from '../../../hooks/use-copy';
 
-export type GatedFeature = 'community' | 'news';
+/** Guests read the community (D-99); News stays Trader-only. */
+export type GatedFeature = 'news';
 
 const icons: Record<GatedFeature, LucideIcon> = {
-  community: Users,
   news: Newspaper,
 };
 
@@ -31,10 +31,6 @@ export function AccessGate({
   const copy = useCopy();
   const content = feature
     ? {
-        community: {
-          title: copy.gate.communityTitle,
-          body: copy.gate.communityBody,
-        },
         news: { title: copy.gate.newsTitle, body: copy.gate.newsBody },
       }[feature]
     : { title: '', body: '' };

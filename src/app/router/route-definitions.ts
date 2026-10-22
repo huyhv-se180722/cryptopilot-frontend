@@ -3,10 +3,11 @@ import type { Copy } from '../../i18n/locales/en';
 /**
  * Route metadata is UI configuration, never business data.
  * `screen` traces each route to the SRS screen inventory (SCR-01…44);
- * demo trading is not in SRS v1.0 and traces to its decision D-86 (D-101).
+ * demo trading is not in SRS v1.0 and traces to its decision D-86 (D-101),
+ * community member pages to D-99.
  * Dialog screens (SCR-14, SCR-19, SCR-27) have no route of their own.
  */
-export type ScreenId = `SCR-${string}` | 'D-86';
+export type ScreenId = `SCR-${string}` | 'D-86' | 'D-99';
 export type ScreenTitleKey = keyof Copy['screens'];
 
 export interface RouteDefinition {
@@ -23,6 +24,21 @@ export interface RouteHandle {
 /** Reachable by everyone (SRS 3.1.3). */
 export const publicRoutes = [
   { path: '/', screen: 'SCR-01', titleKey: 'publicHome' },
+] as const satisfies readonly RouteDefinition[];
+
+/**
+ * The community a Guest reads (D-99: "view public forum posts and
+ * coin-related discussions"); a Trader reads it in their own shell.
+ * Writing stays in `traderRoutes`.
+ */
+export const communityReadRoutes = [
+  { path: '/community', screen: 'SCR-24', titleKey: 'community' },
+  { path: '/community/:postId', screen: 'SCR-25', titleKey: 'postDetail' },
+  {
+    path: '/community/members/:memberId',
+    screen: 'D-99',
+    titleKey: 'member',
+  },
 ] as const satisfies readonly RouteDefinition[];
 
 /** Guests only; signed-in users are sent to their home. */
@@ -54,9 +70,7 @@ export const traderRoutes = [
   { path: '/journal/new', screen: 'SCR-22', titleKey: 'journalManual' },
   { path: '/journal/:entryId', screen: 'SCR-21', titleKey: 'journalEntry' },
   { path: '/performance', screen: 'SCR-23', titleKey: 'performance' },
-  { path: '/community', screen: 'SCR-24', titleKey: 'community' },
   { path: '/community/new', screen: 'SCR-26', titleKey: 'postNew' },
-  { path: '/community/:postId', screen: 'SCR-25', titleKey: 'postDetail' },
   { path: '/community/:postId/edit', screen: 'SCR-26', titleKey: 'postEdit' },
   { path: '/news', screen: 'SCR-28', titleKey: 'news' },
   { path: '/ai', screen: 'SCR-29', titleKey: 'ai' },

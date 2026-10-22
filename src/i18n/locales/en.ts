@@ -1234,9 +1234,6 @@ export const en = {
     promoAction: 'Create free account →',
   },
   gate: {
-    communityTitle: 'Community requires an account',
-    communityBody:
-      'Join the discussion, follow coin-tagged posts and share your analysis with other traders.',
     newsTitle: 'News requires an account',
     newsBody:
       'Read aggregated crypto news with coin tags and sentiment once you sign in.',
