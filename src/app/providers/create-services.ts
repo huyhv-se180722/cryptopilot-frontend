@@ -48,6 +48,7 @@ import {
 } from '../../services/api/paper-trading';
 import { createPendingCommunityService } from '../../services/api/community';
 import { createNewsService } from '../../services/api/news';
+import { createPendingNotificationService } from '../../services/api/notifications';
 import { createAiService } from '../../services/api/ai';
 import { createSubscriptionService } from '../../services/api/subscription';
 import { createAdminService } from '../../services/api/admin';
@@ -109,6 +110,10 @@ export async function createServices(env: Environment): Promise<Services> {
     // HTTP adapter is switched in when the branch reaches develop.
     community: createPendingCommunityService(),
     news: createNewsService(),
+    // The notification API is on an unmerged backend branch (T-059): its
+    // HTTP adapter, with the signed-in feed for the pushes, is switched in
+    // when the branch reaches develop.
+    notifications: createPendingNotificationService(),
     ai: createAiService(),
     subscription: createSubscriptionService(),
     admin: createAdminService(),
