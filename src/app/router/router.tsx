@@ -17,7 +17,6 @@ import {
   traderRoutes,
   type RouteDefinition,
 } from './route-definitions';
-import { paperTradingEnabled } from '../config/features';
 import { screenPages } from './screen-pages';
 
 /** Screens load on demand; each feature branch swaps in its real page. */
@@ -60,10 +59,7 @@ export const routes: RouteObject[] = [
         children: [
           {
             element: <TraderShell />,
-            children: [
-              ...traderRoutes,
-              ...(paperTradingEnabled ? paperRoutes : []),
-            ].map(screenRoute),
+            children: [...traderRoutes, ...paperRoutes].map(screenRoute),
           },
         ],
       },

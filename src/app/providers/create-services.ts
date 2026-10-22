@@ -25,7 +25,6 @@ import {
   createHttpTradingMarketService,
   createPendingTradingMarketService,
 } from '../../services/api/trading-market';
-import { paperTradingEnabled } from '../config/features';
 import {
   createHttpAnalysisService,
   createPendingAnalysisService,
@@ -65,13 +64,10 @@ export async function createServices(env: Environment): Promise<Services> {
   const http = createHttpClient({ baseUrl: env.apiBaseUrl, session: tokens });
   const connected = env.apiBaseUrl !== '';
   const stomp = env.wsUrl ? createStompMarketFeed(env.wsUrl) : null;
-  // Demo trading talks to the backend only while its flag is on (D-101,
-  // D-104): the flag says the backend has the paper module.
-  const paper = paperTradingEnabled && connected;
   // The account's pushes ride on their own signed-in connection (TR-08); the
   // public market feed stays anonymous.
   const accountFeed =
-    paper && env.wsUrl
+    connected && env.wsUrl
       ? createStompMarketFeed(
           env.wsUrl,
           signedInStompClient(() => tokens.validAccessToken()),
@@ -90,7 +86,7 @@ export async function createServices(env: Environment): Promise<Services> {
       ? createHttpMarketService(http)
       : createPendingMarketService(),
     marketFeed: stomp ?? unavailableMarketFeed,
-    tradingMarket: paper
+    tradingMarket: connected
       ? createHttpTradingMarketService(http, stomp)
       : createPendingTradingMarketService(),
     analysis: connected
@@ -106,7 +102,7 @@ export async function createServices(env: Environment): Promise<Services> {
     alerts: connected
       ? createHttpAlertsService(http)
       : createPendingAlertsService(),
-    paperTrading: paper
+    paperTrading: connected
       ? createHttpPaperTradingService(http, accountFeed)
       : createPendingPaperTradingService(),
     community: createCommunityService(),

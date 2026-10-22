@@ -24,7 +24,6 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { Copy } from '../../i18n/locales/en';
-import { paperTradingEnabled } from '../config/features';
 
 /** Navigation is UI configuration; paths match app/router/route-definitions. */
 export interface NavItem {
@@ -51,16 +50,8 @@ export interface AdminNavGroup {
 export const traderNav: readonly NavItem[] = [
   { to: '/dashboard', labelKey: 'overview', icon: LayoutDashboard },
   { to: '/markets', labelKey: 'markets', icon: TrendingUp },
-  // Demo trading (D-86) only behind its flag (D-101).
-  ...(paperTradingEnabled
-    ? [
-        {
-          to: '/trade/spot',
-          labelKey: 'trade',
-          icon: CandlestickChart,
-        } as const,
-      ]
-    : []),
+  // Demo trading (D-86).
+  { to: '/trade/spot', labelKey: 'trade', icon: CandlestickChart },
   { to: '/watchlist', labelKey: 'watchlist', icon: Star },
   { to: '/alerts', labelKey: 'alerts', icon: Bell },
   { to: '/plans', labelKey: 'plans', icon: FileText },

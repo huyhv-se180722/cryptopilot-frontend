@@ -65,7 +65,7 @@ describe('route definitions', () => {
     for (const route of all) expect(en.screens[route.titleKey]).toBeTruthy();
   });
 
-  it('traces demo trading to D-86 under /trade, off until its flag is set', () => {
+  it('traces demo trading to D-86 under /trade with one Trade entry', () => {
     expect(paperRoutes.map((route) => [route.path, route.screen])).toEqual([
       ['/trade/spot', 'D-86'],
       ['/trade/spot/:symbol', 'D-86'],
@@ -75,7 +75,9 @@ describe('route definitions', () => {
     ]);
     const others = [...publicRoutes, ...guestOnlyRoutes, ...traderRoutes];
     expect(others.some((route) => route.path.startsWith('/trade'))).toBe(false);
-    // VITE_ENABLE_PAPER_TRADING is not set in tests (D-101).
-    expect(traderNav.some((item) => item.to.startsWith('/trade'))).toBe(false);
+    // The Trade entry opens the Spot demo screen (D-86).
+    expect(
+      traderNav.filter((item) => item.to.startsWith('/trade')).map((i) => i.to),
+    ).toEqual(['/trade/spot']);
   });
 });
