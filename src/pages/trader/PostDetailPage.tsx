@@ -93,7 +93,7 @@ export function PostDetailPage() {
     <div className="mx-auto w-full max-w-6xl">
       {back}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
-        <div className="min-w-0 max-w-[760px]">
+        <div className="min-w-0">
           <article
             aria-labelledby="post-title"
             className="rounded-2xl border border-line bg-surface p-4 sm:p-6"

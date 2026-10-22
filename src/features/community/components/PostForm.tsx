@@ -302,10 +302,22 @@ export function PostForm({
           value={title}
           maxLength={TITLE.max + 50}
           onChange={(e) => setTitle(e.target.value)}
-          error={errors.title}
-          hint={f.titleHint}
+          aria-invalid={errors.title ? true : undefined}
+          aria-describedby={listId + '-title-note'}
         />
-        <div className="mt-1 text-right text-[11px]">
+        <div
+          id={listId + '-title-note'}
+          className="mt-1 flex justify-between gap-2 text-[11px]"
+        >
+          {errors.title ? (
+            <span className={classNames(fieldErrorClass, 'mt-0')}>
+              {errors.title}
+            </span>
+          ) : (
+            <span className={classNames(fieldHintClass, 'mt-0')}>
+              {f.titleHint}
+            </span>
+          )}
           {counter(title.trim().length, TITLE.max)}
         </div>
       </div>
