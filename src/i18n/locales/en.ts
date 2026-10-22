@@ -1142,6 +1142,8 @@ export const en = {
     discussionTotal: 'All posts',
     discussionLast: 'Latest post',
     discussionNone: 'No posts yet',
+    discussionOpen: 'Discussion',
+    discussionWrite: 'Post about {coin}',
     rulesTitle: 'Community rules',
     rulesBody:
       'Share analysis and questions, not signals to copy. Content here is not investment advice. Report posts that break the rules.',

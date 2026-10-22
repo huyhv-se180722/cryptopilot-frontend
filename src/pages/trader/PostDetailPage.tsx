@@ -8,8 +8,8 @@ import {
 import { Skeleton } from '../../components/ui/Skeleton';
 import { buttonClassName } from '../../components/ui/button-styles';
 import { CommentSection } from '../../features/community/components/CommentSection';
+import { CoinDiscussionCard } from '../../features/community/components/CoinDiscussionCard';
 import {
-  CoinDiscussionCard,
   JoinCard,
   RulesCard,
 } from '../../features/community/components/CommunitySidebar';
@@ -20,10 +20,7 @@ import {
 } from '../../features/community/components/PostParts';
 import { ReactionBar } from '../../features/community/components/ReactionBar';
 import { usePostInteractions } from '../../features/community/components/use-post-interactions';
-import {
-  useCoinDiscussion,
-  usePost,
-} from '../../features/community/hooks/use-community';
+import { usePost } from '../../features/community/hooks/use-community';
 import { useCopy } from '../../hooks/use-copy';
 import { errorText } from '../../i18n/messages';
 
@@ -43,7 +40,6 @@ export function PostDetailPage() {
     navigate('/community', { replace: true }),
   );
   const firstCoin = post.data?.coins[0];
-  const discussion = useCoinDiscussion(firstCoin);
 
   const back = (
     <Link
@@ -137,13 +133,7 @@ export function PostDetailPage() {
           />
         </div>
         <aside className="flex flex-col gap-4">
-          {firstCoin && (
-            <CoinDiscussionCard
-              symbol={firstCoin}
-              discussion={discussion.data}
-              loading={discussion.isPending}
-            />
-          )}
+          {firstCoin && <CoinDiscussionCard coin={firstCoin} />}
           {actions.role === 'guest' && <JoinCard />}
           <RulesCard />
         </aside>

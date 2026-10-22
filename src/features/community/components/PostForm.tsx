@@ -65,6 +65,7 @@ type FieldErrors = Partial<Record<Field, string | undefined>>;
  */
 export function PostForm({
   post,
+  initialCoins = [],
   videoAllowed,
   coinSuggestions,
   onSubmit,
@@ -72,6 +73,8 @@ export function PostForm({
 }: {
   /** The post being edited, or undefined for a new one. */
   post?: PostDetail;
+  /** Coin tags of a new post opened from a coin's page (SCR-10, SCR-11). */
+  initialCoins?: readonly string[];
   videoAllowed: boolean;
   coinSuggestions: readonly string[];
   /** Resolves with the refusal, if any. */
@@ -86,7 +89,9 @@ export function PostForm({
   const [title, setTitle] = useState(post?.title ?? '');
   const [content, setContent] = useState(post?.content ?? '');
   const [market, setMarket] = useState<MarketType | ''>(post?.market ?? '');
-  const [coins, setCoins] = useState<string[]>([...(post?.coins ?? [])]);
+  const [coins, setCoins] = useState<string[]>([
+    ...(post?.coins ?? initialCoins),
+  ]);
   const [coinText, setCoinText] = useState('');
   const [media, setMedia] = useState<MediaItem[]>(
     () =>

@@ -1,5 +1,10 @@
 import { useMemo } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  Link,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Alert, ErrorState } from '../../components/feedback/States';
 import { PageHeader } from '../../components/layout/PageHeader';
@@ -72,6 +77,10 @@ function Editor({ post }: { post?: PostDetail }) {
     return [...set].sort();
   }, [spot.data, futures.data]);
 
+  // `?coin=BTC` from a coin's page tags the new post with it.
+  const [params] = useSearchParams();
+  const coin = (params.get('coin') ?? '').toUpperCase();
+  const initialCoins = !post && /^[A-Z0-9]{1,20}$/.test(coin) ? [coin] : [];
   const back = post ? postPath(post.id) : '/community';
 
   async function submit(draft: PostDraft) {
@@ -102,7 +111,7 @@ function Editor({ post }: { post?: PostDetail }) {
       />
       <Card padding="lg">
         <PostForm
-          {...(post ? { post } : {})}
+          {...(post ? { post } : { initialCoins })}
           videoAllowed={videoAllowed}
           coinSuggestions={coins}
           onSubmit={submit}
