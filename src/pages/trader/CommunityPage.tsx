@@ -169,7 +169,8 @@ export function CommunityPage() {
         SAVED: c.tabSaved,
         MINE: c.tabMine,
       }[id],
-      panel: (
+      // Only the open tab holds the feed: the others are hidden panels.
+      panel: id === tab && (
         <>
           <FeedFilters
             value={filters}
