@@ -1,5 +1,6 @@
 import type { Services } from '../services/api/services';
 import { createDevelopmentAuth } from './dev-auth';
+import { createDevelopmentCommunity } from './dev-community';
 import { createDevelopmentMarket } from './dev-market';
 import { createDevelopmentPaperTrading } from './dev-paper-trading';
 import { createDevelopmentProfile } from './dev-profile';
@@ -22,5 +23,6 @@ export function createDevelopmentServices(base: Services): Services {
       () => auth.restoreSession(),
       market.market,
     ),
+    ...createDevelopmentCommunity(() => auth.restoreSession()),
   };
 }

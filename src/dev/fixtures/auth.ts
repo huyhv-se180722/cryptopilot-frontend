@@ -26,6 +26,8 @@ const pro: PlanEntitlements = {
     'EXTERNAL_ALERT_CHANNELS',
     'ADVANCED_PERFORMANCE',
     'NEWS_AI_INSIGHT',
+    // Video posting from PRO up (D-99).
+    'VIDEO_POST',
   ],
   limits: {
     ACTIVE_PLAN_MAX: null,
@@ -36,7 +38,7 @@ const pro: PlanEntitlements = {
 };
 const premium: PlanEntitlements = {
   tier: 'PREMIUM',
-  features: [...pro.features, 'AI_PERFORMANCE_CONTEXT', 'VIDEO_POST'],
+  features: [...pro.features, 'AI_PERFORMANCE_CONTEXT'],
   limits: {
     ACTIVE_PLAN_MAX: null,
     WATCHLIST_MAX: 100,
