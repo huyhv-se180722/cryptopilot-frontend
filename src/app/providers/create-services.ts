@@ -46,7 +46,7 @@ import {
   createHttpPaperTradingService,
   createPendingPaperTradingService,
 } from '../../services/api/paper-trading';
-import { createCommunityService } from '../../services/api/community';
+import { createPendingCommunityService } from '../../services/api/community';
 import { createNewsService } from '../../services/api/news';
 import { createAiService } from '../../services/api/ai';
 import { createSubscriptionService } from '../../services/api/subscription';
@@ -105,7 +105,9 @@ export async function createServices(env: Environment): Promise<Services> {
     paperTrading: connected
       ? createHttpPaperTradingService(http, accountFeed)
       : createPendingPaperTradingService(),
-    community: createCommunityService(),
+    // The community module is on an unmerged backend branch (T-065): its
+    // HTTP adapter is switched in when the branch reaches develop.
+    community: createPendingCommunityService(),
     news: createNewsService(),
     ai: createAiService(),
     subscription: createSubscriptionService(),
