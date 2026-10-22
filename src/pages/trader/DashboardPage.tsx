@@ -12,6 +12,7 @@ import {
 } from '../../features/dashboard/components/DashboardCard';
 import { MarketSnapshot } from '../../features/dashboard/components/MarketSnapshot';
 import { NewsBlock } from '../../features/dashboard/components/NewsBlock';
+import { RecentNotifications } from '../../features/notifications/components/RecentNotifications';
 import { PlanSnapshot } from '../../features/dashboard/components/PlanSnapshot';
 import { WatchlistSnapshot } from '../../features/dashboard/components/WatchlistSnapshot';
 import { useMarketPairs } from '../../features/market/hooks/use-market-data';
@@ -35,7 +36,8 @@ function counted(
  * snapshot, active plans and open positions, recent notifications,
  * performance summary and latest news, plus a market snapshot. Only
  * values the backend provides are shown: blocks whose API is not merged
- * (notifications T-056, performance T-051, news T-079) say so. Plans,
+ * (performance T-051, news T-079) say so; recent notifications come from
+ * the notification center (T-059). Plans,
  * watchlist, analysis and journal are one click away (SRS 4).
  */
 export function DashboardPage() {
@@ -139,7 +141,7 @@ export function DashboardPage() {
           title={d.notificationsTitle}
           link={{ to: '/notifications', label: d.openPage }}
         >
-          <PendingBlock message={copy.errors.notConfigured} />
+          <RecentNotifications />
         </DashboardCard>
         <DashboardCard
           title={d.performanceTitle}
