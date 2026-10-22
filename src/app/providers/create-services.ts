@@ -49,6 +49,7 @@ import {
 import { createPendingCommunityService } from '../../services/api/community';
 import { createNewsService } from '../../services/api/news';
 import { createPendingNotificationService } from '../../services/api/notifications';
+import { createPendingModerationService } from '../../services/api/moderation';
 import { createAiService } from '../../services/api/ai';
 import { createSubscriptionService } from '../../services/api/subscription';
 import { createAdminService } from '../../services/api/admin';
@@ -114,6 +115,8 @@ export async function createServices(env: Environment): Promise<Services> {
     // HTTP adapter, with the signed-in feed for the pushes, is switched in
     // when the branch reaches develop.
     notifications: createPendingNotificationService(),
+    // The moderation API is on the same unmerged backend branch (T-087).
+    moderation: createPendingModerationService(),
     ai: createAiService(),
     subscription: createSubscriptionService(),
     admin: createAdminService(),

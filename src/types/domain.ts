@@ -593,6 +593,49 @@ export interface MemberProfile {
   likesReceived: number;
   me: boolean;
 }
+/** Where a report stands (SRS 3.11.3): filed, opened by a moderator, decided. */
+export type ReportStatus = 'OPEN' | 'REVIEWING' | 'RESOLVED';
+/**
+ * A moderator's decision on all open reports of a post (UC-43); REMOVE_POST
+ * deletes it for everyone but Admin (D-99).
+ */
+export type ModerationAction =
+  'HIDE_POST' | 'REMOVE_POST' | 'DISMISS' | 'WARN_USER' | 'BAN_USER';
+/** One post of the SCR-36 queue with its open reports gathered. */
+export interface ModerationQueueItem {
+  post: PostSummary;
+  reportCount: number;
+  reasons: readonly ReportReason[];
+  firstReportedAt: ISODateTime;
+  lastReportedAt: ISODateTime;
+}
+export interface ModerationQueuePage {
+  items: readonly ModerationQueueItem[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+export interface ModerationReport {
+  id: string;
+  reporter: PostAuthor;
+  reason: ReportReason;
+  description: string | null;
+  status: ReportStatus;
+  createdAt: ISODateTime;
+}
+/** A reported post as a moderator opens it; its reports become REVIEWING. */
+export interface ModerationCase {
+  post: PostDetail;
+  reports: readonly ModerationReport[];
+}
+export interface ModerationResult {
+  postId: string;
+  action: ModerationAction;
+  postStatus: PostStatus;
+  resolvedReports: number;
+  /** True when this decision banned the author (not one banned before). */
+  authorBanned: boolean;
+}
 /** What a notification is about (SRS 3.4.5; COMMENT from SRS 3.7.3). */
 export type NotificationType =
   'ALERT' | 'PLAN' | 'MODERATION' | 'SUBSCRIPTION' | 'COMMENT';
