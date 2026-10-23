@@ -1,4 +1,5 @@
 import type {
+  AnnouncementService,
   CommunityService,
   ModerationService,
 } from '../services/api/contracts';
@@ -132,7 +133,11 @@ const MAX_IMAGES = 4;
 
 export function createDevelopmentCommunity(
   session: () => Promise<Session | null>,
-): { community: CommunityService; moderation: ModerationService } {
+): {
+  community: CommunityService;
+  moderation: ModerationService;
+  announcements: AnnouncementService;
+} {
   const built = Date.now();
   const posts = new Map<string, StoredPost>(
     devPostSeeds.map((seed) => [
@@ -816,5 +821,90 @@ export function createDevelopmentCommunity(
     },
   };
 
-  return { community, moderation };
+  /**
+   * UC-44 over the same posts, so a new announcement is pinned in the feed
+   * at once. A hidden one can be deleted but not edited (MSG41), as the
+   * backend answers.
+   */
+  const official = (id: string, editing: boolean) => {
+    const post = posts.get(id);
+    if (
+      !post ||
+      post.official === null ||
+      post.status === 'DELETED' ||
+      (editing && post.status === 'HIDDEN')
+    )
+      return notFound();
+    return post;
+  };
+  const announcements: AnnouncementService = {
+    async list(q, signal) {
+      await pause(signal);
+      await admin();
+      const found = [...posts.values()]
+        .filter(
+          (p) =>
+            p.official !== null &&
+            p.status !== 'DELETED' &&
+            (!q.category || p.official === q.category),
+        )
+        .sort((a, b) => b.createdAt - a.createdAt);
+      const result = page(found, q.page, q.pageSize);
+      return {
+        ...result,
+        items: result.items.map((p) => summary(p, null, null)),
+      };
+    },
+    async get(id, signal) {
+      await pause(signal);
+      await admin();
+      return detail(anyPost(id), null, null);
+    },
+    async create(draft) {
+      await pause();
+      const me = await admin();
+      const checked = checkDraft(draft, me, []);
+      const now = Date.now();
+      const post: StoredPost = {
+        id: nextId('dev-announcement'),
+        authorId: DEV_ADMIN_AUTHOR.userId,
+        title: checked.title,
+        content: checked.content,
+        market: draft.market,
+        coins: checked.coins,
+        official: draft.officialCategory,
+        status: 'PUBLISHED',
+        media: checked.media,
+        createdAt: now,
+        updatedAt: now,
+        likes: new Set(),
+        saves: new Set(),
+      };
+      posts.set(post.id, post);
+      return detail(post, null, null);
+    },
+    async update(id, draft) {
+      await pause();
+      const me = await admin();
+      const post = official(id, true);
+      const checked = checkDraft(draft, me, post.media);
+      Object.assign(post, {
+        title: checked.title,
+        content: checked.content,
+        market: draft.market,
+        coins: checked.coins,
+        official: draft.officialCategory,
+        media: checked.media,
+        updatedAt: Date.now(),
+      });
+      return detail(post, null, null);
+    },
+    async remove(id) {
+      await pause();
+      await admin();
+      official(id, false).status = 'DELETED';
+    },
+  };
+
+  return { community, moderation, announcements };
 }
