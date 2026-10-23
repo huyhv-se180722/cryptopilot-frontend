@@ -57,6 +57,11 @@
   --cp-dock-border: #d9e0ea;
   --cp-backdrop: rgba(23, 33, 47, 0.45);
 
+  /* Brand panel of the sign-in pages: the logo's navy and needle blue, the same in both themes. */
+  --cp-brand-ink: #0b1f44;
+  --cp-brand-ink-deep: #050d20;
+  --cp-brand-needle: #0a7cff;
+
   color-scheme: light;
 }
 
@@ -166,6 +171,9 @@
   --color-accent-line: var(--cp-accent-dim);
   --color-purple: var(--cp-purple);
   --color-purple-soft: var(--cp-purple-bg);
+  --color-brand-ink: var(--cp-brand-ink);
+  --color-brand-ink-deep: var(--cp-brand-ink-deep);
+  --color-brand-needle: var(--cp-brand-needle);
 
   --shadow-panel: var(--cp-shadow-panel);
   --shadow-overlay: var(--cp-shadow-overlay);
@@ -373,7 +381,7 @@
  * stand still under reduced motion.
  */
 .radar-sweep {
-  transform-box: view-box;
+  transform-box: fill-box;
   transform-origin: 200px 200px;
   animation: radar-sweep 8s linear infinite;
 }
@@ -398,64 +406,27 @@
 }
 
 /*
- * Sign-in backdrop (AuthBackdrop): the floor's grid drifts towards the
- * viewer, the glass cards and the crystal float, the orbit's dashes run
- * and the network's nodes pulse; all stand still under reduced motion.
+ * Sign-in backdrop (AuthBackdrop): the dial's bearing ring turns very
+ * slowly and the course line runs towards its last waypoint; both stand
+ * still under reduced motion.
  */
-.auth-floor {
-  background-image:
-    linear-gradient(
-      color-mix(in oklab, var(--cp-primary) 38%, transparent) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      90deg,
-      color-mix(in oklab, var(--cp-primary) 38%, transparent) 1px,
-      transparent 1px
-    );
-  background-size: 56px 56px;
-  transform: rotateX(64deg);
-  transform-origin: center bottom;
-  animation: auth-floor 5s linear infinite;
-}
-.auth-float {
-  animation: auth-float 9s ease-in-out infinite;
-}
-.auth-orbit {
-  animation: auth-orbit 14s linear infinite;
-}
-.auth-pulse {
+.auth-dial {
   transform-box: fill-box;
   transform-origin: center;
-  animation: auth-pulse 3.6s ease-in-out infinite;
+  animation: auth-dial 240s linear infinite;
+}
+.auth-course {
+  animation: auth-course 6s linear infinite;
 }
 
-@keyframes auth-floor {
+@keyframes auth-dial {
   to {
-    background-position: 0 56px;
+    transform: rotate(360deg);
   }
 }
-@keyframes auth-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-12px);
-  }
-}
-@keyframes auth-orbit {
+@keyframes auth-course {
   to {
-    stroke-dashoffset: -160;
-  }
-}
-@keyframes auth-pulse {
-  0%,
-  100% {
-    transform: scale(0.8);
-  }
-  50% {
-    transform: scale(1.35);
+    stroke-dashoffset: -40;
   }
 }
 

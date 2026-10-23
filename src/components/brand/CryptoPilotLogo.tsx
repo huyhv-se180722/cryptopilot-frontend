@@ -12,17 +12,20 @@ const HEIGHT: Record<LogoSize, number> = { xs: 18, sm: 24, md: 32, lg: 44 };
 
 /**
  * Official CryptoPilot logo (owner-supplied artwork). The dark variant
- * swaps the navy parts for white so the lockup reads on dark surfaces.
+ * swaps the navy parts for white so the lockup reads on dark surfaces;
+ * `onDark` asks for it whatever the theme (the sign-in brand panel).
  */
 export function CryptoPilotLogo({
   size = 'sm',
   showText = true,
+  onDark = false,
 }: {
   size?: LogoSize;
   showText?: boolean;
+  onDark?: boolean;
 }) {
   const copy = useCopy();
-  const dark = useTheme().resolved === 'dark';
+  const dark = useTheme().resolved === 'dark' || onDark;
   const src = showText
     ? dark
       ? logoDark
