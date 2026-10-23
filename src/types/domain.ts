@@ -972,6 +972,11 @@ export interface PlacePaperOrderList {
   working?: PaperOrderListLeg;
   pending?: PaperOrderListLeg;
   oco?: PaperOcoLegs;
+  /**
+   * The idempotency key, as `clientOrderId` for one order: the same group
+   * sent again with the same key returns the group already placed.
+   */
+  listClientOrderId?: string;
 }
 export interface PaperOrderList {
   listId: string;

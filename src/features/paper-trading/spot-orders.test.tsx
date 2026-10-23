@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { createDevelopmentPaperTrading } from '../../dev/dev-paper-trading';
 import { DEV_PAIR_IDS } from '../../dev/fixtures/market';
 import { TradeSpotPage } from '../../pages/trader/TradeSpotPage';
+import { ServiceError } from '../../services/api/errors';
 import type {
   MarketFeed,
   MarketService,
@@ -144,7 +145,7 @@ async function open(path = '/trade/spot/BTCUSDT', pairs = PAIRS) {
   const form = await screen.findByRole('region', { name: 'Spot order' });
   // The account opens and the wallet arrives before trading.
   await waitFor(() => expect(within(form).getByText(/10,000/)).toBeTruthy());
-  return { form, user: userEvent.setup() };
+  return { form, user: userEvent.setup(), paperTrading };
 }
 
 const field = (form: HTMLElement, name: RegExp) =>
@@ -304,6 +305,40 @@ describe('Spot demo orders (TR-F3)', () => {
     expect(await screen.findByText('Buy order open.')).toBeTruthy();
   });
 
+  it('shows a symbol filter refusal under its field and an open-order limit as a notice', async () => {
+    const { form, user, paperTrading } = await open();
+    const refusal = (status: number, code: string, messageArgs: string[]) =>
+      new ServiceError('Refused.', 'HTTP_ERROR', status, {
+        status,
+        code,
+        messageCode: status === 409 ? 'MSG43' : 'MSG15',
+        messageArgs,
+        fieldErrors: {},
+      });
+    vi.spyOn(paperTrading, 'placeOrder')
+      .mockRejectedValueOnce(
+        refusal(400, 'PAPER_PERCENT_PRICE', ['price', '30000', '48000', 'MIN']),
+      )
+      .mockRejectedValueOnce(
+        refusal(409, 'PAPER_MAX_NUM_ORDERS', ['orders', '201', '200', 'MAX']),
+      );
+    await user.type(field(form, /^Price/), '30000');
+    await user.type(field(form, /Amount/), '0.01');
+    await user.click(within(form).getByRole('button', { name: 'Buy BTC' }));
+    expect(
+      await within(form).findByText(
+        'Too far below the last price: enter at least 48,000.00.',
+      ),
+    ).toBeTruthy();
+    expect(within(form).queryByText(/Something went wrong/)).toBeNull();
+    await user.click(within(form).getByRole('button', { name: 'Buy BTC' }));
+    expect(
+      await within(form).findByText(
+        'You can have at most 200 open orders on this pair. Cancel one first.',
+      ),
+    ).toBeTruthy();
+  });
+
   it('places a Stop Limit as the exchange stop type, shown with its trigger', async () => {
     const { form, user } = await open();
     await user.click(within(form).getByRole('radio', { name: 'Stop' }));
@@ -380,6 +415,29 @@ describe('Spot demo orders (TR-F3)', () => {
     );
     expect(openOrders.textContent).toContain('Limit maker');
     expect(openOrders.textContent).toContain('Stop loss');
+  });
+
+  it('sends an OCO again after a timeout with the same list key (Q-70)', async () => {
+    const { form, user, paperTrading } = await open();
+    const placeList = vi
+      .spyOn(paperTrading, 'placeOrderList')
+      .mockRejectedValueOnce(new ServiceError('Timed out.', 'TIMEOUT'));
+    await user.click(within(form).getByRole('radio', { name: 'Sell' }));
+    await user.click(within(form).getByRole('radio', { name: 'Stop' }));
+    await user.selectOptions(
+      within(form).getByRole('combobox', { name: 'Stop order type' }),
+      'OCO',
+    );
+    await user.type(field(form, /^Take profit/), '62000');
+    await user.type(field(form, /^Stop \(/), '58000');
+    await user.type(field(form, /Amount/), '0.01');
+    await user.click(within(form).getByRole('button', { name: 'Sell BTC' }));
+    await waitFor(() => expect(placeList).toHaveBeenCalledTimes(1));
+    await user.click(within(form).getByRole('button', { name: 'Sell BTC' }));
+    expect(await screen.findByText('OCO placed.')).toBeTruthy();
+    const [first, again] = placeList.mock.calls.map(([list]) => list);
+    expect(first?.listClientOrderId).toMatch(/^web-/);
+    expect(again?.listClientOrderId).toBe(first?.listClientOrderId);
   });
 
   it('places a limit with TP/SL as an OTOCO, its TP and SL pending', async () => {

@@ -818,6 +818,18 @@ export const en = {
     errInvalid: 'Enter a number greater than zero.',
     errBelowStep: 'Smaller than the smallest step ({step}).',
     errMinNotional: 'The order value must be at least {min} {asset}.',
+    errMaxNotional: 'The order value must be at most {max} {asset}.',
+    errAtLeast: 'Enter at least {limit}.',
+    errAtMost: 'Enter at most {limit}.',
+    errStep: 'Enter a multiple of {limit}.',
+    errPercentBelow: 'Too far below the last price: enter at least {limit}.',
+    errPercentAbove: 'Too far above the last price: enter at most {limit}.',
+    errTrailingMin: 'Enter a delta of at least {limit} %.',
+    errTrailingMax: 'Enter a delta of at most {limit} %.',
+    tooManyOrders:
+      'You can have at most {limit} open orders on this pair. Cancel one first.',
+    tooManyStops:
+      'You can have at most {limit} open stop orders on this pair. Cancel one first.',
     errInsufficient: 'Not enough available balance.',
     errAtLastPrice: 'The stop cannot be the last price.',
     errNoLastPrice: 'Wait for a price before placing a stop.',
@@ -838,6 +850,17 @@ export const en = {
     statusCANCELED: 'Cancelled',
     statusEXPIRED: 'Expired',
     statusREJECTED: 'Rejected',
+    reasonOCO_OTHER_EXECUTED: 'The other order of the OCO executed.',
+    reasonPAIR_NOT_TRADING:
+      'Cancelled: the pair stopped trading on the exchange.',
+    reasonNOT_FILLABLE_ON_ARRIVAL:
+      'It could not fill when it arrived, so it expired.',
+    reasonPOST_ONLY_WOULD_TAKE:
+      'Post only: at its price it would have filled at once as a taker.',
+    reasonINSUFFICIENT_BALANCE:
+      'Not enough available balance when it was to be placed.',
+    reasonDEPTH_EXHAUSTED:
+      'Part of it filled beyond the visible order book, at its last price.',
     colPair: 'Pair',
     colType: 'Type',
     colTrigger: 'Trigger',

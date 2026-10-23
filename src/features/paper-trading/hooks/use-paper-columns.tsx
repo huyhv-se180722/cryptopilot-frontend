@@ -15,6 +15,7 @@ import {
   formatInstantUtc,
 } from '../../../utils/instant-format';
 import { formatQuantity } from '../model/order-book';
+import { orderReasonText } from '../model/order-reason';
 
 export const timeCell = (value: string) => (
   <time dateTime={value} title={formatInstantUtc(value)}>
@@ -154,7 +155,7 @@ export function usePaperColumns(pairs: readonly MarketPair[]) {
                 (row.status === 'REJECTED' || row.status === 'EXPIRED') &&
                   'text-warning',
               )}
-              title={row.statusReason ?? undefined}
+              title={orderReasonText(copy, row.statusReason)}
             >
               {p[`status${row.status}`]}
             </span>
