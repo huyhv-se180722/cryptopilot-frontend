@@ -61,6 +61,8 @@ export const en = {
     MSG46: 'Please wait {time} before requesting another verification email.',
     MSG48:
       'The Aggressive profile allows higher risk per trade and higher leverage and can lead to large losses. Continue?',
+    MSG56:
+      'This post is under moderation review, so its images and videos cannot be removed. You can still edit the text or add media.',
   },
   integration: {
     fixturesTitle: 'Development fixtures enabled',
