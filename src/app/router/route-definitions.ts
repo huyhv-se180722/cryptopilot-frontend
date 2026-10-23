@@ -7,7 +7,7 @@ import type { Copy } from '../../i18n/locales/en';
  * community member pages to D-99.
  * Dialog screens (SCR-14, SCR-19, SCR-27) have no route of their own.
  */
-export type ScreenId = `SCR-${string}` | 'D-86' | 'D-99';
+export type ScreenId = `SCR-${string}` | 'D-86' | 'D-99' | 'UC-44';
 export type ScreenTitleKey = keyof Copy['screens'];
 
 export interface RouteDefinition {
@@ -102,6 +102,23 @@ export const adminRoutes = [
   { path: '/admin/users', screen: 'SCR-34', titleKey: 'adminUsers' },
   { path: '/admin/users/:userId', screen: 'SCR-35', titleKey: 'adminUser' },
   { path: '/admin/reports', screen: 'SCR-36', titleKey: 'adminReports' },
+  // Official announcements (UC-44): the list has no SRS screen of its
+  // own, the form is SCR-26 with the Official category (SRS 3.7.2).
+  {
+    path: '/admin/announcements',
+    screen: 'UC-44',
+    titleKey: 'adminAnnouncements',
+  },
+  {
+    path: '/admin/announcements/new',
+    screen: 'SCR-26',
+    titleKey: 'adminAnnouncementNew',
+  },
+  {
+    path: '/admin/announcements/:postId',
+    screen: 'SCR-26',
+    titleKey: 'adminAnnouncementEdit',
+  },
   { path: '/admin/pairs', screen: 'SCR-37', titleKey: 'adminPairs' },
   {
     path: '/admin/leverage-brackets',
