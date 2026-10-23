@@ -6,8 +6,10 @@ import { PlanCreatePage } from '../../pages/trader/PlanCreatePage';
 import { PlanDetailPage } from '../../pages/trader/PlanDetailPage';
 import { PlanEditPage } from '../../pages/trader/PlanEditPage';
 import { PlansPage } from '../../pages/trader/PlansPage';
+import { devProfile, devRiskParams } from '../../dev/fixtures/profile';
 import type {
   MarketService,
+  ProfileService,
   TradingPlanService,
 } from '../../services/api/contracts';
 import { ServiceError } from '../../services/api/errors';
@@ -231,6 +233,7 @@ async function open(
   service = fakePlans(),
   tier: 'FREE' | 'PRO' = 'FREE',
   market = fakeMarket(),
+  profile?: ProfileService,
 ) {
   const session: Session = { ...testTrader, entitlements: plan(tier) };
   await renderRoutes(
@@ -242,7 +245,7 @@ async function open(
     ],
     path,
     fakeAuth({ restoreSession: async () => session }),
-    { tradingPlan: service, market },
+    { tradingPlan: service, market, ...(profile ? { profile } : {}) },
   );
   return service;
 }
@@ -676,6 +679,128 @@ describe('SCR-17 new plan (T-040, UC-16)', () => {
     expect(service.create).not.toHaveBeenCalled();
     expect(
       (await screen.findAllByText(/For long positions/)).length,
+    ).toBeTruthy();
+  });
+
+  const scalper = (): ProfileService =>
+    ({
+      get: vi.fn(async () => ({ ...devProfile, tradingStyle: 'SCALPING' })),
+      getRiskProfile: vi.fn(async () => devRiskParams.CONSERVATIVE),
+    }) as unknown as ProfileService;
+
+  it('sends a STOP entry with its invalidation price, deviation limit and the style timeframe (D-111, D-112)', async () => {
+    priceLines.length = 0;
+    const service = fakePlans({
+      create: vi.fn(async () => ({ ...PLAN, id: 'new-plan' })),
+      get: vi.fn(async () => ({ ...PLAN, id: 'new-plan' })),
+    });
+    await open('/plans/new', service, 'FREE', fakeMarket(), scalper());
+    const timeframe = (await screen.findByLabelText(
+      'Analysis timeframe',
+    )) as HTMLSelectElement;
+    // SCALPING plans on 15m unless the Trader picks another one.
+    expect(timeframe.value).toBe('15m');
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Stop' }));
+    expect(screen.getByText(/Enters at market once the price reaches/));
+    await user.type(screen.getByLabelText('Stop price'), '70000');
+    await user.type(screen.getByLabelText('Stop loss'), '68000');
+    await user.type(screen.getByLabelText('Take profit'), '76000');
+    await user.type(
+      screen.getByLabelText('Invalidation price (optional)'),
+      '64000',
+    );
+    await user.type(
+      screen.getByLabelText('Max entry deviation (R, optional)'),
+      '0.5',
+    );
+    await user.selectOptions(timeframe, '1h');
+    await waitFor(() =>
+      expect(priceLines).toEqual(
+        expect.arrayContaining([
+          'Stop price 70000',
+          'Invalidation price 64000',
+        ]),
+      ),
+    );
+    await user.click(screen.getByRole('button', { name: 'Save as draft' }));
+    await waitFor(() =>
+      expect(service.create).toHaveBeenCalledWith(
+        ROW.pairId,
+        expect.objectContaining({
+          entryType: 'STOP',
+          entryPrice: '70000',
+          invalidationPrice: '64000',
+          maxEntryDeviationR: '0.5',
+          analysisTimeframe: '1h',
+        }),
+        false,
+      ),
+    );
+  });
+
+  it('leaves the timeframe to the server when the profile cannot be read, and has no invalidation on a market entry', async () => {
+    const service = fakePlans();
+    const unreadable = {
+      get: vi.fn(async () => {
+        throw new ServiceError('offline', 'NETWORK_ERROR');
+      }),
+      getRiskProfile: vi.fn(async () => devRiskParams.CONSERVATIVE),
+    } as unknown as ProfileService;
+    await open('/plans/new', service, 'FREE', fakeMarket(), unreadable);
+    const timeframe = (await screen.findByLabelText(
+      'Analysis timeframe',
+    )) as HTMLSelectElement;
+    expect(timeframe.value).toBe('');
+    expect(
+      within(timeframe).getByRole('option', {
+        name: 'Your trading style’s default',
+      }),
+    ).toBeTruthy();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Market' }));
+    expect(screen.queryByLabelText('Invalidation price (optional)')).toBeNull();
+    expect(
+      screen.getByText('A market entry has no invalidation price.'),
+    ).toBeTruthy();
+  });
+
+  it('says why the server refused the invalidation price or a reached stop (MSG16, D-112)', async () => {
+    const refused = (field: string) =>
+      new ServiceError('refused', 'HTTP_ERROR', 400, {
+        status: 400,
+        code: 'VALIDATION_FAILED',
+        messageCode: 'MSG01',
+        messageArgs: [],
+        fieldErrors: { [field]: 'MSG16' },
+      });
+    const service = fakePlans({
+      create: vi
+        .fn()
+        .mockRejectedValueOnce(refused('invalidationPrice'))
+        .mockRejectedValueOnce(refused('entryPrice')),
+    });
+    await open('/plans/new', service, 'FREE', fakeMarket(), scalper());
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('radio', { name: 'Stop' }));
+    await user.type(screen.getByLabelText('Stop price'), '70000');
+    await user.type(screen.getByLabelText('Stop loss'), '68000');
+    await user.type(screen.getByLabelText('Take profit'), '76000');
+    await user.type(
+      screen.getByLabelText('Invalidation price (optional)'),
+      '71000',
+    );
+    await user.click(screen.getByRole('button', { name: 'Save as draft' }));
+    expect(
+      await screen.findByText(
+        'For long positions: the invalidation price must lie beyond the current price, on the far side from the entry.',
+      ),
+    ).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Save and activate' }));
+    expect(
+      await screen.findByText(
+        'For long positions: a stop entry must be above the current price; it has been reached, so use a market entry.',
+      ),
     ).toBeTruthy();
   });
 });

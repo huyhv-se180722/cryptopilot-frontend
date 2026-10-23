@@ -3,6 +3,7 @@ import type { TradingPlan } from '../../../types/domain';
 import {
   draftOfPlan,
   serverFieldError,
+  timeframeOfStyle,
   toInputs,
   type PlanDraft,
 } from './plan-form';
@@ -19,6 +20,9 @@ const DRAFT: PlanDraft = {
   leverage: '',
   expiry: '',
   note: '',
+  invalidationPrice: '',
+  maxEntryDeviationR: '',
+  analysisTimeframe: '1h',
 };
 const NOW = Date.parse('2026-10-12T10:00:00Z');
 
@@ -44,9 +48,83 @@ describe('plan form model (SCR-17)', () => {
         note: 'Retest',
         invalidationPrice: null,
         maxEntryDeviationR: null,
-        analysisTimeframe: null,
+        analysisTimeframe: '1h',
       },
     });
+  });
+
+  it('prices a STOP entry like a limit and orders its exits by the stop (D-111)', () => {
+    const stop = toInputs(
+      {
+        ...DRAFT,
+        entryType: 'STOP',
+        entryPrice: '70000',
+        stopLoss: '68000',
+        takeProfit: '76000',
+      },
+      NOW,
+    );
+    expect(stop).toMatchObject({
+      ok: true,
+      inputs: { entryType: 'STOP', entryPrice: '70000' },
+    });
+    // 66000 is under the stop of 70000: no longer a take profit for a long.
+    expect(
+      toInputs(
+        {
+          ...DRAFT,
+          entryType: 'STOP',
+          entryPrice: '70000',
+          stopLoss: '68000',
+          takeProfit: '66000',
+        },
+        NOW,
+      ),
+    ).toEqual({ ok: false, errors: { takeProfit: { kind: 'order' } } });
+    expect(
+      toInputs({ ...DRAFT, entryType: 'STOP', entryPrice: '' }, NOW),
+    ).toEqual({ ok: false, errors: { entryPrice: { kind: 'required' } } });
+  });
+
+  it('sends the invalidation price of a LIMIT or STOP only, and checks the deviation limit (BR-68, BR-69)', () => {
+    expect(
+      toInputs({ ...DRAFT, invalidationPrice: ' 64000 ' }, NOW),
+    ).toMatchObject({ ok: true, inputs: { invalidationPrice: '64000' } });
+    // A market entry has none: a value left in the field is not sent.
+    expect(
+      toInputs(
+        { ...DRAFT, entryType: 'MARKET', invalidationPrice: '64000' },
+        NOW,
+      ),
+    ).toMatchObject({ ok: true, inputs: { invalidationPrice: null } });
+    expect(toInputs({ ...DRAFT, invalidationPrice: '0' }, NOW)).toEqual({
+      ok: false,
+      errors: { invalidationPrice: { kind: 'positive' } },
+    });
+    expect(
+      toInputs({ ...DRAFT, maxEntryDeviationR: '0.75' }, NOW),
+    ).toMatchObject({ ok: true, inputs: { maxEntryDeviationR: '0.75' } });
+    for (const value of ['0', '0.7500001', '1'])
+      expect(toInputs({ ...DRAFT, maxEntryDeviationR: value }, NOW)).toEqual({
+        ok: false,
+        errors: { maxEntryDeviationR: { kind: 'deviation', max: '0.75' } },
+      });
+    expect(toInputs({ ...DRAFT, maxEntryDeviationR: 'half' }, NOW)).toEqual({
+      ok: false,
+      errors: { maxEntryDeviationR: { kind: 'number' } },
+    });
+  });
+
+  it('leaves the analysis timeframe to the server when none is chosen', () => {
+    expect(toInputs({ ...DRAFT, analysisTimeframe: '' }, NOW)).toMatchObject({
+      ok: true,
+      inputs: { analysisTimeframe: null },
+    });
+    expect(timeframeOfStyle('SCALPING')).toBe('15m');
+    expect(timeframeOfStyle('DAY')).toBe('1h');
+    expect(timeframeOfStyle('SWING')).toBe('4h');
+    expect(timeframeOfStyle('POSITION')).toBe('4h');
+    expect(timeframeOfStyle(null)).toBe('1h');
   });
 
   it('checks the BR-22 price order exactly, for both directions', () => {
@@ -124,6 +202,9 @@ describe('plan form model (SCR-17)', () => {
       leverage: null,
       expiresAt: null,
       note: null,
+      invalidationPrice: null,
+      maxEntryDeviationR: '0.500000000000',
+      analysisTimeframe: '4h',
     } as unknown as TradingPlan);
     expect(draft).toMatchObject({
       entryPrice: '',
@@ -133,6 +214,9 @@ describe('plan form model (SCR-17)', () => {
       riskPercent: '1',
       expiry: '',
       note: '',
+      invalidationPrice: '',
+      maxEntryDeviationR: '0.5',
+      analysisTimeframe: '4h',
     });
   });
 
@@ -145,6 +229,17 @@ describe('plan form model (SCR-17)', () => {
     });
     expect(serverFieldError('entryPrice', 'MSG01')).toEqual({
       kind: 'required',
+    });
+    // MSG16 names a different rule on each field (D-112).
+    expect(serverFieldError('invalidationPrice', 'MSG16')).toEqual({
+      kind: 'invalidationSide',
+    });
+    expect(serverFieldError('entryPrice', 'MSG16')).toEqual({
+      kind: 'stopReached',
+    });
+    expect(serverFieldError('maxEntryDeviationR', 'MSG15')).toEqual({
+      kind: 'deviation',
+      max: '0.75',
     });
   });
 });

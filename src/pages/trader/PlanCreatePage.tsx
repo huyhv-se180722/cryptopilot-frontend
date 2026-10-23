@@ -5,14 +5,18 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { useCopy } from '../../hooks/use-copy';
 import { errorText } from '../../i18n/messages';
 import { useMarketPairs } from '../../features/market/hooks/use-market-data';
+import { useProfileData } from '../../features/profile/hooks/use-profile';
 import { PlanEditor } from '../../features/trading-plan/components/PlanEditor';
+import { timeframeOfStyle } from '../../features/trading-plan/components/plan-form';
 import { PlanChart } from './plan-chart';
 
 /**
  * SCR-17 New Trading Plan (SRS 3.5.1, UC-16): the plan form on a Spot pair
  * of the market list, by its id (FEQ-01); `?symbol=` starts on a pair, as
  * the analysis screen's Create trading plan does. Futures plans wait for
- * the leverage brackets, so a new plan is Spot for now.
+ * the leverage brackets, so a new plan is Spot for now. The analysis
+ * timeframe starts on the one of the Trader's trading style (D-112); when
+ * the profile cannot be read the server chooses it.
  */
 export function PlanCreatePage() {
   const copy = useCopy();
@@ -21,6 +25,7 @@ export function PlanCreatePage() {
   const symbol = params.get('symbol')?.toUpperCase() ?? null;
   const pairs = useMarketPairs('spot');
   const start = pairs.data?.find((pair) => pair.symbol === symbol);
+  const profile = useProfileData().state;
 
   return (
     <div className="mx-auto w-full max-w-7xl">
@@ -34,7 +39,7 @@ export function PlanCreatePage() {
       <header className="mb-4">
         <h1 className="text-lg font-semibold text-fg">{p.createTitle}</h1>
       </header>
-      {pairs.isPending ? (
+      {pairs.isPending || profile.status === 'loading' ? (
         <Skeleton className="h-96 w-full" />
       ) : pairs.isError ? (
         <ErrorState
@@ -55,6 +60,10 @@ export function PlanCreatePage() {
             mode: 'create',
             pairs: pairs.data,
             pairId: start?.pairId ?? null,
+            timeframe:
+              profile.status === 'success'
+                ? timeframeOfStyle(profile.data.profile.tradingStyle)
+                : null,
           }}
           chart={(pair, lines) => <PlanChart pair={pair} lines={lines} />}
         />
