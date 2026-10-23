@@ -243,7 +243,7 @@ export function SpotOrderForm({
       'working.quantity': 'amount',
     };
     // A symbol filter or open-order limit says which limit it broke.
-    const limit = spotRefusal(copy, error, quote);
+    const limit = spotRefusal(copy, error, quote, pair.tickSize);
     if (limit) {
       const field = limit.field ? aliases[limit.field] : undefined;
       if (field) setServerErrors({ [field]: limit.text });

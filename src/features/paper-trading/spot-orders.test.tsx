@@ -327,7 +327,7 @@ describe('Spot demo orders (TR-F3)', () => {
     await user.click(within(form).getByRole('button', { name: 'Buy BTC' }));
     expect(
       await within(form).findByText(
-        'Too far below the last price: enter at least 48,000.',
+        'Too far below the last price: enter at least 48,000.00.',
       ),
     ).toBeTruthy();
     expect(within(form).queryByText(/Something went wrong/)).toBeNull();

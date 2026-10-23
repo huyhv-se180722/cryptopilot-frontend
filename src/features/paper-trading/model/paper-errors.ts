@@ -3,6 +3,7 @@ import { formatCopy } from '../../../i18n/copy';
 import { errorText } from '../../../i18n/messages';
 import { problemOf } from '../../../services/api/errors';
 import { groupThousands } from '../../../utils/decimal-format';
+import { toStep } from '../../../utils/decimal-math';
 
 /**
  * A demo trading refusal in words: the backend's codes first (insufficient
@@ -43,12 +44,15 @@ export interface SpotRefusal {
  * A Spot filter or open-order limit refusal in words, or undefined for any
  * other error. A filter refusal carries `[field, value, limit, bound]`
  * (bound MIN, MAX or STEP), an open-order limit `[field, count, limit, MAX]`
- * (backend `develop` 612b201). `quote` names the asset of an order value.
+ * (backend `develop` 612b201). `quote` names the asset of an order value;
+ * `tickSize` rounds a price band, which the backend gives unrounded
+ * (last price × multiplier), to a price that can be entered.
  */
 export function spotRefusal(
   copy: Copy,
   error: unknown,
   quote: string,
+  tickSize: string | null = null,
 ): SpotRefusal | undefined {
   const problem = problemOf(error);
   if (!problem) return undefined;
@@ -83,7 +87,9 @@ export function spotRefusal(
       break;
     case 'PAPER_PERCENT_PRICE':
       text = formatCopy(min ? p.errPercentBelow : p.errPercentAbove, {
-        limit: shown,
+        limit: tickSize
+          ? groupThousands(toStep(limit, tickSize, min ? 'up' : 'down'))
+          : shown,
       });
       break;
     case 'PAPER_TRAILING_DELTA':

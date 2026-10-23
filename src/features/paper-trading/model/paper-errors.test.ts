@@ -77,6 +77,28 @@ describe('Spot order refusals (TR-02 filters, backend 612b201)', () => {
         'USDT',
       )?.text,
     ).toBe('Too far below the last price: enter at least 12,000.5.');
+    // The band is last price × multiplier, off the tick: rounded inwards.
+    expect(
+      spotRefusal(
+        en,
+        refusal(400, 'PAPER_PERCENT_PRICE', ['price', '1', '40796.005', 'MIN']),
+        'USDT',
+        '0.01',
+      )?.text,
+    ).toBe('Too far below the last price: enter at least 40,796.01.');
+    expect(
+      spotRefusal(
+        en,
+        refusal(400, 'PAPER_PERCENT_PRICE', [
+          'price',
+          '9e9',
+          '407960.059',
+          'MAX',
+        ]),
+        'USDT',
+        '0.01',
+      )?.text,
+    ).toBe('Too far above the last price: enter at most 407,960.05.');
     expect(
       spotRefusal(
         en,
