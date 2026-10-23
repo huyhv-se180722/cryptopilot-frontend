@@ -16,6 +16,7 @@ import { classNames } from '../../../utils/class-names';
 import { groupThousands } from '../../../utils/decimal-format';
 import { toStep } from '../../../utils/decimal-math';
 import { usePaperActions } from '../hooks/use-paper-orders';
+import { spotRefusal } from '../model/paper-errors';
 import {
   amountOf,
   checkSpotOrder,
@@ -84,8 +85,9 @@ export function SpotOrderForm({
   const [draft, setDraft] = useState<SpotOrderDraft>(EMPTY_DRAFT);
   const [stopForm, setStopForm] = useState<StopForm>('STOP_LIMIT');
   const [shown, setShown] = useState(false);
+  // The backend's refusal of a field, in words.
   const [serverErrors, setServerErrors] = useState<
-    Partial<Record<SpotOrderField, SpotOrderProblem>>
+    Partial<Record<SpotOrderField, string>>
   >({});
   const [notice, setNotice] = useState<string | null>(null);
   // The share last set on the slider, kept until a field is typed in, so a
@@ -168,9 +170,7 @@ export function SpotOrderForm({
     }
   };
   const fieldError = (field: SpotOrderField) =>
-    problemText(
-      serverErrors[field] ?? (shown ? check.errors[field] : undefined),
-    );
+    serverErrors[field] ?? problemText(shown ? check.errors[field] : undefined);
 
   const succeeded = (message: string, tone: 'success' | 'info' = 'success') => {
     sent.current = null;
@@ -228,7 +228,7 @@ export function SpotOrderForm({
       case 'PAPER_ORDER_WOULD_TRIGGER':
         return setNotice(p.wouldTrigger);
     }
-    const fields: Partial<Record<SpotOrderField, SpotOrderProblem>> = {};
+    const fields: Partial<Record<SpotOrderField, string>> = {};
     const aliases: Record<string, SpotOrderField> = {
       price: 'price',
       stopPrice: 'stop',
@@ -242,11 +242,20 @@ export function SpotOrderForm({
       'working.price': 'price',
       'working.quantity': 'amount',
     };
+    // A symbol filter or open-order limit says which limit it broke.
+    const limit = spotRefusal(copy, error, quote);
+    if (limit) {
+      const field = limit.field ? aliases[limit.field] : undefined;
+      if (field) setServerErrors({ [field]: limit.text });
+      else setNotice(limit.text);
+      return;
+    }
     for (const [name, messageId] of Object.entries(
       problem?.fieldErrors ?? {},
     )) {
       const field = aliases[name];
-      if (field) fields[field] = messageId === 'MSG01' ? 'required' : 'invalid';
+      if (field)
+        fields[field] = messageId === 'MSG01' ? p.errRequired : p.errInvalid;
     }
     if (Object.keys(fields).length > 0) setServerErrors(fields);
     else setNotice(errorText(copy, error));
