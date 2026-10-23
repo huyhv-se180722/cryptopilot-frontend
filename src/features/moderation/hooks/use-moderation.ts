@@ -26,14 +26,16 @@ export function useModerationQueue(page: number) {
 
 /**
  * Opens a reported post with its reports, which the backend marks
- * REVIEWING: read once per opening, never again in the background.
+ * REVIEWING: read once per opening, never again in the background. The
+ * call is never aborted: the server has claimed the reports anyway, and a
+ * second opening at the same moment loses its optimistic lock (409).
  */
 export function useModerationCase(postId: string | null) {
   const { moderation } = useServices();
   return useQuery({
     queryKey: [...MODERATION_KEY, 'case', postId],
     enabled: postId !== null,
-    queryFn: ({ signal }) => moderation.open(postId ?? '', signal),
+    queryFn: () => moderation.open(postId ?? ''),
     staleTime: Infinity,
     gcTime: 0,
     refetchOnWindowFocus: false,
