@@ -381,7 +381,7 @@
  * stand still under reduced motion.
  */
 .radar-sweep {
-  transform-box: fill-box;
+  transform-box: view-box;
   transform-origin: 200px 200px;
   animation: radar-sweep 8s linear infinite;
 }
