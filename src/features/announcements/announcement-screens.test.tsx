@@ -115,6 +115,44 @@ describe('announcement screens (UC-44)', () => {
     expect(removed).toEqual(['a1']);
   });
 
+  it('goes back to the last page when a deletion empties the one shown', async () => {
+    const user = userEvent.setup();
+    let stored: PostSummary[] = Array.from({ length: 21 }, (_, i) => ({
+      ...summary,
+      id: `a${String(i + 1)}`,
+      title: `Announcement ${String(i + 1)}`,
+    }));
+    await renderRoutes(
+      [page('/admin/announcements', <AdminAnnouncementsPage />)],
+      '/admin/announcements',
+      signedIn,
+      {
+        announcements: service({
+          list: async (q) => ({
+            items: stored.slice((q.page - 1) * q.pageSize, q.page * q.pageSize),
+            page: q.page,
+            pageSize: q.pageSize,
+            total: stored.length,
+          }),
+          remove: async (id) => {
+            stored = stored.filter((post) => post.id !== id);
+          },
+        }),
+      },
+    );
+    await user.click(await screen.findByRole('button', { name: 'Next' }));
+    expect(await screen.findByText('Announcement 21')).toBeTruthy();
+    await user.click(
+      screen.getByRole('button', { name: 'Delete "Announcement 21"' }),
+    );
+    const dialog = screen.getByRole('dialog', {
+      name: 'Delete this announcement?',
+    });
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    expect(await screen.findByText('Announcement 1')).toBeTruthy();
+    expect(screen.queryByText('No announcements yet')).toBeNull();
+  });
+
   it('edits with the loaded category and no media (Q-77)', async () => {
     const user = userEvent.setup();
     const saved: AnnouncementDraft[] = [];

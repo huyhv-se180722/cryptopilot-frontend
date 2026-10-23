@@ -39,6 +39,9 @@ export function AdminAnnouncementsPage() {
   const removal = useDeleteAnnouncement();
   const total = list.data?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / ANNOUNCEMENTS_PAGE_SIZE));
+  // Deleting the last row of the last page leaves the page past the end:
+  // show the new last page rather than an empty list without a pager.
+  if (list.data && !list.isPlaceholderData && page > pages) setPage(pages);
 
   async function confirmDelete() {
     if (!deleting) return;
