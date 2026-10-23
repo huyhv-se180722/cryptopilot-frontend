@@ -15,7 +15,7 @@ import {
   type UploadForm,
 } from './community-dto';
 
-/** Used until the backend community module is merged and configured. */
+/** Used while no API base URL is configured. */
 export function createPendingCommunityService(): CommunityService {
   return {
     feed: async () => integrationPending(),
@@ -150,6 +150,7 @@ function send(
     body.append('signature', form.signature);
     body.append('public_id', form.publicId);
     body.append('allowed_formats', form.allowedFormats.join(','));
+    body.append('overwrite', String(form.overwrite));
     const request = new XMLHttpRequest();
     const abort = () => request.abort();
     signal?.addEventListener('abort', abort, { once: true });

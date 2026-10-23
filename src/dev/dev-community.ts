@@ -116,6 +116,7 @@ const IMAGE_FORM: UploadForm = {
   signature: 'dev',
   publicId: '',
   allowedFormats: ['jpg', 'png', 'webp'],
+  overwrite: false,
   kind: 'IMAGE',
   maxBytes: 5 * 1024 * 1024,
   maxDurationSeconds: null,

@@ -91,6 +91,7 @@ const FORM = {
   signature: 'sig-1',
   publicId: 'cryptopilot/posts/u1/new',
   allowedFormats: ['jpg', 'png', 'webp'],
+  overwrite: false,
   mediaType: 'IMAGE',
   maxBytes: 5 * 1024 * 1024,
   maxDurationSeconds: null,
@@ -137,6 +138,11 @@ describe('community decoders', () => {
     expect(() =>
       decodeUploadForm({ ...FORM, uploadUrl: 'http://upload.example.test/x' }),
     ).toThrow();
+  });
+
+  it('refuses an upload form without its signed overwrite field', () => {
+    expect(decodeUploadForm(FORM).overwrite).toBe(false);
+    expect(() => decodeUploadForm({ ...FORM, overwrite: undefined })).toThrow();
   });
 
   it('encodes a draft as PostRequest', () => {
@@ -375,6 +381,7 @@ describe('upload to the media storage (D-98)', () => {
         signature: 'sig-1',
         public_id: FORM.publicId,
         allowed_formats: 'jpg,png,webp',
+        overwrite: 'false',
       },
     });
     expect(progress).toEqual([0.5, 1]);
@@ -397,7 +404,7 @@ describe('upload to the media storage (D-98)', () => {
 });
 
 describe('pending community adapter', () => {
-  it('answers NOT_CONFIGURED until the backend module is merged', async () => {
+  it('answers NOT_CONFIGURED while no API is configured', async () => {
     await expect(
       createPendingCommunityService().feed({
         tab: 'LATEST',
