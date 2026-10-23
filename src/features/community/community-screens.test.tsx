@@ -4,6 +4,7 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CommunityPage } from '../../pages/trader/CommunityPage';
 import { PostEditorPage } from '../../pages/trader/PostEditorPage';
+import { CoinDiscussionCard } from './components/CoinDiscussionCard';
 import type { CommunityService } from '../../services/api/contracts';
 import { createPendingCommunityService } from '../../services/api/community';
 import { ServiceError } from '../../services/api/errors';
@@ -95,6 +96,67 @@ describe('community screens', () => {
       await screen.findByText(
         'File type or size is not supported (maximum 5 MB).',
       ),
+    ).toBeTruthy();
+  });
+
+  it('shows the coin discussion with links to its feed and a new post (CF-01b)', async () => {
+    await renderRoutes(
+      [page('/', <CoinDiscussionCard coin="BTC" links />)],
+      '/',
+      signedIn(free),
+      {
+        community: community({
+          coinDiscussion: async () => ({
+            symbol: 'BTC',
+            name: 'Bitcoin',
+            postsLastDay: 2,
+            postsLastWeek: 7,
+            totalPosts: 31,
+            lastPostAt: null,
+          }),
+        }),
+      },
+    );
+    expect(await screen.findByText('31')).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: 'Discussion' }).getAttribute('href'),
+    ).toBe('/community?coin=BTC');
+    expect(
+      screen.getByRole('link', { name: 'Post about BTC' }).getAttribute('href'),
+    ).toBe('/community/new?coin=BTC');
+  });
+
+  it('reads an unknown coin as no discussion and other failures as errors', async () => {
+    await renderRoutes(
+      [page('/', <CoinDiscussionCard coin="XYZ" />)],
+      '/',
+      signedIn(free),
+      {
+        community: community({
+          coinDiscussion: async () => {
+            throw new ServiceError('missing', 'HTTP_ERROR', 404, {
+              status: 404,
+              code: 'RESOURCE_NOT_FOUND',
+              messageCode: 'MSG41',
+              messageArgs: [],
+              fieldErrors: {},
+            });
+          },
+        }),
+      },
+    );
+    expect(await screen.findByText('No posts yet')).toBeTruthy();
+  });
+
+  it('tags a new post with the coin it was opened from', async () => {
+    await renderRoutes(
+      [page('/community/new', <PostEditorPage />)],
+      '/community/new?coin=eth',
+      signedIn(free),
+      { community: community({}) },
+    );
+    expect(
+      await screen.findByRole('button', { name: 'Remove ETH' }),
     ).toBeTruthy();
   });
 });

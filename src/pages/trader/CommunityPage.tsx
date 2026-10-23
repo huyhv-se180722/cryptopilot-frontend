@@ -7,8 +7,8 @@ import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { Tabs } from '../../components/ui/Tabs';
 import { buttonClassName } from '../../components/ui/button-styles';
+import { CoinDiscussionCard } from '../../features/community/components/CoinDiscussionCard';
 import {
-  CoinDiscussionCard,
   JoinCard,
   RulesCard,
 } from '../../features/community/components/CommunitySidebar';
@@ -19,7 +19,6 @@ import {
 import { PostCard } from '../../features/community/components/PostCard';
 import { usePostInteractions } from '../../features/community/components/use-post-interactions';
 import {
-  useCoinDiscussion,
   useFeed,
   usePinnedPosts,
 } from '../../features/community/hooks/use-community';
@@ -90,7 +89,6 @@ export function CommunityPage() {
     ...(filters.q ? { q: filters.q } : {}),
   });
   const pinned = usePinnedPosts();
-  const discussion = useCoinDiscussion(filters.coin || undefined);
   const posts = feed.data?.pages.flatMap((p) => p.items) ?? [];
   const showPinned = tab === 'LATEST' && !filtered;
 
@@ -216,13 +214,7 @@ export function CommunityPage() {
           />
         </div>
         <aside className="flex flex-col gap-4">
-          {filters.coin && (
-            <CoinDiscussionCard
-              symbol={filters.coin}
-              discussion={discussion.data}
-              loading={discussion.isPending}
-            />
-          )}
+          {filters.coin && <CoinDiscussionCard coin={filters.coin} />}
           {!trader && actions.role === 'guest' && <JoinCard />}
           <RulesCard />
         </aside>
