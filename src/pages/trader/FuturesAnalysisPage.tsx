@@ -18,6 +18,7 @@ import { FuturesPricePanel } from '../../features/analysis/components/FuturesPri
 import { KeyLevels } from '../../features/analysis/components/KeyLevels';
 import { PairNews } from '../../features/analysis/components/PairNews';
 import { SetupScoreCard } from '../../features/analysis/components/SetupScoreCard';
+import { CoinDiscussionCard } from '../../features/community/components/CoinDiscussionCard';
 import { useLeaveDisabledPair } from '../../features/analysis/hooks/use-leave-disabled-pair';
 import { useLiveTicker } from '../../features/analysis/hooks/use-live-ticker';
 import { usePairAnalysis } from '../../features/analysis/hooks/use-pair-analysis';
@@ -166,6 +167,7 @@ function FuturesAnalysis({ pair }: { pair: MarketPair }) {
                 : undefined
             }
           />
+          <CoinDiscussionCard coin={pair.baseAsset ?? pair.symbol} links />
           <AlertDialog
             target={alertTarget}
             onClose={() => setAlertTarget(null)}

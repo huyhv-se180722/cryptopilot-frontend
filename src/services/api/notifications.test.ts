@@ -113,7 +113,7 @@ describe('HTTP notification adapter', () => {
     expect(received[0]?.id).toBe(ROW.id);
   });
 
-  it('answers NOT_CONFIGURED until the backend module is merged', async () => {
+  it('answers NOT_CONFIGURED while no API is configured', async () => {
     const pending = createPendingNotificationService();
     await expect(pending.unreadCount()).rejects.toMatchObject({
       code: 'NOT_CONFIGURED',

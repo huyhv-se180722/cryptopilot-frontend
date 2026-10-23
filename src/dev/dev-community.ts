@@ -1,4 +1,7 @@
-import type { CommunityService } from '../services/api/contracts';
+import type {
+  CommunityService,
+  ModerationService,
+} from '../services/api/contracts';
 import { checkFile } from '../services/api/community';
 import type { UploadForm } from '../services/api/community-dto';
 import { ServiceError } from '../services/api/errors';
@@ -14,6 +17,8 @@ import type {
   PostMedia,
   PostMediaKind,
   PostSummary,
+  ReportReason,
+  ReportStatus,
   Session,
 } from '../types/domain';
 import { devPairs } from './fixtures/market';
@@ -22,7 +27,7 @@ import {
   devCommentSeeds,
   devMembers,
   devPostSeeds,
-  devReportedPostIds,
+  devReportSeeds,
 } from './fixtures/community';
 
 /**
@@ -111,6 +116,7 @@ const IMAGE_FORM: UploadForm = {
   signature: 'dev',
   publicId: '',
   allowedFormats: ['jpg', 'png', 'webp'],
+  overwrite: false,
   kind: 'IMAGE',
   maxBytes: 5 * 1024 * 1024,
   maxDurationSeconds: null,
@@ -126,7 +132,7 @@ const MAX_IMAGES = 4;
 
 export function createDevelopmentCommunity(
   session: () => Promise<Session | null>,
-): { community: CommunityService } {
+): { community: CommunityService; moderation: ModerationService } {
   const built = Date.now();
   const posts = new Map<string, StoredPost>(
     devPostSeeds.map((seed) => [
@@ -167,7 +173,25 @@ export function createDevelopmentCommunity(
       },
     ]),
   );
-  const reported = new Set(devReportedPostIds);
+  interface StoredReport {
+    id: string;
+    postId: string;
+    reporterId: string;
+    reason: ReportReason;
+    description: string | null;
+    status: ReportStatus;
+    createdAt: number;
+  }
+  let reports: StoredReport[] = devReportSeeds.map((seed, index) => ({
+    id: 'dev-report-' + String(index + 1),
+    postId: seed.postId,
+    reporterId: seed.reporterId,
+    reason: seed.reason,
+    description: seed.description ?? null,
+    status: 'OPEN',
+    createdAt: built - seed.hoursAgo * 60 * MINUTE,
+  }));
+  const banned = new Set<string>();
   const uploads = new Map<string, PostMedia>();
   let sequence = 0;
   const nextId = (prefix: string) => `${prefix}-${String(++sequence)}`;
@@ -615,8 +639,17 @@ export function createDevelopmentCommunity(
         refuse(400, 'VALIDATION_FAILED', 'MSG01', { description: 'MSG01' });
       if (post.authorId === who.key)
         refuse(409, 'POST_REPORT_OWN_POST', 'MSG43');
-      if (reported.has(postId)) refuse(409, 'POST_ALREADY_REPORTED', 'MSG34');
-      reported.add(postId);
+      if (reports.some((r) => r.postId === postId && r.reporterId === who.key))
+        refuse(409, 'POST_ALREADY_REPORTED', 'MSG34');
+      reports.push({
+        id: nextId('dev-report-new'),
+        postId,
+        reporterId: who.key,
+        reason: report.reason,
+        description: description === '' ? null : description,
+        status: 'OPEN',
+        createdAt: Date.now(),
+      });
     },
     async member(id, signal) {
       await pause(signal);
@@ -670,5 +703,118 @@ export function createDevelopmentCommunity(
       return { publicId, kind };
     },
   };
-  return { community };
+  async function admin() {
+    const current = await session();
+    if (!current) return signInRequired();
+    if (current.user.role !== 'Admin')
+      return refuse(403, 'ACCESS_DENIED', 'MSG43');
+    return current;
+  }
+  const openReports = (postId: string) =>
+    reports.filter(
+      (r) =>
+        r.postId === postId &&
+        (r.status === 'OPEN' || r.status === 'REVIEWING'),
+    );
+  const anyPost = (id: string) => posts.get(id) ?? notFound();
+
+  /**
+   * SCR-36 over the same posts: deciding hides, removes or keeps them for
+   * the community too. A ban of an administrator's post answers MSG39
+   * (BR-58), as the backend does.
+   */
+  const moderation: ModerationService = {
+    async queue(pageNo, pageSize, signal) {
+      await pause(signal);
+      await admin();
+      const ids = [
+        ...new Set(
+          reports.filter((r) => r.status !== 'RESOLVED').map((r) => r.postId),
+        ),
+      ];
+      const rows = ids
+        .map((postId) => {
+          const open = openReports(postId);
+          const times = open.map((r) => r.createdAt);
+          return {
+            post: summary(anyPost(postId), null, null),
+            reportCount: open.length,
+            reasons: [...new Set(open.map((r) => r.reason))],
+            firstReportedAt: new Date(Math.min(...times)).toISOString(),
+            lastReportedAt: new Date(Math.max(...times)).toISOString(),
+          };
+        })
+        .sort(
+          (a, b) =>
+            Date.parse(a.firstReportedAt) - Date.parse(b.firstReportedAt),
+        );
+      return page(rows, pageNo, pageSize);
+    },
+    async open(postId, signal) {
+      await pause(signal);
+      await admin();
+      const post = anyPost(postId);
+      const open = openReports(postId);
+      if (open.length === 0) return notFound();
+      for (const r of open) r.status = 'REVIEWING';
+      return {
+        post: detail(post, null, null),
+        reports: open
+          .sort((a, b) => a.createdAt - b.createdAt)
+          .map((r) => ({
+            id: r.id,
+            reporter: authorOf(r.reporterId, null),
+            reason: r.reason,
+            description: r.description,
+            status: r.status,
+            createdAt: new Date(r.createdAt).toISOString(),
+          })),
+      };
+    },
+    async decide(postId, action, note) {
+      await pause();
+      await admin();
+      const post = anyPost(postId);
+      const open = openReports(postId);
+      if (open.length === 0) return notFound();
+      if (note !== null && note.length > 500)
+        refuse(400, 'VALIDATION_FAILED', 'MSG01', { note: 'MSG01' });
+      let authorBanned = false;
+      if (action === 'BAN_USER') {
+        if (post.authorId === DEV_ADMIN_AUTHOR.userId)
+          refuse(409, 'ACCOUNT_STATUS_TRANSITION_INVALID', 'MSG39');
+        authorBanned = !banned.has(post.authorId);
+        banned.add(post.authorId);
+      }
+      if (action === 'HIDE_POST' || action === 'BAN_USER')
+        post.status = 'HIDDEN';
+      if (action === 'REMOVE_POST') post.status = 'DELETED';
+      const ids = new Set(open.map((r) => r.id));
+      reports = reports.map((r) =>
+        ids.has(r.id) ? { ...r, status: 'RESOLVED' } : r,
+      );
+      return {
+        postId,
+        action,
+        postStatus: post.status,
+        resolvedReports: open.length,
+        authorBanned,
+      };
+    },
+    async post(id, signal) {
+      await pause(signal);
+      await admin();
+      return detail(anyPost(id), null, null);
+    },
+    async restore(id) {
+      await pause();
+      await admin();
+      const post = anyPost(id);
+      if (post.status !== 'HIDDEN') refuse(409, 'POST_NOT_HIDDEN', 'MSG43');
+      post.status = 'PUBLISHED';
+      return detail(post, null, null);
+    },
+  };
+
+  return { community, moderation };
 }

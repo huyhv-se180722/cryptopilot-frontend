@@ -209,6 +209,8 @@ export interface UploadForm {
   signature: string;
   publicId: string;
   allowedFormats: readonly string[];
+  /** Sent as `overwrite`; the storage refuses the signature without it. */
+  overwrite: boolean;
   kind: PostMediaKind;
   maxBytes: number;
   maxDurationSeconds: number | null;
@@ -228,6 +230,7 @@ export function decodeUploadForm(body: unknown): UploadForm {
     allowedFormats: list(value.allowedFormats, 'allowedFormats').map((f) =>
       text(f, 'allowedFormat').toLowerCase(),
     ),
+    overwrite: flag(value.overwrite, 'overwrite'),
     kind: oneOf(KINDS, value.mediaType, 'mediaType'),
     maxBytes: count(value.maxBytes, 'maxBytes'),
     maxDurationSeconds: nullableInteger(

@@ -4,10 +4,11 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CommunityPage } from '../../pages/trader/CommunityPage';
 import { PostEditorPage } from '../../pages/trader/PostEditorPage';
+import { CoinDiscussionCard } from './components/CoinDiscussionCard';
 import type { CommunityService } from '../../services/api/contracts';
 import { createPendingCommunityService } from '../../services/api/community';
 import { ServiceError } from '../../services/api/errors';
-import type { Session } from '../../types/domain';
+import type { PostDetail, Session } from '../../types/domain';
 import { fakeAuth, page, renderRoutes, testTrader } from '../../test/render';
 
 beforeAll(() => {
@@ -95,6 +96,133 @@ describe('community screens', () => {
       await screen.findByText(
         'File type or size is not supported (maximum 5 MB).',
       ),
+    ).toBeTruthy();
+  });
+
+  it('shows MSG56 under the media when an edit drops a file kept as evidence', async () => {
+    const user = userEvent.setup();
+    const post: PostDetail = {
+      id: 'p1',
+      author: {
+        userId: testTrader.user.id,
+        displayName: null,
+        avatarUrl: null,
+      },
+      title: 'A reported post',
+      postType: 'TEXT',
+      market: null,
+      official: false,
+      officialCategory: null,
+      status: 'PUBLISHED',
+      coins: [],
+      likeCount: 0,
+      commentCount: 0,
+      likedByMe: false,
+      savedByMe: false,
+      createdAt: '2026-10-22T08:00:00Z',
+      updatedAt: '2026-10-22T08:00:00Z',
+      content: 'Some text',
+      media: [
+        {
+          publicId: 'cryptopilot/posts/u1/chart',
+          kind: 'IMAGE',
+          url: 'https://media.example.test/chart.png',
+          thumbnailUrl: null,
+          width: null,
+          height: null,
+          durationSeconds: null,
+        },
+      ],
+      mine: true,
+    };
+    await renderRoutes(
+      [page('/community/:postId/edit', <PostEditorPage />)],
+      '/community/p1/edit',
+      signedIn(free),
+      {
+        community: community({
+          post: async () => post,
+          update: async () => {
+            throw new ServiceError('refused', 'HTTP_ERROR', 400, {
+              status: 400,
+              code: 'MEDIA_KEPT_AS_EVIDENCE',
+              messageCode: 'MSG56',
+              messageArgs: [],
+              fieldErrors: { media: 'MSG56' },
+            });
+          },
+        }),
+      },
+    );
+    await user.click(
+      await screen.findByRole('button', { name: 'Remove chart' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+    expect(
+      await screen.findByText(
+        'This post is under moderation review, so its images and videos cannot be removed. You can still edit the text or add media.',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('shows the coin discussion with links to its feed and a new post (CF-01b)', async () => {
+    await renderRoutes(
+      [page('/', <CoinDiscussionCard coin="BTC" links />)],
+      '/',
+      signedIn(free),
+      {
+        community: community({
+          coinDiscussion: async () => ({
+            symbol: 'BTC',
+            name: 'Bitcoin',
+            postsLastDay: 2,
+            postsLastWeek: 7,
+            totalPosts: 31,
+            lastPostAt: null,
+          }),
+        }),
+      },
+    );
+    expect(await screen.findByText('31')).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: 'Discussion' }).getAttribute('href'),
+    ).toBe('/community?coin=BTC');
+    expect(
+      screen.getByRole('link', { name: 'Post about BTC' }).getAttribute('href'),
+    ).toBe('/community/new?coin=BTC');
+  });
+
+  it('reads an unknown coin as no discussion and other failures as errors', async () => {
+    await renderRoutes(
+      [page('/', <CoinDiscussionCard coin="XYZ" />)],
+      '/',
+      signedIn(free),
+      {
+        community: community({
+          coinDiscussion: async () => {
+            throw new ServiceError('missing', 'HTTP_ERROR', 404, {
+              status: 404,
+              code: 'RESOURCE_NOT_FOUND',
+              messageCode: 'MSG41',
+              messageArgs: [],
+              fieldErrors: {},
+            });
+          },
+        }),
+      },
+    );
+    expect(await screen.findByText('No posts yet')).toBeTruthy();
+  });
+
+  it('tags a new post with the coin it was opened from', async () => {
+    await renderRoutes(
+      [page('/community/new', <PostEditorPage />)],
+      '/community/new?coin=eth',
+      signedIn(free),
+      { community: community({}) },
+    );
+    expect(
+      await screen.findByRole('button', { name: 'Remove ETH' }),
     ).toBeTruthy();
   });
 });
