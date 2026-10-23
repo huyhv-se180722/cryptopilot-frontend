@@ -116,7 +116,7 @@ export function decodeResult(body: unknown): ModerationResult {
   };
 }
 
-/** Used until the backend moderation API is merged and configured. */
+/** Used while no API base URL is configured. */
 export function createPendingModerationService(): ModerationService {
   return {
     queue: async () => integrationPending(),

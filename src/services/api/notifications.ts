@@ -81,7 +81,7 @@ export function decodeUnreadCount(body: unknown): number {
   return unread;
 }
 
-/** Used until the backend notification API is merged and configured. */
+/** Used while no API base URL is configured. */
 export function createPendingNotificationService(): NotificationService {
   return {
     list: async () => integrationPending(),

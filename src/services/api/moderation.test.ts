@@ -142,7 +142,7 @@ describe('HTTP moderation adapter', () => {
     expect(calls[0]?.method).toBe('POST');
   });
 
-  it('answers NOT_CONFIGURED until the backend module is merged', async () => {
+  it('answers NOT_CONFIGURED while no API is configured', async () => {
     await expect(
       createPendingModerationService().queue(1, 20),
     ).rejects.toMatchObject({ code: 'NOT_CONFIGURED' });

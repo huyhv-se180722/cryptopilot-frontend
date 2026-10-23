@@ -46,10 +46,19 @@ import {
   createHttpPaperTradingService,
   createPendingPaperTradingService,
 } from '../../services/api/paper-trading';
-import { createPendingCommunityService } from '../../services/api/community';
+import {
+  createHttpCommunityService,
+  createPendingCommunityService,
+} from '../../services/api/community';
 import { createNewsService } from '../../services/api/news';
-import { createPendingNotificationService } from '../../services/api/notifications';
-import { createPendingModerationService } from '../../services/api/moderation';
+import {
+  createHttpNotificationService,
+  createPendingNotificationService,
+} from '../../services/api/notifications';
+import {
+  createHttpModerationService,
+  createPendingModerationService,
+} from '../../services/api/moderation';
 import { createAiService } from '../../services/api/ai';
 import { createSubscriptionService } from '../../services/api/subscription';
 import { createAdminService } from '../../services/api/admin';
@@ -107,16 +116,19 @@ export async function createServices(env: Environment): Promise<Services> {
     paperTrading: connected
       ? createHttpPaperTradingService(http, accountFeed)
       : createPendingPaperTradingService(),
-    // The community module is on an unmerged backend branch (T-065): its
-    // HTTP adapter is switched in when the branch reaches develop.
-    community: createPendingCommunityService(),
+    community: connected
+      ? createHttpCommunityService(http)
+      : createPendingCommunityService(),
     news: createNewsService(),
-    // The notification API is on an unmerged backend branch (T-059): its
-    // HTTP adapter, with the signed-in feed for the pushes, is switched in
-    // when the branch reaches develop.
-    notifications: createPendingNotificationService(),
-    // The moderation API is on the same unmerged backend branch (T-087).
-    moderation: createPendingModerationService(),
+    // The bell polls (TD 9 fallback) until the backend accepts a
+    // subscription to the notification queue (Q-75): the refusal closes
+    // the account's connection, and with it the demo trading pushes.
+    notifications: connected
+      ? createHttpNotificationService(http)
+      : createPendingNotificationService(),
+    moderation: connected
+      ? createHttpModerationService(http)
+      : createPendingModerationService(),
     ai: createAiService(),
     subscription: createSubscriptionService(),
     admin: createAdminService(),
