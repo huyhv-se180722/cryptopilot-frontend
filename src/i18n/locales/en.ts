@@ -847,6 +847,17 @@ export const en = {
     statusCANCELED: 'Cancelled',
     statusEXPIRED: 'Expired',
     statusREJECTED: 'Rejected',
+    reasonOCO_OTHER_EXECUTED: 'The other order of the OCO executed.',
+    reasonPAIR_NOT_TRADING:
+      'Cancelled: the pair stopped trading on the exchange.',
+    reasonNOT_FILLABLE_ON_ARRIVAL:
+      'It could not fill when it arrived, so it expired.',
+    reasonPOST_ONLY_WOULD_TAKE:
+      'Post only: at its price it would have filled at once as a taker.',
+    reasonINSUFFICIENT_BALANCE:
+      'Not enough available balance when it was to be placed.',
+    reasonDEPTH_EXHAUSTED:
+      'Part of it filled beyond the visible order book, at its last price.',
     colPair: 'Pair',
     colType: 'Type',
     colTrigger: 'Trigger',
