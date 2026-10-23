@@ -278,6 +278,32 @@ describe('SCR-16 plan list (T-041)', () => {
     expect(await cells.findByText('BTC/USDT')).toBeTruthy();
   });
 
+  it('lists an INVALIDATED plan with its reason in the Cancelled / Expired tab (BR-68)', async () => {
+    const invalidated: TradingPlanSummary = {
+      ...ROW,
+      status: 'INVALIDATED',
+      invalidatedAt: '2026-10-09T02:20:00Z',
+      invalidationReason: 'TAKE_PROFIT_REACHED',
+    };
+    const service = fakePlans({
+      list: vi.fn(async (query) =>
+        query.tab === 'CANCELLED_EXPIRED'
+          ? { items: [invalidated], page: 1, pageSize: 20, total: 1 }
+          : { items: [], page: query.page, pageSize: 20, total: 0 },
+      ),
+    });
+    await open('/plans', service);
+    await userEvent.click(
+      await screen.findByRole('tab', { name: 'Cancelled / Expired' }),
+    );
+    const row = (await screen.findByText('Invalidated')).closest(
+      'tr',
+    ) as HTMLElement;
+    expect(
+      within(row).getByText('Take profit reached before the entry'),
+    ).toBeTruthy();
+  });
+
   it('filters the list by pair (FEQ-01)', async () => {
     const service = await open('/plans');
     await screen.findByText('Short');
@@ -446,6 +472,84 @@ describe('SCR-18 plan detail (T-041)', () => {
     expect(
       screen.getByRole('link', { name: 'Edit' }).getAttribute('href'),
     ).toBe(`/plans/${PLAN.id}/edit`);
+  });
+
+  it('shows the validity of a STOP plan, its setup score and why it became INVALIDATED (D-111)', async () => {
+    priceLines.length = 0;
+    const invalidated: TradingPlan = {
+      ...PLAN,
+      entryType: 'STOP',
+      invalidationPrice: '60500.000000000000',
+      maxEntryDeviationR: '0.500000000000',
+      analysisTimeframe: '4h',
+      status: 'INVALIDATED',
+      invalidationReason: 'INVALIDATION_PRICE',
+      setupScoreAtPlan: '59.00',
+      setupScorePreset: 'DAY_TRADING v1',
+      editable: false,
+      statusHistory: [
+        { status: 'DRAFT', at: '2026-10-08T02:20:00Z' },
+        { status: 'ACTIVE', at: '2026-10-08T02:30:00Z' },
+        { status: 'INVALIDATED', at: '2026-10-09T09:00:00Z' },
+      ],
+    };
+    await open(
+      '/plans/' + PLAN.id,
+      fakePlans({ get: vi.fn(async () => invalidated) }),
+    );
+    const inputs = within(
+      await screen.findByRole('region', { name: 'Plan inputs' }),
+    );
+    expect(inputs.getByText('Entry type').nextSibling?.textContent).toBe(
+      'Stop',
+    );
+    expect(inputs.getByText('Stop price').nextSibling?.textContent).toBe(
+      '62,000.00',
+    );
+    expect(
+      inputs.getByText('Invalidation price').nextSibling?.textContent,
+    ).toBe('60,500.00');
+    expect(
+      inputs.getByText('Max entry deviation').nextSibling?.textContent,
+    ).toBe('0.5 R');
+    expect(
+      inputs.getByText('Analysis timeframe').nextSibling?.textContent,
+    ).toBe('4h');
+    expect(
+      inputs.getByText('Setup score at activation').nextSibling?.textContent,
+    ).toBe('59.00 (DAY_TRADING v1)');
+    const history = within(
+      screen.getByRole('region', { name: 'Status history' }),
+    );
+    expect(history.getByText('Invalidated')).toBeTruthy();
+    expect(
+      history.getByText('Invalidation price reached before the entry'),
+    ).toBeTruthy();
+    await waitFor(() =>
+      expect(priceLines).toEqual(
+        expect.arrayContaining(['Entry 62000', 'Invalidation price 60500']),
+      ),
+    );
+  });
+
+  it('shows a dash for a setup score that could not be read, and none on a draft', async () => {
+    const active: TradingPlan = {
+      ...PLAN,
+      status: 'ACTIVE',
+      editable: false,
+      setupScoreAtPlan: null,
+      setupScorePreset: null,
+    };
+    await open(
+      '/plans/' + PLAN.id,
+      fakePlans({ get: vi.fn(async () => active) }),
+    );
+    const inputs = within(
+      await screen.findByRole('region', { name: 'Plan inputs' }),
+    );
+    expect(
+      inputs.getByText('Setup score at activation').nextSibling?.textContent,
+    ).toBe('—');
   });
 
   it('activates a draft with MSG19 and shows the new status', async () => {

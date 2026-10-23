@@ -2,13 +2,18 @@ import type { ReactNode } from 'react';
 import { AlertTriangle, Clock } from 'lucide-react';
 import { NumericText } from '../../../components/ui/NumericText';
 import { useCopy } from '../../../hooks/use-copy';
+import { formatCopy } from '../../../i18n/copy';
 import { messageText } from '../../../i18n/messages';
 import type {
   PlanSnapshot,
   PlanWarning,
   TradingPlan,
 } from '../../../types/domain';
-import { shiftDecimal, toFixedDecimal } from '../../../utils/decimal-format';
+import {
+  shiftDecimal,
+  toFixedDecimal,
+  trimDecimal,
+} from '../../../utils/decimal-format';
 import {
   formatInstantLocal,
   formatInstantUtc,
@@ -82,15 +87,25 @@ const when = (value: string) => (
   </time>
 );
 
-/** SRS 3.5.3: the plan inputs as entered (prices at the pair's tick). */
+/**
+ * SRS 3.5.3: the plan inputs as entered (prices at the pair's tick), with
+ * its validity (D-111): the invalidation price, its own deviation limit,
+ * the analysis timeframe and, once activated, the setup score taken then
+ * under its preset ("—" when none could be read; never computed here).
+ */
 export function PlanInputsPanel({ plan }: { plan: TradingPlan }) {
   const copy = useCopy();
   const p = copy.plan;
   const futures = plan.market === 'futures';
+  const none = copy.market.noValue;
+  const score = plan.setupScoreAtPlan;
   const rows: [string, ReactNode][] = [
     [p.colMarket, futures ? copy.market.futures : copy.market.spot],
     [p.entryType, p[`entry${plan.entryType}`]],
-    [p.entryPrice, <NumericText value={planPrice(plan.entryPrice)} />],
+    [
+      plan.entryType === 'STOP' ? p.stopEntryPrice : p.entryPrice,
+      <NumericText value={planPrice(plan.entryPrice)} />,
+    ],
     [p.stopLoss, <NumericText value={planPrice(plan.stopLoss)} />],
     [p.takeProfit, <NumericText value={planPrice(plan.takeProfit)} />],
     [p.capital, <NumericText value={planAmount(plan.capital)} />],
@@ -102,6 +117,50 @@ export function PlanInputsPanel({ plan }: { plan: TradingPlan }) {
         ] as [string, ReactNode][])
       : []),
     [p.expiresAt, plan.expiresAt ? when(plan.expiresAt) : p.noExpiry],
+    ...(plan.invalidationPrice
+      ? ([
+          [
+            p.invalidationPrice,
+            <NumericText value={planPrice(plan.invalidationPrice)} />,
+          ],
+        ] as [string, ReactNode][])
+      : []),
+    ...(plan.maxEntryDeviationR
+      ? ([
+          [
+            p.maxDeviation,
+            <NumericText
+              value={formatCopy(p.deviationValue, {
+                value: trimDecimal(plan.maxEntryDeviationR, 0),
+              })}
+            />,
+          ],
+        ] as [string, ReactNode][])
+      : []),
+    ...(plan.analysisTimeframe
+      ? ([[p.timeframeField, plan.analysisTimeframe]] as [string, ReactNode][])
+      : []),
+    ...(plan.status !== 'DRAFT'
+      ? ([
+          [
+            p.setupScoreAtPlan,
+            score === null ? (
+              none
+            ) : (
+              <NumericText
+                value={
+                  plan.setupScorePreset
+                    ? formatCopy(p.setupScoreValue, {
+                        score,
+                        preset: plan.setupScorePreset,
+                      })
+                    : score
+                }
+              />
+            ),
+          ],
+        ] as [string, ReactNode][])
+      : []),
   ];
   return (
     <Panel id="plan-inputs-title" title={p.inputsTitle}>
@@ -225,7 +284,7 @@ export function PlanWarningsPanel({
   );
 }
 
-/** Status changes, oldest first (D-67). */
+/** Status changes, oldest first (D-67); INVALIDATED says why (BR-68). */
 export function PlanHistoryPanel({ plan }: { plan: TradingPlan }) {
   const p = useCopy().plan;
   return (
@@ -243,6 +302,11 @@ export function PlanHistoryPanel({ plan }: { plan: TradingPlan }) {
                 {when(change.at)}
               </span>
             </div>
+            {change.status === 'INVALIDATED' && plan.invalidationReason && (
+              <p className="mt-1 text-xs text-fg-2">
+                {p[`reason${plan.invalidationReason}`]}
+              </p>
+            )}
           </li>
         ))}
       </ol>

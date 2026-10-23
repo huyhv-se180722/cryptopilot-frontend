@@ -112,7 +112,17 @@ export function PlanTable({
     {
       id: 'status',
       header: p.colStatus,
-      render: (row) => <PlanStatusBadge status={row.status} />,
+      // An INVALIDATED row says why in the Cancelled / Expired tab (BR-68).
+      render: (row) => (
+        <span className="inline-flex flex-col items-start gap-0.5">
+          <PlanStatusBadge status={row.status} />
+          {row.invalidationReason && (
+            <span className="text-[11px] text-muted-dim">
+              {p[`reason${row.invalidationReason}`]}
+            </span>
+          )}
+        </span>
+      ),
     },
     ...(tab === 'EXECUTED'
       ? [
