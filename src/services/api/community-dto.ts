@@ -251,5 +251,8 @@ export function encodePostDraft(draft: PostDraft) {
       publicId: item.publicId,
       mediaType: item.kind,
     })),
+    ...(draft.officialCategory
+      ? { officialCategory: draft.officialCategory }
+      : {}),
   };
 }

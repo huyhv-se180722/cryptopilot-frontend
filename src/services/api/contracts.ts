@@ -5,6 +5,7 @@ import type {
   AlertListQuery,
   AlertPage,
   AlertRule,
+  AnnouncementDraft,
   CoinDiscussion,
   CommentPage,
   Engagement,
@@ -384,6 +385,23 @@ export interface ModerationService {
   ): Promise<ModerationResult>;
   post(id: string, signal?: AbortSignal): Promise<PostDetail>;
   restore(id: string): Promise<PostDetail>;
+}
+
+/**
+ * The official announcements of the administration console (UC-44,
+ * BR-61), Admin only: published and hidden ones, newest first; written
+ * with the SCR-26 form and a category, pinned above the community feed.
+ */
+export interface AnnouncementService {
+  list(
+    query: { category?: OfficialCategory; page: number; pageSize: number },
+    signal?: AbortSignal,
+  ): Promise<PostPage>;
+  /** Any post by id, whatever its status (BR-47). */
+  get(id: string, signal?: AbortSignal): Promise<PostDetail>;
+  create(draft: AnnouncementDraft): Promise<PostDetail>;
+  update(id: string, draft: AnnouncementDraft): Promise<PostDetail>;
+  remove(id: string): Promise<void>;
 }
 
 /**

@@ -59,6 +59,10 @@ import {
   createHttpModerationService,
   createPendingModerationService,
 } from '../../services/api/moderation';
+import {
+  createHttpAnnouncementService,
+  createPendingAnnouncementService,
+} from '../../services/api/announcements';
 import { createAiService } from '../../services/api/ai';
 import { createSubscriptionService } from '../../services/api/subscription';
 import { createAdminService } from '../../services/api/admin';
@@ -129,6 +133,9 @@ export async function createServices(env: Environment): Promise<Services> {
     moderation: connected
       ? createHttpModerationService(http)
       : createPendingModerationService(),
+    announcements: connected
+      ? createHttpAnnouncementService(http)
+      : createPendingAnnouncementService(),
     ai: createAiService(),
     subscription: createSubscriptionService(),
     admin: createAdminService(),
