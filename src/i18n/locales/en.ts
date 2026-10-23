@@ -176,6 +176,12 @@ export const en = {
     noAccount: 'New to CryptoPilot?',
     createAccountLink: 'Create a free account',
     resendVerification: 'Resend verification email',
+    brandTagline: 'Plan the trade. Trade the plan.',
+    brandLead:
+      'Decision support for crypto traders. CryptoPilot never places real orders, never asks for exchange keys and never holds your funds.',
+    brandPointAnalysis: 'Market analysis with a setup score',
+    brandPointPlan: 'Trading plans sized to the risk you choose',
+    brandPointPaper: 'A paper exchange to practise with simulated funds',
     registerTitle: 'Create your account',
     registerSubtitle: 'Free forever. No credit card required.',
     disclaimerConsent:
