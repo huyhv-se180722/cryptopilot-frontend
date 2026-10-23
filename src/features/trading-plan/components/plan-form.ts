@@ -193,6 +193,9 @@ export function toInputs(
       leverage,
       expiresAt,
       note: draft.note.trim() === '' ? null : draft.note.trim(),
+      invalidationPrice: null,
+      maxEntryDeviationR: null,
+      analysisTimeframe: null,
     },
   };
 }

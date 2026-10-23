@@ -96,6 +96,8 @@ const row = (
   createdAt: '2026-10-12T02:00:00Z',
   activatedAt: '2026-10-12T02:05:00Z',
   expiresAt: null,
+  invalidatedAt: null,
+  invalidationReason: null,
 });
 
 const watched = (symbol: string, spotListed = true): WatchlistItem => ({

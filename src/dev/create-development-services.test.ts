@@ -311,6 +311,7 @@ describe('development plan seam', () => {
       'DRAFT',
       'DRAFT',
       'DRAFT',
+      'DRAFT',
     ]);
     const closed = await plans.list({
       tab: 'CANCELLED_EXPIRED',
@@ -318,7 +319,12 @@ describe('development plan seam', () => {
       pageSize: 20,
       from: new Date(Date.now() - 30 * 86_400_000).toISOString(),
     });
-    expect(closed.items.map((row) => row.status)).toEqual(['CANCELLED']);
+    // INVALIDATED is listed with the cancelled and expired plans (BR-68).
+    expect(closed.items.map((row) => row.status)).toEqual([
+      'INVALIDATED',
+      'CANCELLED',
+    ]);
+    expect(closed.items[0]?.invalidationReason).toBe('INVALIDATION_PRICE');
     const futures = await plans.list({
       tab: 'ACTIVE',
       market: 'futures',
@@ -507,6 +513,9 @@ describe('development plan editing (SCR-17)', () => {
     leverage: null,
     expiresAt: null,
     note: null,
+    invalidationPrice: null,
+    maxEntryDeviationR: null,
+    analysisTimeframe: null,
   };
 
   it('scripts the calculation and refuses inputs like the backend', async () => {

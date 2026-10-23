@@ -42,6 +42,9 @@ describe('plan form model (SCR-17)', () => {
         leverage: null,
         expiresAt: null,
         note: 'Retest',
+        invalidationPrice: null,
+        maxEntryDeviationR: null,
+        analysisTimeframe: null,
       },
     });
   });

@@ -1,9 +1,17 @@
-import type { PlanStatus, PlanWarning, TradingPlan } from '../../types/domain';
+import type {
+  PlanInvalidationReason,
+  PlanStatus,
+  PlanTimeframe,
+  PlanWarning,
+  TradingPlan,
+} from '../../types/domain';
 
 /**
  * DEVELOPMENT ONLY. Labelled plans covering every status, both markets,
- * the three warning severities and a BLOCKING draft. Numbers are written
- * by hand to look like a risk calculation; they are not computed.
+ * the three warning severities, a BLOCKING draft, a STOP entry and an
+ * INVALIDATED plan (D-111). Numbers are written by hand to look like a risk
+ * calculation; they are not computed, the setup score at activation
+ * included.
  */
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -38,6 +46,12 @@ interface Seed {
   reward: string;
   rr: string;
   liquidation?: string;
+  invalidation?: string;
+  deviationR?: string;
+  timeframe?: PlanTimeframe;
+  reason?: PlanInvalidationReason;
+  /** Taken at activation; absent = none could be read. */
+  score?: string;
 }
 
 const SEEDS: readonly Seed[] = [
@@ -186,7 +200,57 @@ const SEEDS: readonly Seed[] = [
     rr: '3.00000000',
     liquidation: '80.40',
   },
+  {
+    n: 8,
+    pairId: ETH_PAIR,
+    market: 'spot',
+    direction: 'LONG',
+    entryType: 'LIMIT',
+    entry: '2400.00',
+    stop: '2320.00',
+    take: '2640.00',
+    leverage: null,
+    path: ['ACTIVE', 'INVALIDATED'],
+    createdDaysAgo: 3,
+    note: 'Buy the retest unless the breakout runs away (fixture).',
+    quantity: '0.1250',
+    notional: '300.00000000',
+    margin: '300.00000000',
+    risk: '10.00000000',
+    reward: '30.00000000',
+    rr: '3.00000000',
+    invalidation: '2600.00',
+    deviationR: '0.5',
+    timeframe: '4h',
+    reason: 'INVALIDATION_PRICE',
+    score: '64.00',
+  },
+  {
+    n: 9,
+    pairId: BTC_PAIR,
+    market: 'spot',
+    direction: 'LONG',
+    entryType: 'STOP',
+    entry: '70000.00',
+    stop: '68000.00',
+    take: '76000.00',
+    leverage: null,
+    path: [],
+    createdDaysAgo: 1,
+    note: 'Breakout over the range high (fixture).',
+    quantity: '0.00500',
+    notional: '350.00000000',
+    margin: '350.00000000',
+    risk: '10.00000000',
+    reward: '30.00000000',
+    rr: '3.00000000',
+    invalidation: '64000.00',
+    timeframe: '1h',
+  },
 ];
+
+/** The dev profile's trading style is SWING, so its preset is SWING. */
+const DEV_PRESET = 'SWING v1';
 
 export function devPlanSeeds(now: number): TradingPlan[] {
   return SEEDS.map((seed) => {
@@ -208,11 +272,20 @@ export function devPlanSeeds(now: number): TradingPlan[] {
       leverage: seed.leverage,
       marginMode: seed.market === 'futures' ? 'ISOLATED' : null,
       expiresAt:
-        seed.entryType === 'LIMIT'
-          ? new Date(created + 7 * DAY).toISOString()
-          : null,
+        seed.entryType === 'MARKET'
+          ? null
+          : new Date(created + 7 * DAY).toISOString(),
       note: seed.note ?? null,
+      plannedEntryPrice: scale12(seed.entry),
+      invalidationPrice: seed.invalidation ? scale12(seed.invalidation) : null,
+      maxEntryDeviationR: seed.deviationR ?? null,
+      analysisTimeframe: seed.timeframe ?? '4h',
       status,
+      invalidationReason: seed.reason ?? null,
+      setupScoreAtPlan: statuses.includes('ACTIVE')
+        ? (seed.score ?? null)
+        : null,
+      setupScorePreset: statuses.includes('ACTIVE') ? DEV_PRESET : null,
       editable: status === 'DRAFT',
       snapshot: {
         positionQuantity: scale12(seed.quantity),

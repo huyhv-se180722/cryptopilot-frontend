@@ -81,6 +81,8 @@ const ROW: TradingPlanSummary = {
   createdAt: '2026-10-08T02:20:00Z',
   activatedAt: null,
   expiresAt: EXPIRES_AT,
+  invalidatedAt: null,
+  invalidationReason: null,
 };
 
 const PLAN: TradingPlan = {
@@ -98,7 +100,14 @@ const PLAN: TradingPlan = {
   marginMode: 'ISOLATED',
   expiresAt: EXPIRES_AT,
   note: 'Retest of the range high.',
+  plannedEntryPrice: '62000.000000000000',
+  invalidationPrice: null,
+  maxEntryDeviationR: null,
+  analysisTimeframe: '1h',
   status: 'DRAFT',
+  invalidationReason: null,
+  setupScoreAtPlan: null,
+  setupScorePreset: null,
   editable: true,
   snapshot: {
     positionQuantity: '0.010000000000',

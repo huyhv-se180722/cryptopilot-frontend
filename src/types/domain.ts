@@ -228,13 +228,22 @@ export interface FuturesMetrics {
     fundingSettlements: ISODateTime | null;
   };
 }
-/** Plan lifecycle (BR-32): DRAFT → ACTIVE | CANCELLED; ACTIVE → EXECUTED | CANCELLED | EXPIRED. */
+/**
+ * Plan lifecycle (BR-32): DRAFT → ACTIVE | CANCELLED; ACTIVE → EXECUTED |
+ * CANCELLED | EXPIRED | INVALIDATED (BR-68, D-111).
+ */
 export type PlanStatus =
-  'DRAFT' | 'ACTIVE' | 'EXECUTED' | 'CANCELLED' | 'EXPIRED';
-/** SCR-16 tabs; the last one holds CANCELLED and EXPIRED. */
+  'DRAFT' | 'ACTIVE' | 'EXECUTED' | 'CANCELLED' | 'EXPIRED' | 'INVALIDATED';
+/** SCR-16 tabs; the last one holds CANCELLED, EXPIRED and INVALIDATED. */
 export type PlanTab = 'DRAFT' | 'ACTIVE' | 'EXECUTED' | 'CANCELLED_EXPIRED';
 export type PlanDirection = 'LONG' | 'SHORT';
-export type PlanEntryType = 'LIMIT' | 'MARKET';
+/** STOP: a stop-market entry for breakouts, `entryPrice` its stop (D-111). */
+export type PlanEntryType = 'LIMIT' | 'MARKET' | 'STOP';
+/** The timeframe a plan was analysed on (BR-70, D-112). */
+export type PlanTimeframe = '15m' | '1h' | '4h' | '1d';
+/** Why a waiting plan became INVALIDATED (BR-68). */
+export type PlanInvalidationReason =
+  'TAKE_PROFIT_REACHED' | 'STOP_LOSS_REACHED' | 'INVALIDATION_PRICE';
 export type WarningSeverity = 'INFO' | 'WARNING' | 'BLOCKING';
 /** BR-28, BR-29; the UI words each type itself. */
 export type PlanWarningType =
@@ -286,6 +295,8 @@ export interface TradingPlanSummary {
   createdAt: ISODateTime;
   activatedAt: ISODateTime | null;
   expiresAt: ISODateTime | null;
+  invalidatedAt: ISODateTime | null;
+  invalidationReason: PlanInvalidationReason | null;
 }
 
 /** SCR-18: inputs, snapshot, warnings and status history of one plan. */
@@ -304,7 +315,26 @@ export interface TradingPlan {
   marginMode: 'ISOLATED' | null;
   expiresAt: ISODateTime | null;
   note: string | null;
+  /**
+   * The entry the deviation is measured from: the entered price (LIMIT,
+   * STOP), the price of the last save (MARKET) (BR-69).
+   */
+  plannedEntryPrice: Decimal | null;
+  /** LIMIT and STOP only (BR-68). */
+  invalidationPrice: Decimal | null;
+  /** The plan's own entry deviation limit in R; null for the system's. */
+  maxEntryDeviationR: Decimal | null;
+  /** Always set by a backend with plan validity (TP-A); null from one without. */
+  analysisTimeframe: PlanTimeframe | null;
   status: PlanStatus;
+  invalidationReason: PlanInvalidationReason | null;
+  /**
+   * The setup score taken at activation, 0–100 (D-112); null before it or
+   * when none could be read. Shown as given, never computed here.
+   */
+  setupScoreAtPlan: Decimal | null;
+  /** The preset it was read under, e.g. "DAY_TRADING v1". */
+  setupScorePreset: string | null;
   /** True only for DRAFT. */
   editable: boolean;
   snapshot: PlanSnapshot;
@@ -318,7 +348,7 @@ export interface TradingPlan {
  * SCR-17 inputs (SRS 3.5.1, UC-16, UC-17). Editing replaces them whole;
  * the pair never changes. Null leaves a value to the server's default
  * (entry price for MARKET, capital and risk % from the profile, a 7-day
- * expiry for LIMIT).
+ * expiry for LIMIT and STOP, the analysis timeframe of the trading style).
  */
 export interface PlanInputs {
   market: MarketType;
@@ -334,6 +364,12 @@ export interface PlanInputs {
   leverage: number | null;
   expiresAt: ISODateTime | null;
   note: string | null;
+  /** LIMIT and STOP only; on the far side of the last price (BR-68). */
+  invalidationPrice: Decimal | null;
+  /** Above 0 and at most the system's 0.75 R (BR-69). */
+  maxEntryDeviationR: Decimal | null;
+  /** Null for the trading style's (BR-70). */
+  analysisTimeframe: PlanTimeframe | null;
 }
 
 /** The live risk panel of SCR-17 (`POST /plans/calculate`); nothing is saved. */
