@@ -17,13 +17,10 @@ import {
 import { buttonClassName } from '../../../components/ui/button-styles';
 import { useCopy } from '../../../hooks/use-copy';
 import { useToast } from '../../../hooks/use-toast';
-import { formatCopy } from '../../../i18n/copy';
-import type { Copy } from '../../../i18n/locales/en';
-import { errorText, fieldErrorText, messageText } from '../../../i18n/messages';
+import { errorText, messageText } from '../../../i18n/messages';
 import { problemOf } from '../../../services/api/errors';
 import type {
   MarketPair,
-  PlanDirection,
   PlanTimeframe,
   TradingPlan,
 } from '../../../types/domain';
@@ -31,6 +28,7 @@ import { pairLabel } from '../../../utils/pair-label';
 import type { ChartPriceLine } from '../../chart/components/AnalysisChart';
 import { usePlanCalculation, useSavePlan } from '../hooks/use-plan-editor';
 import { Panel, PlanSnapshotRows, PlanWarningsPanel } from './PlanDetailPanels';
+import { planFieldErrorText } from './plan-errors';
 import { planPrice } from './plan-format';
 import { priceLines } from './plan-lines';
 import {
@@ -44,7 +42,6 @@ import {
   toInputs,
   type PlanDraft,
   type PlanField,
-  type PlanFieldError,
 } from './plan-form';
 
 const FIELDS: readonly PlanField[] = [
@@ -61,52 +58,6 @@ const FIELDS: readonly PlanField[] = [
   'maxEntryDeviationR',
   'analysisTimeframe',
 ];
-
-function errorMessage(
-  copy: Copy,
-  error: PlanFieldError,
-  label: string,
-  direction: PlanDirection,
-): string {
-  const p = copy.plan;
-  switch (error.kind) {
-    case 'required':
-      return fieldErrorText(copy, 'MSG01', label);
-    case 'number':
-      return formatCopy(p.errNumber, { field: label });
-    case 'positive':
-      return formatCopy(p.errPositive, { field: label });
-    case 'range':
-      return messageText(copy, 'MSG15', [], {
-        field: label,
-        min: error.min,
-        max: error.max,
-      });
-    case 'leverage':
-      return formatCopy(p.errLeverage, { field: label });
-    case 'order':
-      return messageText(copy, 'MSG16', [], {
-        direction: p[`directionName${direction}`],
-        rule: p[`rule${direction}`],
-      });
-    case 'future':
-      return p.errFuture;
-    case 'tooLong':
-      return formatCopy(p.errTooLong, { field: label, max: error.max });
-    case 'deviation':
-      return formatCopy(p.errDeviation, { field: label, max: error.max });
-    case 'invalidationSide':
-      return messageText(copy, 'MSG16', [], {
-        direction: p[`directionName${direction}`],
-        rule: p.ruleInvalidation,
-      });
-    case 'stopReached':
-      return messageText(copy, 'MSG16', [], {
-        direction: p[`directionName${direction}`],
-        rule: p[`ruleStop${direction}`],
-      });
-  }
-}
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -223,7 +174,7 @@ export function PlanEditor({
           ? serverFieldError(field, serverFields[field])
           : undefined;
     return error
-      ? errorMessage(copy, error, label, draft.direction)
+      ? planFieldErrorText(copy, error, label, draft.direction)
       : undefined;
   };
 

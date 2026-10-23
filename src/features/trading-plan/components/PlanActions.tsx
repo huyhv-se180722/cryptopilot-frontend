@@ -7,14 +7,16 @@ import { Dialog } from '../../../components/ui/Dialog';
 import { buttonClassName } from '../../../components/ui/button-styles';
 import { useCopy } from '../../../hooks/use-copy';
 import { useToast } from '../../../hooks/use-toast';
-import { errorText, messageText } from '../../../i18n/messages';
+import { messageText } from '../../../i18n/messages';
 import type { TradingPlan } from '../../../types/domain';
 import { usePlanActions } from '../hooks/use-plans';
+import { activationErrorText } from './plan-errors';
 
 /**
  * SCR-18 actions (SRS 3.5.3): Edit while DRAFT (SCR-17), Activate for a
  * DRAFT (UC-18; the server re-checks price, warnings and the plan limit;
- * MSG19 on success, MSG18 or MSG27 in a banner), Cancel for DRAFT and
+ * MSG19 on success, MSG18 or MSG27 in a banner, a field it no longer
+ * accepts in words, e.g. a STOP the price has reached), Cancel for DRAFT and
  * ACTIVE after the MSG20 confirmation (UC-19). Buttons are disabled while
  * a request runs, and nothing changes before the server answers.
  */
@@ -81,7 +83,7 @@ export function PlanActions({ plan }: { plan: TradingPlan }) {
       {error !== null && (
         <Alert
           tone="danger"
-          title={errorText(copy, error)}
+          title={activationErrorText(copy, error, plan)}
           className="mt-3 w-full"
         >
           {errorCode === 'PLAN_LIMIT_REACHED' && (
