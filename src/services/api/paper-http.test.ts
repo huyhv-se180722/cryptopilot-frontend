@@ -87,6 +87,39 @@ describe('HTTP demo trading adapter (D-104)', () => {
     );
   });
 
+  it('sends the list key of an order list and takes the group sent again (200)', async () => {
+    const LIST = {
+      listId: '0199b000-0000-7000-8000-0000000000a1',
+      listClientOrderId: 'web-list-1',
+      type: 'OCO',
+      status: 'EXECUTING',
+      pairId: ORDER.pairId,
+      symbol: 'BTCUSDT',
+      orders: [{ ...ORDER, type: 'LIMIT_MAKER', listId: 'l-1' }],
+    };
+    const { http, calls } = setup(() => json(200, LIST));
+    const paper = createHttpPaperTradingService(http);
+    const list = await paper.placeOrderList({
+      pairId: ORDER.pairId,
+      market: 'spot',
+      type: 'OCO',
+      oco: {
+        side: 'SELL',
+        quantity: '0.01',
+        takeProfitPrice: '62000',
+        stopPrice: '58000',
+      },
+      listClientOrderId: 'web-list-1',
+    });
+    expect(list.listId).toBe(LIST.listId);
+    const { url, init } = calls[0]!;
+    expect(url.pathname).toBe('/api/v1/paper/order-lists');
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      market: 'SPOT',
+      listClientOrderId: 'web-list-1',
+    });
+  });
+
   it('reads histories with only the filters given', async () => {
     const { http, calls } = setup((url) =>
       url.pathname.endsWith('/orders/open')

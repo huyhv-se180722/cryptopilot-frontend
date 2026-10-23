@@ -248,6 +248,27 @@ describe('development demo exchange (TR-04, TR-06, TR-07 answers)', () => {
     });
   });
 
+  it('returns the group already placed for a list sent again with its key', async () => {
+    const { paperTrading } = setup();
+    await paperTrading.openAccount();
+    const request = {
+      pairId: BTC,
+      market: 'spot',
+      type: 'OCO',
+      oco: {
+        side: 'SELL',
+        quantity: '0.001',
+        takeProfitPrice: '70000',
+        stopPrice: '50000',
+      },
+      listClientOrderId: 'web-oco-1',
+    } as const;
+    const first = await paperTrading.placeOrderList(request);
+    const again = await paperTrading.placeOrderList(request);
+    expect(again.listId).toBe(first.listId);
+    expect((await paperTrading.openOrders(null)).length).toBe(2);
+  });
+
   it('scripts the Spot PnL and the worth history of the account', async () => {
     const { paperTrading } = setup({
       BTCUSDT: '63000',

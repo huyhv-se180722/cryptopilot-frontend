@@ -117,6 +117,8 @@ export function createDevelopmentPaperTrading(
   /** The best price a trailing stop has tracked since it started. */
   const best = new Map<string, string>();
   const lists = new Map<string, PaperOrderList>();
+  /** The group placed under each `listClientOrderId`. */
+  const listKeys = new Map<string, string>();
   const fills: PaperFill[] = [];
   const transfers = new Map<string, PaperTransfer>();
   const ledger: PaperLedgerEntry[] = [];
@@ -749,6 +751,10 @@ export function createDevelopmentPaperTrading(
 
     async placeOrderList(request) {
       await opened();
+      const earlier = request.listClientOrderId
+        ? listKeys.get(request.listClientOrderId)
+        : undefined;
+      if (earlier) return listOf(earlier);
       const pair = pairOf(request.pairId);
       const last = await lastPrice(pair.symbol);
       const listId = id('list');
@@ -871,6 +877,8 @@ export function createDevelopmentPaperTrading(
         )
           execute(working, pair, last, working.quantity as string, 'TAKER');
       }
+      if (request.listClientOrderId)
+        listKeys.set(request.listClientOrderId, listId);
       startMatching();
       return listOf(listId);
     },

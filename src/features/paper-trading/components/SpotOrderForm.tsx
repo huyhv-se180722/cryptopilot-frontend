@@ -195,6 +195,7 @@ export function SpotOrderForm({
         ...request.list,
         pairId,
         market: 'spot',
+        listClientOrderId: sent.current.id,
       });
       if (result.status === 'success')
         return succeeded(formatCopy(p.listPlaced, { type: result.data.type }));
