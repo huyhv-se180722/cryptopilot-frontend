@@ -19,6 +19,10 @@ import type {
   PostReport,
   OfficialCategory,
   AppNotification,
+  ModerationAction,
+  ModerationCase,
+  ModerationQueuePage,
+  ModerationResult,
   NotificationPage,
   JournalEntry,
   Candle,
@@ -359,6 +363,28 @@ export interface CommunityService {
   ): Promise<PostMediaRef>;
 }
 export type NewsService = ReadService<NewsArticle>;
+
+/**
+ * The report moderation queue of SCR-36 (SRS 3.11.3, UC-43), Admin only:
+ * posts with open reports, opening one (its reports become REVIEWING),
+ * deciding all its reports at once, reading any post and restoring a
+ * hidden one. Every decision is audited by the backend (BR-57).
+ */
+export interface ModerationService {
+  queue(
+    page: number,
+    pageSize: number,
+    signal?: AbortSignal,
+  ): Promise<ModerationQueuePage>;
+  open(postId: string, signal?: AbortSignal): Promise<ModerationCase>;
+  decide(
+    postId: string,
+    action: ModerationAction,
+    note: string | null,
+  ): Promise<ModerationResult>;
+  post(id: string, signal?: AbortSignal): Promise<PostDetail>;
+  restore(id: string): Promise<PostDetail>;
+}
 
 /**
  * The notification center and the bell (SRS 3.4.5, UC-15): the caller's

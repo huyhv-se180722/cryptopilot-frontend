@@ -3,13 +3,15 @@ import type {
   OfficialCategory,
   PostAuthor,
   PostMedia,
+  ReportReason,
 } from '../../types/domain';
 
 /**
  * DEVELOPMENT ONLY. Community seed written for the fixtures (not from the
  * prototype): authors, posts, comments and reports exercise the feed tabs,
  * the pinned announcements, a hidden own post, a video post, a long post,
- * a deleted comment kept for its replies, and an already reported post.
+ * a deleted comment kept for its replies, an already reported post and
+ * the open reports of the moderation queue.
  * Times are minutes before the moment the fixture is built.
  */
 export interface DevMember extends PostAuthor {
@@ -266,5 +268,44 @@ export const devCommentSeeds: readonly DevCommentSeed[] = [
   },
 ];
 
-/** Posts the signed-in Trader already reported (BR-46). */
-export const devReportedPostIds: readonly string[] = ['dev-post-3'];
+export interface DevReportSeed {
+  postId: string;
+  /** 'me' is the signed-in Trader. */
+  reporterId: string;
+  reason: ReportReason;
+  description?: string;
+  hoursAgo: number;
+}
+
+/**
+ * Open reports: the signed-in Trader already reported dev-post-3 (BR-46);
+ * two posts wait in the moderation queue (SCR-36), one with an OTHER
+ * report that carries a description.
+ */
+export const devReportSeeds: readonly DevReportSeed[] = [
+  {
+    postId: 'dev-post-3',
+    reporterId: 'me',
+    reason: 'MISLEADING',
+    hoursAgo: 20,
+  },
+  {
+    postId: 'dev-post-4',
+    reporterId: 'dev-member-2',
+    reason: 'SPAM',
+    hoursAgo: 30,
+  },
+  {
+    postId: 'dev-post-4',
+    reporterId: 'dev-member-3',
+    reason: 'OTHER',
+    description: 'Links to a paid signal group in the video description.',
+    hoursAgo: 6,
+  },
+  {
+    postId: 'dev-post-2',
+    reporterId: 'dev-member-3',
+    reason: 'MISLEADING',
+    hoursAgo: 2,
+  },
+];
