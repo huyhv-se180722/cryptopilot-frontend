@@ -1205,6 +1205,9 @@ export const en = {
       coinsInvalid:
         'Each coin tag must be a coin traded on CryptoPilot, at most 5.',
       notYours: 'Only the author can edit this post.',
+      category: 'Category',
+      categoryHint: 'Official posts are pinned above the community feed.',
+      categoryInvalid: 'Choose one of the categories.',
     },
     reportDialog: {
       title: 'Report post',
