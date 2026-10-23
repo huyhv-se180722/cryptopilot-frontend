@@ -381,7 +381,7 @@
  * stand still under reduced motion.
  */
 .radar-sweep {
-  transform-box: view-box;
+  transform-box: fill-box;
   transform-origin: 200px 200px;
   animation: radar-sweep 8s linear infinite;
 }
@@ -406,12 +406,12 @@
 }
 
 /*
- * Sign-in brand panel (AuthBrandPanel): the dial's bearing ring turns very
+ * Sign-in backdrop (AuthBackdrop): the dial's bearing ring turns very
  * slowly and the course line runs towards its last waypoint; both stand
  * still under reduced motion.
  */
 .auth-dial {
-  transform-box: view-box;
+  transform-box: fill-box;
   transform-origin: center;
   animation: auth-dial 240s linear infinite;
 }
