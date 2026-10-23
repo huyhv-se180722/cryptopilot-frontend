@@ -539,6 +539,12 @@ export interface PostDraft {
   market: MarketType | null;
   coins: readonly string[];
   media: readonly PostMediaRef[];
+  /** Set only on an official post, which only an Admin publishes (BR-61). */
+  officialCategory?: OfficialCategory;
+}
+/** An official post of the administration console (UC-44, BR-61). */
+export interface AnnouncementDraft extends PostDraft {
+  officialCategory: OfficialCategory;
 }
 /**
  * A comment with its replies (one level, SRS 3.7.3). A deleted comment is

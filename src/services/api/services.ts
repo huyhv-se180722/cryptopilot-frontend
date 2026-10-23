@@ -4,6 +4,7 @@ import type {
   AiService,
   AlertsService,
   AnalysisService,
+  AnnouncementService,
   CommunityService,
   NotificationService,
   ModerationService,
@@ -38,6 +39,7 @@ export interface Services {
   news: NewsService;
   notifications: NotificationService;
   moderation: ModerationService;
+  announcements: AnnouncementService;
   ai: AiService;
   subscription: SubscriptionService;
   admin: AdminService;

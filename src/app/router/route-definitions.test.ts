@@ -76,6 +76,18 @@ describe('route definitions', () => {
     );
   });
 
+  it('serves announcements in the admin console: UC-44 list, SCR-26 form', () => {
+    expect(
+      adminRoutes
+        .filter((route) => route.path.startsWith('/admin/announcements'))
+        .map((route) => [route.path, route.screen]),
+    ).toEqual([
+      ['/admin/announcements', 'UC-44'],
+      ['/admin/announcements/new', 'SCR-26'],
+      ['/admin/announcements/:postId', 'SCR-26'],
+    ]);
+  });
+
   it('has an English title for every route', () => {
     for (const route of all) expect(en.screens[route.titleKey]).toBeTruthy();
   });

@@ -24,6 +24,7 @@ import { errorText } from '../../../i18n/messages';
 import { problemOf } from '../../../services/api/errors';
 import type {
   MarketType,
+  OfficialCategory,
   PostDetail,
   PostDraft,
   PostMediaKind,
@@ -37,6 +38,11 @@ const CONTENT_MAX = 10_000;
 const COINS_MAX = 5;
 const IMAGES_MAX = 4;
 const COIN = /^[A-Z0-9]{1,20}$/;
+const CATEGORIES: readonly OfficialCategory[] = [
+  'ANNOUNCEMENT',
+  'PLATFORM_UPDATE',
+  'EDUCATION',
+];
 const IMAGE_TYPES = 'image/jpeg,image/png,image/webp';
 const VIDEO_TYPES = 'video/mp4,video/webm';
 
@@ -54,7 +60,7 @@ interface MediaItem {
   controller: AbortController | null;
 }
 
-type Field = 'title' | 'content' | 'coins' | 'media';
+type Field = 'category' | 'title' | 'content' | 'coins' | 'media';
 type FieldErrors = Partial<Record<Field, string | undefined>>;
 
 /**
@@ -62,10 +68,13 @@ type FieldErrors = Partial<Record<Field, string | undefined>>;
  * content 1–10,000, up to 5 coin tags, an optional market, and up to 4
  * images or 1 video (BR-44) uploaded one by one before publishing. Video
  * needs `VIDEO_POST` (BR-43); the server's answer (MSG29, MSG32) wins.
+ * An Admin's official post (UC-44) adds its category (BR-61) and has no
+ * media until the backend signs uploads for an Admin (Q-77).
  */
 export function PostForm({
   post,
   initialCoins = [],
+  official = false,
   videoAllowed,
   coinSuggestions,
   onSubmit,
@@ -75,6 +84,8 @@ export function PostForm({
   post?: PostDetail;
   /** Coin tags of a new post opened from a coin's page (SCR-10, SCR-11). */
   initialCoins?: readonly string[];
+  /** An announcement of the administration console (UC-44). */
+  official?: boolean;
   videoAllowed: boolean;
   coinSuggestions: readonly string[];
   /** Resolves with the refusal, if any. */
@@ -86,6 +97,9 @@ export function PostForm({
   const f = c.form;
   const upload = useMediaUpload();
   const listId = useId();
+  const [category, setCategory] = useState<OfficialCategory>(
+    post?.officialCategory ?? 'ANNOUNCEMENT',
+  );
   const [title, setTitle] = useState(post?.title ?? '');
   const [content, setContent] = useState(post?.content ?? '');
   const [market, setMarket] = useState<MarketType | ''>(post?.market ?? '');
@@ -268,12 +282,14 @@ export function PostForm({
       market: market === '' ? null : market,
       coins: allCoins,
       media: media.flatMap((m) => (m.ref ? [m.ref] : [])),
+      ...(official ? { officialCategory: category } : {}),
     });
     setPending(false);
     if (!refusal) return;
     const problem = problemOf(refusal);
     const fields = problem?.fieldErrors ?? {};
     const server: FieldErrors = {};
+    if (fields.officialCategory) server.category = f.categoryInvalid;
     if (fields.title) server.title = f.titleLength;
     if (fields.content) server.content = f.contentLength;
     if (fields.coins) server.coins = f.coinsInvalid;
@@ -301,6 +317,25 @@ export function PostForm({
   return (
     <form noValidate onSubmit={(e) => void submit(e)} className="grid gap-5">
       {notice && <Banner tone="danger" title={notice} />}
+      {official && (
+        <div className="sm:max-w-xs">
+          <Select
+            label={f.category}
+            value={category}
+            onChange={(e) => setCategory(e.target.value as OfficialCategory)}
+            error={errors.category}
+          >
+            {CATEGORIES.map((value) => (
+              <option key={value} value={value}>
+                {c[`category${value}`]}
+              </option>
+            ))}
+          </Select>
+          {!errors.category && (
+            <span className={fieldHintClass}>{f.categoryHint}</span>
+          )}
+        </div>
+      )}
       <div>
         <Input
           label={f.title}
@@ -429,151 +464,159 @@ export function PostForm({
         </Select>
       </div>
 
-      <fieldset>
-        <legend className={fieldLabelClass}>{f.media}</legend>
-        <p className={classNames(fieldHintClass, 'mt-0 mb-2')}>{f.mediaHint}</p>
-        {media.length > 0 && (
-          <ul className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {media.map((item) => (
-              <li
-                key={item.key}
-                className={classNames(
-                  'relative overflow-hidden rounded-lg border bg-raised',
-                  item.status === 'error'
-                    ? 'border-negative-line'
-                    : 'border-line',
-                  item.kind === 'VIDEO' && 'col-span-2',
-                )}
-              >
-                <div className="flex aspect-video items-center justify-center">
-                  {item.preview ? (
-                    <img
-                      src={item.preview}
-                      alt=""
-                      className="size-full object-cover"
-                    />
-                  ) : (
-                    <Video
-                      size={22}
-                      aria-hidden="true"
-                      className="text-muted"
-                    />
+      {!official && (
+        <fieldset>
+          <legend className={fieldLabelClass}>{f.media}</legend>
+          <p className={classNames(fieldHintClass, 'mt-0 mb-2')}>
+            {f.mediaHint}
+          </p>
+          {media.length > 0 && (
+            <ul className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {media.map((item) => (
+                <li
+                  key={item.key}
+                  className={classNames(
+                    'relative overflow-hidden rounded-lg border bg-raised',
+                    item.status === 'error'
+                      ? 'border-negative-line'
+                      : 'border-line',
+                    item.kind === 'VIDEO' && 'col-span-2',
                   )}
-                </div>
-                <div className="flex items-center gap-1.5 border-t border-line px-2 py-1.5 text-[11px]">
-                  {item.status === 'uploading' && (
-                    <Loader2
-                      size={11}
-                      aria-hidden="true"
-                      className="animate-spin text-primary motion-reduce:animate-none"
-                    />
-                  )}
-                  <span className="min-w-0 flex-1 truncate text-fg-2">
-                    {item.status === 'uploading'
-                      ? formatCopy(f.uploading, {
-                          percent: Math.round(item.progress * 100),
-                        })
-                      : item.name}
-                  </span>
-                  <button
-                    type="button"
-                    aria-label={formatCopy(f.removeMedia, { name: item.name })}
-                    title={formatCopy(f.removeMedia, { name: item.name })}
-                    onClick={() => removeMedia(item.key)}
-                    className="rounded p-0.5 text-muted-dim hover:bg-raised-hover hover:text-negative"
-                  >
-                    <X size={12} aria-hidden="true" />
-                  </button>
-                </div>
-                {item.status === 'uploading' && (
-                  <div
-                    role="progressbar"
-                    aria-label={item.name}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={Math.round(item.progress * 100)}
-                    className="absolute inset-x-0 top-0 h-0.5 bg-line"
-                  >
-                    <div
-                      className="h-full bg-primary transition-[width]"
-                      style={{ width: `${String(item.progress * 100)}%` }}
-                    />
+                >
+                  <div className="flex aspect-video items-center justify-center">
+                    {item.preview ? (
+                      <img
+                        src={item.preview}
+                        alt=""
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      <Video
+                        size={22}
+                        aria-hidden="true"
+                        className="text-muted"
+                      />
+                    )}
                   </div>
-                )}
-                {item.error && (
-                  <p
-                    role="alert"
-                    className="px-2 pb-1.5 text-[11px] text-negative"
-                  >
-                    {item.error}
-                  </p>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={hasVideo || images >= IMAGES_MAX}
-            onClick={() => imageInput.current?.click()}
-          >
-            <ImagePlus size={13} aria-hidden="true" />
-            {f.addImages}
-          </Button>
-          {videoAllowed ? (
+                  <div className="flex items-center gap-1.5 border-t border-line px-2 py-1.5 text-[11px]">
+                    {item.status === 'uploading' && (
+                      <Loader2
+                        size={11}
+                        aria-hidden="true"
+                        className="animate-spin text-primary motion-reduce:animate-none"
+                      />
+                    )}
+                    <span className="min-w-0 flex-1 truncate text-fg-2">
+                      {item.status === 'uploading'
+                        ? formatCopy(f.uploading, {
+                            percent: Math.round(item.progress * 100),
+                          })
+                        : item.name}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={formatCopy(f.removeMedia, {
+                        name: item.name,
+                      })}
+                      title={formatCopy(f.removeMedia, { name: item.name })}
+                      onClick={() => removeMedia(item.key)}
+                      className="rounded p-0.5 text-muted-dim hover:bg-raised-hover hover:text-negative"
+                    >
+                      <X size={12} aria-hidden="true" />
+                    </button>
+                  </div>
+                  {item.status === 'uploading' && (
+                    <div
+                      role="progressbar"
+                      aria-label={item.name}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={Math.round(item.progress * 100)}
+                      className="absolute inset-x-0 top-0 h-0.5 bg-line"
+                    >
+                      <div
+                        className="h-full bg-primary transition-[width]"
+                        style={{ width: `${String(item.progress * 100)}%` }}
+                      />
+                    </div>
+                  )}
+                  {item.error && (
+                    <p
+                      role="alert"
+                      className="px-2 pb-1.5 text-[11px] text-negative"
+                    >
+                      {item.error}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="secondary"
               size="sm"
-              disabled={media.length > 0}
-              onClick={() => videoInput.current?.click()}
+              disabled={hasVideo || images >= IMAGES_MAX}
+              onClick={() => imageInput.current?.click()}
             >
-              <Video size={13} aria-hidden="true" />
-              {f.addVideo}
+              <ImagePlus size={13} aria-hidden="true" />
+              {f.addImages}
             </Button>
-          ) : (
-            <Link
-              to="/subscription"
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line bg-raised px-3 text-[11px] font-semibold text-muted-x no-underline hover:text-fg-2"
-              title={f.videoLocked}
-            >
-              <Lock size={11} aria-hidden="true" />
-              {f.addVideo}
-              <span className="sr-only"> — {f.videoLocked}</span>
-            </Link>
+            {videoAllowed ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={media.length > 0}
+                onClick={() => videoInput.current?.click()}
+              >
+                <Video size={13} aria-hidden="true" />
+                {f.addVideo}
+              </Button>
+            ) : (
+              <Link
+                to="/subscription"
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line bg-raised px-3 text-[11px] font-semibold text-muted-x no-underline hover:text-fg-2"
+                title={f.videoLocked}
+              >
+                <Lock size={11} aria-hidden="true" />
+                {f.addVideo}
+                <span className="sr-only"> — {f.videoLocked}</span>
+              </Link>
+            )}
+            {!videoAllowed && (
+              <span className="text-[11px] text-muted-dim">
+                {f.videoLocked}
+              </span>
+            )}
+          </div>
+          <input
+            ref={imageInput}
+            type="file"
+            accept={IMAGE_TYPES}
+            multiple
+            hidden
+            onChange={(e) => {
+              addFiles(e.target.files, 'IMAGE');
+              e.target.value = '';
+            }}
+          />
+          <input
+            ref={videoInput}
+            type="file"
+            accept={VIDEO_TYPES}
+            hidden
+            onChange={(e) => {
+              addFiles(e.target.files, 'VIDEO');
+              e.target.value = '';
+            }}
+          />
+          {errors.media && (
+            <span role="alert" className={fieldErrorClass}>
+              {errors.media}
+            </span>
           )}
-          {!videoAllowed && (
-            <span className="text-[11px] text-muted-dim">{f.videoLocked}</span>
-          )}
-        </div>
-        <input
-          ref={imageInput}
-          type="file"
-          accept={IMAGE_TYPES}
-          multiple
-          hidden
-          onChange={(e) => {
-            addFiles(e.target.files, 'IMAGE');
-            e.target.value = '';
-          }}
-        />
-        <input
-          ref={videoInput}
-          type="file"
-          accept={VIDEO_TYPES}
-          hidden
-          onChange={(e) => {
-            addFiles(e.target.files, 'VIDEO');
-            e.target.value = '';
-          }}
-        />
-        {errors.media && (
-          <span role="alert" className={fieldErrorClass}>
-            {errors.media}
-          </span>
-        )}
-      </fieldset>
+        </fieldset>
+      )}
 
       <div className="flex flex-col-reverse gap-2 border-t border-line pt-4 sm:flex-row sm:justify-end">
         <Button variant="secondary" onClick={onCancel}>

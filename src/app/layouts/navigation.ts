@@ -10,6 +10,7 @@ import {
   FileText,
   LayoutDashboard,
   Layers,
+  Megaphone,
   MessageSquare,
   Newspaper,
   Package,
@@ -103,6 +104,11 @@ export const adminNav: readonly AdminNavGroup[] = [
     headingKey: 'groupContent',
     items: [
       { to: '/admin/reports', labelKey: 'reports', icon: MessageSquare },
+      {
+        to: '/admin/announcements',
+        labelKey: 'announcements',
+        icon: Megaphone,
+      },
       { to: '/admin/news-sources', labelKey: 'newsSources', icon: Newspaper },
     ],
   },

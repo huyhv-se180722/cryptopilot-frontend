@@ -105,5 +105,44 @@ describe('development community', () => {
     expect(await both.moderation.queue(1, 20).catch(codeOf)).toBe(
       'ACCESS_DENIED',
     );
+    expect(
+      await both.announcements.list({ page: 1, pageSize: 20 }).catch(codeOf),
+    ).toBe('ACCESS_DENIED');
+  });
+
+  it('publishes an announcement pinned in the feed, edits and deletes it (UC-44)', async () => {
+    let session: Session | null = principal('dev-admin');
+    const dev = createDevelopmentCommunity(async () => session);
+    const draft = {
+      title: 'Maintenance window',
+      content: 'Platform maintenance tonight.',
+      market: null,
+      coins: [],
+      media: [],
+      officialCategory: 'PLATFORM_UPDATE',
+    } as const;
+    const post = await dev.announcements.create(draft);
+    const edited = await dev.announcements.update(post.id, {
+      ...draft,
+      officialCategory: 'EDUCATION',
+    });
+    expect(edited.officialCategory).toBe('EDUCATION');
+    const education = await dev.announcements.list({
+      category: 'EDUCATION',
+      page: 1,
+      pageSize: 20,
+    });
+    expect(education.items[0]?.id).toBe(post.id);
+    session = null;
+    const pinned = await dev.community.pinned({ page: 1, pageSize: 20 });
+    expect(pinned.items[0]?.id).toBe(post.id);
+    session = principal('dev-admin');
+    await dev.announcements.remove(post.id);
+    expect(await dev.announcements.get(post.id)).toMatchObject({
+      status: 'DELETED',
+    });
+    expect(await dev.announcements.update(post.id, draft).catch(codeOf)).toBe(
+      'RESOURCE_NOT_FOUND',
+    );
   });
 });
