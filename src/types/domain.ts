@@ -734,12 +734,10 @@ export interface RiskSuggestion {
 
 /**
  * Demo trading (D-86): the Trader's paper account, virtual funds only;
- * nothing reaches an exchange. How Futures positions are held (Q-T4).
+ * nothing reaches an exchange. It is the Trader's own and has no key of
+ * its own (D-117): only when its funds were granted.
  */
-export type PaperPositionMode = 'one-way' | 'hedge';
 export interface PaperAccount {
-  accountId: string;
-  positionMode: PaperPositionMode;
   openedAt: ISODateTime;
 }
 
@@ -1023,8 +1021,8 @@ export interface PaperLedgerEntry {
   amount: Decimal;
   /** The balance's total after it. */
   balanceAfter: Decimal;
-  refType:
-    'ORDER' | 'FILL' | 'POSITION' | 'TRANSFER' | 'FUNDING' | 'ACCOUNT' | null;
+  /** USER: the opening grant, which points at the Trader (D-117). */
+  refType: 'ORDER' | 'FILL' | 'TRANSFER' | 'USER' | null;
   refId: string | null;
   createdAt: ISODateTime;
 }

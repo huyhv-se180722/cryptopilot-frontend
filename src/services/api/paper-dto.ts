@@ -68,14 +68,12 @@ const LEDGER_TYPES = [
   'TRANSFER',
   'LIQUIDATION_FEE',
 ] as const;
-const REF_TYPES = [
-  'ORDER',
-  'FILL',
-  'POSITION',
-  'TRANSFER',
-  'FUNDING',
-  'ACCOUNT',
-] as const;
+const REF_TYPES = ['ORDER', 'FILL', 'TRANSFER', 'USER', 'ACCOUNT'] as const;
+/** A server before D-117 names the opening grant's cause ACCOUNT; it is the Trader's (USER) now. */
+const refTypeOf = (value: unknown): PaperLedgerEntry['refType'] => {
+  const type = oneOf(REF_TYPES, value, 'refType');
+  return type === 'ACCOUNT' ? 'USER' : type;
+};
 
 const marketOf = (value: unknown): MarketType =>
   oneOf(['SPOT', 'FUTURES'] as const, value, 'market') === 'SPOT'
@@ -86,18 +84,8 @@ const walletOf = (value: unknown, name: string): PaperWalletType =>
 
 export function decodeAccount(body: unknown): PaperAccount {
   const value = record(body);
-  return {
-    accountId: text(value.accountId, 'accountId'),
-    positionMode:
-      oneOf(
-        ['ONE_WAY', 'HEDGE'] as const,
-        value.positionMode,
-        'positionMode',
-      ) === 'ONE_WAY'
-        ? 'one-way'
-        : 'hedge',
-    openedAt: instant(value.openedAt, 'openedAt'),
-  };
+  // The account is the Trader's own (D-117): fields an earlier server sent beside openedAt are ignored.
+  return { openedAt: instant(value.openedAt, 'openedAt') };
 }
 
 function decodeBalance(item: unknown): PaperBalance {
@@ -286,7 +274,7 @@ export function decodeLedgerEntry(body: unknown): PaperLedgerEntry {
     refType:
       value.refType === null || value.refType === undefined
         ? null
-        : oneOf(REF_TYPES, value.refType, 'refType'),
+        : refTypeOf(value.refType),
     refId: nullableText(value.refId, 'refId'),
     createdAt: instant(value.createdAt, 'createdAt'),
   };

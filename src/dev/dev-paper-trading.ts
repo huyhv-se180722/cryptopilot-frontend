@@ -461,15 +461,11 @@ export function createDevelopmentPaperTrading(
     async openAccount() {
       await signedIn();
       if (!account) {
-        account = {
-          accountId: 'dev-paper-account-1',
-          positionMode: 'one-way',
-          openedAt: at(),
-        };
+        account = { openedAt: at() };
         for (const wallet of ['SPOT', 'FUTURES'] as const)
           for (const [asset, amount] of Object.entries(GRANT[wallet])) {
             holding(wallet, asset).free = amount;
-            record(wallet, asset, 'INITIAL_GRANT', amount, 'ACCOUNT', null);
+            record(wallet, asset, 'INITIAL_GRANT', amount, 'USER', null);
           }
       }
       return account;
