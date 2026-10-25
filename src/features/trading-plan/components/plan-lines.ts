@@ -65,21 +65,36 @@ export function priceLines(
 
 /**
  * A saved plan's lines (SCR-18); the estimated liquidation price of the
- * snapshot on Futures when the server gave one.
+ * snapshot on Futures when the server gave one. An open position draws its
+ * own: the fill, the levels the exits use now (D-124) and its liquidation
+ * price; a closed one draws no invalidation.
  */
 export function planLines(
   plan: TradingPlan,
   labels: PlanLineLabels,
 ): ChartPriceLine[] {
+  const position = plan.position;
+  const futures = plan.market === 'futures';
+  if (position)
+    return priceLines(
+      {
+        entry: position.fillPrice,
+        stopLoss: position.stopLoss ?? plan.stopLoss,
+        takeProfit: position.takeProfit ?? plan.takeProfit,
+        liquidation:
+          futures && position.status === 'OPEN'
+            ? position.liquidationPrice
+            : null,
+        invalidation: null,
+      },
+      labels,
+    );
   return priceLines(
     {
       entry: plan.entryPrice,
       stopLoss: plan.stopLoss,
       takeProfit: plan.takeProfit,
-      liquidation:
-        plan.market === 'futures'
-          ? plan.snapshot.estimatedLiquidationPrice
-          : null,
+      liquidation: futures ? plan.snapshot.estimatedLiquidationPrice : null,
       invalidation: plan.invalidationPrice,
     },
     labels,

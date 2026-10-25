@@ -130,9 +130,6 @@ export function PlansPage() {
         emptyMessage={filtered ? p.emptyFiltered : p.empty}
         pairOf={(row) => pairOf(row.pairId, row.market)}
       />
-      {tab === 'EXECUTED' && (
-        <p className="mt-2 text-[11px] text-muted-dim">{p.positionPending}</p>
-      )}
       {list.data.total > PLAN_PAGE_SIZE && (
         <nav
           aria-label={formatCopy(p.pageOf, { page, pages })}

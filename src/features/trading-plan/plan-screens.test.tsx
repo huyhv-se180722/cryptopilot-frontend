@@ -393,10 +393,16 @@ describe('SCR-16 plan list (T-041)', () => {
     ).toBe(false);
   });
 
-  it('adds the position columns on the Executed tab and pages by 20', async () => {
+  it('shows the position status on the Executed tab and pages by 20', async () => {
     const service = fakePlans({
       list: vi.fn(async (query) => ({
-        items: [{ ...ROW, status: 'EXECUTED' as const }],
+        items: [
+          {
+            ...ROW,
+            status: 'EXECUTED' as const,
+            positionStatus: 'OPEN' as const,
+          },
+        ],
         page: query.page,
         pageSize: 20,
         total: 45,
@@ -404,9 +410,9 @@ describe('SCR-16 plan list (T-041)', () => {
     });
     await open('/plans?tab=EXECUTED', service);
     expect(
-      await screen.findByRole('columnheader', { name: 'P/L (USDT)' }),
+      await screen.findByRole('columnheader', { name: 'Position' }),
     ).toBeTruthy();
-    expect(screen.getByText(/Position status and P\/L appear/)).toBeTruthy();
+    expect(screen.getByRole('cell', { name: 'Open' })).toBeTruthy();
     expect(screen.getByText('Page 1 of 3')).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Next' }));
     await waitFor(() => expect(lastList(service)?.page).toBe(2));
@@ -552,6 +558,134 @@ describe('SCR-18 plan detail (T-041)', () => {
         expect.arrayContaining(['Entry 62000', 'Invalidation price 60500']),
       ),
     );
+  });
+
+  it('shows an open position: fill, unrealized P/L, current levels and breakeven (T-048a, D-124)', async () => {
+    priceLines.length = 0;
+    const executed: TradingPlan = {
+      ...PLAN,
+      status: 'EXECUTED',
+      editable: false,
+      position: {
+        status: 'OPEN',
+        fillPrice: '62010.000000000000',
+        quantity: '0.010000000000',
+        entryTime: '2026-10-08T03:00:00Z',
+        entryFee: '0.31000000',
+        liquidationPrice: '74100.000000000000',
+        currentPrice: '61500.00',
+        unrealizedPnl: '5.10000000',
+        exitPrice: null,
+        exitTime: null,
+        closeReason: null,
+        realizedPnl: null,
+        feeAmount: null,
+        fundingFeeAmount: null,
+        netPnl: null,
+        provisional: false,
+        stopLoss: '62800.000000000000',
+        takeProfit: '59000.000000000000',
+        originalStopLoss: '63000.000000000000',
+        originalTakeProfit: '59000.000000000000',
+        stopWidened: false,
+        levelChangeCount: 1,
+        levelChanges: [
+          {
+            changedAt: '2026-10-08T05:00:00Z',
+            oldStopLoss: '63000.000000000000',
+            oldTakeProfit: '59000.000000000000',
+            newStopLoss: '62800.000000000000',
+            newTakeProfit: '59000.000000000000',
+          },
+        ],
+        breakevenPrice: '61940.00',
+        breakevenProvisional: true,
+        levelWarnings: [],
+        levelsEffectiveFrom: '2026-10-08T05:01:00Z',
+      },
+    };
+    await open(
+      '/plans/' + PLAN.id,
+      fakePlans({ get: vi.fn(async () => executed) }),
+    );
+    const position = within(
+      await screen.findByRole('region', { name: 'Position' }),
+    );
+    expect(position.getByText('Open')).toBeTruthy();
+    expect(
+      position.getByText('Unrealized P/L (USDT)').nextSibling?.textContent,
+    ).toBe('+5.10');
+    expect(position.getByText('Mark price').nextSibling?.textContent).toBe(
+      '61,500.00',
+    );
+    expect(
+      position.getAllByText('Stop loss')[0]?.nextSibling?.textContent,
+    ).toBe('62,800.00');
+    expect(position.getByText('Breakeven stop').nextSibling?.textContent).toBe(
+      '61,940.00provisional',
+    );
+    expect(position.getByText('Level changes')).toBeTruthy();
+    expect(position.getByText('63,000.00 → 62,800.00')).toBeTruthy();
+    await waitFor(() =>
+      expect(priceLines).toEqual(
+        expect.arrayContaining(['Entry 62010', 'Stop loss 62800']),
+      ),
+    );
+  });
+
+  it('headlines the net P/L of a closed position, provisional while funding is missing (T-048b)', async () => {
+    const closed: TradingPlan = {
+      ...PLAN,
+      status: 'EXECUTED',
+      editable: false,
+      position: {
+        status: 'CLOSED',
+        fillPrice: '62010.000000000000',
+        quantity: '0.010000000000',
+        entryTime: '2026-10-08T03:00:00Z',
+        entryFee: '0.31000000',
+        liquidationPrice: '74100.000000000000',
+        currentPrice: null,
+        unrealizedPnl: null,
+        exitPrice: '63080.000000000000',
+        exitTime: '2026-10-09T03:00:00Z',
+        closeReason: 'STOP_LOSS',
+        realizedPnl: '-10.70000000',
+        feeAmount: '0.62540000',
+        fundingFeeAmount: '-0.04000000',
+        netPnl: '-11.36540000',
+        provisional: true,
+        stopLoss: '63000.000000000000',
+        takeProfit: '59000.000000000000',
+        originalStopLoss: '63000.000000000000',
+        originalTakeProfit: '59000.000000000000',
+        stopWidened: false,
+        levelChangeCount: 0,
+        levelChanges: [],
+        breakevenPrice: null,
+        breakevenProvisional: false,
+        levelWarnings: [],
+        levelsEffectiveFrom: null,
+      },
+    };
+    await open(
+      '/plans/' + PLAN.id,
+      fakePlans({ get: vi.fn(async () => closed) }),
+    );
+    const position = within(
+      await screen.findByRole('region', { name: 'Position' }),
+    );
+    expect(
+      position.getByText('Closed', { selector: 'span *, span' }),
+    ).toBeTruthy();
+    expect(position.getByText('-11.37')).toBeTruthy();
+    expect(position.getByText('Closed by').nextSibling?.textContent).toBe(
+      'Stop loss',
+    );
+    expect(position.getByText('Funding (USDT)').nextSibling?.textContent).toBe(
+      '-0.04',
+    );
+    expect(position.getAllByText('provisional').length).toBeGreaterThan(0);
   });
 
   it('shows a dash for a setup score that could not be read, and none on a draft', async () => {

@@ -14,10 +14,10 @@ import {
 import {
   PlanHistoryPanel,
   PlanInputsPanel,
-  PlanPositionPanel,
   PlanSnapshotPanel,
   PlanWarningsPanel,
 } from '../../features/trading-plan/components/PlanDetailPanels';
+import { PlanPositionPanel } from '../../features/trading-plan/components/PlanPosition';
 import { shortPlanId } from '../../features/trading-plan/components/plan-format';
 import { planLines } from '../../features/trading-plan/components/plan-lines';
 import { usePlan } from '../../features/trading-plan/hooks/use-plans';
@@ -29,8 +29,9 @@ import { PlanChart } from './plan-chart';
  * from the market lists by the plan's pair id (FEQ-01), the chart of that
  * market with the plan's entry, stop loss, take profit and estimated
  * liquidation, the inputs, calculation snapshot, warnings, status history
- * and the actions. The live position of an executed plan waits for
- * simulated execution. The MSG42 disclaimer is in the shell footer.
+ * and the actions; an executed plan shows its position, drawn on the chart
+ * at its fill and current levels. The MSG42 disclaimer is in the shell
+ * footer.
  */
 export function PlanDetailPage() {
   const copy = useCopy();
@@ -107,7 +108,7 @@ export function PlanDetailPage() {
               ) : null}
               <PlanInputsPanel plan={plan} />
               <PlanSnapshotPanel plan={plan} />
-              {plan.status === 'EXECUTED' && <PlanPositionPanel />}
+              {plan.status === 'EXECUTED' && <PlanPositionPanel plan={plan} />}
             </div>
             <div className="flex flex-col gap-4">
               <PlanWarningsPanel
