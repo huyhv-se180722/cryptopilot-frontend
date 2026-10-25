@@ -561,6 +561,26 @@ export const en = {
     positionNet: 'Net P/L',
     positionLevelHistory: 'Level changes',
     provisional: 'provisional',
+    levelsEdit: 'Edit SL/TP',
+    levelsTitle: 'Edit stop loss and take profit',
+    levelsHint:
+      'Move the levels of this open position. The result in R keeps the original risk.',
+    levelsSave: 'Save levels',
+    levelsSaved: 'Levels saved.',
+    levelsSavedFrom: 'Levels saved. New levels apply from {time}.',
+    levelsNextCandle:
+      'New levels act from the next 1-minute candle; until then the previous ones can still close the position.',
+    levelsNotOpen:
+      'This position is no longer open. The plan has been refreshed.',
+    levelsWarned:
+      'Saved. The new stop loss breaks a limit of your risk profile:',
+    levelsDone: 'Done',
+    breakevenMove: 'Move SL to breakeven',
+    breakevenTooltip:
+      'Moves the stop to the price that covers the entry fee, the exit fee and slippage (and funding so far), so a stop-out ends at about zero net P/L.',
+    breakevenAt: 'Breakeven stop: {price}.',
+    breakevenNotYet:
+      'Available once the price has moved beyond the breakeven stop.',
     provisionalHint:
       'A funding settlement is still missing; the net P/L is final once it arrives.',
     blockedHint: 'Resolve the blocking warnings by editing the plan.',
@@ -647,6 +667,14 @@ export const en = {
       'a stop entry must be below the current price; it has been reached, so use a market entry',
     ruleLONG: 'stop loss < entry price < take profit',
     ruleSHORT: 'take profit < entry price < stop loss',
+    ruleOpenLevelsLONG:
+      'stop loss < current price < take profit, with neither level already reached',
+    ruleOpenLevelsSHORT:
+      'take profit < current price < stop loss, with neither level already reached',
+    ruleOpenLevelsFuturesLONG:
+      'stop loss < current price, not reached, and above the liquidation price',
+    ruleOpenLevelsFuturesSHORT:
+      'stop loss > current price, not reached, and below the liquidation price',
     ruleLevelsLONG:
       'stop loss < entry price < take profit, with neither level already reached by the current price',
     ruleLevelsSHORT:

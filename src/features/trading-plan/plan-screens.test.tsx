@@ -1592,3 +1592,144 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
     expect(screen.queryByRole('button', { name: 'Save as draft' })).toBeNull();
   });
 });
+
+describe('SCR-18 edit the levels of an open position (TP-E, D-124)', () => {
+  const position: NonNullable<TradingPlan['position']> = {
+    status: 'OPEN',
+    fillPrice: '62010.000000000000',
+    quantity: '0.010000000000',
+    entryTime: '2026-10-08T03:00:00Z',
+    entryFee: '0.31000000',
+    liquidationPrice: '74100.000000000000',
+    currentPrice: '61500.00',
+    unrealizedPnl: '5.10000000',
+    exitPrice: null,
+    exitTime: null,
+    closeReason: null,
+    realizedPnl: null,
+    feeAmount: null,
+    fundingFeeAmount: null,
+    netPnl: null,
+    provisional: false,
+    stopLoss: '63000.000000000000',
+    takeProfit: '59000.000000000000',
+    originalStopLoss: '63000.000000000000',
+    originalTakeProfit: '59000.000000000000',
+    stopWidened: false,
+    levelChangeCount: 0,
+    levelChanges: [],
+    breakevenPrice: '61940.00',
+    breakevenProvisional: false,
+    levelWarnings: [],
+    levelsEffectiveFrom: null,
+  };
+  // A SHORT whose current price is already below its breakeven stop.
+  const executed: TradingPlan = {
+    ...PLAN,
+    status: 'EXECUTED',
+    editable: false,
+    position,
+  };
+  const saved = (changes: Partial<typeof position>): TradingPlan => ({
+    ...executed,
+    position: { ...position, ...changes },
+  });
+  const openDialog = async (service: TradingPlanService) => {
+    await open('/plans/' + PLAN.id, service);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Edit SL/TP' }));
+    return { user, dialog: within(screen.getByRole('dialog')) };
+  };
+
+  it('sends only the changed level and says from when it applies', async () => {
+    const service = fakePlans({
+      get: vi.fn(async () => executed),
+      changeLevels: vi.fn(async () =>
+        saved({
+          stopLoss: '62700.000000000000',
+          levelsEffectiveFrom: '2026-10-08T05:01:00Z',
+        }),
+      ),
+    });
+    const { user, dialog } = await openDialog(service);
+    const stop = dialog.getByLabelText('Stop loss') as HTMLInputElement;
+    expect(stop.value).toBe('63000');
+    await user.clear(stop);
+    await user.type(stop, '62700');
+    await user.click(dialog.getByRole('button', { name: 'Save levels' }));
+    expect(service.changeLevels).toHaveBeenCalledWith(PLAN.id, {
+      stopLoss: '62700',
+      takeProfit: null,
+    });
+    expect(
+      await screen.findByText(/^Levels saved\. New levels apply from /),
+    ).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('moves the stop to the server’s breakeven price, never the entry', async () => {
+    const service = fakePlans({
+      get: vi.fn(async () => executed),
+      changeLevels: vi.fn(async () => saved({ stopLoss: '61940.00' })),
+    });
+    const { user, dialog } = await openDialog(service);
+    await user.click(
+      dialog.getByRole('button', { name: 'Move SL to breakeven' }),
+    );
+    expect(service.changeLevels).toHaveBeenCalledWith(PLAN.id, {
+      stopLoss: '61940.00',
+      takeProfit: null,
+    });
+  });
+
+  it('keeps the breakeven move off until the price is beyond it', async () => {
+    const service = fakePlans({
+      get: vi.fn(async () => saved({ currentPrice: '62100.00' })),
+    });
+    const { dialog } = await openDialog(service);
+    expect(
+      (
+        dialog.getByRole('button', {
+          name: 'Move SL to breakeven',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(dialog.getByText(/Available once the price has moved/)).toBeTruthy();
+  });
+
+  it('words a refused level and shows the risk warnings of a saved wider stop', async () => {
+    const service = fakePlans({
+      get: vi.fn(async () => executed),
+      changeLevels: vi
+        .fn()
+        .mockRejectedValueOnce(fieldRefusal('stopLoss'))
+        .mockResolvedValueOnce(
+          saved({
+            stopLoss: '63500.000000000000',
+            stopWidened: true,
+            levelWarnings: [
+              { type: 'OVERSIZED_POSITION', severity: 'WARNING' },
+            ],
+          }),
+        ),
+    });
+    const { user, dialog } = await openDialog(service);
+    const stop = dialog.getByLabelText('Stop loss');
+    await user.clear(stop);
+    await user.type(stop, '75000');
+    await user.click(dialog.getByRole('button', { name: 'Save levels' }));
+    expect(
+      await dialog.findByText(
+        'For short positions: stop loss > current price, not reached, and below the liquidation price.',
+      ),
+    ).toBeTruthy();
+    await user.clear(stop);
+    await user.type(stop, '63500');
+    await user.click(dialog.getByRole('button', { name: 'Save levels' }));
+    expect(
+      await dialog.findByText('Risk per trade above your risk profile'),
+    ).toBeTruthy();
+    await user.click(dialog.getByRole('button', { name: 'Done' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});

@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, SlidersHorizontal } from 'lucide-react';
+import { Button } from '../../components/ui/Button';
 import { ErrorState } from '../../components/feedback/States';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useCopy } from '../../hooks/use-copy';
@@ -18,6 +20,7 @@ import {
   PlanWarningsPanel,
 } from '../../features/trading-plan/components/PlanDetailPanels';
 import { PlanPositionPanel } from '../../features/trading-plan/components/PlanPosition';
+import { PositionLevelsDialog } from '../../features/trading-plan/components/PositionLevelsDialog';
 import { shortPlanId } from '../../features/trading-plan/components/plan-format';
 import { planLines } from '../../features/trading-plan/components/plan-lines';
 import { usePlan } from '../../features/trading-plan/hooks/use-plans';
@@ -30,7 +33,8 @@ import { PlanChart } from './plan-chart';
  * market with the plan's entry, stop loss, take profit and estimated
  * liquidation, the inputs, calculation snapshot, warnings, status history
  * and the actions; an executed plan shows its position, drawn on the chart
- * at its fill and current levels. The MSG42 disclaimer is in the shell
+ * at its fill and current levels, whose stop loss and take profit can be
+ * moved while it is open (D-124). The MSG42 disclaimer is in the shell
  * footer.
  */
 export function PlanDetailPage() {
@@ -42,6 +46,7 @@ export function PlanDetailPage() {
   const missing = query.missing;
   const pairOf = usePairLookup();
   const pair = plan ? pairOf(plan.pairId, plan.market) : undefined;
+  const [editingLevels, setEditingLevels] = useState(false);
   // The chart reads the candles of the plan's own market.
   const charted = pair && plan && pair.market === plan.market ? pair : null;
 
@@ -108,7 +113,21 @@ export function PlanDetailPage() {
               ) : null}
               <PlanInputsPanel plan={plan} />
               <PlanSnapshotPanel plan={plan} />
-              {plan.status === 'EXECUTED' && <PlanPositionPanel plan={plan} />}
+              {plan.status === 'EXECUTED' && (
+                <PlanPositionPanel
+                  plan={plan}
+                  actions={
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setEditingLevels(true)}
+                    >
+                      <SlidersHorizontal size={13} aria-hidden="true" />
+                      {p.levelsEdit}
+                    </Button>
+                  }
+                />
+              )}
             </div>
             <div className="flex flex-col gap-4">
               <PlanWarningsPanel
@@ -119,6 +138,11 @@ export function PlanDetailPage() {
               <PlanHistoryPanel plan={plan} />
             </div>
           </div>
+          <PositionLevelsDialog
+            plan={plan}
+            open={editingLevels}
+            onClose={() => setEditingLevels(false)}
+          />
         </>
       )}
     </div>
