@@ -85,6 +85,10 @@ import {
   createHttpAdminSettingService,
   createPendingAdminSettingService,
 } from '../../services/api/admin-settings';
+import {
+  createHttpAdminUserService,
+  createPendingAdminUserService,
+} from '../../services/api/admin-users';
 
 export async function createServices(env: Environment): Promise<Services> {
   // The session renews through the same client it authorizes (anonymous call).
@@ -170,6 +174,9 @@ export async function createServices(env: Environment): Promise<Services> {
     adminSettings: connected
       ? createHttpAdminSettingService(http)
       : createPendingAdminSettingService(),
+    adminUsers: connected
+      ? createHttpAdminUserService(http)
+      : createPendingAdminUserService(),
   };
   // Compile-time DEV guard removes the import and all fixtures from production.
   if (import.meta.env.DEV && env.useDevFixtures) {

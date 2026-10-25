@@ -8,7 +8,12 @@ import type {
   AcademyTerm,
   AcademyTopic,
   AdminLog,
+  AccountAction,
+  AccountRole,
   AdminPair,
+  AdminUserDetail,
+  AdminUserPage,
+  AdminUserQuery,
   AiConversation,
   Alert,
   AlertListQuery,
@@ -549,6 +554,27 @@ export interface AdminPairService {
 export interface AdminSettingService {
   list(signal?: AbortSignal): Promise<SystemSetting[]>;
   update(key: string, value: string): Promise<SystemSetting>;
+}
+
+/**
+ * The user accounts of the administration console (UC-42), Admin only: a
+ * page of accounts searched and filtered, one account with its activity
+ * and audit, and the status and role changes, each with a reason. Locking,
+ * banning and a new role end the account's sessions (BR-06).
+ */
+export interface AdminUserService {
+  search(query: AdminUserQuery, signal?: AbortSignal): Promise<AdminUserPage>;
+  get(userId: string, signal?: AbortSignal): Promise<AdminUserDetail>;
+  act(
+    userId: string,
+    action: AccountAction,
+    reason: string,
+  ): Promise<AdminUserDetail>;
+  changeRole(
+    userId: string,
+    role: AccountRole,
+    reason: string,
+  ): Promise<AdminUserDetail>;
 }
 
 /**
