@@ -11,7 +11,11 @@ import type {
   AccountAction,
   AccountRole,
   AdminPair,
+  AdminDashboard,
+  AdminPeriod,
+  AdminReport,
   AdminUserDetail,
+  ReportGrouping,
   AdminUserPage,
   AdminUserQuery,
   AiConversation,
@@ -562,6 +566,23 @@ export interface AdminSettingService {
  * and audit, and the status and role changes, each with a reason. Locking,
  * banning and a new role end the account's sessions (BR-06).
  */
+/**
+ * SCR-33 of the administration console (UC-40, UC-41), Admin only: the
+ * indicators of a period, the management report grouped by day, week or
+ * month, and its CSV export. MSG15 on `from` when it is after `to`, or for
+ * a report of more than 366 rows.
+ */
+export interface AdminDashboardService {
+  dashboard(period: AdminPeriod, signal?: AbortSignal): Promise<AdminDashboard>;
+  report(
+    period: AdminPeriod,
+    groupBy: ReportGrouping,
+    signal?: AbortSignal,
+  ): Promise<AdminReport>;
+  /** The same report as CSV text (UTF-8, a header line then one per group). */
+  exportReport(period: AdminPeriod, groupBy: ReportGrouping): Promise<string>;
+}
+
 export interface AdminUserService {
   search(query: AdminUserQuery, signal?: AbortSignal): Promise<AdminUserPage>;
   get(userId: string, signal?: AbortSignal): Promise<AdminUserDetail>;

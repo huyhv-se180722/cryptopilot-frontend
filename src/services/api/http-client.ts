@@ -19,6 +19,8 @@ export interface RequestOptions<T> {
    * slowly by design (a feed read, an AI summary); the client's otherwise.
    */
   timeoutMs?: number;
+  /** `text` hands the decoder the raw body, e.g. a CSV export; JSON by default. */
+  responseType?: 'json' | 'text';
 }
 
 /** Bearer token source with single-flight renewal (services/auth). */
@@ -105,7 +107,11 @@ export function createHttpClient(options: {
         );
       }
       const body: unknown =
-        response.status === 204 ? undefined : await response.json();
+        response.status === 204
+          ? undefined
+          : request.responseType === 'text'
+            ? await response.text()
+            : await response.json();
       try {
         return request.decode(body);
       } catch {
