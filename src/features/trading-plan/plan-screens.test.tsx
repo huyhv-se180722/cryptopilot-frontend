@@ -888,7 +888,7 @@ describe('SCR-17 new plan (T-040, UC-16)', () => {
     );
   });
 
-  it('shows the last and mark price, funding and its countdown beside a Futures plan (D-111)', async () => {
+  it('shows the mark price, funding and its countdown beside a Futures plan (BR-11)', async () => {
     const market = fakeMarket();
     vi.mocked(market.getTicker).mockImplementation(async (kind) =>
       kind === 'futures'
@@ -922,9 +922,9 @@ describe('SCR-17 new plan (T-040, UC-16)', () => {
     );
     const value = (label: string) =>
       strip.getByText(label).nextSibling?.textContent;
-    // Prices at the Futures pair's tick, 0.10.
-    await waitFor(() => expect(value('Last price')).toBe('62,010.3'));
-    expect(value('Mark price')).toBe('62,004.1');
+    // At the Futures pair's tick, 0.10; no last price on Futures (M-09).
+    await waitFor(() => expect(value('Mark price')).toBe('62,004.1'));
+    expect(strip.queryByText('Last price')).toBeNull();
     expect(value('Funding rate')).toBe('-0.0100%');
     expect(value('Next funding in')).toMatch(/^(00:59:\d\d|01:00:00)$/);
   });

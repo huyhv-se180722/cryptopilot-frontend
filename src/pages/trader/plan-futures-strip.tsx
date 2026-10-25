@@ -7,10 +7,11 @@ import { formatCountdown } from '../../utils/countdown';
 import { formatPrice, fractionToPercent } from '../../utils/decimal-format';
 
 /**
- * The Futures context of a plan's pair on SCR-17: the last price a MARKET
- * entry is priced at, the mark price the liquidation is measured on, the
- * current funding rate and the countdown to the next funding, as the
- * source reports them (BR-11, D-111); "—" until the ticker arrives.
+ * The Futures context of a plan's pair on SCR-17: the mark price the
+ * liquidation is measured on, the current funding rate and the countdown
+ * to the next funding, as the source reports them (BR-11); "—" until the
+ * ticker arrives. The Futures ticker has no last price (M-09); a MARKET
+ * entry shows the one it is priced at in the entry section.
  */
 export function PlanFuturesStrip({ pair }: { pair: MarketPair }) {
   const copy = useCopy();
@@ -26,7 +27,6 @@ export function PlanFuturesStrip({ pair }: { pair: MarketPair }) {
     value ? <NumericText value={formatPrice(value, pair.tickSize)} /> : none;
   const left = formatCountdown(ticker?.nextFundingTime ?? null, now);
   const items: [string, ReactNode][] = [
-    [a.statLast, price(ticker?.lastPrice)],
     [a.statMark, price(ticker?.markPrice)],
     [
       a.statFunding,
@@ -45,7 +45,7 @@ export function PlanFuturesStrip({ pair }: { pair: MarketPair }) {
   return (
     <dl
       aria-label={copy.plan.futuresContext}
-      className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-lg border border-line bg-raised px-3 py-2 sm:grid-cols-4"
+      className="grid grid-cols-3 gap-x-4 gap-y-2 rounded-lg border border-line bg-raised px-3 py-2"
     >
       {items.map(([label, value]) => (
         <div key={label}>
