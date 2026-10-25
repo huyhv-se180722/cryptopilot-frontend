@@ -501,6 +501,7 @@ export const en = {
     warningTOTAL_OPEN_RISK: 'Total open risk above your risk profile',
     warningWIDE_STOP_LOSS: 'Wide stop loss',
     warningHIGH_FUNDING_RATE: 'High funding rate for this side',
+    warningHIGH_FEE_SHARE: 'Fees and slippage are a large share of the risk',
     historyTitle: 'Status history',
     positionTitle: 'Position',
     positionWaiting:

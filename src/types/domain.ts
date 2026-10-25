@@ -254,7 +254,8 @@ export type PlanWarningType =
   | 'HIGH_LEVERAGE'
   | 'TOTAL_OPEN_RISK'
   | 'WIDE_STOP_LOSS'
-  | 'HIGH_FUNDING_RATE';
+  | 'HIGH_FUNDING_RATE'
+  | 'HIGH_FEE_SHARE';
 
 export interface PlanWarning {
   type: PlanWarningType;
@@ -271,6 +272,21 @@ export interface PlanSnapshot {
   rewardAmount: Decimal;
   riskRewardRatio: Decimal;
   estimatedLiquidationPrice: Decimal | null;
+  /**
+   * Expected trading costs (BR-29, D-116), read from each answer and never
+   * computed here; all null on a plan saved before the backend had them.
+   * Funding and the liquidation fee are not in them.
+   */
+  estimatedEntryFee: Decimal | null;
+  estimatedStopLossExitFee: Decimal | null;
+  estimatedTakeProfitExitFee: Decimal | null;
+  estimatedSlippage: Decimal | null;
+  /** The risk amount plus the costs of a stop loss exit. */
+  lossAtStopLoss: Decimal | null;
+  /** The costs over the risk amount, a fraction ("0.19950000"). */
+  feeShareOfRisk: Decimal | null;
+  /** The reward over the real loss, both after costs. */
+  netRiskReward: Decimal | null;
 }
 
 /**
@@ -285,6 +301,11 @@ export interface TradingPlanSummary {
   direction: PlanDirection;
   entryType: PlanEntryType;
   entryPrice: Decimal;
+  /**
+   * MARKET only: the reference price moved by the configured slippage, the
+   * price the quantity is sized on (D-112); null for LIMIT and STOP.
+   */
+  expectedFillPrice: Decimal | null;
   stopLoss: Decimal;
   takeProfit: Decimal;
   /** Null on Spot. */
@@ -307,6 +328,11 @@ export interface TradingPlan {
   direction: PlanDirection;
   entryType: PlanEntryType;
   entryPrice: Decimal;
+  /**
+   * MARKET only: the reference price moved by the configured slippage, the
+   * price the quantity is sized on (D-112); null for LIMIT and STOP.
+   */
+  expectedFillPrice: Decimal | null;
   stopLoss: Decimal;
   takeProfit: Decimal;
   capital: Decimal;
@@ -376,6 +402,11 @@ export interface PlanInputs {
 export interface PlanCalculation {
   /** On the tick; for MARKET the current last price. */
   entryPrice: Decimal;
+  /**
+   * MARKET only: the reference price moved by the configured slippage, the
+   * price the quantity is sized on (D-112); null for LIMIT and STOP.
+   */
+  expectedFillPrice: Decimal | null;
   /** After the profile defaults. */
   capital: Decimal;
   riskPercent: Decimal;

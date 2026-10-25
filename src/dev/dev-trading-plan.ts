@@ -129,6 +129,7 @@ function summaryOf(plan: TradingPlan): TradingPlanSummary {
     direction: plan.direction,
     entryType: plan.entryType,
     entryPrice: plan.entryPrice,
+    expectedFillPrice: plan.expectedFillPrice,
     stopLoss: plan.stopLoss,
     takeProfit: plan.takeProfit,
     leverage: plan.leverage,
@@ -196,6 +197,7 @@ export function createDevelopmentTradingPlan(
     if (!base) return refuse(404, 'RESOURCE_NOT_FOUND', 'MSG41');
     return {
       entryPrice: inputs.entryPrice ?? base.entryPrice,
+      expectedFillPrice: null,
       capital: inputs.capital ?? base.capital,
       riskPercent: inputs.riskPercent ?? base.riskPercent,
       snapshot: base.snapshot,
@@ -243,6 +245,7 @@ export function createDevelopmentTradingPlan(
         pairId,
         ...inputs,
         entryPrice: result.entryPrice,
+        expectedFillPrice: result.expectedFillPrice,
         plannedEntryPrice: result.entryPrice,
         capital: result.capital,
         riskPercent: result.riskPercent,
@@ -277,6 +280,7 @@ export function createDevelopmentTradingPlan(
         ...plan,
         ...inputs,
         entryPrice: result.entryPrice,
+        expectedFillPrice: result.expectedFillPrice,
         plannedEntryPrice: result.entryPrice,
         capital: result.capital,
         riskPercent: result.riskPercent,

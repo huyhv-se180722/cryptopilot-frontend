@@ -87,6 +87,7 @@ const row = (
   direction: 'LONG',
   entryType: 'LIMIT',
   entryPrice: '62000.000000000000',
+  expectedFillPrice: null,
   stopLoss: '61000.000000000000',
   takeProfit: '65000.000000000000',
   leverage: null,

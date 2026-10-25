@@ -37,8 +37,9 @@ import { marketOf } from './market-dto';
  * `UpdateTradingPlanRequest`. Plan validity (STOP entry, INVALIDATED, the
  * invalidation price, the deviation limit, the analysis timeframe and the
  * setup score at activation) against `feature/TP-A-plan-validity` @
- * 112aa24; those fields are read as null when absent, as a backend without
- * it answers.
+ * 112aa24; the expected fill and the cost figures (D-116) against `develop`
+ * @ dccfc6c. Those fields are read as null when absent, as an older backend
+ * answers.
  */
 const STATUSES: readonly PlanStatus[] = [
   'DRAFT',
@@ -66,6 +67,7 @@ const WARNING_TYPES: readonly PlanWarningType[] = [
   'TOTAL_OPEN_RISK',
   'WIDE_STOP_LOSS',
   'HIGH_FUNDING_RATE',
+  'HIGH_FEE_SHARE',
 ];
 
 function nullableInteger(value: unknown, name: string): number | null {
@@ -90,6 +92,10 @@ function common(value: Record<string, unknown>) {
     direction: oneOf(DIRECTIONS, value.direction, 'direction'),
     entryType: oneOf(ENTRY_TYPES, value.entryType, 'entryType'),
     entryPrice: decimal(value.entryPrice, 'entryPrice'),
+    expectedFillPrice: nullableDecimal(
+      value.expectedFillPrice,
+      'expectedFillPrice',
+    ),
     stopLoss: decimal(value.stopLoss, 'stopLoss'),
     takeProfit: decimal(value.takeProfit, 'takeProfit'),
     leverage: nullableInteger(value.leverage, 'leverage'),
@@ -143,6 +149,25 @@ function snapshot(value: unknown): PlanSnapshot {
       s.estimatedLiquidationPrice,
       'estimatedLiquidationPrice',
     ),
+    estimatedEntryFee: nullableDecimal(
+      s.estimatedEntryFee,
+      'estimatedEntryFee',
+    ),
+    estimatedStopLossExitFee: nullableDecimal(
+      s.estimatedStopLossExitFee,
+      'estimatedStopLossExitFee',
+    ),
+    estimatedTakeProfitExitFee: nullableDecimal(
+      s.estimatedTakeProfitExitFee,
+      'estimatedTakeProfitExitFee',
+    ),
+    estimatedSlippage: nullableDecimal(
+      s.estimatedSlippage,
+      'estimatedSlippage',
+    ),
+    lossAtStopLoss: nullableDecimal(s.lossAtStopLoss, 'lossAtStopLoss'),
+    feeShareOfRisk: nullableDecimal(s.feeShareOfRisk, 'feeShareOfRisk'),
+    netRiskReward: nullableDecimal(s.netRiskReward, 'netRiskReward'),
   };
 }
 
@@ -208,6 +233,10 @@ export function decodeCalculation(body: unknown): PlanCalculation {
   const value = record(body);
   return {
     entryPrice: decimal(value.entryPrice, 'entryPrice'),
+    expectedFillPrice: nullableDecimal(
+      value.expectedFillPrice,
+      'expectedFillPrice',
+    ),
     capital: decimal(value.capital, 'capital'),
     riskPercent: decimal(value.riskPercent, 'riskPercent'),
     snapshot: snapshot(value.snapshot),

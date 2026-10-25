@@ -74,6 +74,7 @@ const ROW: TradingPlanSummary = {
   direction: 'SHORT',
   entryType: 'LIMIT',
   entryPrice: '62000.000000000000',
+  expectedFillPrice: null,
   stopLoss: '63000.000000000000',
   takeProfit: '59000.000000000000',
   leverage: 5,
@@ -94,6 +95,7 @@ const PLAN: TradingPlan = {
   direction: 'SHORT',
   entryType: 'LIMIT',
   entryPrice: '62000.000000000000',
+  expectedFillPrice: null,
   stopLoss: '63000.000000000000',
   takeProfit: '59000.000000000000',
   capital: '1000',
@@ -120,6 +122,13 @@ const PLAN: TradingPlan = {
     rewardAmount: '30.00000000',
     riskRewardRatio: '3.00000000',
     estimatedLiquidationPrice: '74103.100000000000',
+    estimatedEntryFee: null,
+    estimatedStopLossExitFee: null,
+    estimatedTakeProfitExitFee: null,
+    estimatedSlippage: null,
+    lossAtStopLoss: null,
+    feeShareOfRisk: null,
+    netRiskReward: null,
   },
   warnings: [
     { type: 'HIGH_LEVERAGE', severity: 'WARNING' },
@@ -174,6 +183,7 @@ function fakePlans(overrides: Partial<TradingPlanService> = {}) {
     create: vi.fn(async () => PLAN),
     calculate: vi.fn(async () => ({
       entryPrice: PLAN.entryPrice,
+      expectedFillPrice: null,
       capital: PLAN.capital,
       riskPercent: PLAN.riskPercent,
       snapshot: PLAN.snapshot,
@@ -913,6 +923,7 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
   const editPath = '/plans/' + SPOT_DRAFT.id + '/edit';
   const calculation = (overrides: Partial<TradingPlan['snapshot']> = {}) => ({
     entryPrice: '62000.00',
+    expectedFillPrice: null,
     capital: '1000',
     riskPercent: '1',
     snapshot: { ...SPOT_DRAFT.snapshot, ...overrides },

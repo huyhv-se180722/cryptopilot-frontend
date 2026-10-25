@@ -265,6 +265,7 @@ export function devPlanSeeds(now: number): TradingPlan[] {
       direction: seed.direction,
       entryType: seed.entryType,
       entryPrice: scale12(seed.entry),
+      expectedFillPrice: null,
       stopLoss: scale12(seed.stop),
       takeProfit: scale12(seed.take),
       capital: '1000',
@@ -298,6 +299,13 @@ export function devPlanSeeds(now: number): TradingPlan[] {
         estimatedLiquidationPrice: seed.liquidation
           ? scale12(seed.liquidation)
           : null,
+        estimatedEntryFee: null,
+        estimatedStopLossExitFee: null,
+        estimatedTakeProfitExitFee: null,
+        estimatedSlippage: null,
+        lossAtStopLoss: null,
+        feeShareOfRisk: null,
+        netRiskReward: null,
       },
       warnings,
       blocksActivation: warnings.some(
