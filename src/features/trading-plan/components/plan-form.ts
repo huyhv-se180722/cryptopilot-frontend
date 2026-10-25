@@ -66,6 +66,11 @@ export type PlanFieldError =
    */
   | { kind: 'leverageMax' }
   | { kind: 'order' }
+  /**
+   * MSG16 of the server on the stop loss or take profit: out of order, or
+   * already reached by the current price at activation (TP-B, T-048b).
+   */
+  | { kind: 'levels' }
   | { kind: 'future' }
   | { kind: 'tooLong'; max: number }
   /** BR-69: above 0 and at most the system's limit. */
@@ -284,6 +289,9 @@ export function serverFieldError(
   if (messageId === 'MSG16') {
     if (field === 'invalidationPrice') return { kind: 'invalidationSide' };
     if (field === 'entryPrice') return { kind: 'stopReached' };
+    // On a level the server also checks the current price (TP-B, T-048b).
+    if (field === 'stopLoss' || field === 'takeProfit')
+      return { kind: 'levels' };
     return { kind: 'order' };
   }
   if (messageId !== 'MSG15') return { kind: 'required' };

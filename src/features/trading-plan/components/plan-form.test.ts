@@ -228,7 +228,7 @@ describe('plan form model (SCR-17)', () => {
   });
 
   it('words server field errors with the field’s own rule', () => {
-    expect(serverFieldError('stopLoss', 'MSG16')).toEqual({ kind: 'order' });
+    expect(serverFieldError('stopLoss', 'MSG16')).toEqual({ kind: 'levels' });
     expect(serverFieldError('riskPercent', 'MSG15')).toEqual({
       kind: 'range',
       min: '0.1',

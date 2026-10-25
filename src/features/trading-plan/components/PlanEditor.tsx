@@ -62,12 +62,8 @@ const FIELDS: readonly PlanField[] = [
   'analysisTimeframe',
 ];
 
-/**
- * The entry types offered. STOP is accepted by the backend but not yet
- * triggered by its engine (TP-B), so a new plan cannot pick it; a STOP
- * draft saved before keeps it.
- */
-const OFFERED_ENTRY_TYPES: readonly PlanEntryType[] = ['LIMIT', 'MARKET'];
+/** The entry types of a plan; the engine triggers STOP entries (TP-B). */
+const ENTRY_TYPES: readonly PlanEntryType[] = ['LIMIT', 'MARKET', 'STOP'];
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -115,8 +111,7 @@ export type PlanEditorTarget =
  * (MSG17), and Save as Draft (MSG14) or Save and Activate (MSG19; refused
  * with MSG18 or MSG27, nothing saved). A new plan picks its pair from the
  * market list by id (FEQ-01); a DRAFT's pair is fixed. Plan validity
- * (D-111, D-112): a STOP entry for breakouts (on a STOP draft only until
- * the engine triggers it), an invalidation price for a waiting LIMIT or
+ * (D-111, D-112): a STOP entry for breakouts, an invalidation price for a waiting LIMIT or
  * STOP, the plan's own entry deviation limit and the
  * analysis timeframe, defaulted from the trading style. The capital is
  * the account's, read only: the profile's default capital sizes every plan
@@ -155,10 +150,6 @@ export function PlanEditor({
     target.pairs.futures.length > 0
       ? 'futures'
       : 'spot';
-  const entryTypes: readonly PlanEntryType[] =
-    plan?.entryType === 'STOP'
-      ? [...OFFERED_ENTRY_TYPES, 'STOP']
-      : OFFERED_ENTRY_TYPES;
   const [draft, setDraft] = useState<PlanDraft>(() =>
     plan
       ? draftOfPlan(plan)
@@ -465,7 +456,7 @@ export function PlanEditor({
               label={p.entryType}
               value={draft.entryType}
               onChange={(entryType) => change({ entryType }, 'entryPrice')}
-              options={entryTypes.map((value) => ({
+              options={ENTRY_TYPES.map((value) => ({
                 value,
                 label: p[`entry${value}`],
               }))}

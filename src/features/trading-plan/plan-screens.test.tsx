@@ -1058,8 +1058,8 @@ describe('SCR-17 new plan (T-040, UC-16)', () => {
     // SCALPING plans on 15m unless the Trader picks another one.
     expect(timeframe.value).toBe('15m');
     const user = userEvent.setup();
-    // The engine does not trigger STOP entries yet (TP-B).
-    expect(screen.queryByRole('radio', { name: 'Stop' })).toBeNull();
+    // The engine triggers STOP entries (TP-B): a new plan offers them.
+    expect(screen.getByRole('radio', { name: 'Stop' })).toBeTruthy();
     await user.type(screen.getByLabelText('Entry price'), '62000');
     await user.type(screen.getByLabelText('Stop loss'), '60000');
     await user.type(screen.getByLabelText('Take profit'), '66000');
@@ -1291,9 +1291,9 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
         'For long positions: a stop entry must be above the current price; it has been reached, so use a market entry.',
       ),
     ).toBeTruthy();
-    // Switched to LIMIT, the STOP draft can still go back to STOP.
-    await user.click(screen.getByRole('radio', { name: 'Limit' }));
-    expect(screen.getByRole('radio', { name: 'Stop' })).toBeTruthy();
+    expect(
+      screen.getByText(/or worse when the price gaps past it/),
+    ).toBeTruthy();
   });
 
   it('edits a Futures draft with its direction, leverage and the fixed isolated margin (BR-26)', async () => {
@@ -1428,7 +1428,7 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
     await open(editPath, service);
     expect(
       await screen.findByText(
-        'For long positions: stop loss < entry price < take profit.',
+        'For long positions: stop loss < entry price < take profit, with neither level already reached by the current price.',
       ),
     ).toBeTruthy();
     expect(

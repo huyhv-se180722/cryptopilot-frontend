@@ -39,6 +39,11 @@ export function planFieldErrorText(
         direction: p[`directionName${direction}`],
         rule: p[`rule${direction}`],
       });
+    case 'levels':
+      return messageText(copy, 'MSG16', [], {
+        direction: p[`directionName${direction}`],
+        rule: p[`ruleLevels${direction}`],
+      });
     case 'future':
       return p.errFuture;
     case 'tooLong':

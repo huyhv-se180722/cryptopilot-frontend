@@ -568,7 +568,7 @@ export const en = {
     noteHint: 'Up to 1000 characters.',
     stopEntryPrice: 'Stop price',
     stopEntryHint:
-      'Enters at market once the price reaches this level: above the current price for a long, below it for a short.',
+      'Enters at market once the price reaches this level: above the current price for a long, below it for a short. It fills at the stop price, or worse when the price gaps past it.',
     sectionValidity: 'Validity',
     invalidationPrice: 'Invalidation price',
     invalidationField: 'Invalidation price (optional)',
@@ -619,6 +619,10 @@ export const en = {
       'a stop entry must be below the current price; it has been reached, so use a market entry',
     ruleLONG: 'stop loss < entry price < take profit',
     ruleSHORT: 'take profit < entry price < stop loss',
+    ruleLevelsLONG:
+      'stop loss < entry price < take profit, with neither level already reached by the current price',
+    ruleLevelsSHORT:
+      'take profit < entry price < stop loss, with neither level already reached by the current price',
     directionNameLONG: 'long',
     directionNameSHORT: 'short',
   },

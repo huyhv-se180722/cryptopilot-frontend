@@ -50,7 +50,9 @@ describe('activation refusals outside the form (SCR-18, D-112)', () => {
         refusal(400, 'VALIDATION_FAILED', { stopLoss: 'MSG16' }),
         { ...STOP_PLAN, entryType: 'MARKET' },
       ),
-    ).toBe('For short positions: take profit < entry price < stop loss.');
+    ).toBe(
+      'For short positions: take profit < entry price < stop loss, with neither level already reached by the current price.',
+    );
   });
 
   it('says the price is unavailable on a 503, and keeps the general text otherwise', () => {
