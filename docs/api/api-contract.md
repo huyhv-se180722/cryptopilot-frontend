@@ -13,7 +13,7 @@
 | journal       | list                                    | JournalEntry                |
 | alerts        | list                                    | PriceAlert                  |
 | community     | list                                    | CommunityPost               |
-| news          | list                                    | NewsArticle                 |
+| news          | feed, sentimentSummary (HTTP, T-080)    | NewsArticle, NewsPage       |
 | ai            | list historical conversations           | AiConversation              |
 | subscription  | list packages                           | SubscriptionPackage         |
 | admin         | list logs                               | AdminLog                    |

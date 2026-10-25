@@ -665,12 +665,55 @@ export interface NotificationPage {
   pageSize: number;
   total: number;
 }
+/** The tone the AI reads in an article (NSF-11). */
+export type NewsSentiment = 'BULLISH' | 'NEUTRAL' | 'BEARISH';
+/** How far back the news feed reaches (SRS 3.8.1); 7d when none is named. */
+export type NewsRange = '24h' | '7d' | '30d';
+export interface NewsCoinTag {
+  symbol: string;
+  /** The first coin the headline names. */
+  primary: boolean;
+}
+/**
+ * One item of the news feed (SCR-28, UC-34), the same on every plan
+ * (D-122). Once summarized, title and summary are the AI's Vietnamese text
+ * (D-123); until then the collected headline and the feed's excerpt.
+ */
 export interface NewsArticle {
   id: string;
   title: string;
-  summary: string;
+  /** The headline as the outlet wrote it. */
+  originalTitle: string;
+  source: string;
+  /** An http(s) address, opened in a new tab. */
   originalUrl: string;
   publishedAt: ISODateTime;
+  summary: string | null;
+  aiSummarized: boolean;
+  /** Absent until the article is summarized. */
+  sentiment: NewsSentiment | null;
+  /** Primary coin first. */
+  coins: readonly NewsCoinTag[];
+}
+export interface NewsQuery {
+  coin?: string;
+  sentiment?: NewsSentiment;
+  range?: NewsRange;
+  page: number;
+  pageSize: number;
+}
+export interface NewsPage {
+  items: readonly NewsArticle[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+/** The 24-hour summary bar of SCR-28; unsummarized articles are not counted. */
+export interface NewsSentimentSummary {
+  since: ISODateTime;
+  bullish: number;
+  neutral: number;
+  bearish: number;
 }
 export interface AiConversation {
   id: string;

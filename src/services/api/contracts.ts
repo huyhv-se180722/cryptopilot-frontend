@@ -58,7 +58,9 @@ import type {
   PlanInputs,
   PlanListQuery,
   PlanPage,
-  NewsArticle,
+  NewsPage,
+  NewsQuery,
+  NewsSentimentSummary,
   ProfileUpdate,
   RiskProfile,
   RiskProfileParams,
@@ -363,7 +365,15 @@ export interface CommunityService {
     signal?: AbortSignal,
   ): Promise<PostMediaRef>;
 }
-export type NewsService = ReadService<NewsArticle>;
+/**
+ * The news feed of SCR-28 (SRS 3.8.1, UC-34), Trader only and the same on
+ * every plan (D-122): newest first, filtered by coin, sentiment and period,
+ * and the 24-hour count per sentiment.
+ */
+export interface NewsService {
+  feed(query: NewsQuery, signal?: AbortSignal): Promise<NewsPage>;
+  sentimentSummary(signal?: AbortSignal): Promise<NewsSentimentSummary>;
+}
 
 /**
  * The report moderation queue of SCR-36 (SRS 3.11.3, UC-43), Admin only:
