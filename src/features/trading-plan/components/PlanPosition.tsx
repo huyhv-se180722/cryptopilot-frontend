@@ -50,9 +50,12 @@ function Rows({ rows }: { rows: readonly [string, ReactNode][] }) {
 export function PlanPositionPanel({
   plan,
   actions,
+  closeAction,
 }: {
   plan: TradingPlan;
   actions?: ReactNode;
+  /** Close at market (SCR-19), apart from the other actions. */
+  closeAction?: ReactNode;
 }) {
   const copy = useCopy();
   const p = copy.plan;
@@ -87,8 +90,11 @@ export function PlanPositionPanel({
       {position.levelChanges.length > 0 && (
         <LevelHistory changes={position.levelChanges} />
       )}
-      {open && actions && (
-        <div className="mt-4 flex flex-wrap gap-2">{actions}</div>
+      {open && (actions || closeAction) && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {actions}
+          {closeAction && <span className="ml-auto">{closeAction}</span>}
+        </div>
       )}
     </Panel>
   );
