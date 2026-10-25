@@ -9,6 +9,7 @@ import { PlanStatusBadge } from '../../features/trading-plan/components/PlanBadg
 import { PlanEditor } from '../../features/trading-plan/components/PlanEditor';
 import { shortPlanId } from '../../features/trading-plan/components/plan-format';
 import { usePairLookup } from '../../features/market/hooks/use-market-data';
+import { useProfileData } from '../../features/profile/hooks/use-profile';
 import { usePlan } from '../../features/trading-plan/hooks/use-plans';
 import { PlanChart } from './plan-chart';
 import { PlanFuturesStrip } from './plan-futures-strip';
@@ -17,7 +18,8 @@ import { PlanFuturesStrip } from './plan-futures-strip';
  * SCR-17 Edit Trading Plan (SRS 3.5.1, UC-17) for a DRAFT; any other status
  * is read-only (BR-32) and links back to SCR-18. The pair is named from
  * the market lists by its id (FEQ-01), and the chart of its market shows
- * the entry, stop loss and take profit as they are typed.
+ * the entry, stop loss and take profit as they are typed. The capital is
+ * the profile's (D-121).
  */
 export function PlanEditPage() {
   const copy = useCopy();
@@ -27,6 +29,7 @@ export function PlanEditPage() {
   const plan = query.data;
   const id = shortPlanId(planId);
   const pairOf = usePairLookup();
+  const profile = useProfileData().state;
 
   return (
     <div className="mx-auto w-full max-w-7xl">
@@ -77,6 +80,11 @@ export function PlanEditPage() {
             plan,
             pair: pairOf(plan.pairId, plan.market),
           }}
+          accountCapital={
+            profile.status === 'success'
+              ? profile.data.profile.defaultCapital
+              : undefined
+          }
           chart={(pair, lines) => <PlanChart pair={pair} lines={lines} />}
           futuresContext={(pair) => <PlanFuturesStrip pair={pair} />}
         />

@@ -74,6 +74,11 @@ export function PlanCreatePage() {
                 ? timeframeOfStyle(profile.data.profile.tradingStyle)
                 : null,
           }}
+          accountCapital={
+            profile.status === 'success'
+              ? profile.data.profile.defaultCapital
+              : undefined
+          }
           chart={(pair, lines) => <PlanChart pair={pair} lines={lines} />}
           futuresContext={(pair) => <PlanFuturesStrip pair={pair} />}
         />

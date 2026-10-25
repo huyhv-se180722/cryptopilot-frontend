@@ -373,8 +373,10 @@ export interface TradingPlan {
 /**
  * SCR-17 inputs (SRS 3.5.1, UC-16, UC-17). Editing replaces them whole;
  * the pair never changes. Null leaves a value to the server's default
- * (entry price for MARKET, capital and risk % from the profile, a 7-day
- * expiry for LIMIT and STOP, the analysis timeframe of the trading style).
+ * (entry price for MARKET, risk % from the profile, a 7-day expiry for
+ * LIMIT and STOP, the analysis timeframe of the trading style). The
+ * capital is never sent: every plan is sized on the profile's default
+ * capital (D-121).
  */
 export interface PlanInputs {
   market: MarketType;
@@ -384,7 +386,6 @@ export interface PlanInputs {
   entryPrice: Decimal | null;
   stopLoss: Decimal;
   takeProfit: Decimal;
-  capital: Decimal | null;
   riskPercent: Decimal | null;
   /** Futures only; null on Spot. */
   leverage: number | null;

@@ -26,7 +26,6 @@ export interface PlanDraft {
   entryPrice: string;
   stopLoss: string;
   takeProfit: string;
-  capital: string;
   riskPercent: string;
   leverage: string;
   /** `datetime-local` value in the Trader's time zone; empty = server default. */
@@ -45,6 +44,7 @@ export type PlanField =
   | 'entryPrice'
   | 'stopLoss'
   | 'takeProfit'
+  /** Only the server's: the profile has no default capital (D-121). */
   | 'capital'
   | 'riskPercent'
   | 'leverage'
@@ -85,7 +85,6 @@ export const PLAN_TIMEFRAMES: readonly PlanTimeframe[] = [
   '1d',
 ];
 const DECIMAL = /^\d{1,16}(\.\d{1,12})?$/;
-const CAPITAL = /^\d{1,20}(\.\d{1,8})?$/;
 const PERCENT = /^\d{1,2}(\.\d{1,3})?$/;
 const R_MULTIPLE = /^\d{1,4}(\.\d{1,8})?$/;
 
@@ -106,7 +105,7 @@ export function timeframeOfStyle(style: TradingStyle | null): PlanTimeframe {
   }
 }
 
-/** A new plan: Spot, LONG, a limit entry, the profile's capital and risk. */
+/** A new plan: Spot, LONG, a limit entry, the profile's risk. */
 export const EMPTY_PLAN_DRAFT: PlanDraft = {
   market: 'spot',
   direction: 'LONG',
@@ -114,7 +113,6 @@ export const EMPTY_PLAN_DRAFT: PlanDraft = {
   entryPrice: '',
   stopLoss: '',
   takeProfit: '',
-  capital: '',
   riskPercent: '',
   leverage: '',
   expiry: '',
@@ -138,7 +136,6 @@ export function draftOfPlan(plan: TradingPlan): PlanDraft {
     entryPrice: pricedEntry(plan.entryType) ? trimmed(plan.entryPrice) : '',
     stopLoss: trimmed(plan.stopLoss),
     takeProfit: trimmed(plan.takeProfit),
-    capital: trimmed(plan.capital),
     riskPercent: trimmed(plan.riskPercent),
     leverage: plan.leverage === null ? '' : String(plan.leverage),
     expiry: plan.expiresAt ? toLocalInput(plan.expiresAt) : '',
@@ -170,8 +167,8 @@ export const drawablePrice = (raw: string): string | null => {
 };
 
 /**
- * Checks the draft and builds the inputs the API takes. An empty capital or
- * risk % is left to the profile defaults; an empty expiry to the server's
+ * Checks the draft and builds the inputs the API takes. An empty risk % is
+ * left to the profile default (the capital always is, D-121); an empty expiry to the server's
  * 7 days (LIMIT, STOP); a MARKET entry is priced by the server and has no
  * invalidation price; an empty deviation limit is the system's.
  */
@@ -201,11 +198,6 @@ export function toInputs(
       ? price('invalidationPrice')
       : '';
 
-  const capital = value(draft.capital);
-  if (capital !== '') {
-    if (!CAPITAL.test(capital)) errors.capital = { kind: 'number' };
-    else if (isZero(capital)) errors.capital = { kind: 'positive' };
-  }
   const risk = value(draft.riskPercent);
   if (risk !== '') {
     if (!PERCENT.test(risk)) errors.riskPercent = { kind: 'number' };
@@ -267,7 +259,6 @@ export function toInputs(
       entryPrice: priced ? entry : null,
       stopLoss: stop,
       takeProfit: take,
-      capital: capital === '' ? null : capital,
       riskPercent: risk === '' ? null : risk,
       leverage,
       expiresAt,

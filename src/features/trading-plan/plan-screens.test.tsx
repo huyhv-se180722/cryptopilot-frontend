@@ -1158,25 +1158,30 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
       get: vi.fn(async () => SPOT_DRAFT),
       calculate: vi.fn(async (_pair, inputs) =>
         calculation({
-          riskAmount: inputs.capital === '2000' ? '20.00000000' : '10.00000000',
+          riskAmount:
+            inputs.stopLoss === '61000' ? '20.00000000' : '10.00000000',
         }),
       ),
     });
     await open(editPath, service);
-    const capital = await screen.findByLabelText('Capital (USDT)');
-    expect((capital as HTMLInputElement).value).toBe('1000');
-    expect((screen.getByLabelText('Stop loss') as HTMLInputElement).value).toBe(
-      '60000',
-    );
+    const stop = (await screen.findByLabelText(
+      'Stop loss',
+    )) as HTMLInputElement;
+    expect(stop.value).toBe('60000');
     const panel = within(
       screen.getByRole('region', { name: 'Risk calculation' }),
     );
     expect(
       (await panel.findByText('Risk (USDT)')).nextSibling?.textContent,
     ).toBe('10.00');
+    // The capital is the account's, never typed (D-121).
+    expect(screen.queryByRole('textbox', { name: /Capital/ })).toBe(null);
+    expect(
+      screen.getByRole('link', { name: 'Change in Profile & Settings' }),
+    ).toBeTruthy();
     const user = userEvent.setup();
-    await user.clear(capital);
-    await user.type(capital, '2000');
+    await user.clear(stop);
+    await user.type(stop, '61000');
     await waitFor(() =>
       expect(panel.getByText('Risk (USDT)').nextSibling?.textContent).toBe(
         '20.00',
@@ -1188,9 +1193,42 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
     expect(vi.mocked(service.calculate).mock.calls.at(-1)?.[1]).toMatchObject({
       market: 'spot',
       direction: 'LONG',
-      capital: '2000',
+      stopLoss: '61000',
       leverage: null,
     });
+    expect(
+      vi.mocked(service.calculate).mock.calls.at(-1)?.[1],
+    ).not.toHaveProperty('capital');
+  });
+
+  it('asks for a default capital in Profile & Settings when the profile has none (D-121)', async () => {
+    const noCapital = {
+      get: vi.fn(async () => ({ ...devProfile, defaultCapital: null })),
+      getRiskProfile: vi.fn(async () => devRiskParams.CONSERVATIVE),
+    } as unknown as ProfileService;
+    const service = fakePlans({
+      get: vi.fn(async () => SPOT_DRAFT),
+      calculate: vi.fn().mockRejectedValue(
+        new ServiceError('refused', 'HTTP_ERROR', 400, {
+          status: 400,
+          code: 'VALIDATION_FAILED',
+          messageCode: 'MSG01',
+          messageArgs: [],
+          fieldErrors: { capital: 'MSG01' },
+        }),
+      ),
+    });
+    await open(editPath, service, 'FREE', fakeMarket(), noCapital);
+    expect(
+      await screen.findByText(
+        'Set a default capital in Profile & Settings first: every plan is sized on it.',
+      ),
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByRole('link', { name: 'Set it in Profile & Settings' })
+        .getAttribute('href'),
+    ).toBe('/profile');
   });
 
   it('shows the expected fill of a market entry only when slippage moves it (D-112)', async () => {

@@ -21,6 +21,7 @@ import { useToast } from '../../../hooks/use-toast';
 import { errorText, messageText } from '../../../i18n/messages';
 import { problemOf } from '../../../services/api/errors';
 import type {
+  Decimal,
   MarketPair,
   MarketType,
   PlanEntryType,
@@ -32,7 +33,7 @@ import type { ChartPriceLine } from '../../chart/components/AnalysisChart';
 import { usePlanCalculation, useSavePlan } from '../hooks/use-plan-editor';
 import { Panel, PlanSnapshotRows, PlanWarningsPanel } from './PlanDetailPanels';
 import { planFieldErrorText } from './plan-errors';
-import { planPrice, shownExpectedFill } from './plan-format';
+import { planAmount, planPrice, shownExpectedFill } from './plan-format';
 import { priceLines } from './plan-lines';
 import {
   EMPTY_PLAN_DRAFT,
@@ -52,7 +53,6 @@ const FIELDS: readonly PlanField[] = [
   'entryPrice',
   'stopLoss',
   'takeProfit',
-  'capital',
   'riskPercent',
   'leverage',
   'expiresAt',
@@ -118,15 +118,24 @@ export type PlanEditorTarget =
  * (D-111, D-112): a STOP entry for breakouts (on a STOP draft only until
  * the engine triggers it), an invalidation price for a waiting LIMIT or
  * STOP, the plan's own entry deviation limit and the
- * analysis timeframe, defaulted from the trading style. The page draws the
- * chart, given the pair and the lines.
+ * analysis timeframe, defaulted from the trading style. The capital is
+ * the account's, read only: the profile's default capital sizes every plan
+ * (D-121); without one the server refuses with MSG01 on it, shown here with
+ * the way to Profile & Settings. The page draws the chart, given the pair
+ * and the lines.
  */
 export function PlanEditor({
   target,
+  accountCapital,
   chart,
   futuresContext,
 }: {
   target: PlanEditorTarget;
+  /**
+   * The profile's default capital; null when none is set, undefined when
+   * the profile could not be read (the calculation then shows it).
+   */
+  accountCapital: Decimal | null | undefined;
   chart?: (pair: MarketPair, lines: readonly ChartPriceLine[]) => ReactNode;
   /** The prices and funding of a Futures pair, drawn by the page. */
   futuresContext?: (pair: MarketPair) => ReactNode;
@@ -565,16 +574,12 @@ export function PlanEditor({
         </Section>
 
         <Section title={p.sectionSizing}>
-          <Input
-            label={p.capital}
-            inputMode="decimal"
-            autoComplete="off"
-            value={draft.capital}
-            onChange={(event) =>
-              change({ capital: event.target.value }, 'capital')
+          <AccountCapital
+            capital={result?.capital ?? accountCapital}
+            missing={
+              Boolean(serverFields.capital) ||
+              (accountCapital === null && !result)
             }
-            error={errorOf('capital', p.capital)}
-            hint={p.capitalHint}
           />
           <Input
             label={`${p.riskPercent} (%)`}
@@ -750,5 +755,40 @@ export function PlanEditor({
         </div>
       </div>
     </form>
+  );
+}
+
+/**
+ * The capital every plan is sized on (D-121): the profile's default
+ * capital, changed on SCR-07 only. Missing, it says so in place of the
+ * figure, as the server refuses every calculation and save without it.
+ */
+function AccountCapital({
+  capital,
+  missing,
+}: {
+  capital: Decimal | null | undefined;
+  missing: boolean;
+}) {
+  const p = useCopy().plan;
+  return (
+    <div>
+      <span className={fieldLabelClass}>{p.capital}</span>
+      {missing || !capital ? (
+        <p
+          role={missing ? 'alert' : undefined}
+          className={missing ? fieldErrorClass : 'text-sm text-muted'}
+        >
+          {missing ? p.capitalMissing : p.capitalUnknown}
+        </p>
+      ) : (
+        <p className="text-sm text-fg">
+          <NumericText value={planAmount(capital)} />
+        </p>
+      )}
+      <Link to="/profile" className="mt-1 inline-block text-[11px]">
+        {missing ? p.capitalSet : p.capitalChange}
+      </Link>
+    </div>
   );
 }

@@ -555,7 +555,11 @@ export const en = {
     marketEntryNote:
       'A market entry uses the current last price; it is shown in the risk panel.',
     marketEntryPrice: 'Current last price',
-    capitalHint: 'Leave empty to use your default capital.',
+    capitalMissing:
+      'Set a default capital in Profile & Settings first: every plan is sized on it.',
+    capitalUnknown: 'Your default capital from Profile & Settings.',
+    capitalChange: 'Change in Profile & Settings',
+    capitalSet: 'Set it in Profile & Settings',
     riskHint: 'From 0.1 to 10 %. Leave empty to use your default.',
     leverageHint:
       'A whole number from 1 to the maximum for the position size. Empty uses 1x.',
