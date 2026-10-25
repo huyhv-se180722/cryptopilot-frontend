@@ -1310,6 +1310,11 @@ export const en = {
     updated: 'Updated {date}',
     notFound: 'This lesson does not exist or is no longer published.',
     disclaimer: 'Educational content only, not investment advice.',
+    markLearned: 'Mark as learned',
+    learned: 'Learned',
+    unmarkHint: 'Press again to unmark.',
+    signInToTrack: 'Sign in to track your progress',
+    pathProgress: 'You have learned {done} of {total} path lessons',
   },
   moderation: {
     title: 'Report moderation',

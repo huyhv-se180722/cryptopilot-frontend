@@ -3,7 +3,9 @@ import type {
   AcademyArticleLink,
   AcademyArticlePage,
   AcademyArticleSummary,
+  AcademyCompletedLesson,
   AcademyLevel,
+  AcademyProgress,
   AcademyTerm,
   AcademyTopic,
 } from '../../types/domain';
@@ -100,4 +102,26 @@ export function decodeAcademyTerms(body: unknown): readonly AcademyTerm[] {
       articleTitle: nullableText(value.articleTitle, 'articleTitle'),
     };
   });
+}
+
+export function decodeAcademyCompletedLesson(
+  body: unknown,
+): AcademyCompletedLesson {
+  const value = record(body, 'lesson');
+  return {
+    slug: text(value.slug, 'slug'),
+    completedAt: instant(value.completedAt, 'completedAt'),
+  };
+}
+
+export function decodeAcademyProgress(body: unknown): AcademyProgress {
+  const value = record(body, 'progress');
+  return {
+    completed: list(value.completed, 'completed').map(
+      decodeAcademyCompletedLesson,
+    ),
+    publishedTotal: integer(value.publishedTotal, 'publishedTotal'),
+    pathCompleted: integer(value.pathCompleted, 'pathCompleted'),
+    pathTotal: integer(value.pathTotal, 'pathTotal'),
+  };
 }

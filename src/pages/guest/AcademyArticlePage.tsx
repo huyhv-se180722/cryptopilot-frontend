@@ -18,6 +18,7 @@ import {
   LevelBadge,
   ReadingTime,
 } from '../../features/academy/components/ArticleCard';
+import { LessonMark } from '../../features/academy/components/LessonMark';
 import { MarkdownView } from '../../features/academy/components/MarkdownView';
 import { useAcademyArticle } from '../../features/academy/hooks/use-academy';
 import { outline, parseMarkdown } from '../../features/academy/markdown';
@@ -32,8 +33,9 @@ import {
 
 /**
  * A lesson of the Academy (T-114): its summary, a table of contents, the
- * body, the screen of the app it leads to, the lesson before and after it
- * and related lessons of its topic. Guests read it.
+ * body, "mark as learned" for a Trader, the screen of the app it leads to,
+ * the lesson before and after it and related lessons of its topic. Guests
+ * read it.
  */
 export function AcademyArticlePage() {
   return (
@@ -139,15 +141,18 @@ function Lesson({ article }: { article: AcademyArticle }) {
 
           <MarkdownView blocks={blocks} />
 
-          {article.appLink && (
-            <Link
-              to={article.appLink}
-              className={buttonClassName('primary', 'md', 'mt-6')}
-            >
-              {a.tryInApp}
-              <ArrowRight size={14} aria-hidden="true" />
-            </Link>
-          )}
+          <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-5">
+            <LessonMark slug={article.slug} />
+            {article.appLink && (
+              <Link
+                to={article.appLink}
+                className={buttonClassName('secondary')}
+              >
+                {a.tryInApp}
+                <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+            )}
+          </div>
 
           <Neighbours previous={article.previous} next={article.next} />
         </div>

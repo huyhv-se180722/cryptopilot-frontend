@@ -4,7 +4,9 @@ import type { HttpClient } from './http-client';
 import {
   decodeAcademyArticle,
   decodeAcademyArticlePage,
+  decodeAcademyCompletedLesson,
   decodeAcademyPath,
+  decodeAcademyProgress,
   decodeAcademyTerms,
   decodeAcademyTopics,
 } from './academy-dto';
@@ -17,9 +19,13 @@ export function createPendingAcademyService(): AcademyService {
     article: async () => integrationPending(),
     path: async () => integrationPending(),
     terms: async () => integrationPending(),
+    progress: async () => integrationPending(),
+    mark: async () => integrationPending(),
+    unmark: async () => integrationPending(),
   };
 }
 
+const noContent = () => undefined;
 const withSignal = (signal?: AbortSignal) => (signal ? { signal } : {});
 
 function query(values: Record<string, string | number | undefined>) {
@@ -34,7 +40,8 @@ function query(values: Record<string, string | number | undefined>) {
  * `GET /academy/**` (T-114), checked against backend
  * `feature/T-114-academy` @ 54dd618: `TopicResponse` lists,
  * `ArticleSummaryResponse` pages, `ArticleDetailResponse` and
- * `TermResponse` lists. Public: a Guest reads every one.
+ * `TermResponse` lists. Public: a Guest reads every one; the progress under
+ * `/me/academy/progress` (@ 03e3dd4) is a Trader's.
  */
 export function createHttpAcademyService(http: HttpClient): AcademyService {
   return {
@@ -75,6 +82,24 @@ export function createHttpAcademyService(http: HttpClient): AcademyService {
         path: 'academy/terms' + query({ q, letter }),
         decode: decodeAcademyTerms,
         ...withSignal(signal),
+      }),
+    progress: (signal) =>
+      http.request({
+        path: 'me/academy/progress',
+        decode: decodeAcademyProgress,
+        ...withSignal(signal),
+      }),
+    mark: (slug) =>
+      http.request({
+        path: 'me/academy/progress/' + encodeURIComponent(slug),
+        method: 'POST',
+        decode: decodeAcademyCompletedLesson,
+      }),
+    unmark: (slug) =>
+      http.request({
+        path: 'me/academy/progress/' + encodeURIComponent(slug),
+        method: 'DELETE',
+        decode: noContent,
       }),
   };
 }

@@ -86,4 +86,16 @@ describe('Academy adapter', () => {
     expect(glossary.calls[0]?.pathname).toBe('/api/v1/academy/terms');
     expect(glossary.calls[0]?.searchParams.get('letter')).toBe('Đ');
   });
+
+  it("marks a Trader's lesson under /me", async () => {
+    const { academy, calls } = setup({
+      slug: 'doc-bieu-do-nen',
+      completedAt: '2026-10-25T10:00:00Z',
+    });
+    const lesson = await academy.mark('doc-bieu-do-nen');
+    expect(lesson.completedAt).toBe('2026-10-25T10:00:00Z');
+    expect(calls[0]?.pathname).toBe(
+      '/api/v1/me/academy/progress/doc-bieu-do-nen',
+    );
+  });
 });

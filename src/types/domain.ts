@@ -1119,3 +1119,14 @@ export interface AcademyTerm {
   articleSlug: string | null;
   articleTitle: string | null;
 }
+export interface AcademyCompletedLesson {
+  slug: string;
+  completedAt: string;
+}
+/** How far a Trader is in the Academy (T-114). */
+export interface AcademyProgress {
+  completed: readonly AcademyCompletedLesson[];
+  publishedTotal: number;
+  pathCompleted: number;
+  pathTotal: number;
+}

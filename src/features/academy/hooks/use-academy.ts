@@ -1,6 +1,16 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useCallback } from 'react';
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import { useAuth } from '../../../hooks/use-auth';
+import { useMutation } from '../../../hooks/use-mutation';
 import { useServices } from '../../../hooks/use-services';
-import type { AcademyArticleQuery } from '../../../types/domain';
+import type {
+  AcademyArticleQuery,
+  AcademyProgress,
+} from '../../../types/domain';
 
 export const ACADEMY_KEY = ['academy'] as const;
 
@@ -58,4 +68,57 @@ export function useAcademyTerms(query: { q?: string; letter?: string }) {
     placeholderData: keepPreviousData,
     staleTime: STALE_MS,
   });
+}
+
+const PROGRESS_KEY = [...ACADEMY_KEY, 'progress'] as const;
+
+/** Only a Trader keeps a progress; a Guest and an Admin read only. */
+export function useIsAcademyTrader(): boolean {
+  return useAuth().session?.user.role === 'Trader';
+}
+
+/** The signed-in Trader's marked lessons; nothing is asked for anyone else. */
+export function useAcademyProgress() {
+  const { academy } = useServices();
+  const trader = useIsAcademyTrader();
+  return useQuery({
+    queryKey: PROGRESS_KEY,
+    enabled: trader,
+    queryFn: ({ signal }) => academy.progress(signal),
+  });
+}
+
+/**
+ * Marks a lesson as learned, or takes the mark off. The progress is
+ * updated from the answer, then read again for the path totals.
+ */
+export function useLessonMark() {
+  const { academy } = useServices();
+  const client = useQueryClient();
+  return useMutation(
+    useCallback(
+      async (slug: string, learned: boolean) => {
+        if (learned) {
+          const lesson = await academy.mark(slug);
+          client.setQueryData<AcademyProgress>(PROGRESS_KEY, (current) =>
+            current && !current.completed.some((c) => c.slug === slug)
+              ? { ...current, completed: [...current.completed, lesson] }
+              : current,
+          );
+        } else {
+          await academy.unmark(slug);
+          client.setQueryData<AcademyProgress>(PROGRESS_KEY, (current) =>
+            current
+              ? {
+                  ...current,
+                  completed: current.completed.filter((c) => c.slug !== slug),
+                }
+              : current,
+          );
+        }
+        await client.invalidateQueries({ queryKey: PROGRESS_KEY });
+      },
+      [academy, client],
+    ),
+  );
 }

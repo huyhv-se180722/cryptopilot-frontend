@@ -3,6 +3,8 @@ import type {
   AcademyArticlePage,
   AcademyArticleQuery,
   AcademyArticleSummary,
+  AcademyCompletedLesson,
+  AcademyProgress,
   AcademyTerm,
   AcademyTopic,
   AdminLog,
@@ -388,6 +390,11 @@ export interface AcademyService {
     query: { q?: string; letter?: string },
     signal?: AbortSignal,
   ): Promise<readonly AcademyTerm[]>;
+  /** A Trader's marked lessons and totals; the rest of the service is public. */
+  progress(signal?: AbortSignal): Promise<AcademyProgress>;
+  /** Idempotent: marking again keeps the first instant. */
+  mark(slug: string): Promise<AcademyCompletedLesson>;
+  unmark(slug: string): Promise<void>;
 }
 
 /**

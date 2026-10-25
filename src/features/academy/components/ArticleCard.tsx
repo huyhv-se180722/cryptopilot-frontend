@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Clock } from 'lucide-react';
+import { CheckCircle2, Clock } from 'lucide-react';
 import { Badge, type Tone } from '../../../components/ui/Badge';
 import { useCopy } from '../../../hooks/use-copy';
 import { formatCopy } from '../../../i18n/copy';
@@ -30,7 +30,15 @@ export function ReadingTime({ minutes }: { minutes: number }) {
 }
 
 /** A lesson as a card: topic, title, summary, level and reading time. */
-export function ArticleCard({ article }: { article: AcademyArticleSummary }) {
+export function ArticleCard({
+  article,
+  learned = false,
+}: {
+  article: AcademyArticleSummary;
+  /** The signed-in Trader marked the lesson as learned. */
+  learned?: boolean;
+}) {
+  const copy = useCopy();
   return (
     <Link
       to={'/academy/' + article.slug}
@@ -48,6 +56,12 @@ export function ArticleCard({ article }: { article: AcademyArticleSummary }) {
       <div className="mt-3 flex items-center gap-2">
         <LevelBadge level={article.level} />
         <ReadingTime minutes={article.readingMinutes} />
+        {learned && (
+          <span className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-positive">
+            <CheckCircle2 size={13} aria-hidden="true" />
+            {copy.academy.learned}
+          </span>
+        )}
       </div>
     </Link>
   );

@@ -9,7 +9,9 @@ import type { AcademyService } from '../../services/api/contracts';
 import { createPendingAcademyService } from '../../services/api/academy';
 import { ServiceError } from '../../services/api/errors';
 import type { AcademyArticle, AcademyArticleSummary } from '../../types/domain';
-import { fakeAuth, page, renderRoutes } from '../../test/render';
+import { fakeAuth, page, renderRoutes, testTrader } from '../../test/render';
+
+const trader = () => fakeAuth({ restoreSession: async () => testTrader });
 
 const LESSON: AcademyArticleSummary = {
   slug: 'tien-ma-hoa-la-gi',
@@ -201,5 +203,92 @@ describe('Academy screens', () => {
     ).toBe('/academy/vi-khoa-rieng-seed-phrase');
     await user.click(screen.getByRole('button', { name: 'S' }));
     expect(terms).toHaveBeenLastCalledWith({ letter: 'S' }, expect.anything());
+  });
+
+  it('lets a Trader mark a lesson as learned and take the mark off', async () => {
+    const user = userEvent.setup();
+    let completed: { slug: string; completedAt: string }[] = [];
+    const mark = vi.fn<AcademyService['mark']>(async (slug) => {
+      const lesson = { slug, completedAt: '2026-10-25T10:00:00Z' };
+      completed = [lesson];
+      return lesson;
+    });
+    const unmark = vi.fn<AcademyService['unmark']>(async () => {
+      completed = [];
+    });
+    await renderRoutes(
+      [page('/academy/:slug', <AcademyArticlePage />)],
+      '/academy/tien-ma-hoa-la-gi',
+      trader(),
+      {
+        academy: academy({
+          article: async () => ARTICLE,
+          progress: async () => ({
+            completed,
+            publishedTotal: 21,
+            pathCompleted: completed.length,
+            pathTotal: 11,
+          }),
+          mark,
+          unmark,
+        }),
+      },
+    );
+    await user.click(
+      await screen.findByRole('button', { name: 'Đánh dấu đã học' }),
+    );
+    expect(mark).toHaveBeenCalledWith('tien-ma-hoa-la-gi');
+    const learned = await screen.findByRole('button', { name: 'Đã học' });
+    expect(learned.getAttribute('aria-pressed')).toBe('true');
+    await user.click(learned);
+    expect(unmark).toHaveBeenCalledWith('tien-ma-hoa-la-gi');
+    expect(
+      await screen.findByRole('button', { name: 'Đánh dấu đã học' }),
+    ).toBeTruthy();
+  });
+
+  it('invites a Guest to sign in instead of keeping a progress', async () => {
+    const progress = vi.fn<AcademyService['progress']>();
+    await renderRoutes(
+      [page('/academy/:slug', <AcademyArticlePage />)],
+      '/academy/tien-ma-hoa-la-gi',
+      fakeAuth(),
+      { academy: academy({ article: async () => ARTICLE, progress }) },
+    );
+    expect(
+      (
+        await screen.findByRole('link', {
+          name: 'Đăng nhập để lưu tiến độ học',
+        })
+      ).getAttribute('href'),
+    ).toBe('/login');
+    expect(progress).not.toHaveBeenCalled();
+  });
+
+  it("shows a Trader's progress on the beginner path", async () => {
+    await renderRoutes(
+      [page('/academy', <AcademyPage />)],
+      '/academy',
+      trader(),
+      {
+        academy: academy({
+          progress: async () => ({
+            completed: [
+              { slug: LESSON.slug, completedAt: '2026-10-25T10:00:00Z' },
+            ],
+            publishedTotal: 21,
+            pathCompleted: 1,
+            pathTotal: 11,
+          }),
+        }),
+      },
+    );
+    expect(
+      await screen.findByText('Bạn đã học 1/11 bài của lộ trình'),
+    ).toBeTruthy();
+    expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe(
+      '1',
+    );
+    expect(screen.getAllByText('Đã học').length).toBeGreaterThan(0);
   });
 });

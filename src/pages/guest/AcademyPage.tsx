@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { BookOpenText, GraduationCap, Search } from 'lucide-react';
+import {
+  BookOpenText,
+  CheckCircle2,
+  GraduationCap,
+  Search,
+} from 'lucide-react';
 import { EmptyState, ErrorState } from '../../components/feedback/States';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Button } from '../../components/ui/Button';
@@ -15,6 +20,7 @@ import {
   ACADEMY_PAGE_SIZE,
   useAcademyArticles,
   useAcademyPath,
+  useAcademyProgress,
   useAcademyTopics,
 } from '../../features/academy/hooks/use-academy';
 import { useCopy } from '../../hooks/use-copy';
@@ -83,6 +89,10 @@ function AcademyHome() {
     return () => clearTimeout(timer);
   }, [text, q, update]);
 
+  const progress = useAcademyProgress();
+  const learned = new Set(
+    progress.data?.completed.map((lesson) => lesson.slug) ?? [],
+  );
   const topics = useAcademyTopics();
   const path = useAcademyPath();
   const articles = useAcademyArticles({
@@ -109,6 +119,37 @@ function AcademyHome() {
           {a.pathTitle}
         </h2>
         <p className="mt-0.5 text-xs text-muted-dim">{a.pathSubtitle}</p>
+        {progress.data && (
+          <div className="mt-2 max-w-md">
+            <p className="text-xs font-medium text-fg-2">
+              {formatCopy(a.pathProgress, {
+                done: progress.data.pathCompleted,
+                total: progress.data.pathTotal,
+              })}
+            </p>
+            <div
+              role="progressbar"
+              aria-label={a.pathTitle}
+              aria-valuemin={0}
+              aria-valuemax={progress.data.pathTotal}
+              aria-valuenow={progress.data.pathCompleted}
+              className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-alt"
+            >
+              <div
+                className="h-full rounded-full bg-positive"
+                style={{
+                  width:
+                    String(
+                      progress.data.pathTotal === 0
+                        ? 0
+                        : (100 * progress.data.pathCompleted) /
+                            progress.data.pathTotal,
+                    ) + '%',
+                }}
+              />
+            </div>
+          </div>
+        )}
         {path.isPending ? (
           <Skeleton className="mt-3 h-24 w-full rounded-2xl" />
         ) : path.isError ? (
@@ -124,8 +165,15 @@ function AcademyHome() {
                   to={'/academy/' + step.slug}
                   className="flex h-full flex-col rounded-2xl border border-line bg-surface p-3 no-underline hover:border-primary-line hover:bg-primary-soft"
                 >
-                  <span className="text-[11px] font-semibold text-primary">
+                  <span className="flex items-center justify-between text-[11px] font-semibold text-primary">
                     {formatCopy(a.pathStep, { n: step.pathOrder ?? 0 })}
+                    {learned.has(step.slug) && (
+                      <CheckCircle2
+                        size={14}
+                        aria-label={a.learned}
+                        className="text-positive"
+                      />
+                    )}
                   </span>
                   <span className="mt-1 text-sm font-medium text-fg">
                     {step.title}
@@ -234,7 +282,10 @@ function AcademyHome() {
             <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {articles.data.items.map((article) => (
                 <li key={article.slug}>
-                  <ArticleCard article={article} />
+                  <ArticleCard
+                    article={article}
+                    learned={learned.has(article.slug)}
+                  />
                 </li>
               ))}
             </ul>

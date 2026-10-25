@@ -57,5 +57,10 @@ export const vi: PartialCopy = {
     notFound: 'Bài học không tồn tại hoặc chưa được xuất bản.',
     disclaimer:
       'Nội dung chỉ nhằm mục đích giáo dục, không phải lời khuyên đầu tư.',
+    markLearned: 'Đánh dấu đã học',
+    learned: 'Đã học',
+    unmarkHint: 'Bấm lần nữa để bỏ đánh dấu.',
+    signInToTrack: 'Đăng nhập để lưu tiến độ học',
+    pathProgress: 'Bạn đã học {done}/{total} bài của lộ trình',
   },
 };
