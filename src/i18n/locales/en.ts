@@ -374,8 +374,6 @@ export const en = {
     createAlert: 'Create alert',
     createPlan: 'Create trading plan',
     askAi: 'Ask AI',
-    planPending:
-      'Futures plans cannot be created until leverage brackets are configured.',
     addedWatchlist: '{pair} added to your watchlist.',
     newsTitle: 'Latest {coin} news',
     futuresTitle: 'Mark price and funding',

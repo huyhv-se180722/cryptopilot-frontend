@@ -136,6 +136,7 @@ function FuturesAnalysis({ pair }: { pair: MarketPair }) {
           <AnalysisActions
             market="futures"
             symbol={pair.symbol}
+            planHref={`/plans/new?symbol=${encodeURIComponent(pair.symbol)}&market=futures`}
             watched={watched === undefined ? undefined : watched !== null}
             adding={add.pending}
             onAddWatchlist={() =>
