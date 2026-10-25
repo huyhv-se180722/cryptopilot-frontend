@@ -158,9 +158,9 @@ function NewsArticle() {
             paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)
           ) : (
             <>
-              {data.aiSummarized && (
-                <p className="text-xs text-muted-dim italic">{n.bodyPending}</p>
-              )}
+              <p className="text-xs text-muted-dim italic">
+                {data.aiSummarized ? n.bodyPending : n.excerptOnly}
+              </p>
               {data.summary && <p>{data.summary}</p>}
             </>
           )}

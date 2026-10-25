@@ -1416,6 +1416,8 @@ export const en = {
       'This article was rewritten and shortened by AI from the original. Figures and quotes come from the source; check it for details. It is not advice to buy or sell.',
     bodyPending:
       'The full article is still being written; here is its summary for now.',
+    excerptOnly:
+      'AI has not edited this article yet; here is the excerpt from the source. Read the original for the whole story.',
   },
   notifications: {
     title: 'Notifications',

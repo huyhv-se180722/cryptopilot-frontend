@@ -55,5 +55,7 @@ export const vi: PartialCopy = {
       'Bài viết được AI biên tập lại và rút gọn từ bài gốc. Số liệu và trích dẫn lấy từ nguồn; vui lòng xem bài gốc để biết chi tiết. Đây không phải khuyến nghị mua hay bán.',
     bodyPending:
       'Bài viết đầy đủ đang được biên tập; tạm thời đây là bản tóm tắt.',
+    excerptOnly:
+      'Bài này chưa được AI biên tập; đây là đoạn trích từ nguồn. Xem bài gốc để đọc đầy đủ.',
   },
 };
