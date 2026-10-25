@@ -1682,3 +1682,54 @@ export interface AdminUserDetail {
 
 /** The status changes of UC-42; each needs a reason (MSG39). */
 export type AccountAction = 'lock' | 'unlock' | 'ban';
+
+/** A period of the administration console: business days, UTC+7, both included. */
+export interface AdminPeriod {
+  /** e.g. 2026-10-01; absent = the server's last 30 days. */
+  from?: string;
+  to?: string;
+}
+
+/**
+ * SCR-33 indicators (UC-40): counts of now and of the period. Each module
+ * answers its own, so one it does not run reads as null.
+ */
+export interface AdminDashboard {
+  from: string;
+  to: string;
+  totalUsers: number | null;
+  /** Signed in during the last 7 days. */
+  activeUsers: number | null;
+  activeSubscriptions: number | null;
+  openReports: number | null;
+  newUsers: number | null;
+  paidOrders: number | null;
+  /** VND, of the period. */
+  revenue: Decimal | null;
+  revenueByPackage: readonly { code: string; revenue: Decimal }[];
+  newPosts: number | null;
+  newComments: number | null;
+  aiQuestions: number | null;
+  /** The close time of the newest stored candle per market. */
+  latestCandle: { spot: ISODateTime | null; futures: ISODateTime | null };
+}
+
+export type ReportGrouping = 'DAY' | 'WEEK' | 'MONTH';
+
+/** SCR-33 management report (UC-41): one row per day, week or month. */
+export interface AdminReport {
+  from: string;
+  to: string;
+  groupBy: ReportGrouping;
+  /** In the order of the CSV export; `revenue:<package>` per package sold. */
+  columns: readonly string[];
+  /** Oldest first; every row has every column. */
+  rows: readonly {
+    /** The first day of the group, its label. */
+    period: string;
+    /** The days the row really counts (a first or last group may be cut). */
+    coveredFrom: string;
+    coveredTo: string;
+    values: Readonly<Record<string, Decimal>>;
+  }[];
+}
