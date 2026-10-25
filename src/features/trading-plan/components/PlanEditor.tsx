@@ -32,7 +32,12 @@ import { pairLabel } from '../../../utils/pair-label';
 import type { ChartPriceLine } from '../../chart/components/AnalysisChart';
 import { usePlanCalculation, useSavePlan } from '../hooks/use-plan-editor';
 import { Panel, PlanSnapshotRows, PlanWarningsPanel } from './PlanDetailPanels';
-import { planFieldErrorText } from './plan-errors';
+import { EntryDeviationDialog } from './EntryDeviationDialog';
+import {
+  entryDeviationOf,
+  entryDeviationRefusedText,
+  planFieldErrorText,
+} from './plan-errors';
 import { planAmount, planPrice, shownExpectedFill } from './plan-format';
 import { priceLines } from './plan-lines';
 import {
@@ -177,6 +182,8 @@ export function PlanEditor({
       ? target.pair
       : choices?.find((each) => each.pairId === chosenPairId);
   const [touched, setTouched] = useState<ReadonlySet<PlanField>>(new Set());
+  // MSG51 of the last Save and Activate stays open until answered (T-113).
+  const [deviationOpen, setDeviationOpen] = useState(false);
   const [now] = useState(() => Date.now());
   const checked = useMemo(() => toInputs(draft, now), [draft, now]);
   const calculation = usePlanCalculation(
@@ -221,6 +228,9 @@ export function PlanEditor({
   const saveProblem = problemOf(
     save.state.status === 'error' ? save.state.error : null,
   );
+  const deviation = entryDeviationOf(
+    save.state.status === 'error' ? save.state.error : null,
+  );
   const serverFields = {
     ...calculation.fieldErrors,
     ...(saveProblem?.fieldErrors ?? {}),
@@ -238,13 +248,17 @@ export function PlanEditor({
       : undefined;
   };
 
-  async function submit(activate: boolean) {
+  async function submit(activate: boolean, confirmDeviation = false) {
+    setDeviationOpen(false);
     if (!checked.ok || !pairId) {
       setTouched(new Set(FIELDS));
       return;
     }
-    const result = await save.run(checked.inputs, activate);
-    if (result.status !== 'success') return;
+    const result = await save.run(checked.inputs, activate, confirmDeviation);
+    if (result.status !== 'success') {
+      setDeviationOpen(true);
+      return;
+    }
     show({
       tone: 'success',
       message: messageText(
@@ -702,13 +716,18 @@ export function PlanEditor({
         />
         {saveProblem &&
           !featureRefused &&
+          deviation?.kind !== 'confirm' &&
           Object.keys(saveProblem.fieldErrors).length === 0 && (
             <Banner
               tone="danger"
-              title={errorText(
-                copy,
-                save.state.status === 'error' ? save.state.error : null,
-              )}
+              title={
+                deviation?.kind === 'refused'
+                  ? entryDeviationRefusedText(copy, deviation)
+                  : errorText(
+                      copy,
+                      save.state.status === 'error' ? save.state.error : null,
+                    )
+              }
             >
               {saveProblem.code === 'PLAN_LIMIT_REACHED' && (
                 <Link to="/subscription" className="font-medium">
@@ -718,6 +737,14 @@ export function PlanEditor({
               {saveProblem.code === 'TRADING_BLOCKING_WARNING' && p.blockedHint}
             </Banner>
           )}
+        <EntryDeviationDialog
+          deviation={
+            deviationOpen && deviation?.kind === 'confirm' ? deviation : null
+          }
+          pending={save.pending}
+          onConfirm={() => void submit(true, true)}
+          onClose={() => setDeviationOpen(false)}
+        />
         <div className="flex flex-col gap-2">
           <Button type="submit" disabled={save.pending || !pairId}>
             <Save size={14} aria-hidden="true" />

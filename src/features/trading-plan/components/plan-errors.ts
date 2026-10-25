@@ -2,12 +2,34 @@ import { formatCopy } from '../../../i18n/copy';
 import type { Copy } from '../../../i18n/locales/en';
 import { errorText, fieldErrorText, messageText } from '../../../i18n/messages';
 import { problemOf } from '../../../services/api/errors';
-import type { PlanDirection, TradingPlan } from '../../../types/domain';
+import { decodeEntryDeviation } from '../../../services/api/trading-plan-dto';
+import type {
+  EntryDeviation,
+  PlanDirection,
+  TradingPlan,
+} from '../../../types/domain';
+import { planRatio } from './plan-format';
 import {
   serverFieldError,
   type PlanField,
   type PlanFieldError,
 } from './plan-form';
+
+/** The MSG51 / MSG52 refusal of a MARKET activation, or null (TP-C). */
+export const entryDeviationOf = (error: unknown): EntryDeviation | null =>
+  decodeEntryDeviation(problemOf(error));
+
+/** MSG52 in words; a take profit already reached says so plainly. */
+export function entryDeviationRefusedText(
+  copy: Copy,
+  deviation: Extract<EntryDeviation, { kind: 'refused' }>,
+): string {
+  if (deviation.takeProfitReached) return copy.plan.deviationPastTarget;
+  return messageText(copy, 'MSG52', [], {
+    deviation: planRatio(deviation.deviationR),
+    max: planRatio(deviation.maxDeviationR),
+  });
+}
 
 /** A plan field error in words; MSG16 fills its rule itself (M-11). */
 export function planFieldErrorText(
@@ -125,6 +147,9 @@ export function activationErrorText(
   const problem = problemOf(error);
   if (problem?.code === 'MARKET_PRICE_UNAVAILABLE')
     return copy.plan.priceUnavailable;
+  const deviation = entryDeviationOf(error);
+  if (deviation?.kind === 'refused')
+    return entryDeviationRefusedText(copy, deviation);
   const field = Object.entries(problem?.fieldErrors ?? {}).find(([name]) =>
     isPlanField(name),
   );

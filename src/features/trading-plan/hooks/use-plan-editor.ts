@@ -67,19 +67,29 @@ const STALE = new Set([
 /**
  * Save as Draft or Save and Activate: a new plan on `pairId` (UC-16) when
  * there is no `id`, else the DRAFT `id` (UC-17). The answer is put in the
- * cache and the lists are read again; an activation refused with MSG18 or
- * MSG27 saves nothing, and a stale-plan refusal reads the plan again.
+ * cache and the lists are read again; an activation refused with MSG18,
+ * MSG27, MSG51 or MSG52 saves nothing, and a stale-plan refusal reads the
+ * plan again. `confirmDeviation` repeats it after MSG51 (TP-C).
  */
 export function useSavePlan(id: string | null, pairId: string) {
   const { tradingPlan } = useServices();
   const client = useQueryClient();
   return useMutation(
     useCallback(
-      async (inputs: PlanInputs, activate: boolean): Promise<TradingPlan> => {
+      async (
+        inputs: PlanInputs,
+        activate: boolean,
+        confirmDeviation = false,
+      ): Promise<TradingPlan> => {
         try {
           const plan = id
-            ? await tradingPlan.update(id, inputs, activate)
-            : await tradingPlan.create(pairId, inputs, activate);
+            ? await tradingPlan.update(id, inputs, activate, confirmDeviation)
+            : await tradingPlan.create(
+                pairId,
+                inputs,
+                activate,
+                confirmDeviation,
+              );
           client.setQueryData(['plans', 'detail', plan.id], plan);
           void client.invalidateQueries({ queryKey: ['plans', 'list'] });
           return plan;

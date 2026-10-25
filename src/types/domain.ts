@@ -385,6 +385,30 @@ export interface PlanPosition {
   levelsEffectiveFrom: ISODateTime | null;
 }
 
+/**
+ * A MARKET activation refused for the entry's move since the last save
+ * (BR-69, TP-C), in R (positive = worse): MSG51 asks to confirm with the
+ * re-sized plan; MSG52 refuses (beyond the limit or past the take profit).
+ */
+export type EntryDeviation =
+  | {
+      kind: 'confirm';
+      deviationR: Decimal;
+      maxDeviationR: Decimal;
+      expectedFillPrice: Decimal;
+      positionQuantity: Decimal;
+      riskRewardRatio: Decimal;
+      /** The R:R after fees (TP-0). */
+      netRiskReward: Decimal | null;
+    }
+  | {
+      kind: 'refused';
+      deviationR: Decimal;
+      maxDeviationR: Decimal;
+      expectedFillPrice: Decimal | null;
+      takeProfitReached: boolean;
+    };
+
 /** New levels of an OPEN position (D-124); null keeps the current one. */
 export interface PositionLevels {
   stopLoss: Decimal | null;

@@ -66,6 +66,10 @@ export const en = {
     MSG44: 'Your session has expired. Please log in again.',
     MSG45: '{pair} is already in your watchlist.',
     MSG46: 'Please wait {time} before requesting another verification email.',
+    MSG51:
+      'The price has moved {deviation}R from your plan. New quantity {quantity}, risk/reward {rr}. Activate anyway?',
+    MSG52:
+      'The price has moved {deviation}R from your plan, beyond the allowed {max}R or past the take profit. The plan was not activated.',
     MSG48:
       'The Aggressive profile allows higher risk per trade and higher leverage and can lead to large losses. Continue?',
     MSG56:
@@ -563,6 +567,16 @@ export const en = {
     positionNet: 'Net P/L',
     positionLevelHistory: 'Level changes',
     provisional: 'provisional',
+    deviationTitle: 'The entry has moved',
+    deviationKeep: 'Keep as draft',
+    deviationActivate: 'Activate anyway',
+    deviationLimit: 'Your deviation limit',
+    deviationRiskKept:
+      'The risk stays the one you planned: the quantity is re-sized to the new price.',
+    deviationPastTarget:
+      'The price has reached your take profit since the plan was saved. The plan was not activated.',
+    deviationEditHint:
+      'Edit the plan to save it at the current price, or cancel it.',
     levelsEdit: 'Edit SL/TP',
     levelsTitle: 'Edit stop loss and take profit',
     levelsHint:

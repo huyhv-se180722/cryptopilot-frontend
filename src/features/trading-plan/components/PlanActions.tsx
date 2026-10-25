@@ -10,7 +10,8 @@ import { useToast } from '../../../hooks/use-toast';
 import { messageText } from '../../../i18n/messages';
 import type { TradingPlan } from '../../../types/domain';
 import { usePlanActions } from '../hooks/use-plans';
-import { activationErrorText } from './plan-errors';
+import { EntryDeviationDialog } from './EntryDeviationDialog';
+import { activationErrorText, entryDeviationOf } from './plan-errors';
 
 /**
  * SCR-18 actions (SRS 3.5.3): Edit while DRAFT (SCR-17), Activate for a
@@ -18,7 +19,9 @@ import { activationErrorText } from './plan-errors';
  * MSG19 on success, MSG18 or MSG27 in a banner, a field it no longer
  * accepts in words, e.g. a STOP the price has reached), Cancel for DRAFT and
  * ACTIVE after the MSG20 confirmation (UC-19). Buttons are disabled while
- * a request runs, and nothing changes before the server answers.
+ * a request runs, and nothing changes before the server answers. A MARKET
+ * entry moved since the save asks to confirm (MSG51, T-113) or refuses
+ * (MSG52) with the way to edit the plan at the current price.
  */
 export function PlanActions({ plan }: { plan: TradingPlan }) {
   const copy = useCopy();
@@ -28,10 +31,14 @@ export function PlanActions({ plan }: { plan: TradingPlan }) {
     plan.id,
   );
   const [confirming, setConfirming] = useState(false);
+  const deviation = entryDeviationOf(error);
+  const [deviationOpen, setDeviationOpen] = useState(false);
 
-  async function onActivate() {
-    if (await activate())
+  async function onActivate(confirmDeviation = false) {
+    setDeviationOpen(false);
+    if (await activate(confirmDeviation))
       show({ tone: 'success', message: messageText(copy, 'MSG19') });
+    else setDeviationOpen(true);
   }
 
   async function onCancel() {
@@ -80,7 +87,7 @@ export function PlanActions({ plan }: { plan: TradingPlan }) {
           {messageText(copy, 'MSG18')}
         </p>
       )}
-      {error !== null && (
+      {error !== null && deviation?.kind !== 'confirm' && (
         <Alert
           tone="danger"
           title={activationErrorText(copy, error, plan)}
@@ -92,8 +99,24 @@ export function PlanActions({ plan }: { plan: TradingPlan }) {
             </Link>
           )}
           {errorCode === 'TRADING_BLOCKING_WARNING' && p.blockedHint}
+          {deviation?.kind === 'refused' && plan.editable && (
+            <span>
+              {p.deviationEditHint}{' '}
+              <Link to={`/plans/${plan.id}/edit`} className="font-medium">
+                {p.edit}
+              </Link>
+            </span>
+          )}
         </Alert>
       )}
+      <EntryDeviationDialog
+        deviation={
+          deviationOpen && deviation?.kind === 'confirm' ? deviation : null
+        }
+        pending={pending}
+        onConfirm={() => void onActivate(true)}
+        onClose={() => setDeviationOpen(false)}
+      />
       <Dialog
         open={confirming}
         onOpenChange={setConfirming}

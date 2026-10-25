@@ -129,7 +129,8 @@ export function usePlanActions(id: string) {
   );
   const activation = useMutation(
     useCallback(
-      () => tradingPlan.activate(id).then(settle),
+      (confirmDeviation: boolean) =>
+        tradingPlan.activate(id, confirmDeviation).then(settle),
       [tradingPlan, id, settle],
     ),
   );
@@ -153,10 +154,14 @@ export function usePlanActions(id: string) {
   );
   const { run: runActivation, reset: resetActivation } = activation;
   const { run: runCancellation, reset: resetCancellation } = cancellation;
-  const activate = useCallback(async () => {
-    resetCancellation();
-    return finish(await runActivation());
-  }, [finish, runActivation, resetCancellation]);
+  /** With `confirmDeviation` after the Trader confirmed MSG51 (TP-C). */
+  const activate = useCallback(
+    async (confirmDeviation = false) => {
+      resetCancellation();
+      return finish(await runActivation(confirmDeviation));
+    },
+    [finish, runActivation, resetCancellation],
+  );
   const cancel = useCallback(async () => {
     resetActivation();
     return finish(await runCancellation());
