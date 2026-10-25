@@ -536,6 +536,7 @@ export const en = {
     sectionExpiry: 'Expiry and note',
     pairField: 'Pair',
     marketField: 'Market',
+    futuresContext: 'Futures prices and funding',
     directionField: 'Direction',
     spotLongOnly: 'Spot plans are long only.',
     marketEntryNote:

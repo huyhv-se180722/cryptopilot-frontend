@@ -9,6 +9,7 @@ import { useProfileData } from '../../features/profile/hooks/use-profile';
 import { PlanEditor } from '../../features/trading-plan/components/PlanEditor';
 import { timeframeOfStyle } from '../../features/trading-plan/components/plan-form';
 import { PlanChart } from './plan-chart';
+import { PlanFuturesStrip } from './plan-futures-strip';
 
 /**
  * SCR-17 New Trading Plan (SRS 3.5.1, UC-16): the plan form on a pair of
@@ -74,6 +75,7 @@ export function PlanCreatePage() {
                 : null,
           }}
           chart={(pair, lines) => <PlanChart pair={pair} lines={lines} />}
+          futuresContext={(pair) => <PlanFuturesStrip pair={pair} />}
         />
       )}
     </div>

@@ -124,9 +124,12 @@ export type PlanEditorTarget =
 export function PlanEditor({
   target,
   chart,
+  futuresContext,
 }: {
   target: PlanEditorTarget;
   chart?: (pair: MarketPair, lines: readonly ChartPriceLine[]) => ReactNode;
+  /** The prices and funding of a Futures pair, drawn by the page. */
+  futuresContext?: (pair: MarketPair) => ReactNode;
 }) {
   const copy = useCopy();
   const p = copy.plan;
@@ -367,6 +370,9 @@ export function PlanEditor({
                 {futures ? copy.market.futures : copy.market.spot}
               </p>
             </div>
+          )}
+          {futures && charted && futuresContext && (
+            <div className="sm:col-span-2">{futuresContext(charted)}</div>
           )}
           {upsell && (
             <div className="sm:col-span-2">

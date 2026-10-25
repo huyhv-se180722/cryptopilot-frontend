@@ -888,6 +888,47 @@ describe('SCR-17 new plan (T-040, UC-16)', () => {
     );
   });
 
+  it('shows the last and mark price, funding and its countdown beside a Futures plan (D-111)', async () => {
+    const market = fakeMarket();
+    vi.mocked(market.getTicker).mockImplementation(async (kind) =>
+      kind === 'futures'
+        ? {
+            market: 'futures',
+            symbol: 'BTCUSDT',
+            sourceTime: new Date().toISOString(),
+            lastPrice: '62010.30',
+            bestBid: null,
+            bestAsk: null,
+            high24h: null,
+            low24h: null,
+            changePercent24h: null,
+            baseVolume24h: null,
+            quoteVolume24h: null,
+            markPrice: '62004.10',
+            indexPrice: '62000.00',
+            fundingRate: '-0.0001',
+            nextFundingTime: new Date(Date.now() + 3_600_000).toISOString(),
+          }
+        : null,
+    );
+    await open(
+      '/plans/new?symbol=BTCUSDT&market=futures',
+      fakePlans(),
+      'PRO',
+      market,
+    );
+    const strip = within(
+      await screen.findByLabelText('Futures prices and funding'),
+    );
+    const value = (label: string) =>
+      strip.getByText(label).nextSibling?.textContent;
+    // Prices at the Futures pair's tick, 0.10.
+    await waitFor(() => expect(value('Last price')).toBe('62,010.3'));
+    expect(value('Mark price')).toBe('62,004.1');
+    expect(value('Funding rate')).toBe('-0.0100%');
+    expect(value('Next funding in')).toMatch(/^(00:59:\d\d|01:00:00)$/);
+  });
+
   it('moves between markets on the same coin, back to a long on Spot', async () => {
     await open('/plans/new?symbol=ETHUSDT', fakePlans(), 'PRO');
     const pair = (await screen.findByLabelText('Pair')) as HTMLSelectElement;
