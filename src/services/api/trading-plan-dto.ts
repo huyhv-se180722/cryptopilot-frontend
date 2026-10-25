@@ -1,5 +1,6 @@
 import type { ApiProblem } from './problem';
 import type {
+  CloseEstimate,
   EntryDeviation,
   PlanCalculation,
   PlanDirection,
@@ -16,6 +17,7 @@ import type {
   PositionCloseReason,
   PositionLevelChange,
   PositionStatus,
+  PositionUpdate,
   TradingPlan,
   TradingPlanSummary,
   WarningSeverity,
@@ -418,4 +420,32 @@ export function decodeEntryDeviation(
     return null;
   }
   return null;
+}
+
+/** `GET /plans/{id}/close-estimate` (`CloseEstimateResponse`, T-046). */
+export function decodeCloseEstimate(body: unknown): CloseEstimate {
+  const value = record(body);
+  return {
+    currentPrice: decimal(value.currentPrice, 'currentPrice'),
+    estimatedExitPrice: decimal(value.estimatedExitPrice, 'estimatedExitPrice'),
+    priceResult: decimal(value.priceResult, 'priceResult'),
+    entryFee: decimal(value.entryFee, 'entryFee'),
+    estimatedExitFee: decimal(value.estimatedExitFee, 'estimatedExitFee'),
+    fundingSoFar: nullableDecimal(value.fundingSoFar, 'fundingSoFar'),
+    fundingProvisional: flag(value.fundingProvisional, 'fundingProvisional'),
+    estimatedNetPnl: decimal(value.estimatedNetPnl, 'estimatedNetPnl'),
+    at: instant(value.at, 'at'),
+  };
+}
+
+/** A push of `/user/queue/positions` (`PositionUpdateResponse`, T-048b). */
+export function decodePositionUpdate(body: unknown): PositionUpdate {
+  const value = record(body, 'positionUpdate');
+  return {
+    planId: text(value.planId, 'planId'),
+    status: oneOf(POSITION_STATUSES, value.status, 'status'),
+    closeReason: nullableOneOf(CLOSE_REASONS, value.closeReason, 'closeReason'),
+    netPnl: nullableDecimal(value.netPnl, 'netPnl'),
+    provisional: optionalFlag(value.provisional, 'provisional'),
+  };
 }

@@ -70,6 +70,8 @@ import type {
   PlanCalculation,
   PlanInputs,
   PositionLevels,
+  PositionUpdate,
+  CloseEstimate,
   PlanListQuery,
   PlanPage,
   NewsArticleDetail,
@@ -257,6 +259,15 @@ export interface TradingPlanService {
    * and `levelWarnings`. 409 MSG43 once the position is no longer open.
    */
   changeLevels(id: string, levels: PositionLevels): Promise<TradingPlan>;
+  /**
+   * SCR-19: the estimated exit of the plan's OPEN position now (UC-21);
+   * 409 MSG43 without an open position, 503 without a current price.
+   */
+  closeEstimate(id: string, signal?: AbortSignal): Promise<CloseEstimate>;
+  /** Closes the OPEN position at market (taker, slippage); MANUAL close. */
+  closePosition(id: string): Promise<TradingPlan>;
+  /** `/user/queue/positions` on the signed-in connection; returns unsubscribe. */
+  subscribePositions(listener: (update: PositionUpdate) => void): () => void;
 }
 /** The signed-in Trader's watchlist (`/watchlist/**`; SRS 3.4.1). */
 export interface WatchlistService {

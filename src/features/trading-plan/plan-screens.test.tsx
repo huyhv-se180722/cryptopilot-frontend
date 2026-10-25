@@ -204,6 +204,9 @@ function fakePlans(overrides: Partial<TradingPlanService> = {}) {
     })),
     update: vi.fn(async () => PLAN),
     changeLevels: vi.fn(async () => PLAN),
+    closeEstimate: vi.fn(),
+    closePosition: vi.fn(async () => PLAN),
+    subscribePositions: vi.fn(() => () => undefined),
     ...overrides,
   };
   return service;
