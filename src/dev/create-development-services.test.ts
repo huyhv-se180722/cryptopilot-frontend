@@ -348,7 +348,7 @@ describe('development plan seam', () => {
     const old = await plans.get('0199a2c4-0000-7000-8000-000000000007');
     expect(old.snapshot.estimatedEntryFee).toBeNull();
     expect(old.snapshot.netRiskReward).toBeNull();
-    // Futures is still refused on leverage (D-70), so the panel is Spot's.
+    // A Spot MARKET plan: its panel is scripted from a Spot plan.
     const spot = await plans.get('0199a2c4-0000-7000-8000-000000000005');
     const panel = await plans.calculate(spot.pairId, {
       ...spot,
@@ -562,12 +562,44 @@ describe('development plan editing (SCR-17)', () => {
     ).rejects.toMatchObject({
       problem: { fieldErrors: { riskPercent: 'MSG15' } },
     });
+    // Futures is PRO and PREMIUM only (MSG29), before any field rule.
     await expect(
       plans.calculate(plan.pairId, {
         ...inputs,
         market: 'futures',
         leverage: 3,
       }),
+    ).rejects.toMatchObject({
+      status: 403,
+      problem: { messageCode: 'MSG29' },
+    });
+  });
+
+  it('calculates a Futures plan on PRO up to the scripted 20x bracket (BR-26)', async () => {
+    const pro: Session = {
+      ...free,
+      entitlements: {
+        tier: 'PRO',
+        features: ['FUTURES_ANALYSIS'],
+        limits: { ACTIVE_PLAN_MAX: null },
+      },
+    };
+    const plans = createDevelopmentTradingPlan(async () => pro);
+    const futures = {
+      ...inputs,
+      market: 'futures' as const,
+      direction: 'SHORT' as const,
+      entryPrice: '61000',
+      stopLoss: '62000',
+      takeProfit: '58000',
+    };
+    const btc = DEV_PAIR_IDS.BTCUSDT!;
+    const panel = await plans.calculate(btc, { ...futures, leverage: 20 });
+    // Scripted from a stored Futures plan: it has margin and a liquidation.
+    expect(panel.snapshot.initialMargin).not.toBeNull();
+    expect(panel.snapshot.estimatedLiquidationPrice).not.toBeNull();
+    await expect(
+      plans.calculate(btc, { ...futures, leverage: 21 }),
     ).rejects.toMatchObject({
       problem: { fieldErrors: { leverage: 'MSG15' } },
     });

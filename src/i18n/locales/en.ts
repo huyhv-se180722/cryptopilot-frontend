@@ -374,8 +374,6 @@ export const en = {
     createAlert: 'Create alert',
     createPlan: 'Create trading plan',
     askAi: 'Ask AI',
-    planPending:
-      'Futures plans cannot be created until leverage brackets are configured.',
     addedWatchlist: '{pair} added to your watchlist.',
     newsTitle: 'Latest {coin} news',
     futuresTitle: 'Mark price and funding',
@@ -473,6 +471,8 @@ export const en = {
     leverage: 'Leverage',
     marginMode: 'Margin mode',
     isolated: 'Isolated',
+    isolatedHint:
+      'Plans use isolated margin: the margin of this position alone can be lost.',
     expiresAt: 'Expires',
     noExpiry: 'No expiry',
     note: 'Note',
@@ -523,8 +523,6 @@ export const en = {
     blockedHint: 'Resolve the blocking warnings by editing the plan.',
     notFound: 'This plan was not found. It may belong to another account.',
     createTitle: 'New trading plan',
-    createSpotOnly:
-      'New plans are Spot for now: Futures plans cannot be calculated until leverage brackets are configured.',
     createNoPairs: 'No Spot pair is enabled, so no plan can be created.',
     editTitle: 'Edit plan {id}',
     backToPlan: 'Plan {id}',
@@ -536,6 +534,7 @@ export const en = {
     sectionExpiry: 'Expiry and note',
     pairField: 'Pair',
     marketField: 'Market',
+    futuresContext: 'Futures prices and funding',
     directionField: 'Direction',
     spotLongOnly: 'Spot plans are long only.',
     marketEntryNote:
@@ -543,7 +542,8 @@ export const en = {
     marketEntryPrice: 'Current last price',
     capitalHint: 'Leave empty to use your default capital.',
     riskHint: 'From 0.1 to 10 %. Leave empty to use your default.',
-    leverageHint: 'A whole number from 1 to the pair’s maximum.',
+    leverageHint:
+      'A whole number from 1 to the maximum for the position size. Empty uses 1x.',
     expiryField: 'Expiry (optional)',
     expiryHint: 'Leave empty for 7 days on a limit or stop entry.',
     noteHint: 'Up to 1000 characters.',
@@ -570,8 +570,6 @@ export const en = {
     reasonTAKE_PROFIT_REACHED: 'Take profit reached before the entry',
     reasonSTOP_LOSS_REACHED: 'Stop loss reached before the entry',
     reasonINVALIDATION_PRICE: 'Invalidation price reached before the entry',
-    futuresPending:
-      'Futures plans cannot be calculated until leverage brackets are configured.',
     riskTitle: 'Risk calculation',
     riskIdle: 'Fill in the fields to see the risk calculation.',
     riskUpdating: 'Updating…',
@@ -589,6 +587,8 @@ export const en = {
     errNumber: '{field} must be a number.',
     errPositive: '{field} must be greater than 0.',
     errLeverage: '{field} must be a whole number of at least 1.',
+    errLeverageMax:
+      'Leverage is above the maximum for this position size, or the pair has no leverage brackets yet.',
     errFuture: 'The expiry must be in the future.',
     errTooLong: '{field} can be at most {max} characters.',
     errDeviation: '{field} must be above 0 and at most {max} R.',

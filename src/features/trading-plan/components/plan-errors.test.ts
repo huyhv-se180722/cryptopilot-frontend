@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { en } from '../../../i18n/locales/en';
 import { ServiceError } from '../../../services/api/errors';
 import type { TradingPlan } from '../../../types/domain';
-import { activationErrorText } from './plan-errors';
+import { activationErrorText, planFieldErrorText } from './plan-errors';
 
 const STOP_PLAN = {
   entryType: 'STOP',
@@ -74,5 +74,15 @@ describe('activation refusals outside the form (SCR-18, D-112)', () => {
         STOP_PLAN,
       ),
     ).toBe(en.messages.MSG18);
+  });
+});
+
+describe('leverage refused by the server (BR-26)', () => {
+  it('says the maximum depends on the position size, or brackets are missing', () => {
+    expect(
+      planFieldErrorText(en, { kind: 'leverageMax' }, 'Leverage', 'LONG'),
+    ).toBe(
+      'Leverage is above the maximum for this position size, or the pair has no leverage brackets yet.',
+    );
   });
 });

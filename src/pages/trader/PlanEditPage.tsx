@@ -11,6 +11,7 @@ import { shortPlanId } from '../../features/trading-plan/components/plan-format'
 import { usePairLookup } from '../../features/market/hooks/use-market-data';
 import { usePlan } from '../../features/trading-plan/hooks/use-plans';
 import { PlanChart } from './plan-chart';
+import { PlanFuturesStrip } from './plan-futures-strip';
 
 /**
  * SCR-17 Edit Trading Plan (SRS 3.5.1, UC-17) for a DRAFT; any other status
@@ -77,6 +78,7 @@ export function PlanEditPage() {
             pair: pairOf(plan.pairId, plan.market),
           }}
           chart={(pair, lines) => <PlanChart pair={pair} lines={lines} />}
+          futuresContext={(pair) => <PlanFuturesStrip pair={pair} />}
         />
       )}
     </div>

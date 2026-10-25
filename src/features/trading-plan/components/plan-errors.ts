@@ -32,6 +32,8 @@ export function planFieldErrorText(
       });
     case 'leverage':
       return formatCopy(p.errLeverage, { field: label });
+    case 'leverageMax':
+      return p.errLeverageMax;
     case 'order':
       return messageText(copy, 'MSG16', [], {
         direction: p[`directionName${direction}`],

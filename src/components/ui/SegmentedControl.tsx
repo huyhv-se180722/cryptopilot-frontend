@@ -5,7 +5,15 @@ export interface SegmentOption<T extends string> {
   value: T;
   label: string;
   icon?: ReactNode;
+  /** Colours the chosen segment: up / long green, down / short red. */
+  tone?: 'positive' | 'negative';
 }
+
+const SELECTED = {
+  neutral: 'bg-raised-hover text-primary dark:shadow-glow-primary',
+  positive: 'bg-positive-soft text-positive',
+  negative: 'bg-negative-soft text-negative',
+} as const;
 
 /**
  * Figma theme-toggle style segmented control (radio group semantics).
@@ -45,7 +53,7 @@ export function SegmentedControl<T extends string>({
               'inline-flex h-6 items-center justify-center gap-1 rounded text-[11px] font-medium pointer-coarse:h-9',
               iconOnly ? 'w-6 pointer-coarse:w-9' : 'px-2.5',
               selected
-                ? 'bg-raised-hover text-primary dark:shadow-glow-primary'
+                ? SELECTED[option.tone ?? 'neutral']
                 : 'text-muted-dim hover:text-fg-2',
             )}
           >

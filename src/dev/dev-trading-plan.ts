@@ -22,6 +22,8 @@ import { devPlanSeeds } from './fixtures/trading-plan';
  * market and period filters, 404 MSG41,
  * activation refused by a BLOCKING warning (MSG18), by the plan's
  * `ACTIVE_PLAN_MAX` (MSG27) or by the status (MSG43), and cancellation.
+ * Futures needs `FUTURES_ANALYSIS` (MSG29) and has one scripted leverage
+ * bracket up to 20x for every pair (BR-26).
  * Snapshots and warnings are scripted, not recalculated. A reload
  * restores the fixture.
  */
@@ -41,11 +43,14 @@ function refuse(
   });
 }
 
+/** Scripted: the largest leverage of every dev pair's single bracket. */
+const DEV_MAX_LEVERAGE = 20;
+
 /**
  * The request rules of `CreateTradingPlanRequest` and the price order of
  * BR-22 as field errors (MSG01 / MSG15 / MSG16), checked in that order like
- * the backend; Futures is refused on `leverage` (no brackets, D-70). The
- * calculation itself is not re-implemented.
+ * the backend; a Futures leverage above the scripted bracket is MSG15 on
+ * `leverage`. The calculation itself is not re-implemented.
  */
 function checkInputs(inputs: PlanInputs) {
   const errors: Record<string, string> = {};
@@ -77,7 +82,7 @@ function checkInputs(inputs: PlanInputs) {
     errors.maxEntryDeviationR = 'MSG15';
   if (Object.keys(errors).length)
     refuse(400, 'VALIDATION_FAILED', 'MSG01', [], errors);
-  if (inputs.market === 'futures')
+  if (inputs.market === 'futures' && (inputs.leverage ?? 1) > DEV_MAX_LEVERAGE)
     refuse(400, 'VALIDATION_FAILED', 'MSG01', [], { leverage: 'MSG15' });
   if (inputs.entryPrice === null) return;
   const entry = Number(inputs.entryPrice);
@@ -189,7 +194,9 @@ export function createDevelopmentTradingPlan(
    * first plan for a pair that has none yet.
    */
   const calculation = (pairId: string, inputs: PlanInputs): PlanCalculation => {
-    const all = [...plans.values()];
+    const all = [...plans.values()].filter(
+      (plan) => plan.market === inputs.market,
+    );
     const base =
       all.find((plan) => plan.pairId === pairId && plan.status === 'DRAFT') ??
       all.find((plan) => plan.pairId === pairId) ??
@@ -207,6 +214,17 @@ export function createDevelopmentTradingPlan(
       warnings: base.warnings,
       blocksActivation: base.blocksActivation,
     };
+  };
+  /** Futures plans are PRO and PREMIUM only (MSG29), checked first. */
+  const marketAllowed = async (inputs: PlanInputs) => {
+    if (inputs.market !== 'futures') return;
+    const entitlements = (await session())?.entitlements;
+    if (
+      entitlements &&
+      entitlements !== 'unknown' &&
+      !entitlements.features.includes('FUTURES_ANALYSIS')
+    )
+      refuse(403, 'PLAN_FEATURE_NOT_INCLUDED', 'MSG29', ['PRO']);
   };
   const activeLimit = async () => {
     const entitlements = (await session())?.entitlements;
@@ -229,12 +247,14 @@ export function createDevelopmentTradingPlan(
   return {
     async calculate(pairId, inputs, signal) {
       await pause(signal);
+      await marketAllowed(inputs);
       checkInputs(inputs);
       enabled(pairId, inputs);
       return calculation(pairId, inputs);
     },
     async create(pairId, inputs, activate) {
       await pause();
+      await marketAllowed(inputs);
       checkInputs(inputs);
       enabled(pairId, inputs);
       const result = calculation(pairId, inputs);
@@ -273,6 +293,7 @@ export function createDevelopmentTradingPlan(
       const plan = find(id);
       if (plan.status !== 'DRAFT')
         refuse(409, 'TRADING_PLAN_STATUS_TRANSITION_INVALID', 'MSG43');
+      await marketAllowed(inputs);
       checkInputs(inputs);
       const result = calculation(plan.pairId, inputs);
       // An activation refused saves nothing, like the backend.

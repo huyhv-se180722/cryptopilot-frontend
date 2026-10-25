@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Info, Loader2, Play, Save } from 'lucide-react';
+import { Loader2, Lock, Play, Save } from 'lucide-react';
 import { Alert as Banner } from '../../../components/feedback/States';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
@@ -16,11 +16,13 @@ import {
 } from '../../../components/ui/field-styles';
 import { buttonClassName } from '../../../components/ui/button-styles';
 import { useCopy } from '../../../hooks/use-copy';
+import { useFeature } from '../../../hooks/use-entitlement';
 import { useToast } from '../../../hooks/use-toast';
 import { errorText, messageText } from '../../../i18n/messages';
 import { problemOf } from '../../../services/api/errors';
 import type {
   MarketPair,
+  MarketType,
   PlanEntryType,
   PlanTimeframe,
   TradingPlan,
@@ -92,8 +94,10 @@ export type PlanEditorTarget =
     }
   | {
       mode: 'create';
-      /** The pairs a new plan can be on (Spot, by the id of the list). */
-      pairs: readonly MarketPair[];
+      /** The pairs a new plan can be on, by market (by the id of the list). */
+      pairs: Readonly<Record<MarketType, readonly MarketPair[]>>;
+      /** The market to start on, e.g. the analysis screen's. */
+      market: MarketType;
       /** The pair to start on, e.g. the analysis screen's. */
       pairId: string | null;
       /**
@@ -120,15 +124,28 @@ export type PlanEditorTarget =
 export function PlanEditor({
   target,
   chart,
+  futuresContext,
 }: {
   target: PlanEditorTarget;
   chart?: (pair: MarketPair, lines: readonly ChartPriceLine[]) => ReactNode;
+  /** The prices and funding of a Futures pair, drawn by the page. */
+  futuresContext?: (pair: MarketPair) => ReactNode;
 }) {
   const copy = useCopy();
   const p = copy.plan;
   const navigate = useNavigate();
   const { show } = useToast();
   const plan = target.mode === 'edit' ? target.plan : null;
+  // SRS 3.5.1: Futures plans are PRO and PREMIUM only (MSG29).
+  const futuresLocked = useFeature('FUTURES_ANALYSIS') === 'locked';
+  const [upsell, setUpsell] = useState(false);
+  const startMarket: MarketType =
+    target.mode === 'create' &&
+    target.market === 'futures' &&
+    !futuresLocked &&
+    target.pairs.futures.length > 0
+      ? 'futures'
+      : 'spot';
   const entryTypes: readonly PlanEntryType[] =
     plan?.entryType === 'STOP'
       ? [...OFFERED_ENTRY_TYPES, 'STOP']
@@ -138,22 +155,27 @@ export function PlanEditor({
       ? draftOfPlan(plan)
       : {
           ...EMPTY_PLAN_DRAFT,
+          market: startMarket,
+          leverage: startMarket === 'futures' ? '1' : '',
           analysisTimeframe:
             target.mode === 'create' ? (target.timeframe ?? '') : '',
         },
   );
   const [chosenPairId, setChosenPairId] = useState(() =>
     target.mode === 'create'
-      ? (target.pairs.find((each) => each.pairId === target.pairId)?.pairId ??
-        target.pairs[0]?.pairId ??
+      ? (target.pairs[startMarket].find((each) => each.pairId === target.pairId)
+          ?.pairId ??
+        target.pairs[startMarket][0]?.pairId ??
         '')
       : '',
   );
   const pairId = plan ? plan.pairId : chosenPairId;
+  const choices =
+    target.mode === 'create' ? target.pairs[draft.market] : undefined;
   const pair =
     target.mode === 'edit'
       ? target.pair
-      : target.pairs.find((each) => each.pairId === chosenPairId);
+      : choices?.find((each) => each.pairId === chosenPairId);
   const [touched, setTouched] = useState<ReadonlySet<PlanField>>(new Set());
   const [now] = useState(() => Date.now());
   const checked = useMemo(() => toInputs(draft, now), [draft, now]);
@@ -168,6 +190,31 @@ export function PlanEditor({
     if (field) setTouched((current) => new Set(current).add(field));
     save.reset();
   };
+
+  /**
+   * A new plan's market: the same coin on the other market when it is
+   * listed there, else its first pair; Spot is long only, Futures starts
+   * at 1x. A locked Futures says why instead (MSG29).
+   */
+  function chooseMarket(market: MarketType) {
+    if (target.mode !== 'create' || market === draft.market) return;
+    if (market === 'futures' && futuresLocked) {
+      setUpsell(true);
+      return;
+    }
+    setUpsell(false);
+    const list = target.pairs[market];
+    const symbol = pair?.symbol;
+    setChosenPairId(
+      (list.find((each) => each.symbol === symbol) ?? list[0])?.pairId ?? '',
+    );
+    change(
+      market === 'spot'
+        ? { market, direction: 'LONG', leverage: '' }
+        : { market, leverage: draft.leverage || '1' },
+      'direction',
+    );
+  }
 
   // Client errors once a field was changed (all of them after a save);
   // then the server's field errors of the last calculation or save.
@@ -243,8 +290,15 @@ export function PlanEditor({
     : calculation.fieldErrors.notional
       ? p.riskNotional
       : null;
+  // The plan is not known up front (FEQ-02), so a Futures plan on FREE is
+  // refused by the server: MSG29 with the plans, as the lock says it.
+  const featureRefused =
+    problemOf(calculation.error)?.code === 'PLAN_FEATURE_NOT_INCLUDED' ||
+    saveProblem?.code === 'PLAN_FEATURE_NOT_INCLUDED';
   const calcFailed =
-    calculation.isError && Object.keys(calculation.fieldErrors).length === 0;
+    calculation.isError &&
+    !featureRefused &&
+    Object.keys(calculation.fieldErrors).length === 0;
   const noteId = 'plan-note';
   const noteError = errorOf('note', p.note);
 
@@ -270,7 +324,7 @@ export function PlanEditor({
                   save.reset();
                 }}
               >
-                {target.pairs.map((each) => (
+                {(choices ?? []).map((each) => (
                   <option key={each.pairId} value={each.pairId}>
                     {pairLabel(each.symbol)}
                   </option>
@@ -292,15 +346,53 @@ export function PlanEditor({
               </>
             )}
           </div>
-          <div>
-            <span className={fieldLabelClass}>{p.marketField}</span>
-            <p className="text-sm font-medium text-fg">
-              {futures ? copy.market.futures : copy.market.spot}
-            </p>
-            {target.mode === 'create' && (
-              <span className={fieldHintClass}>{p.createSpotOnly}</span>
-            )}
-          </div>
+          {target.mode === 'create' ? (
+            <fieldset>
+              <legend className={fieldLabelClass}>{p.marketField}</legend>
+              <SegmentedControl
+                label={p.marketField}
+                value={draft.market}
+                onChange={chooseMarket}
+                options={(['spot', 'futures'] as const)
+                  .filter(
+                    (market) =>
+                      market === 'spot' || target.pairs.futures.length > 0,
+                  )
+                  .map((market) => ({
+                    value: market,
+                    label:
+                      market === 'spot'
+                        ? copy.market.spot
+                        : copy.market.futures,
+                    ...(market === 'futures' && futuresLocked
+                      ? { icon: <Lock size={10} aria-hidden="true" /> }
+                      : {}),
+                  }))}
+              />
+            </fieldset>
+          ) : (
+            <div>
+              <span className={fieldLabelClass}>{p.marketField}</span>
+              <p className="text-sm font-medium text-fg">
+                {futures ? copy.market.futures : copy.market.spot}
+              </p>
+            </div>
+          )}
+          {futures && charted && futuresContext && (
+            <div className="sm:col-span-2">{futuresContext(charted)}</div>
+          )}
+          {(upsell || featureRefused) && (
+            <div className="sm:col-span-2">
+              <Banner
+                tone="info"
+                title={messageText(copy, 'MSG29', [], { plan: 'PRO' })}
+              >
+                <Link to="/subscription" className="font-medium">
+                  {p.upgrade}
+                </Link>
+              </Banner>
+            </div>
+          )}
           <div className="sm:col-span-2">
             {futures ? (
               <fieldset>
@@ -312,6 +404,7 @@ export function PlanEditor({
                   options={(['LONG', 'SHORT'] as const).map((value) => ({
                     value,
                     label: p[`direction${value}`],
+                    tone: value === 'LONG' ? 'positive' : 'negative',
                   }))}
                 />
               </fieldset>
@@ -354,12 +447,6 @@ export function PlanEditor({
               {p.timeframeHint}
             </span>
           </div>
-          {futures && (
-            <p className="flex items-start gap-1.5 text-[11px] text-warning sm:col-span-2">
-              <Info size={12} aria-hidden="true" className="mt-0.5 shrink-0" />
-              {p.futuresPending}
-            </p>
-          )}
         </Section>
 
         <Section title={p.sectionEntry}>
@@ -513,6 +600,13 @@ export function PlanEditor({
               hint={p.leverageHint}
             />
           )}
+          {futures && (
+            <div>
+              <span className={fieldLabelClass}>{p.marginMode}</span>
+              <p className="text-sm font-medium text-fg">{p.isolated}</p>
+              <span className={fieldHintClass}>{p.isolatedHint}</span>
+            </div>
+          )}
         </Section>
 
         <Section title={p.sectionExpiry}>
@@ -610,22 +704,24 @@ export function PlanEditor({
             (result?.snapshot ?? plan?.snapshot)?.feeShareOfRisk ?? null
           }
         />
-        {saveProblem && Object.keys(saveProblem.fieldErrors).length === 0 && (
-          <Banner
-            tone="danger"
-            title={errorText(
-              copy,
-              save.state.status === 'error' ? save.state.error : null,
-            )}
-          >
-            {saveProblem.code === 'PLAN_LIMIT_REACHED' && (
-              <Link to="/subscription" className="font-medium">
-                {p.upgrade}
-              </Link>
-            )}
-            {saveProblem.code === 'TRADING_BLOCKING_WARNING' && p.blockedHint}
-          </Banner>
-        )}
+        {saveProblem &&
+          !featureRefused &&
+          Object.keys(saveProblem.fieldErrors).length === 0 && (
+            <Banner
+              tone="danger"
+              title={errorText(
+                copy,
+                save.state.status === 'error' ? save.state.error : null,
+              )}
+            >
+              {saveProblem.code === 'PLAN_LIMIT_REACHED' && (
+                <Link to="/subscription" className="font-medium">
+                  {p.upgrade}
+                </Link>
+              )}
+              {saveProblem.code === 'TRADING_BLOCKING_WARNING' && p.blockedHint}
+            </Banner>
+          )}
         <div className="flex flex-col gap-2">
           <Button type="submit" disabled={save.pending || !pairId}>
             <Save size={14} aria-hidden="true" />

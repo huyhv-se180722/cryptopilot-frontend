@@ -164,7 +164,7 @@ const fieldRefusal = (field: string) =>
 
 const plan = (tier: 'FREE' | 'PRO'): PlanEntitlements => ({
   tier,
-  features: [],
+  features: tier === 'FREE' ? [] : ['FUTURES_ANALYSIS'],
   limits: { ACTIVE_PLAN_MAX: tier === 'FREE' ? 3 : null },
 });
 
@@ -786,7 +786,9 @@ describe('SCR-17 new plan (T-040, UC-16)', () => {
     ).toBeTruthy();
     const pair = screen.getByLabelText('Pair') as HTMLSelectElement;
     expect(pair.value).toBe('eth-id');
-    expect(screen.getByText(/New plans are Spot for now/)).toBeTruthy();
+    expect(
+      screen.getByRole('radio', { name: 'Spot' }).getAttribute('aria-checked'),
+    ).toBe('true');
     const user = await fill('2500', '2400', '2800');
     await waitFor(() =>
       expect(service.calculate).toHaveBeenCalledWith(
@@ -822,6 +824,176 @@ describe('SCR-17 new plan (T-040, UC-16)', () => {
     await waitFor(() =>
       expect(service.get).toHaveBeenCalledWith('new-plan', expect.anything()),
     );
+  });
+
+  it('keeps Futures for PRO and PREMIUM: on FREE it says MSG29 and stays on Spot', async () => {
+    const service = fakePlans();
+    await open('/plans/new?symbol=BTCUSDT&market=futures', service);
+    const futures = await screen.findByRole('radio', { name: 'Futures' });
+    // FREE cannot start on Futures, even when asked to.
+    expect(
+      screen.getByRole('radio', { name: 'Spot' }).getAttribute('aria-checked'),
+    ).toBe('true');
+    const user = userEvent.setup();
+    await user.click(futures);
+    expect(
+      screen.getByText(
+        'This feature is available on the PRO plan or higher. View plans?',
+      ),
+    ).toBeTruthy();
+    expect(futures.getAttribute('aria-checked')).toBe('false');
+    expect(screen.queryByLabelText('Leverage')).toBeNull();
+  });
+
+  it('shows MSG29 with the plans when the server refuses a Futures plan (FEQ-02)', async () => {
+    // The plan is not known up front, so the server refuses on FREE.
+    const service = fakePlans({
+      calculate: vi.fn(async () => {
+        throw refusal(403, 'PLAN_FEATURE_NOT_INCLUDED', 'MSG29', ['PRO']);
+      }),
+    });
+    await open('/plans/new?symbol=BTCUSDT&market=futures', service, 'PRO');
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('radio', { name: 'Short' }));
+    await user.type(screen.getByLabelText('Entry price'), '62000');
+    await user.type(screen.getByLabelText('Stop loss'), '63000');
+    await user.type(screen.getByLabelText('Take profit'), '59000');
+    expect(
+      await screen.findByText(
+        'This feature is available on the PRO plan or higher. View plans?',
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: 'View plans' }).getAttribute('href'),
+    ).toBe('/subscription');
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
+  });
+
+  it('starts a Futures plan from the analysis at 1x and saves it with its side (BR-26)', async () => {
+    const service = fakePlans({
+      create: vi.fn(async () => ({ ...PLAN, id: 'new-plan' })),
+      get: vi.fn(async () => ({ ...PLAN, id: 'new-plan' })),
+    });
+    await open('/plans/new?symbol=BTCUSDT&market=futures', service, 'PRO');
+    const futures = await screen.findByRole('radio', { name: 'Futures' });
+    expect(futures.getAttribute('aria-checked')).toBe('true');
+    expect((screen.getByLabelText('Pair') as HTMLSelectElement).value).toBe(
+      ROW.pairId,
+    );
+    expect((screen.getByLabelText('Leverage') as HTMLInputElement).value).toBe(
+      '1',
+    );
+    expect(screen.getByText('Margin mode').nextSibling?.textContent).toBe(
+      'Isolated',
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Short' }));
+    await user.type(screen.getByLabelText('Entry price'), '62000');
+    await user.type(screen.getByLabelText('Stop loss'), '63000');
+    await user.type(screen.getByLabelText('Take profit'), '59000');
+    await waitFor(() =>
+      expect(service.calculate).toHaveBeenCalledWith(
+        ROW.pairId,
+        expect.objectContaining({
+          market: 'futures',
+          direction: 'SHORT',
+          leverage: 1,
+        }),
+        expect.anything(),
+      ),
+    );
+    await user.click(screen.getByRole('button', { name: 'Save as draft' }));
+    await waitFor(() =>
+      expect(service.create).toHaveBeenCalledWith(
+        ROW.pairId,
+        expect.objectContaining({ market: 'futures', direction: 'SHORT' }),
+        false,
+      ),
+    );
+  });
+
+  it('shows the mark price, funding and its countdown beside a Futures plan (BR-11)', async () => {
+    const market = fakeMarket();
+    vi.mocked(market.getTicker).mockImplementation(async (kind) =>
+      kind === 'futures'
+        ? {
+            market: 'futures',
+            symbol: 'BTCUSDT',
+            sourceTime: new Date().toISOString(),
+            lastPrice: '62010.30',
+            bestBid: null,
+            bestAsk: null,
+            high24h: null,
+            low24h: null,
+            changePercent24h: null,
+            baseVolume24h: null,
+            quoteVolume24h: null,
+            markPrice: '62004.10',
+            indexPrice: '62000.00',
+            fundingRate: '-0.0001',
+            nextFundingTime: new Date(Date.now() + 3_600_000).toISOString(),
+          }
+        : null,
+    );
+    await open(
+      '/plans/new?symbol=BTCUSDT&market=futures',
+      fakePlans(),
+      'PRO',
+      market,
+    );
+    const strip = within(
+      await screen.findByLabelText('Futures prices and funding'),
+    );
+    const value = (label: string) =>
+      strip.getByText(label).nextSibling?.textContent;
+    // At the Futures pair's tick, 0.10; no last price on Futures (M-09).
+    await waitFor(() => expect(value('Mark price')).toBe('62,004.1'));
+    expect(strip.queryByText('Last price')).toBeNull();
+    expect(value('Funding rate')).toBe('-0.0100%');
+    expect(value('Next funding in')).toMatch(/^(00:59:\d\d|01:00:00)$/);
+  });
+
+  it('moves between markets on the same coin, back to a long on Spot', async () => {
+    await open('/plans/new?symbol=ETHUSDT', fakePlans(), 'PRO');
+    const pair = (await screen.findByLabelText('Pair')) as HTMLSelectElement;
+    expect(pair.value).toBe('eth-id');
+    const user = userEvent.setup();
+    // ETH is Spot only: Futures starts on its first pair, BTC.
+    await user.click(screen.getByRole('radio', { name: 'Futures' }));
+    expect(pair.value).toBe(ROW.pairId);
+    expect(within(pair).queryByRole('option', { name: 'ETH/USDT' })).toBeNull();
+    await user.click(screen.getByRole('radio', { name: 'Short' }));
+    await user.click(screen.getByRole('radio', { name: 'Spot' }));
+    expect(pair.value).toBe(ROW.pairId);
+    expect(screen.queryByRole('radio', { name: 'Short' })).toBeNull();
+    expect(screen.getByText('Spot plans are long only.')).toBeTruthy();
+  });
+
+  it('words a leverage the server refused as above the bracket (BR-26)', async () => {
+    const service = fakePlans({
+      calculate: vi.fn(async () => {
+        throw new ServiceError('refused', 'HTTP_ERROR', 400, {
+          status: 400,
+          code: 'VALIDATION_FAILED',
+          messageCode: 'MSG01',
+          messageArgs: [],
+          fieldErrors: { leverage: 'MSG15' },
+        });
+      }),
+    });
+    await open('/plans/new?symbol=BTCUSDT&market=futures', service, 'PRO');
+    const user = userEvent.setup();
+    const leverage = await screen.findByLabelText('Leverage');
+    await user.clear(leverage);
+    await user.type(leverage, '125');
+    await user.type(screen.getByLabelText('Entry price'), '62000');
+    await user.type(screen.getByLabelText('Stop loss'), '61000');
+    await user.type(screen.getByLabelText('Take profit'), '65000');
+    expect(
+      await screen.findByText(
+        'Leverage is above the maximum for this position size, or the pair has no leverage brackets yet.',
+      ),
+    ).toBeTruthy();
   });
 
   it('saves nothing when the server refuses the activation (MSG18)', async () => {
@@ -1084,6 +1256,18 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
     // Switched to LIMIT, the STOP draft can still go back to STOP.
     await user.click(screen.getByRole('radio', { name: 'Limit' }));
     expect(screen.getByRole('radio', { name: 'Stop' })).toBeTruthy();
+  });
+
+  it('edits a Futures draft with its direction, leverage and the fixed isolated margin (BR-26)', async () => {
+    await open('/plans/' + PLAN.id + '/edit', fakePlans(), 'PRO');
+    const short = await screen.findByRole('radio', { name: 'Short' });
+    expect(short.getAttribute('aria-checked')).toBe('true');
+    expect((screen.getByLabelText('Leverage') as HTMLInputElement).value).toBe(
+      '5',
+    );
+    expect(screen.getByText('Margin mode').nextSibling?.textContent).toBe(
+      'Isolated',
+    );
   });
 
   it('shows MSG16 under the stop loss and sends nothing while the order is wrong', async () => {

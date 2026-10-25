@@ -293,18 +293,12 @@ describe('SCR-11 Futures analysis (T-034)', () => {
         'href',
       ),
     ).toBe('/ai?symbol=BTCUSDT&market=futures');
+    // SRS 3.3.3: SCR-17 pre-filled with the pair and market FUTURES.
     expect(
-      (
-        screen.getByRole('button', {
-          name: 'Create trading plan',
-        }) as HTMLButtonElement
-      ).disabled,
-    ).toBe(true);
-    expect(
-      screen.getByText(
-        'Futures plans cannot be created until leverage brackets are configured.',
-      ),
-    ).toBeTruthy();
+      screen
+        .getByRole('link', { name: 'Create trading plan' })
+        .getAttribute('href'),
+    ).toBe('/plans/new?symbol=BTCUSDT&market=futures');
   });
 
   it('shows MSG29 on FREE and reads no analysis', async () => {

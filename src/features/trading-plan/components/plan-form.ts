@@ -60,6 +60,11 @@ export type PlanFieldError =
   | { kind: 'positive' }
   | { kind: 'range'; min: string; max: string }
   | { kind: 'leverage' }
+  /**
+   * BR-26: above the maximum of the bracket the notional falls in, or no
+   * brackets for the pair; the server names neither (MSG15).
+   */
+  | { kind: 'leverageMax' }
   | { kind: 'order' }
   | { kind: 'future' }
   | { kind: 'tooLong'; max: number }
@@ -219,11 +224,11 @@ export function toInputs(
   }
   let leverage: number | null = null;
   if (draft.market === 'futures') {
+    // Empty is the server's default of 1x (SRS 3.5.1).
     const raw = value(draft.leverage);
-    if (raw === '') errors.leverage = { kind: 'required' };
-    else if (!/^\d+$/.test(raw) || Number(raw) < 1)
+    if (raw !== '' && (!/^\d+$/.test(raw) || Number(raw) < 1))
       errors.leverage = { kind: 'leverage' };
-    else leverage = Number(raw);
+    else if (raw !== '') leverage = Number(raw);
   }
   if (draft.market === 'spot' && draft.direction === 'SHORT')
     errors.direction = { kind: 'required' };
@@ -292,7 +297,7 @@ export function serverFieldError(
   }
   if (messageId !== 'MSG15') return { kind: 'required' };
   if (field === 'riskPercent') return { kind: 'range', min: '0.1', max: '10' };
-  if (field === 'leverage') return { kind: 'leverage' };
+  if (field === 'leverage') return { kind: 'leverageMax' };
   if (field === 'note') return { kind: 'tooLong', max: NOTE_MAX };
   if (field === 'maxEntryDeviationR')
     return { kind: 'deviation', max: ENTRY_DEVIATION_MAX_R };

@@ -184,6 +184,18 @@ describe('plan form model (SCR-17)', () => {
     expect(
       toInputs({ ...DRAFT, market: 'futures', leverage: '0' }, NOW),
     ).toMatchObject({ errors: { leverage: { kind: 'leverage' } } });
+    // SRS 3.5.1: an empty leverage is the server's default of 1x.
+    expect(
+      toInputs({ ...DRAFT, market: 'futures', leverage: ' ' }, NOW),
+    ).toMatchObject({ ok: true, inputs: { leverage: null } });
+    expect(
+      toInputs({ ...DRAFT, market: 'futures', leverage: '20' }, NOW),
+    ).toMatchObject({ ok: true, inputs: { leverage: 20 } });
+    // Above the bracket of the notional, or no brackets: the server says
+    // MSG15 without the maximum (BR-26, M-11).
+    expect(serverFieldError('leverage', 'MSG15')).toEqual({
+      kind: 'leverageMax',
+    });
     expect(toInputs({ ...DRAFT, direction: 'SHORT' }, NOW)).toMatchObject({
       errors: { direction: { kind: 'required' } },
     });

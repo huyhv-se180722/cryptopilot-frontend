@@ -9,22 +9,28 @@ import { useProfileData } from '../../features/profile/hooks/use-profile';
 import { PlanEditor } from '../../features/trading-plan/components/PlanEditor';
 import { timeframeOfStyle } from '../../features/trading-plan/components/plan-form';
 import { PlanChart } from './plan-chart';
+import { PlanFuturesStrip } from './plan-futures-strip';
 
 /**
- * SCR-17 New Trading Plan (SRS 3.5.1, UC-16): the plan form on a Spot pair
- * of the market list, by its id (FEQ-01); `?symbol=` starts on a pair, as
- * the analysis screen's Create trading plan does. Futures plans wait for
- * the leverage brackets, so a new plan is Spot for now. The analysis
- * timeframe starts on the one of the Trader's trading style (D-112); when
- * the profile cannot be read the server chooses it.
+ * SCR-17 New Trading Plan (SRS 3.5.1, UC-16): the plan form on a pair of
+ * the market lists, by its id (FEQ-01), Spot or Futures; `?symbol=` and
+ * `?market=futures` start on a pair, as the analysis screens' Create
+ * trading plan does. Without the Futures list a plan is Spot only. The
+ * analysis timeframe starts on the one of the Trader's trading style
+ * (D-112); when the profile cannot be read the server chooses it.
  */
 export function PlanCreatePage() {
   const copy = useCopy();
   const p = copy.plan;
   const [params] = useSearchParams();
   const symbol = params.get('symbol')?.toUpperCase() ?? null;
+  const market = params.get('market') === 'futures' ? 'futures' : 'spot';
   const pairs = useMarketPairs('spot');
-  const start = pairs.data?.find((pair) => pair.symbol === symbol);
+  const futuresPairs = useMarketPairs('futures');
+  const futures = futuresPairs.data ?? [];
+  const start = (market === 'futures' ? futures : (pairs.data ?? [])).find(
+    (pair) => pair.symbol === symbol,
+  );
   const profile = useProfileData().state;
 
   return (
@@ -39,7 +45,9 @@ export function PlanCreatePage() {
       <header className="mb-4">
         <h1 className="text-lg font-semibold text-fg">{p.createTitle}</h1>
       </header>
-      {pairs.isPending || profile.status === 'loading' ? (
+      {pairs.isPending ||
+      futuresPairs.isPending ||
+      profile.status === 'loading' ? (
         <Skeleton className="h-96 w-full" />
       ) : pairs.isError ? (
         <ErrorState
@@ -55,10 +63,11 @@ export function PlanCreatePage() {
         </p>
       ) : (
         <PlanEditor
-          key={start?.pairId ?? 'new'}
+          key={`${market}.${start?.pairId ?? 'new'}`}
           target={{
             mode: 'create',
-            pairs: pairs.data,
+            pairs: { spot: pairs.data, futures },
+            market,
             pairId: start?.pairId ?? null,
             timeframe:
               profile.status === 'success'
@@ -66,6 +75,7 @@ export function PlanCreatePage() {
                 : null,
           }}
           chart={(pair, lines) => <PlanChart pair={pair} lines={lines} />}
+          futuresContext={(pair) => <PlanFuturesStrip pair={pair} />}
         />
       )}
     </div>
