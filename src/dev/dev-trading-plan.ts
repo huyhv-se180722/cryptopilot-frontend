@@ -197,7 +197,10 @@ export function createDevelopmentTradingPlan(
     if (!base) return refuse(404, 'RESOURCE_NOT_FOUND', 'MSG41');
     return {
       entryPrice: inputs.entryPrice ?? base.entryPrice,
-      expectedFillPrice: null,
+      expectedFillPrice:
+        inputs.entryType === 'MARKET'
+          ? (base.expectedFillPrice ?? base.entryPrice)
+          : null,
       capital: inputs.capital ?? base.capital,
       riskPercent: inputs.riskPercent ?? base.riskPercent,
       snapshot: base.snapshot,
