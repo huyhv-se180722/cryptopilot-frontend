@@ -290,8 +290,15 @@ export function PlanEditor({
     : calculation.fieldErrors.notional
       ? p.riskNotional
       : null;
+  // The plan is not known up front (FEQ-02), so a Futures plan on FREE is
+  // refused by the server: MSG29 with the plans, as the lock says it.
+  const featureRefused =
+    problemOf(calculation.error)?.code === 'PLAN_FEATURE_NOT_INCLUDED' ||
+    saveProblem?.code === 'PLAN_FEATURE_NOT_INCLUDED';
   const calcFailed =
-    calculation.isError && Object.keys(calculation.fieldErrors).length === 0;
+    calculation.isError &&
+    !featureRefused &&
+    Object.keys(calculation.fieldErrors).length === 0;
   const noteId = 'plan-note';
   const noteError = errorOf('note', p.note);
 
@@ -374,7 +381,7 @@ export function PlanEditor({
           {futures && charted && futuresContext && (
             <div className="sm:col-span-2">{futuresContext(charted)}</div>
           )}
-          {upsell && (
+          {(upsell || featureRefused) && (
             <div className="sm:col-span-2">
               <Banner
                 tone="info"
@@ -697,22 +704,24 @@ export function PlanEditor({
             (result?.snapshot ?? plan?.snapshot)?.feeShareOfRisk ?? null
           }
         />
-        {saveProblem && Object.keys(saveProblem.fieldErrors).length === 0 && (
-          <Banner
-            tone="danger"
-            title={errorText(
-              copy,
-              save.state.status === 'error' ? save.state.error : null,
-            )}
-          >
-            {saveProblem.code === 'PLAN_LIMIT_REACHED' && (
-              <Link to="/subscription" className="font-medium">
-                {p.upgrade}
-              </Link>
-            )}
-            {saveProblem.code === 'TRADING_BLOCKING_WARNING' && p.blockedHint}
-          </Banner>
-        )}
+        {saveProblem &&
+          !featureRefused &&
+          Object.keys(saveProblem.fieldErrors).length === 0 && (
+            <Banner
+              tone="danger"
+              title={errorText(
+                copy,
+                save.state.status === 'error' ? save.state.error : null,
+              )}
+            >
+              {saveProblem.code === 'PLAN_LIMIT_REACHED' && (
+                <Link to="/subscription" className="font-medium">
+                  {p.upgrade}
+                </Link>
+              )}
+              {saveProblem.code === 'TRADING_BLOCKING_WARNING' && p.blockedHint}
+            </Banner>
+          )}
         <div className="flex flex-col gap-2">
           <Button type="submit" disabled={save.pending || !pairId}>
             <Save size={14} aria-hidden="true" />

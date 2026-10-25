@@ -845,6 +845,30 @@ describe('SCR-17 new plan (T-040, UC-16)', () => {
     expect(screen.queryByLabelText('Leverage')).toBeNull();
   });
 
+  it('shows MSG29 with the plans when the server refuses a Futures plan (FEQ-02)', async () => {
+    // The plan is not known up front, so the server refuses on FREE.
+    const service = fakePlans({
+      calculate: vi.fn(async () => {
+        throw refusal(403, 'PLAN_FEATURE_NOT_INCLUDED', 'MSG29', ['PRO']);
+      }),
+    });
+    await open('/plans/new?symbol=BTCUSDT&market=futures', service, 'PRO');
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('radio', { name: 'Short' }));
+    await user.type(screen.getByLabelText('Entry price'), '62000');
+    await user.type(screen.getByLabelText('Stop loss'), '63000');
+    await user.type(screen.getByLabelText('Take profit'), '59000');
+    expect(
+      await screen.findByText(
+        'This feature is available on the PRO plan or higher. View plans?',
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: 'View plans' }).getAttribute('href'),
+    ).toBe('/subscription');
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
+  });
+
   it('starts a Futures plan from the analysis at 1x and saves it with its side (BR-26)', async () => {
     const service = fakePlans({
       create: vi.fn(async () => ({ ...PLAN, id: 'new-plan' })),
