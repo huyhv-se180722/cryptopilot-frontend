@@ -152,6 +152,16 @@ const refusal = (
     fieldErrors: {},
   });
 
+/** A 400 with one field error, as the backend answers MSG16 on a field. */
+const fieldRefusal = (field: string) =>
+  new ServiceError('refused', 'HTTP_ERROR', 400, {
+    status: 400,
+    code: 'VALIDATION_FAILED',
+    messageCode: 'MSG01',
+    messageArgs: [],
+    fieldErrors: { [field]: 'MSG16' },
+  });
+
 const plan = (tier: 'FREE' | 'PRO'): PlanEntitlements => ({
   tier,
   features: [],
@@ -863,7 +873,7 @@ describe('SCR-17 new plan (T-040, UC-16)', () => {
       getRiskProfile: vi.fn(async () => devRiskParams.CONSERVATIVE),
     }) as unknown as ProfileService;
 
-  it('sends a STOP entry with its invalidation price, deviation limit and the style timeframe (D-111, D-112)', async () => {
+  it('sends a LIMIT entry with its invalidation price, deviation limit and the style timeframe (D-111, D-112)', async () => {
     priceLines.length = 0;
     const service = fakePlans({
       create: vi.fn(async () => ({ ...PLAN, id: 'new-plan' })),
@@ -876,11 +886,11 @@ describe('SCR-17 new plan (T-040, UC-16)', () => {
     // SCALPING plans on 15m unless the Trader picks another one.
     expect(timeframe.value).toBe('15m');
     const user = userEvent.setup();
-    await user.click(screen.getByRole('radio', { name: 'Stop' }));
-    expect(screen.getByText(/Enters at market once the price reaches/));
-    await user.type(screen.getByLabelText('Stop price'), '70000');
-    await user.type(screen.getByLabelText('Stop loss'), '68000');
-    await user.type(screen.getByLabelText('Take profit'), '76000');
+    // The engine does not trigger STOP entries yet (TP-B).
+    expect(screen.queryByRole('radio', { name: 'Stop' })).toBeNull();
+    await user.type(screen.getByLabelText('Entry price'), '62000');
+    await user.type(screen.getByLabelText('Stop loss'), '60000');
+    await user.type(screen.getByLabelText('Take profit'), '66000');
     await user.type(
       screen.getByLabelText('Invalidation price (optional)'),
       '64000',
@@ -892,10 +902,7 @@ describe('SCR-17 new plan (T-040, UC-16)', () => {
     await user.selectOptions(timeframe, '1h');
     await waitFor(() =>
       expect(priceLines).toEqual(
-        expect.arrayContaining([
-          'Stop price 70000',
-          'Invalidation price 64000',
-        ]),
+        expect.arrayContaining(['Entry 62000', 'Invalidation price 64000']),
       ),
     );
     await user.click(screen.getByRole('button', { name: 'Save as draft' }));
@@ -903,8 +910,8 @@ describe('SCR-17 new plan (T-040, UC-16)', () => {
       expect(service.create).toHaveBeenCalledWith(
         ROW.pairId,
         expect.objectContaining({
-          entryType: 'STOP',
-          entryPrice: '70000',
+          entryType: 'LIMIT',
+          entryPrice: '62000',
           invalidationPrice: '64000',
           maxEntryDeviationR: '0.5',
           analysisTimeframe: '1h',
@@ -940,41 +947,23 @@ describe('SCR-17 new plan (T-040, UC-16)', () => {
     ).toBeTruthy();
   });
 
-  it('says why the server refused the invalidation price or a reached stop (MSG16, D-112)', async () => {
-    const refused = (field: string) =>
-      new ServiceError('refused', 'HTTP_ERROR', 400, {
-        status: 400,
-        code: 'VALIDATION_FAILED',
-        messageCode: 'MSG01',
-        messageArgs: [],
-        fieldErrors: { [field]: 'MSG16' },
-      });
+  it('says why the server refused the invalidation price (MSG16, D-112)', async () => {
     const service = fakePlans({
-      create: vi
-        .fn()
-        .mockRejectedValueOnce(refused('invalidationPrice'))
-        .mockRejectedValueOnce(refused('entryPrice')),
+      create: vi.fn().mockRejectedValueOnce(fieldRefusal('invalidationPrice')),
     });
     await open('/plans/new', service, 'FREE', fakeMarket(), scalper());
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('radio', { name: 'Stop' }));
-    await user.type(screen.getByLabelText('Stop price'), '70000');
-    await user.type(screen.getByLabelText('Stop loss'), '68000');
-    await user.type(screen.getByLabelText('Take profit'), '76000');
+    await user.type(await screen.findByLabelText('Entry price'), '62000');
+    await user.type(screen.getByLabelText('Stop loss'), '60000');
+    await user.type(screen.getByLabelText('Take profit'), '66000');
     await user.type(
       screen.getByLabelText('Invalidation price (optional)'),
-      '71000',
+      '61000',
     );
     await user.click(screen.getByRole('button', { name: 'Save as draft' }));
     expect(
       await screen.findByText(
         'For long positions: the invalidation price must lie beyond the current price, on the far side from the entry.',
-      ),
-    ).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: 'Save and activate' }));
-    expect(
-      await screen.findByText(
-        'For long positions: a stop entry must be above the current price; it has been reached, so use a market entry.',
       ),
     ).toBeTruthy();
   });
@@ -1063,6 +1052,38 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
     await panel.findByText('Risk (USDT)');
     expect(screen.getByText('Current last price')).toBeTruthy();
     expect(screen.queryByText('Expected fill')).toBeNull();
+  });
+
+  it('keeps the STOP of a saved STOP draft and says why a reached stop was refused (MSG16)', async () => {
+    const stopDraft: TradingPlan = {
+      ...SPOT_DRAFT,
+      entryType: 'STOP',
+      entryPrice: '70000.000000000000',
+      plannedEntryPrice: '70000.000000000000',
+      stopLoss: '68000.000000000000',
+      takeProfit: '76000.000000000000',
+    };
+    const service = fakePlans({
+      get: vi.fn(async () => stopDraft),
+      update: vi.fn().mockRejectedValueOnce(fieldRefusal('entryPrice')),
+    });
+    await open(editPath, service);
+    const stop = await screen.findByRole('radio', { name: 'Stop' });
+    expect(stop.getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByText(/Enters at market once the price reaches/));
+    expect(
+      (screen.getByLabelText('Stop price') as HTMLInputElement).value,
+    ).toBe('70000');
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Save and activate' }));
+    expect(
+      await screen.findByText(
+        'For long positions: a stop entry must be above the current price; it has been reached, so use a market entry.',
+      ),
+    ).toBeTruthy();
+    // Switched to LIMIT, the STOP draft can still go back to STOP.
+    await user.click(screen.getByRole('radio', { name: 'Limit' }));
+    expect(screen.getByRole('radio', { name: 'Stop' })).toBeTruthy();
   });
 
   it('shows MSG16 under the stop loss and sends nothing while the order is wrong', async () => {

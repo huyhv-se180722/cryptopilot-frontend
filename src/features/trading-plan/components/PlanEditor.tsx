@@ -21,6 +21,7 @@ import { errorText, messageText } from '../../../i18n/messages';
 import { problemOf } from '../../../services/api/errors';
 import type {
   MarketPair,
+  PlanEntryType,
   PlanTimeframe,
   TradingPlan,
 } from '../../../types/domain';
@@ -58,6 +59,13 @@ const FIELDS: readonly PlanField[] = [
   'maxEntryDeviationR',
   'analysisTimeframe',
 ];
+
+/**
+ * The entry types offered. STOP is accepted by the backend but not yet
+ * triggered by its engine (TP-B), so a new plan cannot pick it; a STOP
+ * draft saved before keeps it.
+ */
+const OFFERED_ENTRY_TYPES: readonly PlanEntryType[] = ['LIMIT', 'MARKET'];
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -103,8 +111,9 @@ export type PlanEditorTarget =
  * (MSG17), and Save as Draft (MSG14) or Save and Activate (MSG19; refused
  * with MSG18 or MSG27, nothing saved). A new plan picks its pair from the
  * market list by id (FEQ-01); a DRAFT's pair is fixed. Plan validity
- * (D-111, D-112): a STOP entry for breakouts, an invalidation price for a
- * waiting LIMIT or STOP, the plan's own entry deviation limit and the
+ * (D-111, D-112): a STOP entry for breakouts (on a STOP draft only until
+ * the engine triggers it), an invalidation price for a waiting LIMIT or
+ * STOP, the plan's own entry deviation limit and the
  * analysis timeframe, defaulted from the trading style. The page draws the
  * chart, given the pair and the lines.
  */
@@ -120,6 +129,10 @@ export function PlanEditor({
   const navigate = useNavigate();
   const { show } = useToast();
   const plan = target.mode === 'edit' ? target.plan : null;
+  const entryTypes: readonly PlanEntryType[] =
+    plan?.entryType === 'STOP'
+      ? [...OFFERED_ENTRY_TYPES, 'STOP']
+      : OFFERED_ENTRY_TYPES;
   const [draft, setDraft] = useState<PlanDraft>(() =>
     plan
       ? draftOfPlan(plan)
@@ -356,7 +369,7 @@ export function PlanEditor({
               label={p.entryType}
               value={draft.entryType}
               onChange={(entryType) => change({ entryType }, 'entryPrice')}
-              options={(['LIMIT', 'MARKET', 'STOP'] as const).map((value) => ({
+              options={entryTypes.map((value) => ({
                 value,
                 label: p[`entry${value}`],
               }))}
