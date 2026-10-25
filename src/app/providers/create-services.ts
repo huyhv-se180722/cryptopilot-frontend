@@ -59,6 +59,10 @@ import {
   createPendingAcademyService,
 } from '../../services/api/academy';
 import {
+  createHttpNewsAdminService,
+  createPendingNewsAdminService,
+} from '../../services/api/news-admin';
+import {
   createHttpNotificationService,
   createPendingNotificationService,
 } from '../../services/api/notifications';
@@ -134,6 +138,9 @@ export async function createServices(env: Environment): Promise<Services> {
     academy: connected
       ? createHttpAcademyService(http)
       : createPendingAcademyService(),
+    newsAdmin: connected
+      ? createHttpNewsAdminService(http)
+      : createPendingNewsAdminService(),
     // The bell polls (TD 9 fallback) until the backend accepts a
     // subscription to the notification queue (Q-75): the refusal closes
     // the account's connection, and with it the demo trading pushes.

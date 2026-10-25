@@ -74,6 +74,14 @@ import type {
   NewsArticleDetail,
   NewsPage,
   NewsQuery,
+  NewsCrawlLog,
+  NewsCrawlLogPage,
+  NewsSource,
+  NewsSourceDraft,
+  AdminNewsArticle,
+  AdminNewsArticlePage,
+  NewsSentimentCounts,
+  AdminNewsArticleQuery,
   ProfileUpdate,
   RiskProfile,
   RiskProfileParams,
@@ -433,6 +441,37 @@ export interface AcademyService {
   /** Idempotent: marking again keeps the first instant. */
   mark(slug: string): Promise<AcademyCompletedLesson>;
   unmark(slug: string): Promise<void>;
+}
+
+/**
+ * The news part of the administration console, Admin only: the RSS
+ * sources of SCR-41 (UC-49) with their crawl log and a crawl now
+ * (T-080b), and the collected articles with their summary status, hide /
+ * restore and summarize again (D-124).
+ */
+export interface NewsAdminService {
+  sources(signal?: AbortSignal): Promise<readonly NewsSource[]>;
+  createSource(draft: NewsSourceDraft): Promise<NewsSource>;
+  updateSource(id: string, draft: NewsSourceDraft): Promise<NewsSource>;
+  deleteSource(id: string): Promise<void>;
+  crawlLogs(
+    id: string,
+    page: number,
+    pageSize: number,
+    signal?: AbortSignal,
+  ): Promise<NewsCrawlLogPage>;
+  /** Refused within a minute of the source's last crawl (MSG50). */
+  crawlNow(id: string): Promise<NewsCrawlLog>;
+  articles(
+    query: AdminNewsArticleQuery,
+    signal?: AbortSignal,
+  ): Promise<AdminNewsArticlePage>;
+  hide(id: string): Promise<AdminNewsArticle>;
+  restore(id: string): Promise<AdminNewsArticle>;
+  /** Waits for the model; a refusal comes back in `summaryError`. */
+  summarize(id: string): Promise<AdminNewsArticle>;
+  /** The 24-hour count of shown articles per sentiment (D-126). */
+  sentimentSummary(signal?: AbortSignal): Promise<NewsSentimentCounts>;
 }
 
 /**

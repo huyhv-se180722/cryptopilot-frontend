@@ -14,6 +14,7 @@
 | alerts        | list                                      | PriceAlert                               |
 | community     | list                                      | CommunityPost                            |
 | news          | feed, article (HTTP, T-080, D-125, D-126) | NewsArticle, NewsArticleDetail, NewsPage |
+| news admin    | sources, crawl log, crawl now, articles   | NewsSource, AdminNewsArticle             |
 | ai            | list historical conversations             | AiConversation                           |
 | subscription  | list packages                             | SubscriptionPackage                      |
 | admin         | list logs                                 | AdminLog                                 |

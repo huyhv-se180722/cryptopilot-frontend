@@ -132,6 +132,39 @@ describe('HTTP boundary', () => {
       vi.useRealTimers();
     }
   });
+  it('lets a slow request wait longer than the client default', async () => {
+    vi.useFakeTimers();
+    try {
+      const fetcher = vi.fn<typeof fetch>().mockImplementation(
+        (_url, init) =>
+          new Promise((resolve, reject) => {
+            init?.signal?.addEventListener(
+              'abort',
+              () => reject(init.signal?.reason),
+              { once: true },
+            );
+            setTimeout(
+              () => resolve(new Response(JSON.stringify({ message: 'ok' }))),
+              500,
+            );
+          }),
+      );
+      const client = createHttpClient({
+        baseUrl: 'https://api.example.test',
+        fetcher,
+        timeoutMs: 100,
+      });
+      const slow = client.request({
+        path: 'slow',
+        decode: decodeMessage,
+        timeoutMs: 1_000,
+      });
+      await vi.advanceTimersByTimeAsync(500);
+      await expect(slow).resolves.toBeDefined();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it('normalizes a network failure', async () => {
     const fetcher = vi
       .fn<typeof fetch>()

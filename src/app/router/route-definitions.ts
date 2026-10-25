@@ -4,10 +4,12 @@ import type { Copy } from '../../i18n/locales/en';
  * Route metadata is UI configuration, never business data.
  * `screen` traces each route to the SRS screen inventory (SCR-01…44);
  * demo trading is not in SRS v1.0 and traces to its decision D-86 (D-101),
- * community member pages to D-99, the Academy to its task T-114.
+ * community member pages to D-99, the news article console to D-124, the Academy to
+ * its task T-114.
  * Dialog screens (SCR-14, SCR-19, SCR-27) have no route of their own.
  */
-export type ScreenId = `SCR-${string}` | 'D-86' | 'D-99' | 'UC-44' | 'T-114';
+export type ScreenId =
+  `SCR-${string}` | 'D-86' | 'D-99' | 'D-124' | 'UC-44' | 'T-114';
 export type ScreenTitleKey = keyof Copy['screens'];
 
 export interface RouteDefinition {
@@ -148,6 +150,13 @@ export const adminRoutes = [
     path: '/admin/news-sources',
     screen: 'SCR-41',
     titleKey: 'adminNewsSources',
+  },
+  // The collected articles and their AI summary status (T-080b): no SRS
+  // screen of its own, it extends SCR-41 (D-124).
+  {
+    path: '/admin/news-articles',
+    screen: 'D-124',
+    titleKey: 'adminNewsArticles',
   },
   { path: '/admin/ai-config', screen: 'SCR-42', titleKey: 'adminAiConfig' },
   { path: '/admin/settings', screen: 'SCR-43', titleKey: 'adminSettings' },

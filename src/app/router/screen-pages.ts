@@ -144,6 +144,14 @@ export const screenPages: Readonly<Record<string, PageModule>> = {
     Component: (await import('../../pages/admin/AdminAnnouncementEditorPage'))
       .AdminAnnouncementEditorPage,
   }),
+  '/admin/news-sources': async () => ({
+    Component: (await import('../../pages/admin/AdminNewsSourcesPage'))
+      .AdminNewsSourcesPage,
+  }),
+  '/admin/news-articles': async () => ({
+    Component: (await import('../../pages/admin/AdminNewsArticlesPage'))
+      .AdminNewsArticlesPage,
+  }),
   '/admin/account': async () => ({
     Component: (await import('../../pages/admin/AdminAccountPage'))
       .AdminAccountPage,

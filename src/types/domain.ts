@@ -715,6 +715,105 @@ export interface NotificationPage {
   pageSize: number;
   total: number;
 }
+/** How a crawl of a news source ended (NSF-10). */
+export type CrawlStatus = 'SUCCESS' | 'PARTIAL' | 'FAILED';
+/**
+ * An RSS source of SCR-41 (UC-49) as the console shows it: its settings,
+ * its last crawl and when it is crawled next (null while switched off, or
+ * before its first crawl).
+ */
+export interface NewsSource {
+  id: string;
+  sourceName: string;
+  feedUrl: string;
+  crawlIntervalMinutes: number;
+  active: boolean;
+  categoryFilter: string | null;
+  bodySelector: string | null;
+  excludedSelectors: string | null;
+  userAgent: string | null;
+  lastCrawledAt: ISODateTime | null;
+  lastCrawl: {
+    startedAt: ISODateTime;
+    status: CrawlStatus;
+    articlesFound: number | null;
+    articlesInserted: number | null;
+  } | null;
+  nextCrawlAt: ISODateTime | null;
+}
+/** What an administrator sets on a source; blank optional values are none. */
+export interface NewsSourceDraft {
+  sourceName: string;
+  feedUrl: string;
+  crawlIntervalMinutes: number;
+  active: boolean;
+  categoryFilter: string | null;
+  bodySelector: string | null;
+  excludedSelectors: string | null;
+  userAgent: string | null;
+}
+export interface NewsCrawlLog {
+  id: string;
+  startedAt: ISODateTime;
+  finishedAt: ISODateTime | null;
+  status: CrawlStatus;
+  articlesFound: number | null;
+  articlesInserted: number | null;
+  errorMessage: string | null;
+}
+export interface NewsCrawlLogPage {
+  items: readonly NewsCrawlLog[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+/**
+ * Where a collected article stands for the console (T-080b, D-124):
+ * FAILED once NSF-11 has used its attempts without a summary.
+ */
+export type NewsArticleStatus = 'PENDING' | 'FAILED' | 'SUMMARIZED' | 'HIDDEN';
+/**
+ * How many shown articles of the last 24 hours carry each sentiment
+ * (D-126): the administrators' view of the feed's tone. Articles not
+ * summarized yet are not counted.
+ */
+export interface NewsSentimentCounts {
+  since: ISODateTime;
+  bullish: number;
+  neutral: number;
+  bearish: number;
+}
+export interface AdminNewsArticle {
+  id: string;
+  sourceId: string;
+  source: string;
+  title: string;
+  aiTitle: string | null;
+  /** An http(s) address. */
+  originalUrl: string;
+  excerpt: string | null;
+  aiSummary: string | null;
+  sentiment: 'BULLISH' | 'NEUTRAL' | 'BEARISH' | null;
+  publishedAt: ISODateTime;
+  collectedAt: ISODateTime;
+  status: NewsArticleStatus;
+  summaryAttempts: number;
+  summaryError: string | null;
+  summaryAttemptedAt: ISODateTime | null;
+  hiddenAt: ISODateTime | null;
+}
+export interface AdminNewsArticleQuery {
+  status?: NewsArticleStatus;
+  sourceId?: string;
+  page: number;
+  pageSize: number;
+}
+export interface AdminNewsArticlePage {
+  items: readonly AdminNewsArticle[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
 /** The tone the AI reads in an article (NSF-11). */
 export type NewsSentiment = 'BULLISH' | 'NEUTRAL' | 'BEARISH';
 /** How far back the news feed reaches (SRS 3.8.1); 7d when none is named. */
