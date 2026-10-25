@@ -42,6 +42,11 @@ describe('SCR-33 admin overview (UC-40, UC-41)', () => {
     expect(screen.getByRole('link', { name: 'Review' })).toBeTruthy();
     expect(screen.getByText('PREMIUM_YEARLY')).toBeTruthy();
     expect(screen.getByText(/^Business days .* UTC\+7\.$/)).toBeTruthy();
+    // One heading level per section title, never a heading in a heading.
+    expect(
+      screen.getByRole('region', { name: 'Management report' }),
+    ).toBeTruthy();
+    expect(document.querySelector('h2 h2')).toBeNull();
   });
 
   it('asks for the chosen period and groups the report by week', async () => {

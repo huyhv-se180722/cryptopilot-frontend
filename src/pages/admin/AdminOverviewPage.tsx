@@ -99,11 +99,9 @@ export function AdminOverviewPage() {
       ) : (
         <Indicators data={dashboard.data} />
       )}
-      <section aria-labelledby="report-title" className="mt-6">
+      <section aria-label={t.reportTitle} className="mt-6">
         <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-          <h2 id="report-title" className="m-0">
-            <SectionTitle>{t.reportTitle}</SectionTitle>
-          </h2>
+          <SectionTitle>{t.reportTitle}</SectionTitle>
           <div className="flex flex-wrap items-end gap-2">
             <SegmentedControl<ReportGrouping>
               label={t.groupLabel}
