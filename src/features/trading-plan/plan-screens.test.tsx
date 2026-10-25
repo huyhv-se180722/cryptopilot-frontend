@@ -86,6 +86,7 @@ const ROW: TradingPlanSummary = {
   expiresAt: EXPIRES_AT,
   invalidatedAt: null,
   invalidationReason: null,
+  positionStatus: null,
 };
 
 const PLAN: TradingPlan = {
@@ -136,6 +137,7 @@ const PLAN: TradingPlan = {
   ],
   blocksActivation: false,
   statusHistory: [{ status: 'DRAFT', at: '2026-10-08T02:20:00Z' }],
+  position: null,
 };
 
 const refusal = (
@@ -201,6 +203,7 @@ function fakePlans(overrides: Partial<TradingPlanService> = {}) {
       blocksActivation: PLAN.blocksActivation,
     })),
     update: vi.fn(async () => PLAN),
+    changeLevels: vi.fn(async () => PLAN),
     ...overrides,
   };
   return service;
@@ -391,10 +394,16 @@ describe('SCR-16 plan list (T-041)', () => {
     ).toBe(false);
   });
 
-  it('adds the position columns on the Executed tab and pages by 20', async () => {
+  it('shows the position status on the Executed tab and pages by 20', async () => {
     const service = fakePlans({
       list: vi.fn(async (query) => ({
-        items: [{ ...ROW, status: 'EXECUTED' as const }],
+        items: [
+          {
+            ...ROW,
+            status: 'EXECUTED' as const,
+            positionStatus: 'OPEN' as const,
+          },
+        ],
         page: query.page,
         pageSize: 20,
         total: 45,
@@ -402,9 +411,9 @@ describe('SCR-16 plan list (T-041)', () => {
     });
     await open('/plans?tab=EXECUTED', service);
     expect(
-      await screen.findByRole('columnheader', { name: 'P/L (USDT)' }),
+      await screen.findByRole('columnheader', { name: 'Position' }),
     ).toBeTruthy();
-    expect(screen.getByText(/Position status and P\/L appear/)).toBeTruthy();
+    expect(screen.getByRole('cell', { name: 'Open' })).toBeTruthy();
     expect(screen.getByText('Page 1 of 3')).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Next' }));
     await waitFor(() => expect(lastList(service)?.page).toBe(2));
@@ -550,6 +559,134 @@ describe('SCR-18 plan detail (T-041)', () => {
         expect.arrayContaining(['Entry 62000', 'Invalidation price 60500']),
       ),
     );
+  });
+
+  it('shows an open position: fill, unrealized P/L, current levels and breakeven (T-048a, D-124)', async () => {
+    priceLines.length = 0;
+    const executed: TradingPlan = {
+      ...PLAN,
+      status: 'EXECUTED',
+      editable: false,
+      position: {
+        status: 'OPEN',
+        fillPrice: '62010.000000000000',
+        quantity: '0.010000000000',
+        entryTime: '2026-10-08T03:00:00Z',
+        entryFee: '0.31000000',
+        liquidationPrice: '74100.000000000000',
+        currentPrice: '61500.00',
+        unrealizedPnl: '5.10000000',
+        exitPrice: null,
+        exitTime: null,
+        closeReason: null,
+        realizedPnl: null,
+        feeAmount: null,
+        fundingFeeAmount: null,
+        netPnl: null,
+        provisional: false,
+        stopLoss: '62800.000000000000',
+        takeProfit: '59000.000000000000',
+        originalStopLoss: '63000.000000000000',
+        originalTakeProfit: '59000.000000000000',
+        stopWidened: false,
+        levelChangeCount: 1,
+        levelChanges: [
+          {
+            changedAt: '2026-10-08T05:00:00Z',
+            oldStopLoss: '63000.000000000000',
+            oldTakeProfit: '59000.000000000000',
+            newStopLoss: '62800.000000000000',
+            newTakeProfit: '59000.000000000000',
+          },
+        ],
+        breakevenPrice: '61940.00',
+        breakevenProvisional: true,
+        levelWarnings: [],
+        levelsEffectiveFrom: '2026-10-08T05:01:00Z',
+      },
+    };
+    await open(
+      '/plans/' + PLAN.id,
+      fakePlans({ get: vi.fn(async () => executed) }),
+    );
+    const position = within(
+      await screen.findByRole('region', { name: 'Position' }),
+    );
+    expect(position.getByText('Open')).toBeTruthy();
+    expect(
+      position.getByText('Unrealized P/L (USDT)').nextSibling?.textContent,
+    ).toBe('+5.10');
+    expect(position.getByText('Mark price').nextSibling?.textContent).toBe(
+      '61,500.00',
+    );
+    expect(
+      position.getAllByText('Stop loss')[0]?.nextSibling?.textContent,
+    ).toBe('62,800.00');
+    expect(position.getByText('Breakeven stop').nextSibling?.textContent).toBe(
+      '61,940.00provisional',
+    );
+    expect(position.getByText('Level changes')).toBeTruthy();
+    expect(position.getByText('63,000.00 → 62,800.00')).toBeTruthy();
+    await waitFor(() =>
+      expect(priceLines).toEqual(
+        expect.arrayContaining(['Entry 62010', 'Stop loss 62800']),
+      ),
+    );
+  });
+
+  it('headlines the net P/L of a closed position, provisional while funding is missing (T-048b)', async () => {
+    const closed: TradingPlan = {
+      ...PLAN,
+      status: 'EXECUTED',
+      editable: false,
+      position: {
+        status: 'CLOSED',
+        fillPrice: '62010.000000000000',
+        quantity: '0.010000000000',
+        entryTime: '2026-10-08T03:00:00Z',
+        entryFee: '0.31000000',
+        liquidationPrice: '74100.000000000000',
+        currentPrice: null,
+        unrealizedPnl: null,
+        exitPrice: '63080.000000000000',
+        exitTime: '2026-10-09T03:00:00Z',
+        closeReason: 'STOP_LOSS',
+        realizedPnl: '-10.70000000',
+        feeAmount: '0.62540000',
+        fundingFeeAmount: '-0.04000000',
+        netPnl: '-11.36540000',
+        provisional: true,
+        stopLoss: '63000.000000000000',
+        takeProfit: '59000.000000000000',
+        originalStopLoss: '63000.000000000000',
+        originalTakeProfit: '59000.000000000000',
+        stopWidened: false,
+        levelChangeCount: 0,
+        levelChanges: [],
+        breakevenPrice: null,
+        breakevenProvisional: false,
+        levelWarnings: [],
+        levelsEffectiveFrom: null,
+      },
+    };
+    await open(
+      '/plans/' + PLAN.id,
+      fakePlans({ get: vi.fn(async () => closed) }),
+    );
+    const position = within(
+      await screen.findByRole('region', { name: 'Position' }),
+    );
+    expect(
+      position.getByText('Closed', { selector: 'span *, span' }),
+    ).toBeTruthy();
+    expect(position.getByText('-11.37')).toBeTruthy();
+    expect(position.getByText('Closed by').nextSibling?.textContent).toBe(
+      'Stop loss',
+    );
+    expect(position.getByText('Funding (USDT)').nextSibling?.textContent).toBe(
+      '-0.04',
+    );
+    expect(position.getAllByText('provisional').length).toBeGreaterThan(0);
   });
 
   it('shows a dash for a setup score that could not be read, and none on a draft', async () => {
@@ -1453,5 +1590,146 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
       ),
     ).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Save as draft' })).toBeNull();
+  });
+});
+
+describe('SCR-18 edit the levels of an open position (TP-E, D-124)', () => {
+  const position: NonNullable<TradingPlan['position']> = {
+    status: 'OPEN',
+    fillPrice: '62010.000000000000',
+    quantity: '0.010000000000',
+    entryTime: '2026-10-08T03:00:00Z',
+    entryFee: '0.31000000',
+    liquidationPrice: '74100.000000000000',
+    currentPrice: '61500.00',
+    unrealizedPnl: '5.10000000',
+    exitPrice: null,
+    exitTime: null,
+    closeReason: null,
+    realizedPnl: null,
+    feeAmount: null,
+    fundingFeeAmount: null,
+    netPnl: null,
+    provisional: false,
+    stopLoss: '63000.000000000000',
+    takeProfit: '59000.000000000000',
+    originalStopLoss: '63000.000000000000',
+    originalTakeProfit: '59000.000000000000',
+    stopWidened: false,
+    levelChangeCount: 0,
+    levelChanges: [],
+    breakevenPrice: '61940.00',
+    breakevenProvisional: false,
+    levelWarnings: [],
+    levelsEffectiveFrom: null,
+  };
+  // A SHORT whose current price is already below its breakeven stop.
+  const executed: TradingPlan = {
+    ...PLAN,
+    status: 'EXECUTED',
+    editable: false,
+    position,
+  };
+  const saved = (changes: Partial<typeof position>): TradingPlan => ({
+    ...executed,
+    position: { ...position, ...changes },
+  });
+  const openDialog = async (service: TradingPlanService) => {
+    await open('/plans/' + PLAN.id, service);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Edit SL/TP' }));
+    return { user, dialog: within(screen.getByRole('dialog')) };
+  };
+
+  it('sends only the changed level and says from when it applies', async () => {
+    const service = fakePlans({
+      get: vi.fn(async () => executed),
+      changeLevels: vi.fn(async () =>
+        saved({
+          stopLoss: '62700.000000000000',
+          levelsEffectiveFrom: '2026-10-08T05:01:00Z',
+        }),
+      ),
+    });
+    const { user, dialog } = await openDialog(service);
+    const stop = dialog.getByLabelText('Stop loss') as HTMLInputElement;
+    expect(stop.value).toBe('63000');
+    await user.clear(stop);
+    await user.type(stop, '62700');
+    await user.click(dialog.getByRole('button', { name: 'Save levels' }));
+    expect(service.changeLevels).toHaveBeenCalledWith(PLAN.id, {
+      stopLoss: '62700',
+      takeProfit: null,
+    });
+    expect(
+      await screen.findByText(/^Levels saved\. New levels apply from /),
+    ).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('moves the stop to the server’s breakeven price, never the entry', async () => {
+    const service = fakePlans({
+      get: vi.fn(async () => executed),
+      changeLevels: vi.fn(async () => saved({ stopLoss: '61940.00' })),
+    });
+    const { user, dialog } = await openDialog(service);
+    await user.click(
+      dialog.getByRole('button', { name: 'Move SL to breakeven' }),
+    );
+    expect(service.changeLevels).toHaveBeenCalledWith(PLAN.id, {
+      stopLoss: '61940.00',
+      takeProfit: null,
+    });
+  });
+
+  it('keeps the breakeven move off until the price is beyond it', async () => {
+    const service = fakePlans({
+      get: vi.fn(async () => saved({ currentPrice: '62100.00' })),
+    });
+    const { dialog } = await openDialog(service);
+    expect(
+      (
+        dialog.getByRole('button', {
+          name: 'Move SL to breakeven',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(dialog.getByText(/Available once the price has moved/)).toBeTruthy();
+  });
+
+  it('words a refused level and shows the risk warnings of a saved wider stop', async () => {
+    const service = fakePlans({
+      get: vi.fn(async () => executed),
+      changeLevels: vi
+        .fn()
+        .mockRejectedValueOnce(fieldRefusal('stopLoss'))
+        .mockResolvedValueOnce(
+          saved({
+            stopLoss: '63500.000000000000',
+            stopWidened: true,
+            levelWarnings: [
+              { type: 'OVERSIZED_POSITION', severity: 'WARNING' },
+            ],
+          }),
+        ),
+    });
+    const { user, dialog } = await openDialog(service);
+    const stop = dialog.getByLabelText('Stop loss');
+    await user.clear(stop);
+    await user.type(stop, '75000');
+    await user.click(dialog.getByRole('button', { name: 'Save levels' }));
+    expect(
+      await dialog.findByText(
+        'For short positions: stop loss > current price, not reached, and below the liquidation price.',
+      ),
+    ).toBeTruthy();
+    await user.clear(stop);
+    await user.type(stop, '63500');
+    await user.click(dialog.getByRole('button', { name: 'Save levels' }));
+    expect(
+      await dialog.findByText('Risk per trade above your risk profile'),
+    ).toBeTruthy();
+    await user.click(dialog.getByRole('button', { name: 'Done' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });

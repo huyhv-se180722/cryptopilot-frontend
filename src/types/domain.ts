@@ -291,8 +291,7 @@ export interface PlanSnapshot {
 
 /**
  * A row of SCR-16. The pair is named by its id only, which the market lists
- * resolve to a symbol (FEQ-01); position status and P/L wait for the
- * matching engine.
+ * resolve to a symbol (FEQ-01).
  */
 export interface TradingPlanSummary {
   id: string;
@@ -318,6 +317,78 @@ export interface TradingPlanSummary {
   expiresAt: ISODateTime | null;
   invalidatedAt: ISODateTime | null;
   invalidationReason: PlanInvalidationReason | null;
+  /** EXECUTED rows only (T-048a); null otherwise and for a plan filled before. */
+  positionStatus: PositionStatus | null;
+}
+
+export type PositionStatus = 'OPEN' | 'CLOSED';
+/** How a position ended (BR-35, BR-37, UC-21). */
+export type PositionCloseReason =
+  'TAKE_PROFIT' | 'STOP_LOSS' | 'MANUAL' | 'LIQUIDATION';
+
+/** One change of the levels of an open position (D-124), oldest first. */
+export interface PositionLevelChange {
+  changedAt: ISODateTime;
+  oldStopLoss: Decimal | null;
+  oldTakeProfit: Decimal | null;
+  newStopLoss: Decimal | null;
+  newTakeProfit: Decimal | null;
+}
+
+/**
+ * The simulated position of an EXECUTED plan (SCR-18, UC-20, BR-34…BR-38).
+ * Every amount is the server's: the UI never computes P/L or fees (D-97).
+ */
+export interface PlanPosition {
+  status: PositionStatus;
+  /** The entry as filled, slippage included. */
+  fillPrice: Decimal;
+  quantity: Decimal;
+  entryTime: ISODateTime;
+  entryFee: Decimal;
+  /** Futures, at the fill price; null on Spot. */
+  liquidationPrice: Decimal | null;
+  /** OPEN only: Futures mark, Spot last price; null when not cached. */
+  currentPrice: Decimal | null;
+  /** OPEN only: by the current price, no fees and no funding (Q-55). */
+  unrealizedPnl: Decimal | null;
+  /** CLOSED only from here to `provisional`. */
+  exitPrice: Decimal | null;
+  exitTime: ISODateTime | null;
+  closeReason: PositionCloseReason | null;
+  /** The price result, no fees, no funding (BR-35). */
+  realizedPnl: Decimal | null;
+  /** Entry and exit fee, or the clearance fee of a liquidation (BR-36). */
+  feeAmount: Decimal | null;
+  /** Futures: + received / − paid so far; null on Spot. */
+  fundingFeeAmount: Decimal | null;
+  /** The headline P/L: realized − fees + funding (BR-38). */
+  netPnl: Decimal | null;
+  /** A funding settlement may still change `netPnl`. */
+  provisional: boolean;
+  /** The levels the exits use now (D-124); null from a backend before TP-E. */
+  stopLoss: Decimal | null;
+  takeProfit: Decimal | null;
+  /** The levels at the fill; never change. */
+  originalStopLoss: Decimal | null;
+  originalTakeProfit: Decimal | null;
+  /** A stop loss was once moved further from the entry than the original. */
+  stopWidened: boolean;
+  levelChangeCount: number;
+  levelChanges: readonly PositionLevelChange[];
+  /** OPEN only: the stop at which the net P/L is about zero. */
+  breakevenPrice: Decimal | null;
+  breakevenProvisional: boolean;
+  /** Only in the answer of a change: the risk limits a widened stop breaks. */
+  levelWarnings: readonly PlanWarning[];
+  /** The first 1-minute candle the current levels act on; null if never changed. */
+  levelsEffectiveFrom: ISODateTime | null;
+}
+
+/** New levels of an OPEN position (D-124); null keeps the current one. */
+export interface PositionLevels {
+  stopLoss: Decimal | null;
+  takeProfit: Decimal | null;
 }
 
 /** SCR-18: inputs, snapshot, warnings and status history of one plan. */
@@ -368,6 +439,8 @@ export interface TradingPlan {
   blocksActivation: boolean;
   /** Oldest first. */
   statusHistory: readonly { status: PlanStatus; at: ISODateTime }[];
+  /** EXECUTED only (T-048a); null before the fill and for a plan filled before. */
+  position: PlanPosition | null;
 }
 
 /**

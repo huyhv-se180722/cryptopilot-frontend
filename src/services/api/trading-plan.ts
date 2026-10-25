@@ -18,6 +18,7 @@ export function createPendingTradingPlanService(): TradingPlanService {
     create: async () => integrationPending(),
     calculate: async () => integrationPending(),
     update: async () => integrationPending(),
+    changeLevels: async () => integrationPending(),
   };
 }
 
@@ -85,6 +86,19 @@ export function createHttpTradingPlanService(
         path: planPath(id),
         method: 'PUT',
         body: { ...encodePlanInputs(inputs), activate },
+        decode: decodePlan,
+      }),
+    // Only the levels given are sent; an absent one keeps the current.
+    changeLevels: (id, levels) =>
+      http.request({
+        path: planPath(id) + '/position-levels',
+        method: 'PATCH',
+        body: {
+          ...(levels.stopLoss !== null ? { stopLoss: levels.stopLoss } : {}),
+          ...(levels.takeProfit !== null
+            ? { takeProfit: levels.takeProfit }
+            : {}),
+        },
         decode: decodePlan,
       }),
   };

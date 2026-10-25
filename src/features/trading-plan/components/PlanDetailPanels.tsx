@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { AlertTriangle, Clock } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { NumericText } from '../../../components/ui/NumericText';
 import { useCopy } from '../../../hooks/use-copy';
 import { formatCopy } from '../../../i18n/copy';
@@ -379,19 +379,6 @@ export function PlanHistoryPanel({ plan }: { plan: TradingPlan }) {
           </li>
         ))}
       </ol>
-    </Panel>
-  );
-}
-
-/** SRS 3.5.3 live position of an executed plan; it waits for the matching engine. */
-export function PlanPositionPanel() {
-  const p = useCopy().plan;
-  return (
-    <Panel id="plan-position-title" title={p.positionTitle}>
-      <p className="flex items-start gap-2 text-xs text-muted">
-        <Clock size={14} aria-hidden="true" className="mt-0.5 shrink-0" />
-        {p.positionWaiting}
-      </p>
     </Panel>
   );
 }

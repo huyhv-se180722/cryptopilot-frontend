@@ -5,6 +5,7 @@ import {
   toFixedDecimal,
   trimDecimal,
 } from '../../../utils/decimal-format';
+import type { PlanPosition, TradingPlan } from '../../../types/domain';
 
 /**
  * Plan prices arrive rounded to the pair's tick by the server but padded to
@@ -39,3 +40,17 @@ export type PlanPeriod = (typeof PLAN_PERIODS)[number];
 /** The last 8 characters of the id, enough to tell plans apart on screen. */
 export const shortPlanId = (id: string) =>
   id.split('-').at(-1)?.slice(-8) ?? id;
+
+/**
+ * The breakeven stop helps only once the current price is beyond it (LONG
+ * above, SHORT below); before that the server refuses it (MSG16).
+ */
+export function breakevenReachable(
+  plan: TradingPlan,
+  position: PlanPosition,
+): boolean {
+  const { breakevenPrice, currentPrice } = position;
+  if (!breakevenPrice || !currentPrice) return false;
+  const side = compareDecimal(currentPrice, breakevenPrice);
+  return plan.direction === 'LONG' ? side > 0 : side < 0;
+}

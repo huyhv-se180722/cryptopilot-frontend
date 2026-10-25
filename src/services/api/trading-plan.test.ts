@@ -217,6 +217,96 @@ describe('trading plan decoders', () => {
     ).toThrow();
   });
 
+  it('reads the position of an executed plan (103d7cf), null before the fill', () => {
+    expect(decodePlan(PLAN).position).toBeNull();
+    expect(
+      decodePlanPage({
+        items: [{ ...ROW, status: 'EXECUTED', positionStatus: 'OPEN' }],
+        page: 1,
+        pageSize: 20,
+        total: 1,
+      }).items[0]?.positionStatus,
+    ).toBe('OPEN');
+    // T-048a only: the TP-E fields read as empty.
+    const open = decodePlan({
+      ...PLAN,
+      status: 'EXECUTED',
+      position: {
+        status: 'OPEN',
+        fillPrice: '100.000000000000',
+        quantity: '2.000000000000',
+        entryTime: '2026-10-25T08:00:00Z',
+        entryFee: '0.20000000',
+        liquidationPrice: null,
+        currentPrice: '103',
+        unrealizedPnl: '6.00000000',
+      },
+    }).position;
+    expect(open).toMatchObject({
+      status: 'OPEN',
+      unrealizedPnl: '6.00000000',
+      provisional: false,
+      stopLoss: null,
+      levelChangeCount: 0,
+      levelChanges: [],
+      levelWarnings: [],
+    });
+    // The CLOSED example of the contract, after one change of the levels.
+    const closed = decodePlan({
+      ...PLAN,
+      status: 'EXECUTED',
+      position: {
+        status: 'CLOSED',
+        fillPrice: '100.000000000000',
+        quantity: '2.000000000000',
+        entryTime: '2026-10-25T08:01:00Z',
+        entryFee: '0.04000000',
+        liquidationPrice: '90.370000000000',
+        currentPrice: null,
+        unrealizedPnl: null,
+        exitPrice: '90.370000000000',
+        exitTime: '2026-10-25T08:02:00Z',
+        closeReason: 'LIQUIDATION',
+        realizedPnl: '-19.26000000',
+        feeAmount: '0.76296000',
+        fundingFeeAmount: '0.00000000',
+        netPnl: '-20.02296000',
+        provisional: false,
+        stopLoss: '97.000000000000',
+        takeProfit: '112.000000000000',
+        originalStopLoss: '95.000000000000',
+        originalTakeProfit: '110.000000000000',
+        stopWidened: false,
+        levelChangeCount: 1,
+        levelChanges: [
+          {
+            changedAt: '2026-10-25T08:01:30Z',
+            oldStopLoss: '95.000000000000',
+            oldTakeProfit: '110.000000000000',
+            newStopLoss: '97.000000000000',
+            newTakeProfit: '112.000000000000',
+          },
+        ],
+        breakevenPrice: null,
+        breakevenProvisional: false,
+        levelWarnings: [],
+        levelsEffectiveFrom: '2026-10-25T08:02:00Z',
+      },
+    }).position;
+    expect(closed).toMatchObject({
+      closeReason: 'LIQUIDATION',
+      netPnl: '-20.02296000',
+      levelChangeCount: 1,
+      levelChanges: [{ newStopLoss: '97.000000000000' }],
+    });
+    expect(() =>
+      decodePlan({
+        ...PLAN,
+        position: { ...closed, closeReason: 'EXPIRED' },
+      }),
+    ).toThrow();
+  });
+
   it('rejects an unknown status, warning or a missing snapshot value', () => {
     expect(() => decodePlan({ ...PLAN, status: 'OPEN' })).toThrow();
     expect(() =>
@@ -289,6 +379,40 @@ describe('HTTP trading plan adapter', () => {
       'GET /api/v1/plans/' + PLAN.id,
       'POST /api/v1/plans/' + PLAN.id + '/activate',
       'POST /api/v1/plans/' + PLAN.id + '/cancel',
+    ]);
+  });
+
+  it('moves only the levels given of an open position (TP-E)', async () => {
+    const bodies: unknown[] = [];
+    const http = createHttpClient({
+      baseUrl: 'https://api.example.test/api/v1',
+      fetcher: vi.fn<typeof fetch>(async (input, init = {}) => {
+        bodies.push({
+          method: init.method,
+          path: new URL(String(input)).pathname,
+          body: JSON.parse(String(init.body)),
+        });
+        return new Response(JSON.stringify(PLAN), { status: 200 });
+      }),
+      session: { accessToken: () => 'token-1', refresh: async () => 'renewed' },
+    });
+    const plans = createHttpTradingPlanService(http);
+    await plans.changeLevels(PLAN.id, { stopLoss: '61000', takeProfit: null });
+    await plans.changeLevels(PLAN.id, {
+      stopLoss: '61000',
+      takeProfit: '70000',
+    });
+    expect(bodies).toEqual([
+      {
+        method: 'PATCH',
+        path: '/api/v1/plans/' + PLAN.id + '/position-levels',
+        body: { stopLoss: '61000' },
+      },
+      {
+        method: 'PATCH',
+        path: '/api/v1/plans/' + PLAN.id + '/position-levels',
+        body: { stopLoss: '61000', takeProfit: '70000' },
+      },
     ]);
   });
 

@@ -1,5 +1,6 @@
 import type {
   PlanInvalidationReason,
+  PlanPosition,
   PlanStatus,
   PlanTimeframe,
   PlanWarning,
@@ -10,7 +11,9 @@ import type {
  * DEVELOPMENT ONLY. Labelled plans covering every status, both markets,
  * the three warning severities, a BLOCKING draft, a STOP entry and an
  * INVALIDATED plan (D-111), the costs of D-116 (with HIGH_FEE_SHARE on a
- * tight stop, and none on plans saved before them). Numbers are written by
+ * tight stop, and none on plans saved before them), an EXECUTED plan with
+ * its OPEN position and one closed by its stop loss after a level change
+ * (T-048a, T-048b, D-124). Numbers are written by
  * hand to look like a risk calculation; they are not computed, the setup
  * score at activation and the costs included.
  */
@@ -68,9 +71,123 @@ interface Seed {
   costs?: Costs;
   /** MARKET only: the reference price moved by the slippage. */
   expectedFill?: string;
+  /** EXECUTED only: the position, `entryTime` hours after creation. */
+  position?: (created: number) => PlanPosition;
 }
 
+const OPEN_LEVELS = {
+  exitPrice: null,
+  exitTime: null,
+  closeReason: null,
+  realizedPnl: null,
+  feeAmount: null,
+  fundingFeeAmount: null,
+  netPnl: null,
+  provisional: false,
+  stopWidened: false,
+  levelChangeCount: 0,
+  levelChanges: [],
+  levelWarnings: [],
+  levelsEffectiveFrom: null,
+} as const;
+
 const SEEDS: readonly Seed[] = [
+  {
+    n: 11,
+    pairId: BTC_PAIR,
+    market: 'spot',
+    direction: 'LONG',
+    entryType: 'LIMIT',
+    entry: '61500.00',
+    stop: '60500.00',
+    take: '64500.00',
+    leverage: null,
+    path: ['ACTIVE', 'EXECUTED'],
+    createdDaysAgo: 1.5,
+    note: 'Filled on the retest; position open (fixture).',
+    quantity: '0.01000',
+    notional: '615.0000000',
+    margin: '615.00000000',
+    risk: '10.00000000',
+    reward: '30.00000000',
+    rr: '3.00000000',
+    score: '68',
+    position: (created) => ({
+      ...OPEN_LEVELS,
+      status: 'OPEN',
+      fillPrice: '61500.000000000000',
+      quantity: '0.010000000000',
+      entryTime: new Date(created + 4 * HOUR).toISOString(),
+      entryFee: '0.61500000',
+      liquidationPrice: null,
+      currentPrice: '62050.00',
+      unrealizedPnl: '5.50000000',
+      stopLoss: '60500.000000000000',
+      takeProfit: '64500.000000000000',
+      originalStopLoss: '60500.000000000000',
+      originalTakeProfit: '64500.000000000000',
+      breakevenPrice: '61685.00',
+      breakevenProvisional: false,
+    }),
+  },
+  {
+    n: 12,
+    pairId: ETH_PAIR,
+    market: 'futures',
+    direction: 'SHORT',
+    entryType: 'STOP',
+    entry: '2400.00',
+    stop: '2460.00',
+    take: '2250.00',
+    leverage: 5,
+    path: ['ACTIVE', 'EXECUTED'],
+    createdDaysAgo: 3,
+    note: 'Breakdown short, stopped out after moving the stop (fixture).',
+    quantity: '0.166',
+    notional: '398.40000000',
+    margin: '79.68000000',
+    risk: '9.96000000',
+    reward: '24.90000000',
+    rr: '2.50000000',
+    liquidation: '2867.5',
+    position: (created) => ({
+      status: 'CLOSED',
+      fillPrice: '2401.20',
+      quantity: '0.166000000000',
+      entryTime: new Date(created + 4 * HOUR).toISOString(),
+      entryFee: '0.19929960',
+      liquidationPrice: '2867.48',
+      currentPrice: null,
+      unrealizedPnl: null,
+      exitPrice: '2441.22',
+      exitTime: new Date(created + 30 * HOUR).toISOString(),
+      closeReason: 'STOP_LOSS',
+      realizedPnl: '-6.64332000',
+      feeAmount: '0.40195212',
+      fundingFeeAmount: '0.03120000',
+      netPnl: '-7.01407212',
+      provisional: false,
+      stopLoss: '2440.00',
+      takeProfit: '2250.00',
+      originalStopLoss: '2460.00',
+      originalTakeProfit: '2250.00',
+      stopWidened: false,
+      levelChangeCount: 1,
+      levelChanges: [
+        {
+          changedAt: new Date(created + 20 * HOUR).toISOString(),
+          oldStopLoss: '2460.00',
+          oldTakeProfit: '2250.00',
+          newStopLoss: '2440.00',
+          newTakeProfit: '2250.00',
+        },
+      ],
+      breakevenPrice: null,
+      breakevenProvisional: false,
+      levelWarnings: [],
+      levelsEffectiveFrom: new Date(created + 20 * HOUR + 60_000).toISOString(),
+    }),
+  },
   {
     n: 1,
     pairId: BTC_PAIR,
@@ -404,6 +521,8 @@ export function devPlanSeeds(now: number): TradingPlan[] {
         status: change,
         at: new Date(created + index * 2 * HOUR).toISOString(),
       })),
+      position:
+        status === 'EXECUTED' && seed.position ? seed.position(created) : null,
     };
   });
 }

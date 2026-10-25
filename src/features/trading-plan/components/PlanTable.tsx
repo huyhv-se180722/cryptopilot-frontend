@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { Badge } from '../../../components/ui/Badge';
 import { NumericText } from '../../../components/ui/NumericText';
 import { Table, type Column } from '../../../components/ui/Table';
 import { useCopy } from '../../../hooks/use-copy';
@@ -129,13 +130,17 @@ export function PlanTable({
           {
             id: 'position',
             header: p.colPosition,
-            render: () => none,
-          },
-          {
-            id: 'pnl',
-            header: p.colPnl,
-            numeric: true,
-            render: () => none,
+            render: (row: TradingPlanSummary) =>
+              row.positionStatus ? (
+                <Badge
+                  tone={row.positionStatus === 'OPEN' ? 'info' : 'neutral'}
+                  withDot
+                >
+                  {p[`position${row.positionStatus}`]}
+                </Badge>
+              ) : (
+                none
+              ),
           },
         ]
       : []),

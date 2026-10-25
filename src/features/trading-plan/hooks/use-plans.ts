@@ -7,7 +7,12 @@ import {
 import { useMutation, type MutationState } from '../../../hooks/use-mutation';
 import { useServices } from '../../../hooks/use-services';
 import { problemOf } from '../../../services/api/errors';
-import type { MarketType, PlanTab, TradingPlan } from '../../../types/domain';
+import type {
+  MarketType,
+  PlanTab,
+  PositionLevels,
+  TradingPlan,
+} from '../../../types/domain';
 
 /** CR-04: 20 rows per page. */
 export const PLAN_PAGE_SIZE = 20;
@@ -170,4 +175,31 @@ export function usePlanActions(id: string) {
     error,
     errorCode: problemOf(error)?.code ?? null,
   };
+}
+
+/**
+ * TP-E: new levels of the plan's OPEN position (D-124). The answer replaces
+ * the shown plan and the lists are read again; when the position is no
+ * longer open (409) the plan is read again to show how it ended.
+ */
+export function usePositionLevels(id: string) {
+  const { tradingPlan } = useServices();
+  const client = useQueryClient();
+  return useMutation(
+    useCallback(
+      async (levels: PositionLevels) => {
+        try {
+          const plan = await tradingPlan.changeLevels(id, levels);
+          client.setQueryData(detailKey(id), plan);
+          void client.invalidateQueries({ queryKey: LIST_KEY });
+          return plan;
+        } catch (error) {
+          if (problemOf(error)?.status === 409)
+            void client.invalidateQueries({ queryKey: detailKey(id) });
+          throw error;
+        }
+      },
+      [tradingPlan, id, client],
+    ),
+  );
 }

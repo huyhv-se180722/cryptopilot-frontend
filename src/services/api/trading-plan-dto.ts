@@ -5,11 +5,15 @@ import type {
   PlanEntryType,
   PlanInvalidationReason,
   PlanPage,
+  PlanPosition,
   PlanSnapshot,
   PlanStatus,
   PlanTimeframe,
   PlanWarning,
   PlanWarningType,
+  PositionCloseReason,
+  PositionLevelChange,
+  PositionStatus,
   TradingPlan,
   TradingPlanSummary,
   WarningSeverity,
@@ -41,6 +45,9 @@ import { marketOf } from './market-dto';
  * @ dccfc6c. Those fields are read as null when absent, as an older backend
  * answers. The capital is no longer sent, only read (TP-D, D-121, `develop`
  * @ 103d7cf): the server sizes every plan on the profile's default capital.
+ * The position of an executed plan (`PositionResponse`, T-048a, T-048b,
+ * T-046, TP-E) and the rows' `positionStatus` against `develop` @ 103d7cf;
+ * the TP-E fields read as their empty value when absent.
  */
 const STATUSES: readonly PlanStatus[] = [
   'DRAFT',
@@ -57,6 +64,13 @@ const REASONS: readonly PlanInvalidationReason[] = [
   'TAKE_PROFIT_REACHED',
   'STOP_LOSS_REACHED',
   'INVALIDATION_PRICE',
+];
+const POSITION_STATUSES: readonly PositionStatus[] = ['OPEN', 'CLOSED'];
+const CLOSE_REASONS: readonly PositionCloseReason[] = [
+  'TAKE_PROFIT',
+  'STOP_LOSS',
+  'MANUAL',
+  'LIQUIDATION',
 ];
 const SEVERITIES: readonly WarningSeverity[] = ['INFO', 'WARNING', 'BLOCKING'];
 const WARNING_TYPES: readonly PlanWarningType[] = [
@@ -119,6 +133,11 @@ function summary(item: unknown, index: number): TradingPlanSummary {
     createdAt: instant(value.createdAt, 'createdAt'),
     activatedAt: nullableInstant(value.activatedAt, 'activatedAt'),
     invalidatedAt: nullableInstant(value.invalidatedAt, 'invalidatedAt'),
+    positionStatus: nullableOneOf(
+      POSITION_STATUSES,
+      value.positionStatus,
+      'positionStatus',
+    ),
   };
 }
 
@@ -181,6 +200,98 @@ function warning(item: unknown): PlanWarning {
   };
 }
 
+const optionalFlag = (value: unknown, name: string) =>
+  value === undefined ? false : flag(value, name);
+
+function levelChange(item: unknown): PositionLevelChange {
+  const value = record(item, 'levelChanges');
+  return {
+    changedAt: instant(value.changedAt, 'levelChanges.changedAt'),
+    oldStopLoss: nullableDecimal(value.oldStopLoss, 'levelChanges.oldStopLoss'),
+    oldTakeProfit: nullableDecimal(
+      value.oldTakeProfit,
+      'levelChanges.oldTakeProfit',
+    ),
+    newStopLoss: nullableDecimal(value.newStopLoss, 'levelChanges.newStopLoss'),
+    newTakeProfit: nullableDecimal(
+      value.newTakeProfit,
+      'levelChanges.newTakeProfit',
+    ),
+  };
+}
+
+/** `PositionResponse`: the position of an EXECUTED plan, null before the fill. */
+export function decodePosition(body: unknown): PlanPosition | null {
+  if (body === null || body === undefined) return null;
+  const value = record(body, 'position');
+  const optional = (items: unknown, name: string) =>
+    items === undefined ? [] : list(items, name);
+  return {
+    status: oneOf(POSITION_STATUSES, value.status, 'position.status'),
+    fillPrice: decimal(value.fillPrice, 'position.fillPrice'),
+    quantity: decimal(value.quantity, 'position.quantity'),
+    entryTime: instant(value.entryTime, 'position.entryTime'),
+    entryFee: decimal(value.entryFee, 'position.entryFee'),
+    liquidationPrice: nullableDecimal(
+      value.liquidationPrice,
+      'position.liquidationPrice',
+    ),
+    currentPrice: nullableDecimal(value.currentPrice, 'position.currentPrice'),
+    unrealizedPnl: nullableDecimal(
+      value.unrealizedPnl,
+      'position.unrealizedPnl',
+    ),
+    exitPrice: nullableDecimal(value.exitPrice, 'position.exitPrice'),
+    exitTime: nullableInstant(value.exitTime, 'position.exitTime'),
+    closeReason: nullableOneOf(
+      CLOSE_REASONS,
+      value.closeReason,
+      'position.closeReason',
+    ),
+    realizedPnl: nullableDecimal(value.realizedPnl, 'position.realizedPnl'),
+    feeAmount: nullableDecimal(value.feeAmount, 'position.feeAmount'),
+    fundingFeeAmount: nullableDecimal(
+      value.fundingFeeAmount,
+      'position.fundingFeeAmount',
+    ),
+    netPnl: nullableDecimal(value.netPnl, 'position.netPnl'),
+    provisional: optionalFlag(value.provisional, 'position.provisional'),
+    stopLoss: nullableDecimal(value.stopLoss, 'position.stopLoss'),
+    takeProfit: nullableDecimal(value.takeProfit, 'position.takeProfit'),
+    originalStopLoss: nullableDecimal(
+      value.originalStopLoss,
+      'position.originalStopLoss',
+    ),
+    originalTakeProfit: nullableDecimal(
+      value.originalTakeProfit,
+      'position.originalTakeProfit',
+    ),
+    stopWidened: optionalFlag(value.stopWidened, 'position.stopWidened'),
+    levelChangeCount:
+      value.levelChangeCount === undefined
+        ? 0
+        : integer(value.levelChangeCount, 'position.levelChangeCount'),
+    levelChanges: optional(value.levelChanges, 'position.levelChanges').map(
+      levelChange,
+    ),
+    breakevenPrice: nullableDecimal(
+      value.breakevenPrice,
+      'position.breakevenPrice',
+    ),
+    breakevenProvisional: optionalFlag(
+      value.breakevenProvisional,
+      'position.breakevenProvisional',
+    ),
+    levelWarnings: optional(value.levelWarnings, 'position.levelWarnings').map(
+      warning,
+    ),
+    levelsEffectiveFrom: nullableInstant(
+      value.levelsEffectiveFrom,
+      'position.levelsEffectiveFrom',
+    ),
+  };
+}
+
 /** `GET /plans/{id}` and the activate / cancel answers. */
 export function decodePlan(body: unknown): TradingPlan {
   const value = record(body);
@@ -226,6 +337,7 @@ export function decodePlan(body: unknown): TradingPlan {
         at: instant(change.at, 'statusHistory.at'),
       };
     }),
+    position: decodePosition(value.position),
   };
 }
 
