@@ -79,12 +79,16 @@ export function errorText(copy: Copy, error: unknown): string {
               ? copy.blocked.statusBanned
               : copy.blocked.statusLocked,
         });
-      return messageText(
+      const text = messageText(
         copy,
         problem.messageCode,
         problem.messageArgs,
         problem.traceId ? { code: problem.traceId } : {},
       );
+      // A field message (MSG01, MSG15…) shown away from the form that
+      // would name its field has nothing to fill {field} with: never show
+      // the placeholder itself.
+      return /\{\w+\}/.test(text) ? copy.errors.invalidRequest : text;
     }
     if (error.code === 'NOT_CONFIGURED') return copy.errors.notConfigured;
     if (error.code === 'NETWORK_ERROR') return copy.errors.network;
