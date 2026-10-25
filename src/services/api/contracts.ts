@@ -61,7 +61,6 @@ import type {
   NewsArticleDetail,
   NewsPage,
   NewsQuery,
-  NewsSentimentSummary,
   ProfileUpdate,
   RiskProfile,
   RiskProfileParams,
@@ -375,7 +374,6 @@ export interface NewsService {
   feed(query: NewsQuery, signal?: AbortSignal): Promise<NewsPage>;
   /** One article for its page in the app (D-125); a hidden one is not found. */
   article(id: string, signal?: AbortSignal): Promise<NewsArticleDetail>;
-  sentimentSummary(signal?: AbortSignal): Promise<NewsSentimentSummary>;
 }
 
 /**

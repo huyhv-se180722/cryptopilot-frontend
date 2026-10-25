@@ -46,12 +46,6 @@ const collected: NewsArticle = {
 function service(overrides: Partial<NewsService>): NewsService {
   return {
     ...createPendingNewsService(),
-    sentimentSummary: async () => ({
-      since: new Date().toISOString(),
-      bullish: 4,
-      neutral: 1,
-      bearish: 2,
-    }),
     ...overrides,
   };
 }
@@ -142,31 +136,6 @@ describe('news screen (SCR-28, UC-34)', () => {
     expect(asked.at(-1)).toEqual({ range: '7d' });
   });
 
-  it('filters by sentiment from the 24-hour bar, and a second press clears it', async () => {
-    const user = userEvent.setup();
-    const asked: (string | undefined)[] = [];
-    await openNews(
-      service({
-        feed: async (q) => {
-          asked.push(q.sentiment);
-          return { items: [], page: 1, pageSize: 20, total: 0 };
-        },
-      }),
-    );
-
-    const bar = await screen.findByRole('region', {
-      name: 'Số bài theo xu hướng trong 24 giờ qua',
-    });
-    const bullish = within(bar).getByRole('button', { name: /Tích cực/ });
-    expect(bullish.textContent).toContain('4 bài');
-
-    await user.click(bullish);
-    expect(bullish.getAttribute('aria-pressed')).toBe('true');
-    expect(asked.at(-1)).toBe('BULLISH');
-    await user.click(bullish);
-    expect(asked.at(-1)).toBeUndefined();
-  });
-
   it('loads the next page on request', async () => {
     const user = userEvent.setup();
     await openNews(
@@ -211,12 +180,6 @@ describe('news screen (SCR-28, UC-34)', () => {
     await openNews(
       service({
         feed: async () => ({ items: [], page: 1, pageSize: 20, total: 0 }),
-        sentimentSummary: async () => ({
-          since: new Date().toISOString(),
-          bullish: 0,
-          neutral: 0,
-          bearish: 0,
-        }),
       }),
     );
 
@@ -224,9 +187,7 @@ describe('news screen (SCR-28, UC-34)', () => {
     expect(
       screen.getByText('Bài mới xuất hiện vài phút sau khi các nguồn đăng.'),
     ).toBeTruthy();
-    expect(
-      screen.getByText('Chưa có bài nào trong 24 giờ qua được AI xử lý.'),
-    ).toBeTruthy();
+    expect(screen.queryByText(/24 giờ qua/)).toBeNull();
   });
 });
 

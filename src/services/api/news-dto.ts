@@ -4,7 +4,6 @@ import type {
   NewsCoinTag,
   NewsPage,
   NewsSentiment,
-  NewsSentimentSummary,
 } from '../../types/domain';
 import {
   flag,
@@ -18,8 +17,7 @@ import {
 } from './decode';
 
 /**
- * Decoders for `/news`, `/news/{id}` and `/news/sentiment-summary` (UC-34,
- * D-122, D-123, D-125), checked against backend
+ * Decoders for `/news` and `/news/{id}` (UC-34, D-122, D-123, D-125), checked against backend
  * `feature/T-080c-news-article` @ 4109a68: `PageResponse<NewsArticleResponse>`,
  * `NewsArticleDetailResponse` and `NewsSentimentSummaryResponse`.
  */
@@ -105,15 +103,5 @@ export function decodeNewsPage(body: unknown): NewsPage {
     page: integer(value.page, 'page'),
     pageSize: integer(value.pageSize, 'pageSize'),
     total: count(value.total, 'total'),
-  };
-}
-
-export function decodeSentimentSummary(body: unknown): NewsSentimentSummary {
-  const value = record(body, 'summary');
-  return {
-    since: instant(value.since, 'since'),
-    bullish: count(value.bullish, 'bullish'),
-    neutral: count(value.neutral, 'neutral'),
-    bearish: count(value.bearish, 'bearish'),
   };
 }

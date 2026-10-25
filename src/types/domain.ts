@@ -719,13 +719,6 @@ export interface NewsPage {
   pageSize: number;
   total: number;
 }
-/** The 24-hour summary bar of SCR-28; unsummarized articles are not counted. */
-export interface NewsSentimentSummary {
-  since: ISODateTime;
-  bullish: number;
-  neutral: number;
-  bearish: number;
-}
 export interface AiConversation {
   id: string;
   title: string;

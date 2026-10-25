@@ -34,12 +34,3 @@ export function useNewsArticle(id: string) {
     queryFn: ({ signal }) => news.article(id, signal),
   });
 }
-
-/** The 24-hour count per sentiment of the summary bar (SRS 3.8.1). */
-export function useSentimentSummary() {
-  const { news } = useServices();
-  return useQuery({
-    queryKey: [...NEWS_KEY, 'sentiment-summary'],
-    queryFn: ({ signal }) => news.sentimentSummary(signal),
-  });
-}

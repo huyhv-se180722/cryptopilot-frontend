@@ -12,9 +12,9 @@ import {
   NewsFilters,
   type NewsFilterValue,
 } from '../../features/news/components/NewsFilters';
-import { SentimentSummaryBar } from '../../features/news/components/SentimentSummaryBar';
 import { SENTIMENTS } from '../../features/news/components/news-format';
 import { useNewsFeed } from '../../features/news/hooks/use-news';
+import { MarketOverview } from '../../features/market/components/MarketOverview';
 import { useCopy } from '../../hooks/use-copy';
 import { errorText } from '../../i18n/messages';
 import type { NewsRange, NewsSentiment } from '../../types/domain';
@@ -26,8 +26,9 @@ const RANGES: readonly NewsRange[] = ['24h', '7d', '30d'];
  * the AI's Vietnamese headline and summary once an article is summarized
  * (D-123), its sentiment and coin tags, the same on every plan (D-122).
  * Filters by coin, sentiment and period live in the URL, so a coin tag or
- * an analysis screen links to its news; the 24-hour summary bar filters
- * by sentiment. No Figma frame: the layout follows SCR-24 and SCR-15.
+ * an analysis screen links to its news. The 24-hour count per sentiment is
+ * the administrators' (D-126); beside the feed stands a crypto market
+ * overview, as a news site has. No Figma frame: the layout follows SCR-24 and SCR-15.
  * Items read like a news site and open their page in the app (D-125); the
  * screen is in Vietnamese like the articles.
  */
@@ -122,15 +123,18 @@ function NewsFeed() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-3xl">
+    <div className="mx-auto w-full max-w-6xl">
       <PageHeader title={n.title} description={n.subtitle} />
-      <SentimentSummaryBar
-        selected={filters.sentiment}
-        onSelect={(sentiment) => update({ ...filters, sentiment })}
-      />
-      <NewsFilters value={filters} onChange={update} />
-      {body}
-      <p className="mt-4 text-[11px] text-muted-dim">{n.disclaimer}</p>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0">
+          <NewsFilters value={filters} onChange={update} />
+          {body}
+          <p className="mt-4 text-[11px] text-muted-dim">{n.disclaimer}</p>
+        </div>
+        <aside className="min-w-0 lg:sticky lg:top-4 lg:self-start">
+          <MarketOverview />
+        </aside>
+      </div>
     </div>
   );
 }

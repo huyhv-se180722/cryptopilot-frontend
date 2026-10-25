@@ -145,24 +145,6 @@ describe('news service (UC-34)', () => {
     }
   });
 
-  it('reads the 24-hour summary and refuses a negative count', async () => {
-    const summary = {
-      since: '2026-10-24T10:00:00Z',
-      bullish: 4,
-      neutral: 0,
-      bearish: 2,
-    };
-    const { service, calls } = setup(summary);
-
-    expect(await service.sentimentSummary()).toEqual(summary);
-    expect(calls[0]?.pathname).toBe('/api/v1/news/sentiment-summary');
-
-    const broken = setup({ ...summary, bearish: -1 });
-    await expect(broken.service.sentimentSummary()).rejects.toMatchObject({
-      code: 'INVALID_RESPONSE',
-    });
-  });
-
   it('passes a refusal on as an HTTP error, never as an empty feed', async () => {
     const { service } = setup({ code: 'ACCESS_DENIED' }, 403);
 
@@ -181,7 +163,7 @@ describe('news service (UC-34)', () => {
         code: 'NOT_CONFIGURED',
       },
     );
-    await expect(pending.sentimentSummary()).rejects.toMatchObject({
+    await expect(pending.article('a1')).rejects.toMatchObject({
       code: 'NOT_CONFIGURED',
     });
   });
