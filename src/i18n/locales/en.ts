@@ -485,6 +485,19 @@ export const en = {
     rewardAmount: 'Reward (USDT)',
     riskReward: 'Reward / risk',
     liquidation: 'Est. liquidation price',
+    lossAtStopLoss: 'Real loss at stop loss (USDT)',
+    netRiskReward: 'Reward / risk after fees',
+    costsTitle: 'Fees and slippage (est.)',
+    entryFee: 'Entry fee (USDT)',
+    stopLossExitFee: 'Exit fee at stop loss (USDT)',
+    takeProfitExitFee: 'Exit fee at take profit (USDT)',
+    slippage: 'Slippage (USDT)',
+    feeShare: 'Share of the risk',
+    costsNote:
+      'The real loss and the reward / risk after fees include the fees of the entry and of the exit at the stop loss (or the take profit) and the configured slippage. Funding and the liquidation fee are not included.',
+    expectedFill: 'Expected fill',
+    expectedFillNote:
+      'The current price moved by the configured slippage; the position is sized on it.',
     lineLiquidation: 'Liquidation (est.)',
     chartUnlisted:
       'No chart: this pair is no longer listed on the market of the plan.',
@@ -502,6 +515,7 @@ export const en = {
     warningWIDE_STOP_LOSS: 'Wide stop loss',
     warningHIGH_FUNDING_RATE: 'High funding rate for this side',
     warningHIGH_FEE_SHARE: 'Fees and slippage are a large share of the risk',
+    warningFeeShareValue: 'Fees and slippage are {share}% of the risk',
     historyTitle: 'Status history',
     positionTitle: 'Position',
     positionWaiting:

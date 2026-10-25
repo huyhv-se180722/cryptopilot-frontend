@@ -29,7 +29,7 @@ import type { ChartPriceLine } from '../../chart/components/AnalysisChart';
 import { usePlanCalculation, useSavePlan } from '../hooks/use-plan-editor';
 import { Panel, PlanSnapshotRows, PlanWarningsPanel } from './PlanDetailPanels';
 import { planFieldErrorText } from './plan-errors';
-import { planPrice } from './plan-format';
+import { planPrice, shownExpectedFill } from './plan-format';
 import { priceLines } from './plan-lines';
 import {
   EMPTY_PLAN_DRAFT,
@@ -199,6 +199,9 @@ export function PlanEditor({
   const priced = pricedEntry(draft.entryType);
   const stopEntry = draft.entryType === 'STOP';
   const result = calculation.data;
+  const expectedFill = result
+    ? shownExpectedFill(result.entryPrice, result.expectedFillPrice)
+    : null;
   const blocked = result?.blocksActivation ?? plan?.blocksActivation ?? false;
   // The chart reads the candles of the plan's own market.
   const charted = pair && pair.market === draft.market ? pair : null;
@@ -387,6 +390,15 @@ export function PlanEditor({
                 )}
               </p>
               <span className={fieldHintClass}>{p.marketEntryNote}</span>
+              {expectedFill && (
+                <p className="mt-2 text-xs text-fg-2">
+                  <span className="mr-1.5 text-[11px] text-muted-dim">
+                    {p.expectedFill}
+                  </span>
+                  <NumericText value={planPrice(expectedFill)} />
+                  <span className={fieldHintClass}>{p.expectedFillNote}</span>
+                </p>
+              )}
             </div>
           )}
         </Section>
@@ -581,6 +593,9 @@ export function PlanEditor({
         <PlanWarningsPanel
           warnings={result?.warnings ?? plan?.warnings ?? []}
           blocked={blocked}
+          feeShareOfRisk={
+            (result?.snapshot ?? plan?.snapshot)?.feeShareOfRisk ?? null
+          }
         />
         {saveProblem && Object.keys(saveProblem.fieldErrors).length === 0 && (
           <Banner
