@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Search } from 'lucide-react';
+import { ArrowLeft, BookOpenText, Search } from 'lucide-react';
 import { EmptyState, ErrorState } from '../../components/feedback/States';
-import { PageHeader } from '../../components/layout/PageHeader';
-import { Input } from '../../components/ui/Input';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { AcademyDisclaimer } from '../../features/academy/components/AcademyDisclaimer';
 import { AcademyLocale } from '../../features/academy/components/AcademyLocale';
@@ -65,20 +63,35 @@ function Glossary() {
         <ArrowLeft size={13} aria-hidden="true" />
         {a.backToAcademy}
       </Link>
-      <PageHeader title={a.glossaryTitle} description={a.glossarySubtitle} />
-
-      <Input
-        label={a.searchTerms}
-        type="search"
-        placeholder={a.searchTermsPlaceholder}
-        value={text}
-        maxLength={100}
-        onChange={(event) => setText(event.target.value)}
-      />
+      <section
+        className="mb-4 overflow-hidden rounded-3xl p-6 text-white shadow-lg sm:p-8"
+        style={{
+          background:
+            'linear-gradient(135deg, #0b1a3a 0%, #1d4ed8 60%, #0ea5e9 100%)',
+        }}
+      >
+        <h1 className="flex items-center gap-2 text-2xl font-bold text-white sm:text-3xl">
+          <BookOpenText size={26} aria-hidden="true" />
+          {a.glossaryTitle}
+        </h1>
+        <p className="mt-1 text-sm text-white/80">{a.glossarySubtitle}</p>
+        <label className="mt-5 flex max-w-xl items-center gap-2 rounded-2xl bg-white px-4 py-3 shadow-lg">
+          <Search size={18} aria-hidden="true" className="text-slate-400" />
+          <span className="sr-only">{a.searchTerms}</span>
+          <input
+            type="search"
+            value={text}
+            maxLength={100}
+            placeholder={a.searchTermsPlaceholder}
+            onChange={(event) => setText(event.target.value)}
+            className="w-full bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+          />
+        </label>
+      </section>
       <div
         role="group"
         aria-label={a.lettersLabel}
-        className="mt-3 flex flex-wrap gap-1"
+        className="sticky top-16 z-10 -mx-1 flex flex-wrap gap-1 rounded-2xl border border-line bg-surface/95 p-2 shadow-sm backdrop-blur"
       >
         {[undefined, ...LETTERS].map((item) => (
           <button

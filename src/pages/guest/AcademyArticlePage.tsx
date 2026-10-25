@@ -6,18 +6,15 @@ import {
   BookX,
   ChevronLeft,
   ChevronRight,
+  Clock,
   Lightbulb,
 } from 'lucide-react';
 import { EmptyState, ErrorState } from '../../components/feedback/States';
 import { buttonClassName } from '../../components/ui/button-styles';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { AcademyDisclaimer } from '../../features/academy/components/AcademyDisclaimer';
 import { AcademyLocale } from '../../features/academy/components/AcademyLocale';
-import {
-  ArticleCard,
-  LevelBadge,
-  ReadingTime,
-} from '../../features/academy/components/ArticleCard';
+import { ArticleCard } from '../../features/academy/components/ArticleCard';
+import { LessonCover } from '../../features/academy/components/LessonCover';
 import { LessonMark } from '../../features/academy/components/LessonMark';
 import { MarkdownView } from '../../features/academy/components/MarkdownView';
 import { useAcademyArticle } from '../../features/academy/hooks/use-academy';
@@ -101,28 +98,42 @@ function Lesson({ article }: { article: AcademyArticle }) {
 
   return (
     <article>
-      <header className="mb-6">
-        <Link
-          to={'/academy?topic=' + encodeURIComponent(article.topicSlug)}
-          className="text-[11px] font-semibold tracking-wider text-primary uppercase no-underline"
-        >
-          {article.topicName}
-        </Link>
-        <h1 className="mt-1 text-2xl font-semibold text-fg">{article.title}</h1>
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <LevelBadge level={article.level} />
-          <ReadingTime minutes={article.readingMinutes} />
-          <time
-            dateTime={article.updatedAt}
-            title={formatInstantUtc(article.updatedAt)}
-            className="text-xs text-muted-dim"
+      <LessonCover
+        slug={article.slug}
+        topicSlug={article.topicSlug}
+        iconSize={96}
+        className="mb-8 rounded-3xl shadow-lg"
+      >
+        <header className="flex min-h-56 flex-col justify-end p-6 text-white sm:p-8">
+          <Link
+            to={'/academy?topic=' + encodeURIComponent(article.topicSlug)}
+            className="w-fit rounded-full bg-white/20 px-3 py-1 text-[11px] font-semibold tracking-wider text-white uppercase no-underline backdrop-blur hover:bg-white/30"
           >
-            {formatCopy(a.updated, {
-              date: formatInstantLocal(article.updatedAt).slice(0, 10),
-            })}
-          </time>
-        </div>
-      </header>
+            {article.topicName}
+          </Link>
+          <h1 className="mt-3 max-w-2xl text-2xl leading-tight font-bold text-white sm:text-3xl">
+            {article.title}
+          </h1>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-medium text-white">
+            <span className="rounded-full bg-black/25 px-2.5 py-1">
+              {a.levels[article.level]}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-black/25 px-2.5 py-1">
+              <Clock size={12} aria-hidden="true" />
+              {formatCopy(a.readingTime, { minutes: article.readingMinutes })}
+            </span>
+            <time
+              dateTime={article.updatedAt}
+              title={formatInstantUtc(article.updatedAt)}
+              className="rounded-full bg-black/25 px-2.5 py-1"
+            >
+              {formatCopy(a.updated, {
+                date: formatInstantLocal(article.updatedAt).slice(0, 10),
+              })}
+            </time>
+          </div>
+        </header>
+      </LessonCover>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_220px]">
         <div className="min-w-0">
@@ -194,8 +205,6 @@ function Lesson({ article }: { article: AcademyArticle }) {
           </ul>
         </section>
       )}
-
-      <AcademyDisclaimer />
     </article>
   );
 }

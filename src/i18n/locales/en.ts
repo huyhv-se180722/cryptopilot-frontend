@@ -1275,7 +1275,6 @@ export const en = {
     topicLessons: '{count} lessons',
     lessonsTitle: 'Lessons',
     allTopics: 'All topics',
-    topicLabel: 'Topic',
     levelLabel: 'Level',
     allLevels: 'All levels',
     levels: {
@@ -1315,6 +1314,15 @@ export const en = {
     unmarkHint: 'Press again to unmark.',
     signInToTrack: 'Sign in to track your progress',
     pathProgress: 'You have learned {done} of {total} path lessons',
+    heroEyebrow: 'CryptoPilot Academy',
+    statLessons: 'lessons',
+    statTopics: 'topics',
+    statTerms: 'terms',
+    termOfDay: 'Term of the day',
+    quickTerms: 'Quick look-up',
+    allTerms: 'See all {count} terms',
+    filteringBy: 'Showing: {topic}',
+    clearFilter: 'Clear filter',
   },
   moderation: {
     title: 'Report moderation',

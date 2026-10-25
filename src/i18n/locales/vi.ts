@@ -20,7 +20,6 @@ export const vi: PartialCopy = {
     topicLessons: '{count} bài học',
     lessonsTitle: 'Bài học',
     allTopics: 'Tất cả chủ đề',
-    topicLabel: 'Chủ đề',
     levelLabel: 'Trình độ',
     allLevels: 'Mọi trình độ',
     levels: {
@@ -62,5 +61,14 @@ export const vi: PartialCopy = {
     unmarkHint: 'Bấm lần nữa để bỏ đánh dấu.',
     signInToTrack: 'Đăng nhập để lưu tiến độ học',
     pathProgress: 'Bạn đã học {done}/{total} bài của lộ trình',
+    heroEyebrow: 'Học viện CryptoPilot',
+    statLessons: 'bài học',
+    statTopics: 'chủ đề',
+    statTerms: 'thuật ngữ',
+    termOfDay: 'Thuật ngữ hôm nay',
+    quickTerms: 'Tra nhanh',
+    allTerms: 'Xem tất cả {count} thuật ngữ',
+    filteringBy: 'Đang xem: {topic}',
+    clearFilter: 'Bỏ lọc',
   },
 };

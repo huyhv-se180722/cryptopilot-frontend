@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { CheckCircle2, Clock } from 'lucide-react';
 import { Badge, type Tone } from '../../../components/ui/Badge';
 import { useCopy } from '../../../hooks/use-copy';
+import { LessonCover } from './LessonCover';
 import { formatCopy } from '../../../i18n/copy';
 import type {
   AcademyArticleSummary,
@@ -29,7 +30,7 @@ export function ReadingTime({ minutes }: { minutes: number }) {
   );
 }
 
-/** A lesson as a card: topic, title, summary, level and reading time. */
+/** A lesson as a card: its cover, topic, title, summary, level and reading time. */
 export function ArticleCard({
   article,
   learned = false,
@@ -42,26 +43,34 @@ export function ArticleCard({
   return (
     <Link
       to={'/academy/' + article.slug}
-      className="group flex h-full flex-col rounded-2xl border border-line bg-surface p-4 no-underline transition-colors hover:border-line-strong hover:bg-raised-hover"
+      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface no-underline shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lg"
     >
-      <span className="text-[11px] font-semibold tracking-wider text-muted-x uppercase">
-        {article.topicName}
-      </span>
-      <h3 className="mt-1 text-sm font-semibold text-fg group-hover:text-primary">
-        {article.title}
-      </h3>
-      <p className="mt-1.5 line-clamp-3 flex-1 text-xs leading-5 text-muted-dim">
-        {article.summary}
-      </p>
-      <div className="mt-3 flex items-center gap-2">
-        <LevelBadge level={article.level} />
-        <ReadingTime minutes={article.readingMinutes} />
-        {learned && (
-          <span className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-positive">
-            <CheckCircle2 size={13} aria-hidden="true" />
-            {copy.academy.learned}
-          </span>
-        )}
+      <LessonCover
+        slug={article.slug}
+        topicSlug={article.topicSlug}
+        iconSize={44}
+        className="h-32 transition-transform duration-300 group-hover:scale-[1.02]"
+      />
+      <div className="flex flex-1 flex-col p-4">
+        <span className="text-[11px] font-semibold tracking-wider text-muted-x uppercase">
+          {article.topicName}
+        </span>
+        <h3 className="mt-1 text-[15px] leading-snug font-semibold text-fg group-hover:text-primary">
+          {article.title}
+        </h3>
+        <p className="mt-1.5 line-clamp-2 flex-1 text-xs leading-5 text-muted-dim">
+          {article.summary}
+        </p>
+        <div className="mt-3 flex items-center gap-2 border-t border-line pt-3">
+          <LevelBadge level={article.level} />
+          <ReadingTime minutes={article.readingMinutes} />
+          {learned && (
+            <span className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-positive">
+              <CheckCircle2 size={13} aria-hidden="true" />
+              {copy.academy.learned}
+            </span>
+          )}
+        </div>
       </div>
     </Link>
   );

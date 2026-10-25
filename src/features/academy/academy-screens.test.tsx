@@ -291,4 +291,40 @@ describe('Academy screens', () => {
     );
     expect(screen.getAllByText('Đã học').length).toBeGreaterThan(0);
   });
+
+  it('puts the glossary at the top and keeps one topic filter', async () => {
+    await renderRoutes(
+      [page('/academy', <AcademyPage />)],
+      '/academy',
+      fakeAuth(),
+      {
+        academy: academy({
+          terms: async () => [
+            {
+              slug: 'fomo',
+              term: 'FOMO',
+              definition: 'Nỗi sợ bỏ lỡ.',
+              articleSlug: null,
+              articleTitle: null,
+            },
+          ],
+        }),
+      },
+    );
+    const glossary = await screen.findByRole('complementary', {
+      name: 'Thuật ngữ',
+    });
+    expect(glossary.textContent).toContain('Nỗi sợ bỏ lỡ.');
+    expect(
+      screen
+        .getByRole('link', { name: /Xem tất cả 1 thuật ngữ/ })
+        .getAttribute('href'),
+    ).toBe('/academy/glossary');
+    expect(screen.queryByRole('combobox')).toBeNull();
+    expect(
+      screen
+        .getByRole('button', { name: /Tất cả chủ đề/ })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
+  });
 });
