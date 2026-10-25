@@ -525,8 +525,6 @@ export const en = {
     blockedHint: 'Resolve the blocking warnings by editing the plan.',
     notFound: 'This plan was not found. It may belong to another account.',
     createTitle: 'New trading plan',
-    createSpotOnly:
-      'New plans are Spot for now: Futures plans cannot be calculated until leverage brackets are configured.',
     createNoPairs: 'No Spot pair is enabled, so no plan can be created.',
     editTitle: 'Edit plan {id}',
     backToPlan: 'Plan {id}',
@@ -573,8 +571,6 @@ export const en = {
     reasonTAKE_PROFIT_REACHED: 'Take profit reached before the entry',
     reasonSTOP_LOSS_REACHED: 'Stop loss reached before the entry',
     reasonINVALIDATION_PRICE: 'Invalidation price reached before the entry',
-    futuresPending:
-      'Futures plans cannot be calculated until leverage brackets are configured.',
     riskTitle: 'Risk calculation',
     riskIdle: 'Fill in the fields to see the risk calculation.',
     riskUpdating: 'Updating…',
