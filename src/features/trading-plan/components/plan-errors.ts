@@ -39,6 +39,11 @@ export function planFieldErrorText(
         direction: p[`directionName${direction}`],
         rule: p[`rule${direction}`],
       });
+    case 'levels':
+      return messageText(copy, 'MSG16', [], {
+        direction: p[`directionName${direction}`],
+        rule: p[`ruleLevels${direction}`],
+      });
     case 'future':
       return p.errFuture;
     case 'tooLong':
@@ -109,7 +114,8 @@ const isPlanField = (name: string): name is PlanField => PLAN_FIELDS.has(name);
  * Why the server refused to activate a plan outside the form (SCR-16,
  * SCR-18): a field it no longer accepts in words (e.g. a STOP the price has
  * reached, an invalidation price now on the wrong side, a MARKET price past
- * the stop; D-112), the current price missing (503), else the general text.
+ * the stop; D-112), a profile without a default capital (D-121), the
+ * current price missing (503), else the general text.
  */
 export function activationErrorText(
   copy: Copy,
@@ -124,6 +130,7 @@ export function activationErrorText(
   );
   if (field) {
     const [name, messageId] = field as [PlanField, string];
+    if (name === 'capital') return copy.plan.capitalMissing;
     return planFieldErrorText(
       copy,
       serverFieldError(name, messageId),

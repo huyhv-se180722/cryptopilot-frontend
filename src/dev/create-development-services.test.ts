@@ -536,7 +536,6 @@ describe('development plan editing (SCR-17)', () => {
     entryPrice: '61000',
     stopLoss: '59000',
     takeProfit: '67000',
-    capital: '2000',
     riskPercent: '1',
     leverage: null,
     expiresAt: null,
@@ -630,13 +629,19 @@ describe('development plan editing (SCR-17)', () => {
 
   it('saves a draft, and saves nothing when activation is refused', async () => {
     const plans = createDevelopmentTradingPlan(async () => free);
+    // The capital is the account's (D-121): never an input, kept as stored.
+    const capital = (await plans.get(btcDraft)).capital;
     const saved = await plans.update(btcDraft, inputs, false);
-    expect(saved).toMatchObject({ status: 'DRAFT', capital: '2000' });
+    expect(saved).toMatchObject({
+      status: 'DRAFT',
+      capital,
+      stopLoss: '59000',
+    });
     expect(saved.expiresAt).not.toBeNull();
     // One ACTIVE plan in the seeds already fills ACTIVE_PLAN_MAX 1.
     await expect(
-      plans.update(btcDraft, { ...inputs, capital: '3000' }, true),
+      plans.update(btcDraft, { ...inputs, stopLoss: '58000' }, true),
     ).rejects.toMatchObject({ problem: { messageCode: 'MSG27' } });
-    expect((await plans.get(btcDraft)).capital).toBe('2000');
+    expect((await plans.get(btcDraft)).stopLoss).toBe('59000');
   });
 });

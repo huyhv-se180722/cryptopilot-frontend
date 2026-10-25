@@ -64,7 +64,6 @@ function checkInputs(inputs: PlanInputs) {
     'entryPrice',
     'stopLoss',
     'takeProfit',
-    'capital',
     'invalidationPrice',
   ] as const)
     if (inputs[key] !== null && !positive(inputs[key])) errors[key] = 'MSG15';
@@ -208,7 +207,7 @@ export function createDevelopmentTradingPlan(
         inputs.entryType === 'MARKET'
           ? (base.expectedFillPrice ?? base.entryPrice)
           : null,
-      capital: inputs.capital ?? base.capital,
+      capital: base.capital,
       riskPercent: inputs.riskPercent ?? base.riskPercent,
       snapshot: base.snapshot,
       warnings: base.warnings,

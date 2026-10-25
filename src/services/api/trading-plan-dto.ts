@@ -39,7 +39,8 @@ import { marketOf } from './market-dto';
  * setup score at activation) against `feature/TP-A-plan-validity` @
  * 112aa24; the expected fill and the cost figures (D-116) against `develop`
  * @ dccfc6c. Those fields are read as null when absent, as an older backend
- * answers.
+ * answers. The capital is no longer sent, only read (TP-D, D-121, `develop`
+ * @ 103d7cf): the server sizes every plan on the profile's default capital.
  */
 const STATUSES: readonly PlanStatus[] = [
   'DRAFT',
@@ -254,7 +255,6 @@ export function encodePlanInputs(inputs: PlanInputs) {
     entryPrice: inputs.entryPrice,
     stopLoss: inputs.stopLoss,
     takeProfit: inputs.takeProfit,
-    capital: inputs.capital,
     riskPercent: inputs.riskPercent,
     leverage: inputs.leverage,
     expiresAt: inputs.expiresAt,

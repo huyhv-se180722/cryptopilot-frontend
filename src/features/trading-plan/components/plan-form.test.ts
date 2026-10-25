@@ -15,7 +15,6 @@ const DRAFT: PlanDraft = {
   entryPrice: '62000',
   stopLoss: '60000',
   takeProfit: '66000',
-  capital: '1000',
   riskPercent: '1',
   leverage: '',
   expiry: '',
@@ -29,7 +28,7 @@ const NOW = Date.parse('2026-10-12T10:00:00Z');
 describe('plan form model (SCR-17)', () => {
   it('builds the inputs, leaving empty values to the server defaults', () => {
     const result = toInputs(
-      { ...DRAFT, capital: ' ', riskPercent: '', note: '  Retest  ' },
+      { ...DRAFT, riskPercent: '', note: '  Retest  ' },
       NOW,
     );
     expect(result).toEqual({
@@ -41,7 +40,6 @@ describe('plan form model (SCR-17)', () => {
         entryPrice: '62000',
         stopLoss: '60000',
         takeProfit: '66000',
-        capital: null,
         riskPercent: null,
         leverage: null,
         expiresAt: null,
@@ -162,7 +160,6 @@ describe('plan form model (SCR-17)', () => {
         entryPrice: '',
         stopLoss: 'abc',
         takeProfit: '0',
-        capital: '0',
         riskPercent: '10.5',
         expiry: '2026-10-01T09:00',
         note: 'x'.repeat(1001),
@@ -175,7 +172,6 @@ describe('plan form model (SCR-17)', () => {
         entryPrice: { kind: 'required' },
         stopLoss: { kind: 'number' },
         takeProfit: { kind: 'positive' },
-        capital: { kind: 'positive' },
         riskPercent: { kind: 'range', min: '0.1', max: '10' },
         expiresAt: { kind: 'future' },
         note: { kind: 'tooLong', max: 1000 },
@@ -222,7 +218,6 @@ describe('plan form model (SCR-17)', () => {
       entryPrice: '',
       stopLoss: '60000',
       takeProfit: '66000.5',
-      capital: '1000',
       riskPercent: '1',
       expiry: '',
       note: '',
@@ -233,7 +228,7 @@ describe('plan form model (SCR-17)', () => {
   });
 
   it('words server field errors with the field’s own rule', () => {
-    expect(serverFieldError('stopLoss', 'MSG16')).toEqual({ kind: 'order' });
+    expect(serverFieldError('stopLoss', 'MSG16')).toEqual({ kind: 'levels' });
     expect(serverFieldError('riskPercent', 'MSG15')).toEqual({
       kind: 'range',
       min: '0.1',
