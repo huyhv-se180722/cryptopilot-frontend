@@ -132,6 +132,9 @@ export const screenPages: Readonly<Record<string, PageModule>> = {
     Component: (await import('../../pages/admin/AdminUsersPage'))
       .AdminUsersPage,
   }),
+  '/admin/users/:userId': async () => ({
+    Component: (await import('../../pages/admin/AdminUserPage')).AdminUserPage,
+  }),
   '/admin/reports': async () => ({
     Component: (await import('../../pages/admin/AdminReportsPage'))
       .AdminReportsPage,
