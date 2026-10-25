@@ -14,6 +14,11 @@ export interface RequestOptions<T> {
    * credentials or a dead refresh token, not an expired access token.
    */
   anonymous?: boolean;
+  /**
+   * This request's own time limit, for the few calls the server answers
+   * slowly by design (a feed read, an AI summary); the client's otherwise.
+   */
+  timeoutMs?: number;
 }
 
 /** Bearer token source with single-flight renewal (services/auth). */
@@ -59,10 +64,13 @@ export function createHttpClient(options: {
     const abort = () => controller.abort(request.signal?.reason);
     request.signal?.addEventListener('abort', abort, { once: true });
     if (request.signal?.aborted) abort();
-    const timer = setTimeout(() => {
-      timedOut = true;
-      controller.abort();
-    }, options.timeoutMs ?? 15_000);
+    const timer = setTimeout(
+      () => {
+        timedOut = true;
+        controller.abort();
+      },
+      request.timeoutMs ?? options.timeoutMs ?? 15_000,
+    );
     try {
       const response = await fetcher(url, {
         method: request.method ?? 'GET',

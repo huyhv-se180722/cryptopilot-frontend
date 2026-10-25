@@ -11,6 +11,7 @@ import type {
   JournalService,
   MarketFeed,
   MarketService,
+  NewsAdminService,
   NewsService,
   PaperTradingService,
   ProfileService,
@@ -37,6 +38,7 @@ export interface Services {
   paperTrading: PaperTradingService;
   community: CommunityService;
   news: NewsService;
+  newsAdmin: NewsAdminService;
   notifications: NotificationService;
   moderation: ModerationService;
   announcements: AnnouncementService;

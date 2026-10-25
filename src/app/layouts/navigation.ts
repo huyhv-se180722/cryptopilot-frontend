@@ -110,6 +110,11 @@ export const adminNav: readonly AdminNavGroup[] = [
         icon: Megaphone,
       },
       { to: '/admin/news-sources', labelKey: 'newsSources', icon: Newspaper },
+      {
+        to: '/admin/news-articles',
+        labelKey: 'newsArticles',
+        icon: FileText,
+      },
     ],
   },
   {
