@@ -69,7 +69,7 @@ type FieldErrors = Partial<Record<Field, string | undefined>>;
  * images or 1 video (BR-44) uploaded one by one before publishing. Video
  * needs `VIDEO_POST` (BR-43); the server's answer (MSG29, MSG32) wins.
  * An Admin's official post (UC-44) adds its category (BR-61) and has no
- * media until the backend signs uploads for an Admin (Q-77).
+ * media until the backend signs uploads for an Admin (Q-79).
  */
 export function PostForm({
   post,

@@ -153,7 +153,7 @@ describe('announcement screens (UC-44)', () => {
     expect(screen.queryByText('No announcements yet')).toBeNull();
   });
 
-  it('edits with the loaded category and no media (Q-77)', async () => {
+  it('edits with the loaded category and no media (Q-79)', async () => {
     const user = userEvent.setup();
     const saved: AnnouncementDraft[] = [];
     await renderRoutes(
