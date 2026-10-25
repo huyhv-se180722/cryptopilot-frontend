@@ -10,6 +10,7 @@ import { AuthShell } from '../layouts/AuthShell';
 import { TraderShell } from '../layouts/TraderShell';
 import { AdminShell } from '../layouts/AdminShell';
 import {
+  academyReadRoutes,
   adminRoutes,
   communityReadRoutes,
   guestOnlyRoutes,
@@ -49,7 +50,9 @@ export const routes: RouteObject[] = [
       },
       {
         element: <ReaderRoute />,
-        children: communityReadRoutes.map(screenRoute),
+        children: [...communityReadRoutes, ...academyReadRoutes].map(
+          screenRoute,
+        ),
       },
       {
         element: <GuestOnlyRoute />,

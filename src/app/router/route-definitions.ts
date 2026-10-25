@@ -4,10 +4,10 @@ import type { Copy } from '../../i18n/locales/en';
  * Route metadata is UI configuration, never business data.
  * `screen` traces each route to the SRS screen inventory (SCR-01…44);
  * demo trading is not in SRS v1.0 and traces to its decision D-86 (D-101),
- * community member pages to D-99.
+ * community member pages to D-99, the Academy to its task T-114.
  * Dialog screens (SCR-14, SCR-19, SCR-27) have no route of their own.
  */
-export type ScreenId = `SCR-${string}` | 'D-86' | 'D-99' | 'UC-44';
+export type ScreenId = `SCR-${string}` | 'D-86' | 'D-99' | 'UC-44' | 'T-114';
 export type ScreenTitleKey = keyof Copy['screens'];
 
 export interface RouteDefinition {
@@ -45,6 +45,16 @@ export const communityReadRoutes = [
     screen: 'D-99',
     titleKey: 'member',
   },
+] as const satisfies readonly RouteDefinition[];
+
+/**
+ * The Academy (T-114): lessons of crypto theory and a glossary that
+ * everyone reads, a Trader in their own shell. Not in SRS v1.0.
+ */
+export const academyReadRoutes = [
+  { path: '/academy', screen: 'T-114', titleKey: 'academy' },
+  { path: '/academy/glossary', screen: 'T-114', titleKey: 'academyGlossary' },
+  { path: '/academy/:slug', screen: 'T-114', titleKey: 'academyArticle' },
 ] as const satisfies readonly RouteDefinition[];
 
 /** Guests only; signed-in users are sent to their home. */

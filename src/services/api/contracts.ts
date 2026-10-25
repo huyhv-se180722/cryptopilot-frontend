@@ -1,4 +1,12 @@
 import type {
+  AcademyArticle,
+  AcademyArticlePage,
+  AcademyArticleQuery,
+  AcademyArticleSummary,
+  AcademyCompletedLesson,
+  AcademyProgress,
+  AcademyTerm,
+  AcademyTopic,
   AdminLog,
   AiConversation,
   Alert,
@@ -401,6 +409,30 @@ export interface NewsService {
   feed(query: NewsQuery, signal?: AbortSignal): Promise<NewsPage>;
   /** One article for its page in the app (D-125); a hidden one is not found. */
   article(id: string, signal?: AbortSignal): Promise<NewsArticleDetail>;
+}
+
+/**
+ * The Academy (T-114): lessons of crypto theory and a glossary that
+ * everyone, a Guest included, reads. Only published lessons are served.
+ */
+export interface AcademyService {
+  topics(signal?: AbortSignal): Promise<readonly AcademyTopic[]>;
+  articles(
+    query: AcademyArticleQuery,
+    signal?: AbortSignal,
+  ): Promise<AcademyArticlePage>;
+  article(slug: string, signal?: AbortSignal): Promise<AcademyArticle>;
+  /** The beginner path, in order. */
+  path(signal?: AbortSignal): Promise<readonly AcademyArticleSummary[]>;
+  terms(
+    query: { q?: string; letter?: string },
+    signal?: AbortSignal,
+  ): Promise<readonly AcademyTerm[]>;
+  /** A Trader's marked lessons and totals; the rest of the service is public. */
+  progress(signal?: AbortSignal): Promise<AcademyProgress>;
+  /** Idempotent: marking again keeps the first instant. */
+  mark(slug: string): Promise<AcademyCompletedLesson>;
+  unmark(slug: string): Promise<void>;
 }
 
 /**
