@@ -1,4 +1,6 @@
+import type { ApiProblem } from './problem';
 import type {
+  EntryDeviation,
   PlanCalculation,
   PlanDirection,
   PlanInputs,
@@ -375,4 +377,45 @@ export function encodePlanInputs(inputs: PlanInputs) {
     maxEntryDeviationR: inputs.maxEntryDeviationR,
     analysisTimeframe: inputs.analysisTimeframe,
   };
+}
+
+/**
+ * The entry deviation refusal of a MARKET activation (TP-C, `develop` @
+ * 103d7cf): 400 ENTRY_DEVIATION_CONFIRMATION_REQUIRED (MSG51) or 409
+ * ENTRY_DEVIATION_REFUSED (MSG52) with their figures as decimal texts;
+ * null for any other answer or a body without them.
+ */
+export function decodeEntryDeviation(
+  problem: ApiProblem | undefined,
+): EntryDeviation | null {
+  const extra = problem?.extensions ?? {};
+  try {
+    if (problem?.code === 'ENTRY_DEVIATION_CONFIRMATION_REQUIRED')
+      return {
+        kind: 'confirm',
+        deviationR: decimal(extra.deviationR, 'deviationR'),
+        maxDeviationR: decimal(extra.maxDeviationR, 'maxDeviationR'),
+        expectedFillPrice: decimal(
+          extra.expectedFillPrice,
+          'expectedFillPrice',
+        ),
+        positionQuantity: decimal(extra.positionQuantity, 'positionQuantity'),
+        riskRewardRatio: decimal(extra.riskRewardRatio, 'riskRewardRatio'),
+        netRiskReward: nullableDecimal(extra.netRiskReward, 'netRiskReward'),
+      };
+    if (problem?.code === 'ENTRY_DEVIATION_REFUSED')
+      return {
+        kind: 'refused',
+        deviationR: decimal(extra.deviationR, 'deviationR'),
+        maxDeviationR: decimal(extra.maxDeviationR, 'maxDeviationR'),
+        expectedFillPrice: nullableDecimal(
+          extra.expectedFillPrice,
+          'expectedFillPrice',
+        ),
+        takeProfitReached: extra.takeProfitReached === true,
+      };
+  } catch {
+    return null;
+  }
+  return null;
 }

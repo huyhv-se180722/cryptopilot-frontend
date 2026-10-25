@@ -54,9 +54,12 @@ export function createHttpTradingPlanService(
         decode: decodePlan,
         ...withSignal(signal),
       }),
-    activate: (id) =>
+    activate: (id, confirmDeviation = false) =>
       http.request({
-        path: planPath(id) + '/activate',
+        path:
+          planPath(id) +
+          '/activate' +
+          (confirmDeviation ? '?confirmDeviation=true' : ''),
         method: 'POST',
         decode: decodePlan,
       }),
@@ -66,11 +69,16 @@ export function createHttpTradingPlanService(
         method: 'POST',
         decode: decodePlan,
       }),
-    create: (pairId, inputs, activate) =>
+    create: (pairId, inputs, activate, confirmDeviation = false) =>
       http.request({
         path: 'plans',
         method: 'POST',
-        body: { pairId, ...encodePlanInputs(inputs), activate },
+        body: {
+          pairId,
+          ...encodePlanInputs(inputs),
+          activate,
+          ...(confirmDeviation ? { confirmDeviation: true } : {}),
+        },
         decode: decodePlan,
       }),
     calculate: (pairId, inputs, signal) =>
@@ -81,11 +89,15 @@ export function createHttpTradingPlanService(
         decode: decodeCalculation,
         ...withSignal(signal),
       }),
-    update: (id, inputs, activate) =>
+    update: (id, inputs, activate, confirmDeviation = false) =>
       http.request({
         path: planPath(id),
         method: 'PUT',
-        body: { ...encodePlanInputs(inputs), activate },
+        body: {
+          ...encodePlanInputs(inputs),
+          activate,
+          ...(confirmDeviation ? { confirmDeviation: true } : {}),
+        },
         decode: decodePlan,
       }),
     // Only the levels given are sent; an absent one keeps the current.

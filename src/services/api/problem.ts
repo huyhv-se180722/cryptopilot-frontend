@@ -15,7 +15,26 @@ export interface ApiProblem {
   fieldErrors: Readonly<Record<string, string>>;
   /** Reference shown in MSG43. */
   traceId?: string;
+  /**
+   * The other plain members of the body, e.g. `deviationR` of MSG51; read
+   * only by the decoder of the refusal that carries them.
+   */
+  extensions?: Readonly<Record<string, string | number | boolean>>;
 }
+
+/** Members never kept as extensions: developer text and the fields above. */
+const KNOWN = new Set([
+  'type',
+  'title',
+  'status',
+  'detail',
+  'instance',
+  'code',
+  'messageCode',
+  'messageArgs',
+  'errors',
+  'traceId',
+]);
 
 const MESSAGE_ID = /^MSG\d{2}$/;
 const CODE = /^[A-Z][A-Z0-9_]{1,63}$/;
@@ -45,6 +64,16 @@ export function decodeProblem(
       fieldErrors[field] = MESSAGE_ID.test(value) ? value : 'MSG01';
     }
   }
+  const extensions: Record<string, string | number | boolean> = {};
+  for (const [name, value] of Object.entries(body))
+    if (
+      !KNOWN.has(name) &&
+      /^[A-Za-z]\w{0,63}$/.test(name) &&
+      (typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean')
+    )
+      extensions[name] = value;
   return {
     status,
     code,
@@ -54,5 +83,6 @@ export function decodeProblem(
     ...(typeof traceId === 'string' && /^[\w.:-]{1,64}$/.test(traceId)
       ? { traceId }
       : {}),
+    ...(Object.keys(extensions).length > 0 ? { extensions } : {}),
   };
 }

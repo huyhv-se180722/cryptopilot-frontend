@@ -111,6 +111,27 @@ describe('decodeProblem', () => {
       decodeProblem({ code: 'X', messageCode: 'hello' }, 400),
     ).toBeUndefined();
   });
+  it('keeps the plain data members of a refusal, never developer text', () => {
+    const problem = decodeProblem(
+      {
+        type: 'about:blank',
+        title: 'Bad Request',
+        detail: 'the MARKET entry moved 0.5R and needs confirmation',
+        code: 'ENTRY_DEVIATION_CONFIRMATION_REQUIRED',
+        messageCode: 'MSG51',
+        messageArgs: ['0.50000000', '0.033300000000', '1.66666667'],
+        deviationR: '0.50000000',
+        takeProfitReached: false,
+        nested: { not: 'kept' },
+      },
+      400,
+    );
+    expect(problem?.extensions).toEqual({
+      deviationR: '0.50000000',
+      takeProfitReached: false,
+    });
+  });
+
   it('keeps field message ids and turns binding notes into MSG01', () => {
     const problem = decodeProblem(
       {

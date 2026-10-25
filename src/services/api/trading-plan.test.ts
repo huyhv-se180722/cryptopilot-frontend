@@ -7,9 +7,11 @@ import {
 import type { PlanInputs } from '../../types/domain';
 import {
   decodeCalculation,
+  decodeEntryDeviation,
   decodePlan,
   decodePlanPage,
 } from './trading-plan-dto';
+import { decodeProblem } from './problem';
 
 /** Shapes of `GET /plans` and `GET /plans/{id}` on develop @ 0d92def. */
 const ROW = {
@@ -307,6 +309,69 @@ describe('trading plan decoders', () => {
     ).toThrow();
   });
 
+  it('reads the MSG51 and MSG52 bodies of a moved MARKET entry (TP-C)', () => {
+    expect(
+      decodeEntryDeviation(
+        decodeProblem(
+          {
+            code: 'ENTRY_DEVIATION_CONFIRMATION_REQUIRED',
+            messageCode: 'MSG51',
+            messageArgs: ['0.50000000', '0.033300000000', '1.66666667'],
+            deviationR: '0.50000000',
+            maxDeviationR: '0.75000000',
+            expectedFillPrice: '101000',
+            positionQuantity: '0.033300000000',
+            riskRewardRatio: '1.66666667',
+            netRiskReward: '1.49828071',
+          },
+          400,
+        ),
+      ),
+    ).toEqual({
+      kind: 'confirm',
+      deviationR: '0.50000000',
+      maxDeviationR: '0.75000000',
+      expectedFillPrice: '101000',
+      positionQuantity: '0.033300000000',
+      riskRewardRatio: '1.66666667',
+      netRiskReward: '1.49828071',
+    });
+    expect(
+      decodeEntryDeviation(
+        decodeProblem(
+          {
+            status: 409,
+            code: 'ENTRY_DEVIATION_REFUSED',
+            messageCode: 'MSG52',
+            messageArgs: ['1.00000000', '0.75000000'],
+            deviationR: '1.00000000',
+            maxDeviationR: '0.75000000',
+            expectedFillPrice: '102000',
+            takeProfitReached: false,
+          },
+          409,
+        ),
+      ),
+    ).toMatchObject({ kind: 'refused', takeProfitReached: false });
+    // Another refusal, or one without its figures, is not a deviation.
+    expect(
+      decodeEntryDeviation(
+        decodeProblem(
+          { code: 'TRADING_BLOCKING_WARNING', messageCode: 'MSG18' },
+          409,
+        ),
+      ),
+    ).toBeNull();
+    expect(
+      decodeEntryDeviation(
+        decodeProblem(
+          { code: 'ENTRY_DEVIATION_REFUSED', messageCode: 'MSG52' },
+          409,
+        ),
+      ),
+    ).toBeNull();
+  });
+
   it('rejects an unknown status, warning or a missing snapshot value', () => {
     expect(() => decodePlan({ ...PLAN, status: 'OPEN' })).toThrow();
     expect(() =>
@@ -374,10 +439,16 @@ describe('HTTP trading plan adapter', () => {
     const { plans, calls } = setup(PLAN);
     await plans.get(PLAN.id);
     await plans.activate(PLAN.id);
+    await plans.activate(PLAN.id, true);
     await plans.cancel(PLAN.id);
-    expect(calls.map((call) => call.method + ' ' + call.url.pathname)).toEqual([
+    expect(
+      calls.map(
+        (call) => call.method + ' ' + call.url.pathname + call.url.search,
+      ),
+    ).toEqual([
       'GET /api/v1/plans/' + PLAN.id,
       'POST /api/v1/plans/' + PLAN.id + '/activate',
+      'POST /api/v1/plans/' + PLAN.id + '/activate?confirmDeviation=true',
       'POST /api/v1/plans/' + PLAN.id + '/cancel',
     ]);
   });
@@ -539,6 +610,7 @@ describe('plan calculation', () => {
         analysisTimeframe: null,
       },
       true,
+      true,
     );
     expect(bodies[1]).toEqual({
       pairId: PLAN.pairId,
@@ -556,6 +628,8 @@ describe('plan calculation', () => {
       maxEntryDeviationR: null,
       analysisTimeframe: null,
       activate: true,
+      // Repeated after MSG51 with the Trader's confirmation (TP-C).
+      confirmDeviation: true,
     });
   });
 });

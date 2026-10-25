@@ -339,7 +339,9 @@ export function createDevelopmentTradingPlan(
       await pause(signal);
       return find(id);
     },
-    async activate(id) {
+    // A MARKET draft activated later has moved since its save (scripted
+    // 0.40 R): MSG51 until the Trader confirms (TP-C).
+    async activate(id, confirmDeviation = false) {
       await pause();
       const plan = find(id);
       if (plan.status !== 'DRAFT')
@@ -347,6 +349,26 @@ export function createDevelopmentTradingPlan(
       if (plan.blocksActivation)
         refuse(409, 'TRADING_BLOCKING_WARNING', 'MSG18');
       await activeLimit();
+      if (plan.entryType === 'MARKET' && !confirmDeviation)
+        throw new ServiceError('Development plan refusal.', 'HTTP_ERROR', 400, {
+          status: 400,
+          code: 'ENTRY_DEVIATION_CONFIRMATION_REQUIRED',
+          messageCode: 'MSG51',
+          messageArgs: [
+            '0.40000000',
+            plan.snapshot.positionQuantity,
+            '1.80000000',
+          ],
+          fieldErrors: {},
+          extensions: {
+            deviationR: '0.40000000',
+            maxDeviationR: plan.maxEntryDeviationR ?? '0.75000000',
+            expectedFillPrice: plan.expectedFillPrice ?? plan.entryPrice,
+            positionQuantity: plan.snapshot.positionQuantity,
+            riskRewardRatio: '1.80000000',
+            netRiskReward: '1.52000000',
+          },
+        });
       return move(plan, 'ACTIVE');
     },
     async cancel(id) {

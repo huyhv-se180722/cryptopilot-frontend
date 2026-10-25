@@ -213,19 +213,26 @@ export interface AnalysisService {
 export interface TradingPlanService {
   list(query: PlanListQuery, signal?: AbortSignal): Promise<PlanPage>;
   get(id: string, signal?: AbortSignal): Promise<TradingPlan>;
-  /** DRAFT → ACTIVE after the server re-checks price, warnings and limit (UC-18). */
-  activate(id: string): Promise<TradingPlan>;
+  /**
+   * DRAFT → ACTIVE after the server re-checks price, warnings and limit
+   * (UC-18). A MARKET entry moved since the last save asks to confirm
+   * (MSG51) or refuses (MSG52, BR-69); `confirmDeviation` repeats the
+   * request with the Trader's confirmation.
+   */
+  activate(id: string, confirmDeviation?: boolean): Promise<TradingPlan>;
   /** DRAFT or ACTIVE → CANCELLED (UC-19). */
   cancel(id: string): Promise<TradingPlan>;
   /**
    * A new plan on a pair of the market lists (UC-16): a DRAFT, or ACTIVE
    * with `activate`; nothing is saved when activation is refused (MSG18,
-   * MSG27). 403 MSG29 for a Futures plan outside the caller's plan.
+   * MSG27, MSG51, MSG52). 403 MSG29 for a Futures plan outside the
+   * caller's plan.
    */
   create(
     pairId: string,
     inputs: PlanInputs,
     activate: boolean,
+    confirmDeviation?: boolean,
   ): Promise<TradingPlan>;
   /** SCR-17 risk panel for the values entered; nothing is saved. */
   calculate(
@@ -241,6 +248,7 @@ export interface TradingPlanService {
     id: string,
     inputs: PlanInputs,
     activate: boolean,
+    confirmDeviation?: boolean,
   ): Promise<TradingPlan>;
   /**
    * TP-E: moves the stop loss and/or take profit of the plan's OPEN
