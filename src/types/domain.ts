@@ -1604,3 +1604,23 @@ export interface PairBrackets {
   /** In order from the first, notional 0 upwards. */
   brackets: readonly LeverageBracket[];
 }
+
+/** How a system setting's value is written and checked (UC-51). */
+export type SettingValueType = 'INT' | 'DECIMAL' | 'BOOLEAN' | 'STRING';
+
+/** SCR-43: one system setting, its value as text and the range it may take. */
+export interface SystemSetting {
+  /** e.g. SPOT_TAKER_FEE. */
+  key: string;
+  /** As the server writes it: "0.00100000", "15", "true". */
+  value: string;
+  valueType: SettingValueType;
+  /** What the setting does, from the server. */
+  description: string;
+  /** Inclusive bounds; null when only the type is checked. */
+  min: Decimal | null;
+  max: Decimal | null;
+  /** The administrator who last changed it; null for the seeded value. */
+  updatedBy: string | null;
+  updatedAt: ISODateTime;
+}

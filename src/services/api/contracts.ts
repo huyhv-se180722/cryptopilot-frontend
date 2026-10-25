@@ -102,6 +102,7 @@ import type {
   PairBrackets,
   PairSettings,
   PairStatus,
+  SystemSetting,
 } from '../../types/domain';
 
 /** UI-facing contracts only. Pagination and transport DTOs need backend agreement. */
@@ -565,6 +566,16 @@ export interface AdminPairService {
     pairId: string,
     brackets: readonly LeverageBracketInput[],
   ): Promise<PairBrackets>;
+}
+
+/**
+ * The system settings of the administration console (UC-51), Admin only:
+ * every setting with its range, and one setting changed at a time. New
+ * operations use a new value at once.
+ */
+export interface AdminSettingService {
+  list(signal?: AbortSignal): Promise<SystemSetting[]>;
+  update(key: string, value: string): Promise<SystemSetting>;
 }
 
 /**
