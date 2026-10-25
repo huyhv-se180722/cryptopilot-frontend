@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { Badge } from '../../../components/ui/Badge';
 import { NumericText } from '../../../components/ui/NumericText';
 import { Table, type Column } from '../../../components/ui/Table';
 import { useCopy } from '../../../hooks/use-copy';
@@ -18,11 +19,12 @@ import { planPrice, planRatio, shortPlanId } from './plan-format';
 
 /**
  * SCR-16 table (SRS 3.5.2): pair, market, direction, entry, stop loss,
- * take profit, reward/risk, status and created time; the Executed tab adds
- * position status and P/L. The API names the pair by id only, so the pair
- * comes from the market lists by that id (FEQ-01); a pair no list has any
- * more shows a dash. The plan id is the link to SCR-18; the position
- * columns wait for simulated execution (M-10).
+ * take profit, reward/risk, status (with the reason of an INVALIDATED
+ * plan) and created time; the Executed tab adds the position status
+ * (T-048a) and the P/L column, which stays a dash: the row has no P/L
+ * (read the detail). The API names the pair by id only, so the pair comes
+ * from the market lists by that id (FEQ-01); a pair no list has any more
+ * shows a dash. The plan id is the link to SCR-18.
  */
 export function PlanTable({
   tab,
@@ -129,7 +131,17 @@ export function PlanTable({
           {
             id: 'position',
             header: p.colPosition,
-            render: () => none,
+            render: (row: TradingPlanSummary) =>
+              row.positionStatus ? (
+                <Badge
+                  tone={row.positionStatus === 'OPEN' ? 'info' : 'neutral'}
+                  withDot
+                >
+                  {p[`position${row.positionStatus}`]}
+                </Badge>
+              ) : (
+                none
+              ),
           },
           {
             id: 'pnl',

@@ -28,9 +28,10 @@ import { PlanChart } from './plan-chart';
  * SCR-18 Trading Plan Detail (SRS 3.5.3, UC-18, UC-19): the pair, named
  * from the market lists by the plan's pair id (FEQ-01), the chart of that
  * market with the plan's entry, stop loss, take profit and estimated
- * liquidation, the inputs, calculation snapshot, warnings, status history
- * and the actions. The live position of an executed plan waits for
- * simulated execution. The MSG42 disclaimer is in the shell footer.
+ * liquidation, the invalidation price and, once filled, the fill price;
+ * the inputs, calculation snapshot, warnings, status history, the actions
+ * and the position of an executed plan, read again every 10 s while it is
+ * open. The MSG42 disclaimer is in the shell footer.
  */
 export function PlanDetailPage() {
   const copy = useCopy();
@@ -108,7 +109,9 @@ export function PlanDetailPage() {
               ) : null}
               <PlanInputsPanel plan={plan} />
               <PlanSnapshotPanel plan={plan} />
-              {plan.status === 'EXECUTED' && <PlanPositionPanel />}
+              {plan.status === 'EXECUTED' && (
+                <PlanPositionPanel plan={plan} freshness={query.freshness} />
+              )}
             </div>
             <div className="flex flex-col gap-4">
               <PlanWarningsPanel

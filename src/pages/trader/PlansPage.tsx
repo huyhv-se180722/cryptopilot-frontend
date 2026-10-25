@@ -41,7 +41,10 @@ const marketOf = (value: string | null): MarketType | 'all' =>
 const periodOf = (value: string | null): PlanPeriod =>
   PLAN_PERIODS.includes(value as PlanPeriod) ? (value as PlanPeriod) : 'all';
 
-/** `ACTIVE_PLAN_MAX` of the plan (BR-62); shown only when the plan has one. */
+/**
+ * `ACTIVE_PLAN_MAX` of the plan (BR-62): ACTIVE plans plus open positions
+ * (T-048a); shown only when the plan has a limit.
+ */
 function ActiveLimit() {
   const copy = useCopy();
   const p = copy.plan;
@@ -70,8 +73,8 @@ function ActiveLimit() {
  * SCR-16 Trading Plans (SRS 3.5.2, UC-20): status tabs, market and period
  * filters, 20 rows per page (CR-04); tab, filters and page live in the URL.
  * A row opens SCR-18. Pairs are named and filtered by the id the market
- * lists give (FEQ-01); position status and P/L wait for simulated
- * execution (M-10).
+ * lists give (FEQ-01); the Executed tab shows each position's status
+ * (T-048a).
  */
 export function PlansPage() {
   const copy = useCopy();

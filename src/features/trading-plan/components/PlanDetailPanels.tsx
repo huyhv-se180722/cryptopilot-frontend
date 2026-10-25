@@ -12,13 +12,25 @@ import {
   fractionToPercent,
   shiftDecimal,
   toFixedDecimal,
+  trimDecimal,
 } from '../../../utils/decimal-format';
+import { compare } from '../../../utils/decimal-math';
 import {
   formatInstantLocal,
   formatInstantUtc,
+  formatInstantUtc7,
 } from '../../../utils/instant-format';
+import { Badge } from '../../../components/ui/Badge';
+import { FreshnessBadge } from '../../market/components/FreshnessBadge';
 import { PlanStatusBadge, SeverityBadge } from './PlanBadges';
-import { planAmount, planPrice, planQuantity, planRatio } from './plan-format';
+import {
+  planAmount,
+  planPnl,
+  planPrice,
+  planQuantity,
+  planRatio,
+  pnlTone,
+} from './plan-format';
 import { warningText } from './plan-text';
 
 export function Panel({
@@ -87,15 +99,54 @@ const when = (value: string) => (
   </time>
 );
 
+/**
+ * The setup score taken at activation with its preset (TP-A). A null score
+ * is not an error and never 0: before activation it is still to be taken,
+ * after it the score could not be read.
+ */
+function SetupScore({ plan }: { plan: TradingPlan }) {
+  const p = useCopy().plan;
+  if (plan.setupScoreAtPlan === null)
+    return (
+      <span className="text-muted-dim">
+        {plan.status === 'DRAFT' ? p.scoreAtActivation : p.scoreNotAvailable}
+      </span>
+    );
+  const [style = '', version = ''] = (plan.setupScorePreset ?? '').split(' ');
+  const preset =
+    style === 'SCALPING' || style === 'DAY_TRADING' || style === 'SWING'
+      ? `${p[`preset${style}`]}${version ? ' ' + version : ''}`
+      : plan.setupScorePreset;
+  return (
+    <span>
+      <NumericText value={toFixedDecimal(plan.setupScoreAtPlan, 0)} />
+      {preset && <span className="ml-1.5 text-muted-dim">{preset}</span>}
+    </span>
+  );
+}
+
 /** SRS 3.5.3: the plan inputs as entered (prices at the pair's tick). */
 export function PlanInputsPanel({ plan }: { plan: TradingPlan }) {
   const copy = useCopy();
   const p = copy.plan;
+  const dash = copy.market.noValue;
   const futures = plan.market === 'futures';
   const rows: [string, ReactNode][] = [
     [p.colMarket, futures ? copy.market.futures : copy.market.spot],
     [p.entryType, p[`entry${plan.entryType}`]],
-    [p.entryPrice, <NumericText value={planPrice(plan.entryPrice)} />],
+    [
+      plan.entryType === 'STOP' ? p.stopPrice : p.entryPrice,
+      <NumericText value={planPrice(plan.entryPrice)} />,
+    ],
+    ...(plan.expectedFillPrice &&
+    compare(plan.expectedFillPrice, plan.entryPrice) !== 0
+      ? ([
+          [
+            p.expectedFill,
+            <NumericText value={planPrice(plan.expectedFillPrice)} />,
+          ],
+        ] as [string, ReactNode][])
+      : []),
     [p.stopLoss, <NumericText value={planPrice(plan.stopLoss)} />],
     [p.takeProfit, <NumericText value={planPrice(plan.takeProfit)} />],
     [p.capital, <NumericText value={planAmount(plan.capital)} />],
@@ -107,6 +158,27 @@ export function PlanInputsPanel({ plan }: { plan: TradingPlan }) {
         ] as [string, ReactNode][])
       : []),
     [p.expiresAt, plan.expiresAt ? when(plan.expiresAt) : p.noExpiry],
+    [
+      p.invalidationPrice,
+      plan.invalidationPrice ? (
+        <NumericText value={planPrice(plan.invalidationPrice)} />
+      ) : (
+        dash
+      ),
+    ],
+    [
+      p.maxDeviation,
+      plan.maxEntryDeviationR ? (
+        <NumericText
+          value={trimDecimal(plan.maxEntryDeviationR, 0)}
+          suffix=" R"
+        />
+      ) : (
+        dash
+      ),
+    ],
+    [p.timeframeField, plan.analysisTimeframe],
+    [p.scoreAtPlan, <SetupScore plan={plan} />],
     ...(plan.invalidationReason
       ? ([[p.invalidationReason, p[`reason${plan.invalidationReason}`]]] as [
           string,
@@ -298,6 +370,11 @@ export function PlanHistoryPanel({ plan }: { plan: TradingPlan }) {
               <span className="text-[11px] text-muted-dim">
                 {when(change.at)}
               </span>
+              {change.status === 'INVALIDATED' && plan.invalidationReason && (
+                <span className="text-[11px] text-fg-2">
+                  {p[`reason${plan.invalidationReason}`]}
+                </span>
+              )}
             </div>
           </li>
         ))}
@@ -306,15 +383,118 @@ export function PlanHistoryPanel({ plan }: { plan: TradingPlan }) {
   );
 }
 
-/** SRS 3.5.3 live position of an executed plan; it waits for the matching engine. */
-export function PlanPositionPanel() {
-  const p = useCopy().plan;
+/**
+ * The position of an EXECUTED plan (SRS 3.5.3, T-048a): fill price,
+ * quantity, entry time (UTC+7), entry fee and, on Futures, the
+ * liquidation price; while OPEN the current price (Futures mark, Spot
+ * last) and the unrealized P/L without fees or funding (Q-55), with the
+ * Live / Delayed badge of its 10 s refresh, and a dash when the server has
+ * no current price. A plan filled before T-048a has no position block.
+ */
+export function PlanPositionPanel({
+  plan,
+  freshness,
+  actions,
+}: {
+  plan: TradingPlan;
+  freshness: 'live' | 'delayed';
+  /** E.g. Close position, under the rows of an OPEN position. */
+  actions?: ReactNode;
+}) {
+  const copy = useCopy();
+  const p = copy.plan;
+  const dash = copy.market.noValue;
+  const position = plan.position;
+  if (!position)
+    return (
+      <Panel id="plan-position-title" title={p.positionTitle}>
+        <p className="flex items-start gap-2 text-xs text-muted">
+          <Clock size={14} aria-hidden="true" className="mt-0.5 shrink-0" />
+          {p.positionMissing}
+        </p>
+      </Panel>
+    );
+  const open = position.status === 'OPEN';
+  const rows: [string, ReactNode][] = [
+    [p.fillPrice, <NumericText value={planPrice(position.fillPrice)} />],
+    [
+      p.positionQuantity,
+      <NumericText value={planQuantity(position.quantity)} />,
+    ],
+    [
+      p.entryTime,
+      <time
+        dateTime={position.entryTime}
+        title={formatInstantUtc(position.entryTime)}
+      >
+        {formatInstantUtc7(position.entryTime)}
+      </time>,
+    ],
+    [p.entryFee, <NumericText value={planAmount(position.entryFee)} />],
+    ...(plan.market === 'futures'
+      ? ([
+          [
+            p.positionLiquidation,
+            position.liquidationPrice ? (
+              <NumericText value={planPrice(position.liquidationPrice)} />
+            ) : (
+              dash
+            ),
+          ],
+        ] as [string, ReactNode][])
+      : []),
+    ...(open
+      ? ([
+          [
+            p.currentPrice,
+            position.currentPrice ? (
+              <NumericText value={planPrice(position.currentPrice)} />
+            ) : (
+              dash
+            ),
+          ],
+          [p.unrealizedPnl, <Pnl value={position.unrealizedPnl} />],
+        ] as [string, ReactNode][])
+      : []),
+  ];
   return (
-    <Panel id="plan-position-title" title={p.positionTitle}>
-      <p className="flex items-start gap-2 text-xs text-muted">
-        <Clock size={14} aria-hidden="true" className="mt-0.5 shrink-0" />
-        {p.positionWaiting}
-      </p>
+    <Panel
+      id="plan-position-title"
+      title={p.positionTitle}
+      aside={
+        <span className="flex items-center gap-2">
+          <Badge tone={open ? 'info' : 'neutral'} withDot>
+            {p[`position${position.status}`]}
+          </Badge>
+          {open && <FreshnessBadge freshness={freshness} />}
+        </span>
+      }
+    >
+      <Rows rows={rows} />
+      {open && position.currentPrice === null && (
+        <p className="mt-2 text-[11px] text-muted-dim">{p.positionNoPrice}</p>
+      )}
+      {actions && <div className="mt-3">{actions}</div>}
     </Panel>
+  );
+}
+
+/** A signed P/L in green or red, a dash when unknown (never 0). */
+export function Pnl({ value }: { value: string | null }) {
+  const dash = useCopy().market.noValue;
+  if (value === null) return <>{dash}</>;
+  const tone = pnlTone(value);
+  return (
+    <span
+      className={
+        tone === 'positive'
+          ? 'text-positive'
+          : tone === 'negative'
+            ? 'text-negative'
+            : undefined
+      }
+    >
+      <NumericText value={planPnl(value)} />
+    </span>
   );
 }

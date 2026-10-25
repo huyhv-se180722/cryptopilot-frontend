@@ -59,13 +59,40 @@ export function usePlanList({
   });
 }
 
+/** The largest page `GET /plans` serves (CR-04). */
+const MAX_PAGE = 100;
+
 /**
- * ACTIVE plans for the `ACTIVE_PLAN_MAX` banner, read only when the plan
- * has a limit. The backend counts open positions too (BR-62); none exist
- * before the matching engine fills a plan.
+ * The slots `ACTIVE_PLAN_MAX` counts (BR-62, T-048a): ACTIVE plans plus
+ * the open positions of EXECUTED plans, read only when the plan has a
+ * limit. The list has no filter by position status, so the Executed tab
+ * is read whole and its OPEN rows counted.
  */
 export function useActivePlanCount(enabled: boolean) {
-  return usePlanCount('ACTIVE', enabled);
+  const { tradingPlan } = useServices();
+  return useQuery({
+    queryKey: [...LIST_KEY, 'count', 'slots'],
+    queryFn: async ({ signal }) => {
+      const active = await tradingPlan.list(
+        { tab: 'ACTIVE', page: 1, pageSize: 1 },
+        signal,
+      );
+      let open = 0;
+      for (let page = 1; ; page++) {
+        const executed = await tradingPlan.list(
+          { tab: 'EXECUTED', page, pageSize: MAX_PAGE },
+          signal,
+        );
+        open += executed.items.filter(
+          (row) => row.positionStatus === 'OPEN',
+        ).length;
+        if (page * MAX_PAGE >= executed.total || executed.items.length === 0)
+          break;
+      }
+      return active.total + open;
+    },
+    enabled,
+  });
 }
 
 /** How many plans a tab holds: the total of a one-row page. */
@@ -82,8 +109,18 @@ export function usePlanCount(tab: PlanTab, enabled = true) {
 }
 
 /**
- * One plan with snapshot, warnings and status history (SCR-18). `missing`
- * is the 404 the API answers for an unknown plan or another account's.
+ * How often the plan of an OPEN position is read again for its current
+ * price and unrealized P/L: the guide documents no push of them (only
+ * `/user/queue/positions` on a close), so the detail polls (CR-09).
+ */
+export const POSITION_REFRESH_MS = 10_000;
+
+/**
+ * One plan with snapshot, warnings, status history and position (SCR-18).
+ * `missing` is the 404 the API answers for an unknown plan or another
+ * account's. While the position is OPEN the plan is read every 10 s;
+ * `freshness` is `delayed` when the last read failed or the server has no
+ * current price, else `live`.
  */
 export function usePlan(id: string) {
   const { tradingPlan } = useServices();
@@ -92,9 +129,18 @@ export function usePlan(id: string) {
     queryFn: ({ signal }) => tradingPlan.get(id, signal),
     retry: (count, error) =>
       problemOf(error)?.code !== 'RESOURCE_NOT_FOUND' && count < 2,
+    refetchInterval: (current) =>
+      current.state.data?.position?.status === 'OPEN'
+        ? POSITION_REFRESH_MS
+        : false,
   });
+  const position = query.data?.position;
   return {
     ...query,
+    freshness:
+      query.isRefetchError || position?.currentPrice === null
+        ? ('delayed' as const)
+        : ('live' as const),
     missing: problemOf(query.error)?.code === 'RESOURCE_NOT_FOUND',
   };
 }

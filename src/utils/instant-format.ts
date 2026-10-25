@@ -15,3 +15,13 @@ export function formatInstantUtc(value: string): string {
 export function toLocalInput(value: string): string {
   return formatInstantLocal(value).replace(' ', 'T');
 }
+
+const UTC7_MS = 7 * 3_600_000;
+/**
+ * An instant in UTC+7 as "dd/MM/yyyy HH:mm" (CR-01), the same on every
+ * device whatever its time zone.
+ */
+export function formatInstantUtc7(value: string): string {
+  const iso = new Date(Date.parse(value) + UTC7_MS).toISOString();
+  return `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)} ${iso.slice(11, 16)}`;
+}

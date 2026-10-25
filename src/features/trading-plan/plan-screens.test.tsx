@@ -267,7 +267,7 @@ const lastList = (service: TradingPlanService) =>
   vi
     .mocked(service.list)
     .mock.calls.map(([query]) => query)
-    .filter((query) => query.pageSize !== 1)
+    .filter((query) => query.pageSize === 20)
     .at(-1);
 
 describe('SCR-16 plan list (T-041)', () => {
@@ -345,14 +345,18 @@ describe('SCR-16 plan list (T-041)', () => {
   it('shows the active plan limit on FREE only', async () => {
     await open('/plans');
     expect(
-      await screen.findByText('2 of 3 active plans on the FREE plan.'),
+      await screen.findByText(
+        '2 of 3 active plans and open positions on the FREE plan.',
+      ),
     ).toBeTruthy();
   });
 
   it('has no limit banner on a plan without a limit', async () => {
     const service = await open('/plans', fakePlans(), 'PRO');
     await screen.findByText('Short');
-    expect(screen.queryByText(/active plans on the/)).toBeNull();
+    expect(
+      screen.queryByText(/active plans and open positions on the/),
+    ).toBeNull();
     expect(
       vi.mocked(service.list).mock.calls.some(([q]) => q.pageSize === 1),
     ).toBe(false);
@@ -371,7 +375,7 @@ describe('SCR-16 plan list (T-041)', () => {
     expect(
       await screen.findByRole('columnheader', { name: 'P/L (USDT)' }),
     ).toBeTruthy();
-    expect(screen.getByText(/Position status and P\/L appear/)).toBeTruthy();
+    expect(screen.getByText(/Its P\/L is on the plan detail/)).toBeTruthy();
     expect(screen.getByText('Page 1 of 3')).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Next' }));
     await waitFor(() => expect(lastList(service)?.page).toBe(2));
@@ -1335,6 +1339,292 @@ describe('SCR-17 validity, fees and capital (T-040)', () => {
       await screen.findByText(
         'Leverage is above the maximum of this pair’s leverage brackets.',
       ),
+    ).toBeTruthy();
+  });
+});
+
+describe('SCR-16 and SCR-18 validity and position (T-041)', () => {
+  const OPEN_POSITION: NonNullable<TradingPlan['position']> = {
+    status: 'OPEN',
+    fillPrice: '62006.200000000000',
+    quantity: '0.010000000000',
+    entryTime: '2026-10-25T08:00:00Z',
+    entryFee: '0.31003100',
+    liquidationPrice: '49914.900000000000',
+    currentPrice: '62606.2',
+    unrealizedPnl: '6.00000000',
+    exitPrice: null,
+    exitTime: null,
+    closeReason: null,
+    realizedPnl: null,
+    feeAmount: null,
+    fundingFeeAmount: null,
+    netPnl: null,
+    provisional: false,
+  };
+  const history = (...statuses: TradingPlan['status'][]) =>
+    statuses.map((status, index) => ({
+      status,
+      at: new Date(Date.UTC(2026, 9, 8, 2 + index * 2, 20)).toISOString(),
+    }));
+  const LONG: TradingPlan = {
+    ...PLAN,
+    direction: 'LONG',
+    entryPrice: '62000.000000000000',
+    stopLoss: '61000.000000000000',
+    takeProfit: '65000.000000000000',
+  };
+  const ACTIVE: TradingPlan = {
+    ...LONG,
+    status: 'ACTIVE',
+    editable: false,
+    invalidationPrice: '63500.000000000000',
+    maxEntryDeviationR: '0.50',
+    analysisTimeframe: '4h',
+    setupScoreAtPlan: '59.00',
+    setupScorePreset: 'DAY_TRADING v1',
+    statusHistory: history('DRAFT', 'ACTIVE'),
+  };
+  const EXECUTED: TradingPlan = {
+    ...ACTIVE,
+    status: 'EXECUTED',
+    statusHistory: history('DRAFT', 'ACTIVE', 'EXECUTED'),
+    position: OPEN_POSITION,
+  };
+  const detail = async (plan: TradingPlan) => {
+    const service = fakePlans({ get: vi.fn(async () => plan) });
+    await open('/plans/' + plan.id, service);
+    return service;
+  };
+  const row = (label: string) =>
+    screen.getByText(label).nextSibling?.textContent;
+
+  it('shows each position status on the Executed tab', async () => {
+    const service = fakePlans({
+      list: vi.fn(async (query) => ({
+        items:
+          query.tab === 'EXECUTED'
+            ? [
+                {
+                  ...ROW,
+                  status: 'EXECUTED' as const,
+                  positionStatus: 'OPEN' as const,
+                },
+                {
+                  ...ROW,
+                  id: ROW.id.slice(0, -1) + '9',
+                  status: 'EXECUTED' as const,
+                  positionStatus: 'CLOSED' as const,
+                },
+              ]
+            : [],
+        page: 1,
+        pageSize: query.pageSize,
+        total: query.tab === 'EXECUTED' ? 2 : 0,
+      })),
+    });
+    await open('/plans?tab=EXECUTED', service);
+    const table = within(
+      await screen.findByRole('region', { name: 'Executed trading plans' }),
+    );
+    expect(await table.findByText('Open')).toBeTruthy();
+    expect(table.getByText('Closed')).toBeTruthy();
+  });
+
+  it('counts ACTIVE plans plus open positions in the limit banner (BR-62)', async () => {
+    const service = fakePlans({
+      list: vi.fn(async (query) =>
+        query.tab === 'ACTIVE'
+          ? { items: [], page: 1, pageSize: query.pageSize, total: 1 }
+          : query.tab === 'EXECUTED'
+            ? {
+                items: (['OPEN', 'OPEN', 'CLOSED'] as const).map(
+                  (positionStatus, index) => ({
+                    ...ROW,
+                    id: ROW.id.slice(0, -1) + index,
+                    status: 'EXECUTED' as const,
+                    positionStatus,
+                  }),
+                ),
+                page: 1,
+                pageSize: query.pageSize,
+                total: 3,
+              }
+            : { items: [ROW], page: 1, pageSize: 20, total: 1 },
+      ),
+    });
+    await open('/plans', service);
+    expect(
+      await screen.findByText(
+        '3 of 3 active plans and open positions on the FREE plan.',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('shows a DRAFT: no score yet, the style timeframe, no position', async () => {
+    await detail(PLAN);
+    await screen.findByRole('region', { name: 'Plan inputs' });
+    expect(row('Setup score at activation')).toBe('Taken at activation');
+    expect(row('Invalidation price')).toBe('—');
+    expect(row('Analysis timeframe')).toBe('1h');
+    expect(screen.queryByRole('region', { name: 'Position' })).toBeNull();
+  });
+
+  it('shows an ACTIVE plan: invalidation, deviation, timeframe and the score with its preset', async () => {
+    priceLines.length = 0;
+    await detail(ACTIVE);
+    await screen.findByRole('region', { name: 'Plan inputs' });
+    expect(row('Invalidation price')).toBe('63,500.00');
+    expect(row('Max entry deviation')).toBe('0.5 R');
+    expect(row('Analysis timeframe')).toBe('4h');
+    expect(row('Setup score at activation')).toBe('59Day trading v1');
+    await waitFor(() =>
+      expect(priceLines).toEqual(
+        expect.arrayContaining(['Invalidation price 63500']),
+      ),
+    );
+  });
+
+  it('says a score that could not be read is not available, never 0', async () => {
+    await detail({ ...ACTIVE, setupScoreAtPlan: null, setupScorePreset: null });
+    await screen.findByRole('region', { name: 'Plan inputs' });
+    expect(row('Setup score at activation')).toBe('Not available');
+  });
+
+  it('shows the OPEN position with a signed P/L, the Live badge and the fill line', async () => {
+    priceLines.length = 0;
+    await detail(EXECUTED);
+    const panel = within(
+      await screen.findByRole('region', { name: 'Position' }),
+    );
+    const value = (label: string) =>
+      panel.getByText(label).nextSibling?.textContent;
+    expect(panel.getByText('Open')).toBeTruthy();
+    expect(panel.getByText('Live')).toBeTruthy();
+    expect(value('Fill price')).toBe('62,006.20');
+    expect(value('Quantity')).toBe('0.01');
+    // 08:00 UTC is 15:00 in UTC+7, whatever the device's zone.
+    expect(value('Entry time (UTC+7)')).toBe('25/10/2026 15:00');
+    expect(value('Entry fee (USDT)')).toBe('0.31');
+    expect(value('Liquidation price')).toBe('49,914.90');
+    expect(value('Current price')).toBe('62,606.20');
+    expect(value('Unrealized P/L (no fees, no funding)')).toBe('+6.00');
+    expect(panel.getByText('+6.00').closest('.text-positive')).toBeTruthy();
+    await waitFor(() =>
+      expect(priceLines).toEqual(expect.arrayContaining(['Fill 62006.2'])),
+    );
+    // Once filled, the invalidation price is no longer drawn.
+    expect(priceLines.some((line) => line.startsWith('Invalidation'))).toBe(
+      false,
+    );
+  });
+
+  it('shows a loss in red with its sign', async () => {
+    await detail({
+      ...EXECUTED,
+      position: { ...OPEN_POSITION, unrealizedPnl: '-4.25000000' },
+    });
+    const panel = within(
+      await screen.findByRole('region', { name: 'Position' }),
+    );
+    expect(panel.getByText('-4.25').closest('.text-negative')).toBeTruthy();
+  });
+
+  it('shows a dash, not 0, and Delayed while the server has no current price', async () => {
+    await detail({
+      ...EXECUTED,
+      position: { ...OPEN_POSITION, currentPrice: null, unrealizedPnl: null },
+    });
+    const panel = within(
+      await screen.findByRole('region', { name: 'Position' }),
+    );
+    expect(panel.getByText('Current price').nextSibling?.textContent).toBe('—');
+    expect(
+      panel.getByText('Unrealized P/L (no fees, no funding)').nextSibling
+        ?.textContent,
+    ).toBe('—');
+    expect(panel.getByText('Delayed')).toBeTruthy();
+    expect(panel.getByText(/No current price is available/)).toBeTruthy();
+  });
+
+  it('reads an OPEN position again every 10 s', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const service = await detail(EXECUTED);
+      await screen.findByRole('region', { name: 'Position' });
+      const reads = vi.mocked(service.get).mock.calls.length;
+      await vi.advanceTimersByTimeAsync(10_000);
+      await waitFor(() =>
+        expect(vi.mocked(service.get).mock.calls.length).toBeGreaterThan(reads),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not poll a plan without an open position', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const service = await detail(ACTIVE);
+      await screen.findByRole('region', { name: 'Plan inputs' });
+      const reads = vi.mocked(service.get).mock.calls.length;
+      await vi.advanceTimersByTimeAsync(25_000);
+      expect(vi.mocked(service.get).mock.calls.length).toBe(reads);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it.each([
+    ['TAKE_PROFIT_REACHED', 'Take profit reached before the entry'],
+    ['STOP_LOSS_REACHED', 'Stop loss reached before the entry'],
+    ['INVALIDATION_PRICE', 'Invalidation price reached'],
+  ] as const)(
+    'shows an INVALIDATED plan with %s in its history',
+    async (reason, text) => {
+      await detail({
+        ...ACTIVE,
+        status: 'INVALIDATED',
+        invalidationReason: reason,
+        statusHistory: history('DRAFT', 'ACTIVE', 'INVALIDATED'),
+      });
+      const panel = within(
+        await screen.findByRole('region', { name: 'Status history' }),
+      );
+      expect(panel.getByText('Invalidated')).toBeTruthy();
+      expect(panel.getByText(text)).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Cancel plan' })).toBeNull();
+      expect(screen.queryByRole('region', { name: 'Position' })).toBeNull();
+    },
+  );
+
+  it.each(['EXPIRED', 'CANCELLED'] as const)(
+    'shows an %s plan read-only, without a position',
+    async (status) => {
+      await detail({
+        ...ACTIVE,
+        status,
+        statusHistory: history('DRAFT', 'ACTIVE', status),
+      });
+      const panel = within(
+        await screen.findByRole('region', { name: 'Status history' }),
+      );
+      expect(
+        panel.getByText(status === 'EXPIRED' ? 'Expired' : 'Cancelled'),
+      ).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Cancel plan' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Activate' })).toBeNull();
+      expect(screen.queryByRole('region', { name: 'Position' })).toBeNull();
+    },
+  );
+
+  it('says a plan filled before positions were recorded has none', async () => {
+    await detail({ ...EXECUTED, position: null });
+    const panel = within(
+      await screen.findByRole('region', { name: 'Position' }),
+    );
+    expect(
+      panel.getByText(/filled before positions were recorded/),
     ).toBeTruthy();
   });
 });
