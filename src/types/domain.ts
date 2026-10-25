@@ -722,6 +722,17 @@ export interface NewsCrawlLogPage {
  * FAILED once NSF-11 has used its attempts without a summary.
  */
 export type NewsArticleStatus = 'PENDING' | 'FAILED' | 'SUMMARIZED' | 'HIDDEN';
+/**
+ * How many shown articles of the last 24 hours carry each sentiment
+ * (D-126): the administrators' view of the feed's tone. Articles not
+ * summarized yet are not counted.
+ */
+export interface NewsSentimentCounts {
+  since: ISODateTime;
+  bullish: number;
+  neutral: number;
+  bearish: number;
+}
 export interface AdminNewsArticle {
   id: string;
   sourceId: string;

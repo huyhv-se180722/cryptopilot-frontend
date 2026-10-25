@@ -5,6 +5,7 @@ import type {
   NewsArticleStatus,
   NewsCrawlLog,
   NewsCrawlLogPage,
+  NewsSentimentCounts,
   NewsSource,
   NewsSourceDraft,
 } from '../../types/domain';
@@ -172,5 +173,16 @@ export function encodeSourceDraft(draft: NewsSourceDraft) {
     bodySelector: draft.bodySelector,
     excludedSelectors: draft.excludedSelectors,
     userAgent: draft.userAgent,
+  };
+}
+
+/** `GET /admin/news-articles/sentiment-summary` (D-126). */
+export function decodeSentimentCounts(body: unknown): NewsSentimentCounts {
+  const value = record(body, 'summary');
+  return {
+    since: instant(value.since, 'since'),
+    bullish: count(value.bullish, 'bullish'),
+    neutral: count(value.neutral, 'neutral'),
+    bearish: count(value.bearish, 'bearish'),
   };
 }

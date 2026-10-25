@@ -65,6 +65,7 @@ import type {
   NewsSourceDraft,
   AdminNewsArticle,
   AdminNewsArticlePage,
+  NewsSentimentCounts,
   AdminNewsArticleQuery,
   ProfileUpdate,
   RiskProfile,
@@ -399,6 +400,8 @@ export interface NewsAdminService {
   restore(id: string): Promise<AdminNewsArticle>;
   /** Waits for the model; a refusal comes back in `summaryError`. */
   summarize(id: string): Promise<AdminNewsArticle>;
+  /** The 24-hour count of shown articles per sentiment (D-126). */
+  sentimentSummary(signal?: AbortSignal): Promise<NewsSentimentCounts>;
 }
 
 /**

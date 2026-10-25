@@ -380,4 +380,66 @@ describe('news articles console (T-080b, D-124)', () => {
       ),
     ).toBeTruthy();
   });
+
+  it('shows the tone of the last 24 hours as counts and shares (D-126)', async () => {
+    await renderRoutes(
+      [page('/admin/news-articles', <AdminNewsArticlesPage />)],
+      '/admin/news-articles',
+      signedIn,
+      {
+        newsAdmin: service({
+          articles: async () => ({
+            items: [],
+            page: 1,
+            pageSize: 20,
+            total: 0,
+          }),
+          sentimentSummary: async () => ({
+            since: new Date().toISOString(),
+            bullish: 3,
+            neutral: 0,
+            bearish: 1,
+          }),
+        }),
+      },
+    );
+
+    const tone = await screen.findByRole('region', {
+      name: 'Tone of the last 24 hours',
+    });
+    expect(await within(tone).findByText('3 articles · 75%')).toBeTruthy();
+    expect(within(tone).getByText('0 articles · 0%')).toBeTruthy();
+    expect(within(tone).getByText('1 articles · 25%')).toBeTruthy();
+    expect(within(tone).getByText('Bullish')).toBeTruthy();
+  });
+
+  it('says so when no article of the last 24 hours is summarized', async () => {
+    await renderRoutes(
+      [page('/admin/news-articles', <AdminNewsArticlesPage />)],
+      '/admin/news-articles',
+      signedIn,
+      {
+        newsAdmin: service({
+          articles: async () => ({
+            items: [],
+            page: 1,
+            pageSize: 20,
+            total: 0,
+          }),
+          sentimentSummary: async () => ({
+            since: new Date().toISOString(),
+            bullish: 0,
+            neutral: 0,
+            bearish: 0,
+          }),
+        }),
+      },
+    );
+
+    expect(
+      await screen.findByText(
+        'No article of the last 24 hours is summarized yet.',
+      ),
+    ).toBeTruthy();
+  });
 });

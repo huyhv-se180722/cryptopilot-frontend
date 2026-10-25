@@ -98,6 +98,18 @@ export function useCrawlNow() {
 }
 
 /** The collected articles, newest first, hidden ones included (D-124). */
+/**
+ * The 24-hour count per sentiment (D-126); under the articles' key, so
+ * hiding, showing or summarizing an article refreshes it.
+ */
+export function useSentimentCounts() {
+  const { newsAdmin } = useServices();
+  return useQuery({
+    queryKey: [...ARTICLES_KEY, 'sentiment-summary'],
+    queryFn: ({ signal }) => newsAdmin.sentimentSummary(signal),
+  });
+}
+
 export function useAdminArticles(
   status: NewsArticleStatus | null,
   sourceId: string | null,

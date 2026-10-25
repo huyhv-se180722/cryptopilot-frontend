@@ -10,6 +10,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { buttonClassName } from '../../components/ui/button-styles';
 import { fieldControlClass } from '../../components/ui/field-styles';
 import { NewsArticleTable } from '../../features/news-admin/components/NewsArticleTable';
+import { SentimentCounts } from '../../features/news-admin/components/SentimentCounts';
 import {
   ARTICLES_PAGE_SIZE,
   useAdminArticles,
@@ -37,7 +38,8 @@ const STATUSES: readonly NewsArticleStatus[] = [
  * hidden ones included, with what NSF-11 did with it, filtered by status
  * and source. Hide asks first, then takes the article out of the Traders'
  * feed (audited, BR-57); Show again puts it back; Summarize again waits
- * for the model and reports the answer or why it was refused. No SRS
+ * for the model and reports the answer or why it was refused. Above the
+ * table, the 24-hour count of articles per sentiment (D-126). No SRS
  * screen: it extends SCR-41, and its layout follows SCR-36.
  */
 export function AdminNewsArticlesPage() {
@@ -152,6 +154,7 @@ export function AdminNewsArticlesPage() {
           </Link>
         }
       />
+      <SentimentCounts />
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <div className="overflow-x-auto">
           <SegmentedControl<Filter>

@@ -8,6 +8,7 @@ import {
   decodeCrawlLogPage,
   decodeNewsSource,
   decodeNewsSources,
+  decodeSentimentCounts,
   encodeSourceDraft,
 } from './news-admin-dto';
 
@@ -24,6 +25,7 @@ export function createPendingNewsAdminService(): NewsAdminService {
     hide: async () => integrationPending(),
     restore: async () => integrationPending(),
     summarize: async () => integrationPending(),
+    sentimentSummary: async () => integrationPending(),
   };
 }
 
@@ -124,6 +126,12 @@ export function createHttpNewsAdminService(http: HttpClient): NewsAdminService {
         method: 'POST',
         decode: decodeAdminArticle,
         timeoutMs: SUMMARIZE_TIMEOUT_MS,
+      }),
+    sentimentSummary: (signal) =>
+      http.request({
+        path: ARTICLES + '/sentiment-summary',
+        decode: decodeSentimentCounts,
+        ...withSignal(signal),
       }),
   };
 }

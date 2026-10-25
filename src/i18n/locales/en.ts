@@ -1457,6 +1457,15 @@ export const en = {
     next: 'Next',
     pageOf: 'Page {page} of {pages}',
     articlesTitle: 'News articles',
+    sentimentTitle: 'Tone of the last 24 hours',
+    sentimentHint:
+      "Shown articles summarized by the AI, by sentiment. Traders see each article's label, not these counts.",
+    sentimentBULLISH: 'Bullish',
+    sentimentNEUTRAL: 'Neutral',
+    sentimentBEARISH: 'Bearish',
+    sentimentShare: '{n} articles · {share}%',
+    sentimentEmpty: 'No article of the last 24 hours is summarized yet.',
+    sentimentError: 'The counts cannot be loaded right now.',
     articlesSubtitle:
       'Collected articles and what the AI did with each: hide one from the feed or summarize it again.',
     sourcesLink: 'Sources',

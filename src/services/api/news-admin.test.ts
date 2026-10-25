@@ -205,6 +205,26 @@ describe('news admin service (UC-49, T-080b)', () => {
     }
   });
 
+  it('reads the 24-hour count per sentiment and refuses a negative count (D-126)', async () => {
+    const summary = {
+      since: '2026-10-24T10:00:00Z',
+      bullish: 4,
+      neutral: 0,
+      bearish: 2,
+    };
+    const { service, calls } = setup(summary);
+
+    expect(await service.sentimentSummary()).toEqual(summary);
+    expect(calls[0]?.url.pathname).toBe(
+      '/api/v1/admin/news-articles/sentiment-summary',
+    );
+
+    const broken = setup({ ...summary, bearish: -1 });
+    await expect(broken.service.sentimentSummary()).rejects.toMatchObject({
+      code: 'INVALID_RESPONSE',
+    });
+  });
+
   it('is pending without an API', async () => {
     const pending = createPendingNewsAdminService();
     await expect(pending.sources()).rejects.toMatchObject({
