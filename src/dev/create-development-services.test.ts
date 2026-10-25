@@ -311,6 +311,8 @@ describe('development plan seam', () => {
       'DRAFT',
       'DRAFT',
       'DRAFT',
+      'DRAFT',
+      'DRAFT',
     ]);
     const closed = await plans.list({
       tab: 'CANCELLED_EXPIRED',
@@ -318,7 +320,12 @@ describe('development plan seam', () => {
       pageSize: 20,
       from: new Date(Date.now() - 30 * 86_400_000).toISOString(),
     });
-    expect(closed.items.map((row) => row.status)).toEqual(['CANCELLED']);
+    // INVALIDATED is listed with the cancelled and expired plans (BR-68).
+    expect(closed.items.map((row) => row.status)).toEqual([
+      'INVALIDATED',
+      'CANCELLED',
+    ]);
+    expect(closed.items[0]?.invalidationReason).toBe('INVALIDATION_PRICE');
     const futures = await plans.list({
       tab: 'ACTIVE',
       market: 'futures',
@@ -326,6 +333,33 @@ describe('development plan seam', () => {
       pageSize: 20,
     });
     expect(futures.total).toBe(1);
+  });
+
+  it('scripts the costs, a high fee share and the expected fill of a MARKET plan', async () => {
+    const plans = createDevelopmentTradingPlan(async () => free);
+    const scalp = await plans.get('0199a2c4-0000-7000-8000-000000000010');
+    expect(scalp.entryType).toBe('MARKET');
+    expect(scalp.expectedFillPrice).not.toBe(scalp.entryPrice);
+    expect(scalp.snapshot.lossAtStopLoss).not.toBeNull();
+    expect(scalp.warnings.map((warning) => warning.type)).toContain(
+      'HIGH_FEE_SHARE',
+    );
+    // Saved before the costs were answered: every figure is null.
+    const old = await plans.get('0199a2c4-0000-7000-8000-000000000007');
+    expect(old.snapshot.estimatedEntryFee).toBeNull();
+    expect(old.snapshot.netRiskReward).toBeNull();
+    // Futures is still refused on leverage (D-70), so the panel is Spot's.
+    const spot = await plans.get('0199a2c4-0000-7000-8000-000000000005');
+    const panel = await plans.calculate(spot.pairId, {
+      ...spot,
+      entryPrice: null,
+    });
+    // Scripted from a stored plan on the pair: no slippage in the dev panel.
+    expect(panel.expectedFillPrice).toBe(panel.entryPrice);
+    expect(
+      (await plans.calculate(spot.pairId, { ...spot, entryType: 'LIMIT' }))
+        .expectedFillPrice,
+    ).toBeNull();
   });
 
   it('refuses like the backend: MSG18, MSG27, MSG43 and MSG41', async () => {
@@ -507,6 +541,9 @@ describe('development plan editing (SCR-17)', () => {
     leverage: null,
     expiresAt: null,
     note: null,
+    invalidationPrice: null,
+    maxEntryDeviationR: null,
+    analysisTimeframe: null,
   };
 
   it('scripts the calculation and refuses inputs like the backend', async () => {

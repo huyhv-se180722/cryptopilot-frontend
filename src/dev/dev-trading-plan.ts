@@ -16,7 +16,9 @@ import { devPlanSeeds } from './fixtures/trading-plan';
  * DEVELOPMENT ONLY. In-memory `/plans/**` with the backend's answers for
  * SCR-16, SCR-17 (create and edit) and SCR-18: request rules and BR-22 as
  * field errors on calculate / create / update (the result itself is
- * scripted, from a plan on the pair or else the first one), tabs,
+ * scripted, from a plan on the pair or else the first one), the plan
+ * validity rules of TP-A (STOP entry, invalidation price, deviation limit,
+ * analysis timeframe, the setup score taken at activation), tabs,
  * market and period filters, 404 MSG41,
  * activation refused by a BLOCKING warning (MSG18), by the plan's
  * `ACTIVE_PLAN_MAX` (MSG27) or by the status (MSG43), and cancellation.
@@ -49,13 +51,16 @@ function checkInputs(inputs: PlanInputs) {
   const errors: Record<string, string> = {};
   const positive = (value: string | null) =>
     value !== null && /^\d+(\.\d+)?$/.test(value) && Number(value) > 0;
-  if (inputs.entryType === 'LIMIT' && inputs.entryPrice === null)
+  if (inputs.entryType !== 'MARKET' && inputs.entryPrice === null)
     errors.entryPrice = 'MSG01';
+  if (inputs.entryType === 'MARKET' && inputs.invalidationPrice !== null)
+    errors.invalidationPrice = 'MSG01';
   for (const key of [
     'entryPrice',
     'stopLoss',
     'takeProfit',
     'capital',
+    'invalidationPrice',
   ] as const)
     if (inputs[key] !== null && !positive(inputs[key])) errors[key] = 'MSG15';
   const risk = inputs.riskPercent === null ? null : Number(inputs.riskPercent);
@@ -64,6 +69,12 @@ function checkInputs(inputs: PlanInputs) {
   if (inputs.market === 'spot' && inputs.direction === 'SHORT')
     errors.direction = 'MSG01';
   if ((inputs.note?.length ?? 0) > 1000) errors.note = 'MSG15';
+  const deviation =
+    inputs.maxEntryDeviationR === null
+      ? null
+      : Number(inputs.maxEntryDeviationR);
+  if (deviation !== null && !(deviation > 0 && deviation <= 0.75))
+    errors.maxEntryDeviationR = 'MSG15';
   if (Object.keys(errors).length)
     refuse(400, 'VALIDATION_FAILED', 'MSG01', [], errors);
   if (inputs.market === 'futures')
@@ -77,20 +88,40 @@ function checkInputs(inputs: PlanInputs) {
     refuse(400, 'VALIDATION_FAILED', 'MSG01', [], { stopLoss: 'MSG16' });
   if (long ? take <= entry : take >= entry)
     refuse(400, 'VALIDATION_FAILED', 'MSG01', [], { takeProfit: 'MSG16' });
+  // BR-68 wants the invalidation on the far side of the last price from the
+  // entry. Without a last price here, the last price is taken to lie between
+  // the two: above a LONG limit, below a LONG stop (the reverse for SHORT).
+  if (inputs.invalidationPrice === null) return;
+  const invalidation = Number(inputs.invalidationPrice);
+  const above = long === (inputs.entryType === 'LIMIT');
+  if (above ? invalidation <= entry : invalidation >= entry)
+    refuse(400, 'VALIDATION_FAILED', 'MSG01', [], {
+      invalidationPrice: 'MSG16',
+    });
 }
+
+/** The dev profile's trading style is SWING: 4h, and the SWING preset. */
+const STYLE_TIMEFRAME = '4h';
+const STYLE_PRESET = 'SWING v1';
+/** Scripted setup score taken at activation, as the analysis showed it. */
+const ACTIVATION_SCORE = '62.00';
+const expiryOf = (inputs: PlanInputs, now: number) =>
+  inputs.expiresAt ??
+  (inputs.entryType === 'MARKET'
+    ? null
+    : new Date(now + 7 * 86_400_000).toISOString());
 
 const TABS: Record<PlanTab, readonly PlanStatus[]> = {
   DRAFT: ['DRAFT'],
   ACTIVE: ['ACTIVE'],
   EXECUTED: ['EXECUTED'],
-  CANCELLED_EXPIRED: ['CANCELLED', 'EXPIRED'],
+  CANCELLED_EXPIRED: ['CANCELLED', 'EXPIRED', 'INVALIDATED'],
 };
 
 function summaryOf(plan: TradingPlan): TradingPlanSummary {
   const created = plan.statusHistory[0]?.at ?? new Date(0).toISOString();
-  const activated = plan.statusHistory.find(
-    (change) => change.status === 'ACTIVE',
-  );
+  const at = (status: PlanStatus) =>
+    plan.statusHistory.find((change) => change.status === status)?.at ?? null;
   return {
     id: plan.id,
     pairId: plan.pairId,
@@ -98,6 +129,7 @@ function summaryOf(plan: TradingPlan): TradingPlanSummary {
     direction: plan.direction,
     entryType: plan.entryType,
     entryPrice: plan.entryPrice,
+    expectedFillPrice: plan.expectedFillPrice,
     stopLoss: plan.stopLoss,
     takeProfit: plan.takeProfit,
     leverage: plan.leverage,
@@ -105,8 +137,10 @@ function summaryOf(plan: TradingPlan): TradingPlanSummary {
     riskRewardRatio: plan.snapshot.riskRewardRatio,
     status: plan.status,
     createdAt: created,
-    activatedAt: activated?.at ?? null,
+    activatedAt: at('ACTIVE'),
     expiresAt: plan.expiresAt,
+    invalidatedAt: at('INVALIDATED'),
+    invalidationReason: plan.invalidationReason,
   };
 }
 
@@ -133,6 +167,9 @@ export function createDevelopmentTradingPlan(
       ...plan,
       status,
       editable: false,
+      ...(status === 'ACTIVE'
+        ? { setupScoreAtPlan: ACTIVATION_SCORE, setupScorePreset: STYLE_PRESET }
+        : {}),
       statusHistory: [
         ...plan.statusHistory,
         { status, at: new Date(now()).toISOString() },
@@ -160,6 +197,10 @@ export function createDevelopmentTradingPlan(
     if (!base) return refuse(404, 'RESOURCE_NOT_FOUND', 'MSG41');
     return {
       entryPrice: inputs.entryPrice ?? base.entryPrice,
+      expectedFillPrice:
+        inputs.entryType === 'MARKET'
+          ? (base.expectedFillPrice ?? base.entryPrice)
+          : null,
       capital: inputs.capital ?? base.capital,
       riskPercent: inputs.riskPercent ?? base.riskPercent,
       snapshot: base.snapshot,
@@ -207,15 +248,17 @@ export function createDevelopmentTradingPlan(
         pairId,
         ...inputs,
         entryPrice: result.entryPrice,
+        expectedFillPrice: result.expectedFillPrice,
+        plannedEntryPrice: result.entryPrice,
         capital: result.capital,
         riskPercent: result.riskPercent,
         marginMode: inputs.market === 'futures' ? 'ISOLATED' : null,
-        expiresAt:
-          inputs.expiresAt ??
-          (inputs.entryType === 'LIMIT'
-            ? new Date(now() + 7 * 86_400_000).toISOString()
-            : null),
+        expiresAt: expiryOf(inputs, now()),
+        analysisTimeframe: inputs.analysisTimeframe ?? STYLE_TIMEFRAME,
         status: 'DRAFT',
+        invalidationReason: null,
+        setupScoreAtPlan: null,
+        setupScorePreset: null,
         editable: true,
         snapshot: result.snapshot,
         warnings: result.warnings,
@@ -240,13 +283,12 @@ export function createDevelopmentTradingPlan(
         ...plan,
         ...inputs,
         entryPrice: result.entryPrice,
+        expectedFillPrice: result.expectedFillPrice,
+        plannedEntryPrice: result.entryPrice,
         capital: result.capital,
         riskPercent: result.riskPercent,
-        expiresAt:
-          inputs.expiresAt ??
-          (inputs.entryType === 'LIMIT'
-            ? new Date(now() + 7 * 86_400_000).toISOString()
-            : null),
+        expiresAt: expiryOf(inputs, now()),
+        analysisTimeframe: inputs.analysisTimeframe ?? STYLE_TIMEFRAME,
         snapshot: result.snapshot,
         warnings: result.warnings,
         blocksActivation: result.blocksActivation,

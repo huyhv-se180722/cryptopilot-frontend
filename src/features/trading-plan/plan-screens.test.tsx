@@ -6,8 +6,10 @@ import { PlanCreatePage } from '../../pages/trader/PlanCreatePage';
 import { PlanDetailPage } from '../../pages/trader/PlanDetailPage';
 import { PlanEditPage } from '../../pages/trader/PlanEditPage';
 import { PlansPage } from '../../pages/trader/PlansPage';
+import { devProfile, devRiskParams } from '../../dev/fixtures/profile';
 import type {
   MarketService,
+  ProfileService,
   TradingPlanService,
 } from '../../services/api/contracts';
 import { ServiceError } from '../../services/api/errors';
@@ -72,6 +74,7 @@ const ROW: TradingPlanSummary = {
   direction: 'SHORT',
   entryType: 'LIMIT',
   entryPrice: '62000.000000000000',
+  expectedFillPrice: null,
   stopLoss: '63000.000000000000',
   takeProfit: '59000.000000000000',
   leverage: 5,
@@ -81,6 +84,8 @@ const ROW: TradingPlanSummary = {
   createdAt: '2026-10-08T02:20:00Z',
   activatedAt: null,
   expiresAt: EXPIRES_AT,
+  invalidatedAt: null,
+  invalidationReason: null,
 };
 
 const PLAN: TradingPlan = {
@@ -90,6 +95,7 @@ const PLAN: TradingPlan = {
   direction: 'SHORT',
   entryType: 'LIMIT',
   entryPrice: '62000.000000000000',
+  expectedFillPrice: null,
   stopLoss: '63000.000000000000',
   takeProfit: '59000.000000000000',
   capital: '1000',
@@ -98,7 +104,14 @@ const PLAN: TradingPlan = {
   marginMode: 'ISOLATED',
   expiresAt: EXPIRES_AT,
   note: 'Retest of the range high.',
+  plannedEntryPrice: '62000.000000000000',
+  invalidationPrice: null,
+  maxEntryDeviationR: null,
+  analysisTimeframe: '1h',
   status: 'DRAFT',
+  invalidationReason: null,
+  setupScoreAtPlan: null,
+  setupScorePreset: null,
   editable: true,
   snapshot: {
     positionQuantity: '0.010000000000',
@@ -109,6 +122,13 @@ const PLAN: TradingPlan = {
     rewardAmount: '30.00000000',
     riskRewardRatio: '3.00000000',
     estimatedLiquidationPrice: '74103.100000000000',
+    estimatedEntryFee: null,
+    estimatedStopLossExitFee: null,
+    estimatedTakeProfitExitFee: null,
+    estimatedSlippage: null,
+    lossAtStopLoss: null,
+    feeShareOfRisk: null,
+    netRiskReward: null,
   },
   warnings: [
     { type: 'HIGH_LEVERAGE', severity: 'WARNING' },
@@ -130,6 +150,16 @@ const refusal = (
     messageCode,
     messageArgs: args,
     fieldErrors: {},
+  });
+
+/** A 400 with one field error, as the backend answers MSG16 on a field. */
+const fieldRefusal = (field: string) =>
+  new ServiceError('refused', 'HTTP_ERROR', 400, {
+    status: 400,
+    code: 'VALIDATION_FAILED',
+    messageCode: 'MSG01',
+    messageArgs: [],
+    fieldErrors: { [field]: 'MSG16' },
   });
 
 const plan = (tier: 'FREE' | 'PRO'): PlanEntitlements => ({
@@ -163,6 +193,7 @@ function fakePlans(overrides: Partial<TradingPlanService> = {}) {
     create: vi.fn(async () => PLAN),
     calculate: vi.fn(async () => ({
       entryPrice: PLAN.entryPrice,
+      expectedFillPrice: null,
       capital: PLAN.capital,
       riskPercent: PLAN.riskPercent,
       snapshot: PLAN.snapshot,
@@ -222,6 +253,7 @@ async function open(
   service = fakePlans(),
   tier: 'FREE' | 'PRO' = 'FREE',
   market = fakeMarket(),
+  profile?: ProfileService,
 ) {
   const session: Session = { ...testTrader, entitlements: plan(tier) };
   await renderRoutes(
@@ -233,7 +265,7 @@ async function open(
     ],
     path,
     fakeAuth({ restoreSession: async () => session }),
-    { tradingPlan: service, market },
+    { tradingPlan: service, market, ...(profile ? { profile } : {}) },
   );
   return service;
 }
@@ -264,6 +296,32 @@ describe('SCR-16 plan list (T-041)', () => {
     ).toBe('/plans/' + ROW.id);
     // The pair is named from the market lists by its id (FEQ-01).
     expect(await cells.findByText('BTC/USDT')).toBeTruthy();
+  });
+
+  it('lists an INVALIDATED plan with its reason in the Cancelled / Expired tab (BR-68)', async () => {
+    const invalidated: TradingPlanSummary = {
+      ...ROW,
+      status: 'INVALIDATED',
+      invalidatedAt: '2026-10-09T02:20:00Z',
+      invalidationReason: 'TAKE_PROFIT_REACHED',
+    };
+    const service = fakePlans({
+      list: vi.fn(async (query) =>
+        query.tab === 'CANCELLED_EXPIRED'
+          ? { items: [invalidated], page: 1, pageSize: 20, total: 1 }
+          : { items: [], page: query.page, pageSize: 20, total: 0 },
+      ),
+    });
+    await open('/plans', service);
+    await userEvent.click(
+      await screen.findByRole('tab', { name: 'Cancelled / Expired' }),
+    );
+    const row = (await screen.findByText('Invalidated')).closest(
+      'tr',
+    ) as HTMLElement;
+    expect(
+      within(row).getByText('Take profit reached before the entry'),
+    ).toBeTruthy();
   });
 
   it('filters the list by pair (FEQ-01)', async () => {
@@ -434,6 +492,145 @@ describe('SCR-18 plan detail (T-041)', () => {
     expect(
       screen.getByRole('link', { name: 'Edit' }).getAttribute('href'),
     ).toBe(`/plans/${PLAN.id}/edit`);
+  });
+
+  it('shows the validity of a STOP plan, its setup score and why it became INVALIDATED (D-111)', async () => {
+    priceLines.length = 0;
+    const invalidated: TradingPlan = {
+      ...PLAN,
+      entryType: 'STOP',
+      invalidationPrice: '60500.000000000000',
+      maxEntryDeviationR: '0.500000000000',
+      analysisTimeframe: '4h',
+      status: 'INVALIDATED',
+      invalidationReason: 'INVALIDATION_PRICE',
+      setupScoreAtPlan: '59.00',
+      setupScorePreset: 'DAY_TRADING v1',
+      editable: false,
+      statusHistory: [
+        { status: 'DRAFT', at: '2026-10-08T02:20:00Z' },
+        { status: 'ACTIVE', at: '2026-10-08T02:30:00Z' },
+        { status: 'INVALIDATED', at: '2026-10-09T09:00:00Z' },
+      ],
+    };
+    await open(
+      '/plans/' + PLAN.id,
+      fakePlans({ get: vi.fn(async () => invalidated) }),
+    );
+    const inputs = within(
+      await screen.findByRole('region', { name: 'Plan inputs' }),
+    );
+    expect(inputs.getByText('Entry type').nextSibling?.textContent).toBe(
+      'Stop',
+    );
+    expect(inputs.getByText('Stop price').nextSibling?.textContent).toBe(
+      '62,000.00',
+    );
+    expect(
+      inputs.getByText('Invalidation price').nextSibling?.textContent,
+    ).toBe('60,500.00');
+    expect(
+      inputs.getByText('Max entry deviation').nextSibling?.textContent,
+    ).toBe('0.5 R');
+    expect(
+      inputs.getByText('Analysis timeframe').nextSibling?.textContent,
+    ).toBe('4h');
+    expect(
+      inputs.getByText('Setup score at activation').nextSibling?.textContent,
+    ).toBe('59.00 (DAY_TRADING v1)');
+    const history = within(
+      screen.getByRole('region', { name: 'Status history' }),
+    );
+    expect(history.getByText('Invalidated')).toBeTruthy();
+    expect(
+      history.getByText('Invalidation price reached before the entry'),
+    ).toBeTruthy();
+    await waitFor(() =>
+      expect(priceLines).toEqual(
+        expect.arrayContaining(['Entry 62000', 'Invalidation price 60500']),
+      ),
+    );
+  });
+
+  it('shows a dash for a setup score that could not be read, and none on a draft', async () => {
+    const active: TradingPlan = {
+      ...PLAN,
+      status: 'ACTIVE',
+      editable: false,
+      setupScoreAtPlan: null,
+      setupScorePreset: null,
+    };
+    await open(
+      '/plans/' + PLAN.id,
+      fakePlans({ get: vi.fn(async () => active) }),
+    );
+    const inputs = within(
+      await screen.findByRole('region', { name: 'Plan inputs' }),
+    );
+    expect(
+      inputs.getByText('Setup score at activation').nextSibling?.textContent,
+    ).toBe('—');
+  });
+
+  it('shows the real loss, R:R after fees, the costs and the fee share (D-116)', async () => {
+    const costly: TradingPlan = {
+      ...PLAN,
+      entryType: 'MARKET',
+      entryPrice: '62000.000000000000',
+      expectedFillPrice: '62003.100000000000',
+      snapshot: {
+        ...PLAN.snapshot,
+        estimatedEntryFee: '3.10015500',
+        estimatedStopLossExitFee: '3.09500000',
+        estimatedTakeProfitExitFee: '1.24600000',
+        estimatedSlippage: '0.30950000',
+        lossAtStopLoss: '16.50465500',
+        feeShareOfRisk: '0.65046550',
+        netRiskReward: '1.51213436',
+      },
+      warnings: [{ type: 'HIGH_FEE_SHARE', severity: 'WARNING' }],
+    };
+    await open(
+      '/plans/' + PLAN.id,
+      fakePlans({ get: vi.fn(async () => costly) }),
+    );
+    const snapshot = within(
+      await screen.findByRole('region', { name: 'Calculation snapshot' }),
+    );
+    const value = (label: string) =>
+      snapshot.getByText(label).nextSibling?.textContent;
+    expect(value('Real loss at stop loss (USDT)')).toBe('16.50');
+    expect(value('Reward / risk after fees')).toBe('1.51');
+    expect(value('Entry fee (USDT)')).toBe('3.10');
+    expect(value('Exit fee at stop loss (USDT)')).toBe('3.10');
+    expect(value('Exit fee at take profit (USDT)')).toBe('1.25');
+    expect(value('Slippage (USDT)')).toBe('0.31');
+    expect(value('Share of the risk')).toBe('65.05%');
+    expect(snapshot.getByText(/Funding and the liquidation fee/)).toBeTruthy();
+    const inputs = within(screen.getByRole('region', { name: 'Plan inputs' }));
+    expect(inputs.getByText('Expected fill').nextSibling?.textContent).toBe(
+      '62,003.10',
+    );
+    const warnings = within(screen.getByRole('region', { name: 'Warnings' }));
+    expect(
+      warnings.getByText('Fees and slippage are 65.05% of the risk'),
+    ).toBeTruthy();
+  });
+
+  it('shows a dash for the costs of a plan saved before them', async () => {
+    await open('/plans/' + PLAN.id);
+    const snapshot = within(
+      await screen.findByRole('region', { name: 'Calculation snapshot' }),
+    );
+    expect(
+      snapshot.getByText('Real loss at stop loss (USDT)').nextSibling
+        ?.textContent,
+    ).toBe('—');
+    expect(
+      snapshot.getByText('Reward / risk after fees').nextSibling?.textContent,
+    ).toBe('—');
+    expect(snapshot.queryByText('Fees and slippage (est.)')).toBeNull();
+    expect(screen.queryByText('Expected fill')).toBeNull();
   });
 
   it('activates a draft with MSG19 and shows the new status', async () => {
@@ -669,12 +866,114 @@ describe('SCR-17 new plan (T-040, UC-16)', () => {
       (await screen.findAllByText(/For long positions/)).length,
     ).toBeTruthy();
   });
+
+  const scalper = (): ProfileService =>
+    ({
+      get: vi.fn(async () => ({ ...devProfile, tradingStyle: 'SCALPING' })),
+      getRiskProfile: vi.fn(async () => devRiskParams.CONSERVATIVE),
+    }) as unknown as ProfileService;
+
+  it('sends a LIMIT entry with its invalidation price, deviation limit and the style timeframe (D-111, D-112)', async () => {
+    priceLines.length = 0;
+    const service = fakePlans({
+      create: vi.fn(async () => ({ ...PLAN, id: 'new-plan' })),
+      get: vi.fn(async () => ({ ...PLAN, id: 'new-plan' })),
+    });
+    await open('/plans/new', service, 'FREE', fakeMarket(), scalper());
+    const timeframe = (await screen.findByLabelText(
+      'Analysis timeframe',
+    )) as HTMLSelectElement;
+    // SCALPING plans on 15m unless the Trader picks another one.
+    expect(timeframe.value).toBe('15m');
+    const user = userEvent.setup();
+    // The engine does not trigger STOP entries yet (TP-B).
+    expect(screen.queryByRole('radio', { name: 'Stop' })).toBeNull();
+    await user.type(screen.getByLabelText('Entry price'), '62000');
+    await user.type(screen.getByLabelText('Stop loss'), '60000');
+    await user.type(screen.getByLabelText('Take profit'), '66000');
+    await user.type(
+      screen.getByLabelText('Invalidation price (optional)'),
+      '64000',
+    );
+    await user.type(
+      screen.getByLabelText('Max entry deviation (R, optional)'),
+      '0.5',
+    );
+    await user.selectOptions(timeframe, '1h');
+    await waitFor(() =>
+      expect(priceLines).toEqual(
+        expect.arrayContaining(['Entry 62000', 'Invalidation price 64000']),
+      ),
+    );
+    await user.click(screen.getByRole('button', { name: 'Save as draft' }));
+    await waitFor(() =>
+      expect(service.create).toHaveBeenCalledWith(
+        ROW.pairId,
+        expect.objectContaining({
+          entryType: 'LIMIT',
+          entryPrice: '62000',
+          invalidationPrice: '64000',
+          maxEntryDeviationR: '0.5',
+          analysisTimeframe: '1h',
+        }),
+        false,
+      ),
+    );
+  });
+
+  it('leaves the timeframe to the server when the profile cannot be read, and has no invalidation on a market entry', async () => {
+    const service = fakePlans();
+    const unreadable = {
+      get: vi.fn(async () => {
+        throw new ServiceError('offline', 'NETWORK_ERROR');
+      }),
+      getRiskProfile: vi.fn(async () => devRiskParams.CONSERVATIVE),
+    } as unknown as ProfileService;
+    await open('/plans/new', service, 'FREE', fakeMarket(), unreadable);
+    const timeframe = (await screen.findByLabelText(
+      'Analysis timeframe',
+    )) as HTMLSelectElement;
+    expect(timeframe.value).toBe('');
+    expect(
+      within(timeframe).getByRole('option', {
+        name: 'Your trading style’s default',
+      }),
+    ).toBeTruthy();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Market' }));
+    expect(screen.queryByLabelText('Invalidation price (optional)')).toBeNull();
+    expect(
+      screen.getByText('A market entry has no invalidation price.'),
+    ).toBeTruthy();
+  });
+
+  it('says why the server refused the invalidation price (MSG16, D-112)', async () => {
+    const service = fakePlans({
+      create: vi.fn().mockRejectedValueOnce(fieldRefusal('invalidationPrice')),
+    });
+    await open('/plans/new', service, 'FREE', fakeMarket(), scalper());
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText('Entry price'), '62000');
+    await user.type(screen.getByLabelText('Stop loss'), '60000');
+    await user.type(screen.getByLabelText('Take profit'), '66000');
+    await user.type(
+      screen.getByLabelText('Invalidation price (optional)'),
+      '61000',
+    );
+    await user.click(screen.getByRole('button', { name: 'Save as draft' }));
+    expect(
+      await screen.findByText(
+        'For long positions: the invalidation price must lie beyond the current price, on the far side from the entry.',
+      ),
+    ).toBeTruthy();
+  });
 });
 
 describe('SCR-17 edit a draft plan (T-040)', () => {
   const editPath = '/plans/' + SPOT_DRAFT.id + '/edit';
   const calculation = (overrides: Partial<TradingPlan['snapshot']> = {}) => ({
     entryPrice: '62000.00',
+    expectedFillPrice: null,
     capital: '1000',
     riskPercent: '1',
     snapshot: { ...SPOT_DRAFT.snapshot, ...overrides },
@@ -720,6 +1019,71 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
       capital: '2000',
       leverage: null,
     });
+  });
+
+  it('shows the expected fill of a market entry only when slippage moves it (D-112)', async () => {
+    const market = { ...SPOT_DRAFT, entryType: 'MARKET' as const };
+    const service = fakePlans({
+      get: vi.fn(async () => market),
+      calculate: vi.fn(async () => ({
+        ...calculation(),
+        expectedFillPrice: '62003.10',
+      })),
+    });
+    await open(editPath, service);
+    expect(
+      (await screen.findByText('Expected fill')).nextSibling?.textContent,
+    ).toBe('62,003.10');
+  });
+
+  it('hides the expected fill when it equals the current price', async () => {
+    const market = { ...SPOT_DRAFT, entryType: 'MARKET' as const };
+    const service = fakePlans({
+      get: vi.fn(async () => market),
+      calculate: vi.fn(async () => ({
+        ...calculation(),
+        expectedFillPrice: '62000.000',
+      })),
+    });
+    await open(editPath, service);
+    const panel = within(
+      await screen.findByRole('region', { name: 'Risk calculation' }),
+    );
+    await panel.findByText('Risk (USDT)');
+    expect(screen.getByText('Current last price')).toBeTruthy();
+    expect(screen.queryByText('Expected fill')).toBeNull();
+  });
+
+  it('keeps the STOP of a saved STOP draft and says why a reached stop was refused (MSG16)', async () => {
+    const stopDraft: TradingPlan = {
+      ...SPOT_DRAFT,
+      entryType: 'STOP',
+      entryPrice: '70000.000000000000',
+      plannedEntryPrice: '70000.000000000000',
+      stopLoss: '68000.000000000000',
+      takeProfit: '76000.000000000000',
+    };
+    const service = fakePlans({
+      get: vi.fn(async () => stopDraft),
+      update: vi.fn().mockRejectedValueOnce(fieldRefusal('entryPrice')),
+    });
+    await open(editPath, service);
+    const stop = await screen.findByRole('radio', { name: 'Stop' });
+    expect(stop.getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByText(/Enters at market once the price reaches/));
+    expect(
+      (screen.getByLabelText('Stop price') as HTMLInputElement).value,
+    ).toBe('70000');
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Save and activate' }));
+    expect(
+      await screen.findByText(
+        'For long positions: a stop entry must be above the current price; it has been reached, so use a market entry.',
+      ),
+    ).toBeTruthy();
+    // Switched to LIMIT, the STOP draft can still go back to STOP.
+    await user.click(screen.getByRole('radio', { name: 'Limit' }));
+    expect(screen.getByRole('radio', { name: 'Stop' })).toBeTruthy();
   });
 
   it('shows MSG16 under the stop loss and sends nothing while the order is wrong', async () => {

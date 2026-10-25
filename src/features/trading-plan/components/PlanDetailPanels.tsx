@@ -2,19 +2,31 @@ import type { ReactNode } from 'react';
 import { AlertTriangle, Clock } from 'lucide-react';
 import { NumericText } from '../../../components/ui/NumericText';
 import { useCopy } from '../../../hooks/use-copy';
+import { formatCopy } from '../../../i18n/copy';
 import { messageText } from '../../../i18n/messages';
 import type {
   PlanSnapshot,
   PlanWarning,
   TradingPlan,
 } from '../../../types/domain';
-import { shiftDecimal, toFixedDecimal } from '../../../utils/decimal-format';
+import {
+  shiftDecimal,
+  toFixedDecimal,
+  trimDecimal,
+} from '../../../utils/decimal-format';
 import {
   formatInstantLocal,
   formatInstantUtc,
 } from '../../../utils/instant-format';
 import { PlanStatusBadge, SeverityBadge } from './PlanBadges';
-import { planAmount, planPrice, planQuantity, planRatio } from './plan-format';
+import {
+  planAmount,
+  planPrice,
+  planQuantity,
+  planRatio,
+  planShare,
+  shownExpectedFill,
+} from './plan-format';
 
 export function Panel({
   id,
@@ -82,15 +94,34 @@ const when = (value: string) => (
   </time>
 );
 
-/** SRS 3.5.3: the plan inputs as entered (prices at the pair's tick). */
+/**
+ * SRS 3.5.3: the plan inputs as entered (prices at the pair's tick), with
+ * its validity (D-111): the invalidation price, its own deviation limit,
+ * the analysis timeframe and, once activated, the setup score taken then
+ * under its preset ("—" when none could be read; never computed here).
+ */
 export function PlanInputsPanel({ plan }: { plan: TradingPlan }) {
   const copy = useCopy();
   const p = copy.plan;
   const futures = plan.market === 'futures';
+  const none = copy.market.noValue;
+  const score = plan.setupScoreAtPlan;
+  const expectedFill = shownExpectedFill(
+    plan.entryPrice,
+    plan.expectedFillPrice,
+  );
   const rows: [string, ReactNode][] = [
     [p.colMarket, futures ? copy.market.futures : copy.market.spot],
     [p.entryType, p[`entry${plan.entryType}`]],
-    [p.entryPrice, <NumericText value={planPrice(plan.entryPrice)} />],
+    [
+      plan.entryType === 'STOP' ? p.stopEntryPrice : p.entryPrice,
+      <NumericText value={planPrice(plan.entryPrice)} />,
+    ],
+    ...(expectedFill
+      ? ([
+          [p.expectedFill, <NumericText value={planPrice(expectedFill)} />],
+        ] as [string, ReactNode][])
+      : []),
     [p.stopLoss, <NumericText value={planPrice(plan.stopLoss)} />],
     [p.takeProfit, <NumericText value={planPrice(plan.takeProfit)} />],
     [p.capital, <NumericText value={planAmount(plan.capital)} />],
@@ -102,6 +133,50 @@ export function PlanInputsPanel({ plan }: { plan: TradingPlan }) {
         ] as [string, ReactNode][])
       : []),
     [p.expiresAt, plan.expiresAt ? when(plan.expiresAt) : p.noExpiry],
+    ...(plan.invalidationPrice
+      ? ([
+          [
+            p.invalidationPrice,
+            <NumericText value={planPrice(plan.invalidationPrice)} />,
+          ],
+        ] as [string, ReactNode][])
+      : []),
+    ...(plan.maxEntryDeviationR
+      ? ([
+          [
+            p.maxDeviation,
+            <NumericText
+              value={formatCopy(p.deviationValue, {
+                value: trimDecimal(plan.maxEntryDeviationR, 0),
+              })}
+            />,
+          ],
+        ] as [string, ReactNode][])
+      : []),
+    ...(plan.analysisTimeframe
+      ? ([[p.timeframeField, plan.analysisTimeframe]] as [string, ReactNode][])
+      : []),
+    ...(plan.status !== 'DRAFT'
+      ? ([
+          [
+            p.setupScoreAtPlan,
+            score === null ? (
+              none
+            ) : (
+              <NumericText
+                value={
+                  plan.setupScorePreset
+                    ? formatCopy(p.setupScoreValue, {
+                        score,
+                        preset: plan.setupScorePreset,
+                      })
+                    : score
+                }
+              />
+            ),
+          ],
+        ] as [string, ReactNode][])
+      : []),
   ];
   return (
     <Panel id="plan-inputs-title" title={p.inputsTitle}>
@@ -118,7 +193,9 @@ export function PlanInputsPanel({ plan }: { plan: TradingPlan }) {
 
 /**
  * The calculation stored with the plan (BR-31) or the live one of SCR-17;
- * Futures adds margin, MMR and liquidation.
+ * Futures adds margin, MMR and liquidation. The real loss and the reward /
+ * risk after fees sit beside the figures they correct, with the costs
+ * below them (BR-29, D-116); a plan saved before the costs shows "—".
  */
 export function PlanSnapshotRows({
   snapshot: s,
@@ -127,13 +204,26 @@ export function PlanSnapshotRows({
   snapshot: PlanSnapshot;
   single?: boolean;
 }) {
-  const p = useCopy().plan;
+  const copy = useCopy();
+  const p = copy.plan;
+  const none = copy.market.noValue;
+  const amount = (value: string | null) =>
+    value === null ? none : <NumericText value={planAmount(value)} />;
   const rows: [string, ReactNode][] = [
     [p.quantity, <NumericText value={planQuantity(s.positionQuantity)} />],
     [p.notional, <NumericText value={planAmount(s.notionalValue)} />],
     [p.riskAmount, <NumericText value={planAmount(s.riskAmount)} />],
+    [p.lossAtStopLoss, amount(s.lossAtStopLoss)],
     [p.rewardAmount, <NumericText value={planAmount(s.rewardAmount)} />],
     [p.riskReward, <NumericText value={planRatio(s.riskRewardRatio)} />],
+    [
+      p.netRiskReward,
+      s.netRiskReward === null ? (
+        none
+      ) : (
+        <NumericText value={planRatio(s.netRiskReward)} />
+      ),
+    ],
     ...(s.initialMargin !== null
       ? ([
           [
@@ -165,7 +255,36 @@ export function PlanSnapshotRows({
         ] as [string, ReactNode][])
       : []),
   ];
-  return <Rows rows={rows} single={single} />;
+  const costs: [string, ReactNode][] = [
+    [p.entryFee, amount(s.estimatedEntryFee)],
+    [p.stopLossExitFee, amount(s.estimatedStopLossExitFee)],
+    [p.takeProfitExitFee, amount(s.estimatedTakeProfitExitFee)],
+    [p.slippage, amount(s.estimatedSlippage)],
+    [
+      p.feeShare,
+      s.feeShareOfRisk === null ? (
+        none
+      ) : (
+        <NumericText value={planShare(s.feeShareOfRisk)} suffix="%" />
+      ),
+    ],
+  ];
+  return (
+    <>
+      <Rows rows={rows} single={single} />
+      {s.lossAtStopLoss !== null && (
+        <div className="mt-4">
+          <h3 className="mb-2 text-[10px] font-semibold tracking-widest text-muted-x uppercase">
+            {p.costsTitle}
+          </h3>
+          <Rows rows={costs} single={single} />
+          <p className="mt-2 text-[10px] leading-relaxed text-muted-dim">
+            {p.costsNote}
+          </p>
+        </div>
+      )}
+    </>
+  );
 }
 
 export function PlanSnapshotPanel({ plan }: { plan: TradingPlan }) {
@@ -181,13 +300,22 @@ export function PlanSnapshotPanel({ plan }: { plan: TradingPlan }) {
 export function PlanWarningsPanel({
   warnings,
   blocked,
+  feeShareOfRisk = null,
 }: {
   warnings: readonly PlanWarning[];
   /** Show the blocking hint (a DRAFT whose activation is blocked). */
   blocked: boolean;
+  /** Words HIGH_FEE_SHARE with the share the snapshot answered. */
+  feeShareOfRisk?: string | null;
 }) {
   const copy = useCopy();
   const p = copy.plan;
+  const wording = (warning: PlanWarning) =>
+    warning.type === 'HIGH_FEE_SHARE' && feeShareOfRisk !== null
+      ? formatCopy(p.warningFeeShareValue, {
+          share: planShare(feeShareOfRisk),
+        })
+      : p[`warning${warning.type}`];
   return (
     <Panel id="plan-warnings-title" title={p.warningsTitle}>
       {warnings.length === 0 ? (
@@ -203,10 +331,10 @@ export function PlanWarningsPanel({
               <span className="sr-only">
                 {messageText(copy, 'MSG17', [], {
                   severity: p[`severity${warning.severity}`],
-                  message: p[`warning${warning.type}`],
+                  message: wording(warning),
                 })}
               </span>
-              <span aria-hidden="true">{p[`warning${warning.type}`]}</span>
+              <span aria-hidden="true">{wording(warning)}</span>
             </li>
           ))}
         </ul>
@@ -225,7 +353,7 @@ export function PlanWarningsPanel({
   );
 }
 
-/** Status changes, oldest first (D-67). */
+/** Status changes, oldest first (D-67); INVALIDATED says why (BR-68). */
 export function PlanHistoryPanel({ plan }: { plan: TradingPlan }) {
   const p = useCopy().plan;
   return (
@@ -243,6 +371,11 @@ export function PlanHistoryPanel({ plan }: { plan: TradingPlan }) {
                 {when(change.at)}
               </span>
             </div>
+            {change.status === 'INVALIDATED' && plan.invalidationReason && (
+              <p className="mt-1 text-xs text-fg-2">
+                {p[`reason${plan.invalidationReason}`]}
+              </p>
+            )}
           </li>
         ))}
       </ol>

@@ -418,10 +418,12 @@ export const en = {
     statusEXECUTED: 'Executed',
     statusCANCELLED: 'Cancelled',
     statusEXPIRED: 'Expired',
+    statusINVALIDATED: 'Invalidated',
     directionLONG: 'Long',
     directionSHORT: 'Short',
     entryLIMIT: 'Limit',
     entryMARKET: 'Market',
+    entrySTOP: 'Stop',
     filterPair: 'Pair',
     filterAllPairs: 'All pairs',
     filterMarket: 'Market',
@@ -483,6 +485,19 @@ export const en = {
     rewardAmount: 'Reward (USDT)',
     riskReward: 'Reward / risk',
     liquidation: 'Est. liquidation price',
+    lossAtStopLoss: 'Real loss at stop loss (USDT)',
+    netRiskReward: 'Reward / risk after fees',
+    costsTitle: 'Fees and slippage (est.)',
+    entryFee: 'Entry fee (USDT)',
+    stopLossExitFee: 'Exit fee at stop loss (USDT)',
+    takeProfitExitFee: 'Exit fee at take profit (USDT)',
+    slippage: 'Slippage (USDT)',
+    feeShare: 'Share of the risk',
+    costsNote:
+      'The real loss and the reward / risk after fees include the fees of the entry and of the exit at the stop loss (or the take profit) and the configured slippage. Funding and the liquidation fee are not included.',
+    expectedFill: 'Expected fill',
+    expectedFillNote:
+      'The current price moved by the configured slippage; the position is sized on it.',
     lineLiquidation: 'Liquidation (est.)',
     chartUnlisted:
       'No chart: this pair is no longer listed on the market of the plan.',
@@ -499,6 +514,8 @@ export const en = {
     warningTOTAL_OPEN_RISK: 'Total open risk above your risk profile',
     warningWIDE_STOP_LOSS: 'Wide stop loss',
     warningHIGH_FUNDING_RATE: 'High funding rate for this side',
+    warningHIGH_FEE_SHARE: 'Fees and slippage are a large share of the risk',
+    warningFeeShareValue: 'Fees and slippage are {share}% of the risk',
     historyTitle: 'Status history',
     positionTitle: 'Position',
     positionWaiting:
@@ -528,8 +545,31 @@ export const en = {
     riskHint: 'From 0.1 to 10 %. Leave empty to use your default.',
     leverageHint: 'A whole number from 1 to the pair’s maximum.',
     expiryField: 'Expiry (optional)',
-    expiryHint: 'Leave empty for 7 days on a limit entry.',
+    expiryHint: 'Leave empty for 7 days on a limit or stop entry.',
     noteHint: 'Up to 1000 characters.',
+    stopEntryPrice: 'Stop price',
+    stopEntryHint:
+      'Enters at market once the price reaches this level: above the current price for a long, below it for a short.',
+    sectionValidity: 'Validity',
+    invalidationPrice: 'Invalidation price',
+    invalidationField: 'Invalidation price (optional)',
+    invalidationHint:
+      'If the price reaches it before the entry, the plan becomes invalid. Set it beyond the current price, on the far side from the entry.',
+    invalidationMarket: 'A market entry has no invalidation price.',
+    maxDeviation: 'Max entry deviation',
+    maxDeviationField: 'Max entry deviation (R, optional)',
+    maxDeviationHint:
+      'Your own limit on a worse market entry, above 0 and up to 0.75 R. Leave empty for 0.75 R.',
+    timeframeField: 'Analysis timeframe',
+    timeframeStyle: 'Your trading style’s default',
+    timeframeHint:
+      'The timeframe the plan is analysed on. The setup score uses your style’s own timeframe.',
+    setupScoreAtPlan: 'Setup score at activation',
+    setupScoreValue: '{score} ({preset})',
+    deviationValue: '{value} R',
+    reasonTAKE_PROFIT_REACHED: 'Take profit reached before the entry',
+    reasonSTOP_LOSS_REACHED: 'Stop loss reached before the entry',
+    reasonINVALIDATION_PRICE: 'Invalidation price reached before the entry',
     futuresPending:
       'Futures plans cannot be calculated until leverage brackets are configured.',
     riskTitle: 'Risk calculation',
@@ -551,6 +591,13 @@ export const en = {
     errLeverage: '{field} must be a whole number of at least 1.',
     errFuture: 'The expiry must be in the future.',
     errTooLong: '{field} can be at most {max} characters.',
+    errDeviation: '{field} must be above 0 and at most {max} R.',
+    ruleInvalidation:
+      'the invalidation price must lie beyond the current price, on the far side from the entry',
+    ruleStopLONG:
+      'a stop entry must be above the current price; it has been reached, so use a market entry',
+    ruleStopSHORT:
+      'a stop entry must be below the current price; it has been reached, so use a market entry',
     ruleLONG: 'stop loss < entry price < take profit',
     ruleSHORT: 'take profit < entry price < stop loss',
     directionNameLONG: 'long',

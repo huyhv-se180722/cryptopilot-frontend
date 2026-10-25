@@ -7,6 +7,7 @@ export interface PlanLineLabels {
   stopLoss: string;
   takeProfit: string;
   liquidation: string;
+  invalidation: string;
 }
 
 /** A plan's prices; null for one not known (yet). */
@@ -15,12 +16,14 @@ export interface PlanPrices {
   stopLoss: Decimal | null;
   takeProfit: Decimal | null;
   liquidation: Decimal | null;
+  /** BR-68; LIMIT and STOP only. */
+  invalidation: Decimal | null;
 }
 
 /**
- * Prices as chart lines (SCR-17, SCR-18): entry, stop loss, take profit and
- * the estimated liquidation price, each only when known. The entry is
- * solid; exits and liquidation are dashed.
+ * Prices as chart lines (SCR-17, SCR-18): entry, stop loss, take profit,
+ * the estimated liquidation price and the invalidation price, each only
+ * when known. The entry is solid; the others are dashed.
  */
 export function priceLines(
   prices: PlanPrices,
@@ -50,6 +53,13 @@ export function priceLines(
       'warning',
       true,
     ),
+    ...line(
+      'invalidation',
+      prices.invalidation,
+      labels.invalidation,
+      'neutral',
+      true,
+    ),
   ];
 }
 
@@ -70,6 +80,7 @@ export function planLines(
         plan.market === 'futures'
           ? plan.snapshot.estimatedLiquidationPrice
           : null,
+      invalidation: plan.invalidationPrice,
     },
     labels,
   );

@@ -111,6 +111,112 @@ describe('trading plan decoders', () => {
     });
   });
 
+  it('reads the plan validity fields of TP-A (112aa24), and null without them', () => {
+    const invalidated = decodePlan({
+      ...PLAN,
+      entryType: 'STOP',
+      status: 'INVALIDATED',
+      plannedEntryPrice: '62000.00',
+      invalidationPrice: '60500.00',
+      maxEntryDeviationR: '0.50000000',
+      analysisTimeframe: '4h',
+      invalidationReason: 'INVALIDATION_PRICE',
+      setupScoreAtPlan: '59.00',
+      setupScorePreset: 'DAY_TRADING v1',
+      statusHistory: [
+        { status: 'DRAFT', at: '2026-10-03T02:20:00Z' },
+        { status: 'ACTIVE', at: '2026-10-03T02:30:00Z' },
+        { status: 'INVALIDATED', at: '2026-10-04T09:00:00Z' },
+      ],
+    });
+    expect(invalidated).toMatchObject({
+      entryType: 'STOP',
+      status: 'INVALIDATED',
+      invalidationPrice: '60500.00',
+      maxEntryDeviationR: '0.50000000',
+      analysisTimeframe: '4h',
+      invalidationReason: 'INVALIDATION_PRICE',
+      setupScoreAtPlan: '59.00',
+      setupScorePreset: 'DAY_TRADING v1',
+    });
+    expect(
+      decodePlanPage({
+        items: [
+          {
+            ...ROW,
+            status: 'INVALIDATED',
+            invalidatedAt: '2026-10-04T09:00:00Z',
+            invalidationReason: 'TAKE_PROFIT_REACHED',
+          },
+        ],
+        page: 1,
+        pageSize: 20,
+        total: 1,
+      }).items[0],
+    ).toMatchObject({
+      invalidatedAt: '2026-10-04T09:00:00Z',
+      invalidationReason: 'TAKE_PROFIT_REACHED',
+    });
+    // A backend without TP-A sends none of them.
+    expect(decodePlan(PLAN)).toMatchObject({
+      plannedEntryPrice: null,
+      invalidationPrice: null,
+      maxEntryDeviationR: null,
+      analysisTimeframe: null,
+      invalidationReason: null,
+      setupScoreAtPlan: null,
+      setupScorePreset: null,
+    });
+    expect(() => decodePlan({ ...PLAN, analysisTimeframe: '5m' })).toThrow();
+    expect(() =>
+      decodePlan({ ...PLAN, invalidationReason: 'PRICE_MOVED' }),
+    ).toThrow();
+  });
+
+  it('reads the expected fill and the costs of D-116 (dccfc6c), and null without them', () => {
+    const costs = {
+      estimatedEntryFee: '10.00000000',
+      estimatedStopLossExitFee: '9.95000000',
+      estimatedTakeProfitExitFee: '4.06000000',
+      estimatedSlippage: '0.00000000',
+      lossAtStopLoss: '119.95000000',
+      feeShareOfRisk: '0.19950000',
+      netRiskReward: '2.38382659',
+    };
+    const plan = decodePlan({
+      ...PLAN,
+      entryType: 'MARKET',
+      expectedFillPrice: '62031.00',
+      snapshot: { ...PLAN.snapshot, ...costs },
+      warnings: [
+        { type: 'HIGH_FEE_SHARE', severity: 'WARNING', message: 'dev text' },
+      ],
+    });
+    expect(plan.expectedFillPrice).toBe('62031.00');
+    expect(plan.snapshot).toMatchObject(costs);
+    expect(plan.warnings).toEqual([
+      { type: 'HIGH_FEE_SHARE', severity: 'WARNING' },
+    ]);
+    const [row] = decodePlanPage({
+      items: [{ ...ROW, expectedFillPrice: null }],
+      page: 1,
+      pageSize: 20,
+      total: 1,
+    }).items;
+    expect(row?.expectedFillPrice).toBeNull();
+
+    const older = decodePlan(PLAN);
+    expect(older.expectedFillPrice).toBeNull();
+    expect(older.snapshot.lossAtStopLoss).toBeNull();
+    expect(older.snapshot.netRiskReward).toBeNull();
+    expect(() =>
+      decodePlan({
+        ...PLAN,
+        snapshot: { ...PLAN.snapshot, lossAtStopLoss: 119.95 },
+      }),
+    ).toThrow();
+  });
+
   it('rejects an unknown status, warning or a missing snapshot value', () => {
     expect(() => decodePlan({ ...PLAN, status: 'OPEN' })).toThrow();
     expect(() =>
@@ -199,6 +305,9 @@ describe('HTTP trading plan adapter', () => {
       leverage: null,
       expiresAt: null,
       note: null,
+      invalidationPrice: null,
+      maxEntryDeviationR: null,
+      analysisTimeframe: null,
     };
     const calc = setup({
       entryPrice: '62000.00',
@@ -267,6 +376,9 @@ describe('plan calculation', () => {
         leverage: 5,
         expiresAt: null,
         note: 'retest',
+        invalidationPrice: null,
+        maxEntryDeviationR: '0.5',
+        analysisTimeframe: '1h',
       },
       false,
     );
@@ -282,6 +394,9 @@ describe('plan calculation', () => {
       leverage: 5,
       expiresAt: null,
       note: 'retest',
+      invalidationPrice: null,
+      maxEntryDeviationR: '0.5',
+      analysisTimeframe: '1h',
       activate: false,
     });
     // A new plan names its pair and asks for activation the same way.
@@ -290,7 +405,7 @@ describe('plan calculation', () => {
       {
         market: 'spot',
         direction: 'LONG',
-        entryType: 'LIMIT',
+        entryType: 'STOP',
         entryPrice: '61000',
         stopLoss: '59000',
         takeProfit: '67000',
@@ -299,6 +414,9 @@ describe('plan calculation', () => {
         leverage: null,
         expiresAt: null,
         note: null,
+        invalidationPrice: '58500',
+        maxEntryDeviationR: null,
+        analysisTimeframe: null,
       },
       true,
     );
@@ -306,7 +424,7 @@ describe('plan calculation', () => {
       pairId: PLAN.pairId,
       market: 'SPOT',
       direction: 'LONG',
-      entryType: 'LIMIT',
+      entryType: 'STOP',
       entryPrice: '61000',
       stopLoss: '59000',
       takeProfit: '67000',
@@ -315,6 +433,9 @@ describe('plan calculation', () => {
       leverage: null,
       expiresAt: null,
       note: null,
+      invalidationPrice: '58500',
+      maxEntryDeviationR: null,
+      analysisTimeframe: null,
       activate: true,
     });
   });

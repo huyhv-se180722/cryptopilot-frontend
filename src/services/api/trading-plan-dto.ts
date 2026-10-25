@@ -3,9 +3,11 @@ import type {
   PlanDirection,
   PlanInputs,
   PlanEntryType,
+  PlanInvalidationReason,
   PlanPage,
   PlanSnapshot,
   PlanStatus,
+  PlanTimeframe,
   PlanWarning,
   PlanWarningType,
   TradingPlan,
@@ -32,7 +34,12 @@ import { marketOf } from './market-dto';
  * @ 233fcc8: `TradingPlanSummaryResponse`, `TradingPlanResponse`,
  * `PlanSnapshotResponse`, `PlanWarningResponse`, `StatusChangeResponse`,
  * `PlanCalculationResponse`, `CreateTradingPlanRequest`,
- * `UpdateTradingPlanRequest`.
+ * `UpdateTradingPlanRequest`. Plan validity (STOP entry, INVALIDATED, the
+ * invalidation price, the deviation limit, the analysis timeframe and the
+ * setup score at activation) against `feature/TP-A-plan-validity` @
+ * 112aa24; the expected fill and the cost figures (D-116) against `develop`
+ * @ dccfc6c. Those fields are read as null when absent, as an older backend
+ * answers.
  */
 const STATUSES: readonly PlanStatus[] = [
   'DRAFT',
@@ -40,9 +47,16 @@ const STATUSES: readonly PlanStatus[] = [
   'EXECUTED',
   'CANCELLED',
   'EXPIRED',
+  'INVALIDATED',
 ];
 const DIRECTIONS: readonly PlanDirection[] = ['LONG', 'SHORT'];
-const ENTRY_TYPES: readonly PlanEntryType[] = ['LIMIT', 'MARKET'];
+const ENTRY_TYPES: readonly PlanEntryType[] = ['LIMIT', 'MARKET', 'STOP'];
+const TIMEFRAMES: readonly PlanTimeframe[] = ['15m', '1h', '4h', '1d'];
+const REASONS: readonly PlanInvalidationReason[] = [
+  'TAKE_PROFIT_REACHED',
+  'STOP_LOSS_REACHED',
+  'INVALIDATION_PRICE',
+];
 const SEVERITIES: readonly WarningSeverity[] = ['INFO', 'WARNING', 'BLOCKING'];
 const WARNING_TYPES: readonly PlanWarningType[] = [
   'INSUFFICIENT_CAPITAL',
@@ -53,10 +67,21 @@ const WARNING_TYPES: readonly PlanWarningType[] = [
   'TOTAL_OPEN_RISK',
   'WIDE_STOP_LOSS',
   'HIGH_FUNDING_RATE',
+  'HIGH_FEE_SHARE',
 ];
 
 function nullableInteger(value: unknown, name: string): number | null {
   return value === null || value === undefined ? null : integer(value, name);
+}
+
+function nullableOneOf<T extends string>(
+  allowed: readonly T[],
+  value: unknown,
+  name: string,
+): T | null {
+  return value === null || value === undefined
+    ? null
+    : oneOf(allowed, value, name);
 }
 
 function common(value: Record<string, unknown>) {
@@ -67,11 +92,20 @@ function common(value: Record<string, unknown>) {
     direction: oneOf(DIRECTIONS, value.direction, 'direction'),
     entryType: oneOf(ENTRY_TYPES, value.entryType, 'entryType'),
     entryPrice: decimal(value.entryPrice, 'entryPrice'),
+    expectedFillPrice: nullableDecimal(
+      value.expectedFillPrice,
+      'expectedFillPrice',
+    ),
     stopLoss: decimal(value.stopLoss, 'stopLoss'),
     takeProfit: decimal(value.takeProfit, 'takeProfit'),
     leverage: nullableInteger(value.leverage, 'leverage'),
     status: oneOf(STATUSES, value.status, 'status'),
     expiresAt: nullableInstant(value.expiresAt, 'expiresAt'),
+    invalidationReason: nullableOneOf(
+      REASONS,
+      value.invalidationReason,
+      'invalidationReason',
+    ),
   };
 }
 
@@ -83,6 +117,7 @@ function summary(item: unknown, index: number): TradingPlanSummary {
     riskRewardRatio: decimal(value.riskRewardRatio, 'riskRewardRatio'),
     createdAt: instant(value.createdAt, 'createdAt'),
     activatedAt: nullableInstant(value.activatedAt, 'activatedAt'),
+    invalidatedAt: nullableInstant(value.invalidatedAt, 'invalidatedAt'),
   };
 }
 
@@ -114,6 +149,25 @@ function snapshot(value: unknown): PlanSnapshot {
       s.estimatedLiquidationPrice,
       'estimatedLiquidationPrice',
     ),
+    estimatedEntryFee: nullableDecimal(
+      s.estimatedEntryFee,
+      'estimatedEntryFee',
+    ),
+    estimatedStopLossExitFee: nullableDecimal(
+      s.estimatedStopLossExitFee,
+      'estimatedStopLossExitFee',
+    ),
+    estimatedTakeProfitExitFee: nullableDecimal(
+      s.estimatedTakeProfitExitFee,
+      'estimatedTakeProfitExitFee',
+    ),
+    estimatedSlippage: nullableDecimal(
+      s.estimatedSlippage,
+      'estimatedSlippage',
+    ),
+    lossAtStopLoss: nullableDecimal(s.lossAtStopLoss, 'lossAtStopLoss'),
+    feeShareOfRisk: nullableDecimal(s.feeShareOfRisk, 'feeShareOfRisk'),
+    netRiskReward: nullableDecimal(s.netRiskReward, 'netRiskReward'),
   };
 }
 
@@ -138,6 +192,28 @@ export function decodePlan(body: unknown): TradingPlan {
     riskPercent: decimal(value.riskPercent, 'riskPercent'),
     marginMode: margin === 'ISOLATED' ? 'ISOLATED' : null,
     note: nullableText(value.note, 'note'),
+    plannedEntryPrice: nullableDecimal(
+      value.plannedEntryPrice,
+      'plannedEntryPrice',
+    ),
+    invalidationPrice: nullableDecimal(
+      value.invalidationPrice,
+      'invalidationPrice',
+    ),
+    maxEntryDeviationR: nullableDecimal(
+      value.maxEntryDeviationR,
+      'maxEntryDeviationR',
+    ),
+    analysisTimeframe: nullableOneOf(
+      TIMEFRAMES,
+      value.analysisTimeframe,
+      'analysisTimeframe',
+    ),
+    setupScoreAtPlan: nullableDecimal(
+      value.setupScoreAtPlan,
+      'setupScoreAtPlan',
+    ),
+    setupScorePreset: nullableText(value.setupScorePreset, 'setupScorePreset'),
     editable: flag(value.editable, 'editable'),
     snapshot: snapshot(value.snapshot),
     warnings: list(value.warnings, 'warnings').map(warning),
@@ -157,6 +233,10 @@ export function decodeCalculation(body: unknown): PlanCalculation {
   const value = record(body);
   return {
     entryPrice: decimal(value.entryPrice, 'entryPrice'),
+    expectedFillPrice: nullableDecimal(
+      value.expectedFillPrice,
+      'expectedFillPrice',
+    ),
     capital: decimal(value.capital, 'capital'),
     riskPercent: decimal(value.riskPercent, 'riskPercent'),
     snapshot: snapshot(value.snapshot),
@@ -179,5 +259,8 @@ export function encodePlanInputs(inputs: PlanInputs) {
     leverage: inputs.leverage,
     expiresAt: inputs.expiresAt,
     note: inputs.note,
+    invalidationPrice: inputs.invalidationPrice,
+    maxEntryDeviationR: inputs.maxEntryDeviationR,
+    analysisTimeframe: inputs.analysisTimeframe,
   };
 }

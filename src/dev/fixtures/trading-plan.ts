@@ -1,9 +1,18 @@
-import type { PlanStatus, PlanWarning, TradingPlan } from '../../types/domain';
+import type {
+  PlanInvalidationReason,
+  PlanStatus,
+  PlanTimeframe,
+  PlanWarning,
+  TradingPlan,
+} from '../../types/domain';
 
 /**
  * DEVELOPMENT ONLY. Labelled plans covering every status, both markets,
- * the three warning severities and a BLOCKING draft. Numbers are written
- * by hand to look like a risk calculation; they are not computed.
+ * the three warning severities, a BLOCKING draft, a STOP entry and an
+ * INVALIDATED plan (D-111), the costs of D-116 (with HIGH_FEE_SHARE on a
+ * tight stop, and none on plans saved before them). Numbers are written by
+ * hand to look like a risk calculation; they are not computed, the setup
+ * score at activation and the costs included.
  */
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -15,6 +24,17 @@ const scale12 = (value: string) => {
   const [whole, fraction = ''] = value.split('.');
   return `${whole}.${fraction.padEnd(12, '0')}`;
 };
+
+/** The seven cost figures of a snapshot, in the snapshot's own order. */
+type Costs = readonly [
+  entryFee: string,
+  stopLossExitFee: string,
+  takeProfitExitFee: string,
+  slippage: string,
+  lossAtStopLoss: string,
+  feeShareOfRisk: string,
+  netRiskReward: string,
+];
 
 interface Seed {
   n: number;
@@ -38,6 +58,16 @@ interface Seed {
   reward: string;
   rr: string;
   liquidation?: string;
+  invalidation?: string;
+  deviationR?: string;
+  timeframe?: PlanTimeframe;
+  reason?: PlanInvalidationReason;
+  /** Taken at activation; absent = none could be read. */
+  score?: string;
+  /** Absent = saved before the costs were answered. */
+  costs?: Costs;
+  /** MARKET only: the reference price moved by the slippage. */
+  expectedFill?: string;
 }
 
 const SEEDS: readonly Seed[] = [
@@ -60,6 +90,15 @@ const SEEDS: readonly Seed[] = [
     risk: '10.00000000',
     reward: '20.00000000',
     rr: '2.00000000',
+    costs: [
+      '0.31000000',
+      '0.30000000',
+      '0.33000000',
+      '0.00000000',
+      '10.61000000',
+      '0.06100000',
+      '1.82469369',
+    ],
   },
   {
     n: 2,
@@ -83,6 +122,15 @@ const SEEDS: readonly Seed[] = [
     risk: '10.00000000',
     reward: '12.00000000',
     rr: '1.20000000',
+    costs: [
+      '0.49000000',
+      '0.48000000',
+      '0.50200000',
+      '0.00000000',
+      '10.97000000',
+      '0.09700000',
+      '1.00346399',
+    ],
   },
   {
     n: 3,
@@ -146,6 +194,16 @@ const SEEDS: readonly Seed[] = [
     risk: '10.00000000',
     reward: '28.00000000',
     rr: '2.80000000',
+    expectedFill: '2510.00',
+    costs: [
+      '0.50200000',
+      '0.49200000',
+      '0.53000000',
+      '0.00000000',
+      '10.99400000',
+      '0.09940000',
+      '2.45302892',
+    ],
   },
   {
     n: 6,
@@ -186,7 +244,102 @@ const SEEDS: readonly Seed[] = [
     rr: '3.00000000',
     liquidation: '80.40',
   },
+  {
+    n: 8,
+    pairId: ETH_PAIR,
+    market: 'spot',
+    direction: 'LONG',
+    entryType: 'LIMIT',
+    entry: '2400.00',
+    stop: '2320.00',
+    take: '2640.00',
+    leverage: null,
+    path: ['ACTIVE', 'INVALIDATED'],
+    createdDaysAgo: 3,
+    note: 'Buy the retest unless the breakout runs away (fixture).',
+    quantity: '0.1250',
+    notional: '300.00000000',
+    margin: '300.00000000',
+    risk: '10.00000000',
+    reward: '30.00000000',
+    rr: '3.00000000',
+    invalidation: '2600.00',
+    deviationR: '0.5',
+    timeframe: '4h',
+    reason: 'INVALIDATION_PRICE',
+    score: '64.00',
+  },
+  {
+    n: 9,
+    pairId: BTC_PAIR,
+    market: 'spot',
+    direction: 'LONG',
+    entryType: 'STOP',
+    entry: '70000.00',
+    stop: '68000.00',
+    take: '76000.00',
+    leverage: null,
+    path: [],
+    createdDaysAgo: 1,
+    note: 'Breakout over the range high (fixture).',
+    quantity: '0.00500',
+    notional: '350.00000000',
+    margin: '350.00000000',
+    risk: '10.00000000',
+    reward: '30.00000000',
+    rr: '3.00000000',
+    invalidation: '64000.00',
+    timeframe: '1h',
+    costs: [
+      '0.35000000',
+      '0.34000000',
+      '0.38000000',
+      '0.00000000',
+      '10.69000000',
+      '0.06900000',
+      '2.73526660',
+    ],
+  },
+  {
+    n: 10,
+    pairId: BTC_PAIR,
+    market: 'futures',
+    direction: 'LONG',
+    entryType: 'MARKET',
+    entry: '62000.0',
+    stop: '61900.0',
+    take: '62300.0',
+    leverage: 10,
+    path: [],
+    createdDaysAgo: 0.2,
+    note: 'Scalp on a tight stop: the fees weigh on it (fixture).',
+    warnings: [
+      { type: 'HIGH_FEE_SHARE', severity: 'WARNING' },
+      { type: 'HIGH_LEVERAGE', severity: 'WARNING' },
+    ],
+    quantity: '0.100',
+    notional: '6200.31000000',
+    margin: '620.03100000',
+    risk: '10.00000000',
+    reward: '29.69000000',
+    rr: '2.96900000',
+    liquidation: '56051.9',
+    timeframe: '15m',
+    expectedFill: '62003.1',
+    costs: [
+      '3.10015500',
+      '3.09500000',
+      '1.24600000',
+      '0.30950000',
+      '16.50465500',
+      '0.65046550',
+      '1.51213436',
+    ],
+  },
 ];
+
+/** The dev profile's trading style is SWING, so its preset is SWING. */
+const DEV_PRESET = 'SWING v1';
 
 export function devPlanSeeds(now: number): TradingPlan[] {
   return SEEDS.map((seed) => {
@@ -195,12 +348,13 @@ export function devPlanSeeds(now: number): TradingPlan[] {
     const status = statuses[statuses.length - 1] as PlanStatus;
     const warnings = seed.warnings ?? [];
     return {
-      id: `0199a2c4-0000-7000-8000-00000000000${seed.n}`,
+      id: `0199a2c4-0000-7000-8000-${String(seed.n).padStart(12, '0')}`,
       pairId: seed.pairId,
       market: seed.market,
       direction: seed.direction,
       entryType: seed.entryType,
       entryPrice: scale12(seed.entry),
+      expectedFillPrice: seed.expectedFill ? scale12(seed.expectedFill) : null,
       stopLoss: scale12(seed.stop),
       takeProfit: scale12(seed.take),
       capital: '1000',
@@ -208,11 +362,20 @@ export function devPlanSeeds(now: number): TradingPlan[] {
       leverage: seed.leverage,
       marginMode: seed.market === 'futures' ? 'ISOLATED' : null,
       expiresAt:
-        seed.entryType === 'LIMIT'
-          ? new Date(created + 7 * DAY).toISOString()
-          : null,
+        seed.entryType === 'MARKET'
+          ? null
+          : new Date(created + 7 * DAY).toISOString(),
       note: seed.note ?? null,
+      plannedEntryPrice: scale12(seed.entry),
+      invalidationPrice: seed.invalidation ? scale12(seed.invalidation) : null,
+      maxEntryDeviationR: seed.deviationR ?? null,
+      analysisTimeframe: seed.timeframe ?? '4h',
       status,
+      invalidationReason: seed.reason ?? null,
+      setupScoreAtPlan: statuses.includes('ACTIVE')
+        ? (seed.score ?? null)
+        : null,
+      setupScorePreset: statuses.includes('ACTIVE') ? DEV_PRESET : null,
       editable: status === 'DRAFT',
       snapshot: {
         positionQuantity: scale12(seed.quantity),
@@ -225,6 +388,13 @@ export function devPlanSeeds(now: number): TradingPlan[] {
         estimatedLiquidationPrice: seed.liquidation
           ? scale12(seed.liquidation)
           : null,
+        estimatedEntryFee: seed.costs?.[0] ?? null,
+        estimatedStopLossExitFee: seed.costs?.[1] ?? null,
+        estimatedTakeProfitExitFee: seed.costs?.[2] ?? null,
+        estimatedSlippage: seed.costs?.[3] ?? null,
+        lossAtStopLoss: seed.costs?.[4] ?? null,
+        feeShareOfRisk: seed.costs?.[5] ?? null,
+        netRiskReward: seed.costs?.[6] ?? null,
       },
       warnings,
       blocksActivation: warnings.some(

@@ -14,6 +14,7 @@ const STATUS_TONE: Record<PlanStatus, Tone> = {
   EXECUTED: 'success',
   CANCELLED: 'neutral',
   EXPIRED: 'warning',
+  INVALIDATED: 'warning',
 };
 
 /** BR-32 status with a text label, never colour alone. */

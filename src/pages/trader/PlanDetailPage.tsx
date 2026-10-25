@@ -97,6 +97,7 @@ export function PlanDetailPage() {
                     stopLoss: p.colStopLoss,
                     takeProfit: p.colTakeProfit,
                     liquidation: p.lineLiquidation,
+                    invalidation: p.invalidationPrice,
                   })}
                 />
               ) : pair ? (
@@ -112,6 +113,7 @@ export function PlanDetailPage() {
               <PlanWarningsPanel
                 warnings={plan.warnings}
                 blocked={plan.blocksActivation && plan.status === 'DRAFT'}
+                feeShareOfRisk={plan.snapshot.feeShareOfRisk}
               />
               <PlanHistoryPanel plan={plan} />
             </div>

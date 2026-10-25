@@ -17,31 +17,32 @@ import {
 import { buttonClassName } from '../../../components/ui/button-styles';
 import { useCopy } from '../../../hooks/use-copy';
 import { useToast } from '../../../hooks/use-toast';
-import { formatCopy } from '../../../i18n/copy';
-import type { Copy } from '../../../i18n/locales/en';
-import { errorText, fieldErrorText, messageText } from '../../../i18n/messages';
+import { errorText, messageText } from '../../../i18n/messages';
 import { problemOf } from '../../../services/api/errors';
 import type {
   MarketPair,
-  PlanDirection,
+  PlanEntryType,
+  PlanTimeframe,
   TradingPlan,
 } from '../../../types/domain';
 import { pairLabel } from '../../../utils/pair-label';
 import type { ChartPriceLine } from '../../chart/components/AnalysisChart';
 import { usePlanCalculation, useSavePlan } from '../hooks/use-plan-editor';
 import { Panel, PlanSnapshotRows, PlanWarningsPanel } from './PlanDetailPanels';
-import { planPrice } from './plan-format';
+import { planFieldErrorText } from './plan-errors';
+import { planPrice, shownExpectedFill } from './plan-format';
 import { priceLines } from './plan-lines';
 import {
   EMPTY_PLAN_DRAFT,
   NOTE_MAX,
+  PLAN_TIMEFRAMES,
   draftOfPlan,
   drawablePrice,
+  pricedEntry,
   serverFieldError,
   toInputs,
   type PlanDraft,
   type PlanField,
-  type PlanFieldError,
 } from './plan-form';
 
 const FIELDS: readonly PlanField[] = [
@@ -54,41 +55,17 @@ const FIELDS: readonly PlanField[] = [
   'leverage',
   'expiresAt',
   'note',
+  'invalidationPrice',
+  'maxEntryDeviationR',
+  'analysisTimeframe',
 ];
 
-function errorMessage(
-  copy: Copy,
-  error: PlanFieldError,
-  label: string,
-  direction: PlanDirection,
-): string {
-  const p = copy.plan;
-  switch (error.kind) {
-    case 'required':
-      return fieldErrorText(copy, 'MSG01', label);
-    case 'number':
-      return formatCopy(p.errNumber, { field: label });
-    case 'positive':
-      return formatCopy(p.errPositive, { field: label });
-    case 'range':
-      return messageText(copy, 'MSG15', [], {
-        field: label,
-        min: error.min,
-        max: error.max,
-      });
-    case 'leverage':
-      return formatCopy(p.errLeverage, { field: label });
-    case 'order':
-      return messageText(copy, 'MSG16', [], {
-        direction: p[`directionName${direction}`],
-        rule: p[`rule${direction}`],
-      });
-    case 'future':
-      return p.errFuture;
-    case 'tooLong':
-      return formatCopy(p.errTooLong, { field: label, max: error.max });
-  }
-}
+/**
+ * The entry types offered. STOP is accepted by the backend but not yet
+ * triggered by its engine (TP-B), so a new plan cannot pick it; a STOP
+ * draft saved before keeps it.
+ */
+const OFFERED_ENTRY_TYPES: readonly PlanEntryType[] = ['LIMIT', 'MARKET'];
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -119,6 +96,11 @@ export type PlanEditorTarget =
       pairs: readonly MarketPair[];
       /** The pair to start on, e.g. the analysis screen's. */
       pairId: string | null;
+      /**
+       * The analysis timeframe of the Trader's trading style (D-112); null
+       * when the profile could not be read, the server then chooses it.
+       */
+      timeframe: PlanTimeframe | null;
     };
 
 /**
@@ -128,7 +110,11 @@ export type PlanEditorTarget =
  * server as the Trader types (BR-23…BR-27), the warnings with their severity
  * (MSG17), and Save as Draft (MSG14) or Save and Activate (MSG19; refused
  * with MSG18 or MSG27, nothing saved). A new plan picks its pair from the
- * market list by id (FEQ-01); a DRAFT's pair is fixed. The page draws the
+ * market list by id (FEQ-01); a DRAFT's pair is fixed. Plan validity
+ * (D-111, D-112): a STOP entry for breakouts (on a STOP draft only until
+ * the engine triggers it), an invalidation price for a waiting LIMIT or
+ * STOP, the plan's own entry deviation limit and the
+ * analysis timeframe, defaulted from the trading style. The page draws the
  * chart, given the pair and the lines.
  */
 export function PlanEditor({
@@ -143,8 +129,18 @@ export function PlanEditor({
   const navigate = useNavigate();
   const { show } = useToast();
   const plan = target.mode === 'edit' ? target.plan : null;
+  const entryTypes: readonly PlanEntryType[] =
+    plan?.entryType === 'STOP'
+      ? [...OFFERED_ENTRY_TYPES, 'STOP']
+      : OFFERED_ENTRY_TYPES;
   const [draft, setDraft] = useState<PlanDraft>(() =>
-    plan ? draftOfPlan(plan) : EMPTY_PLAN_DRAFT,
+    plan
+      ? draftOfPlan(plan)
+      : {
+          ...EMPTY_PLAN_DRAFT,
+          analysisTimeframe:
+            target.mode === 'create' ? (target.timeframe ?? '') : '',
+        },
   );
   const [chosenPairId, setChosenPairId] = useState(() =>
     target.mode === 'create'
@@ -191,7 +187,7 @@ export function PlanEditor({
           ? serverFieldError(field, serverFields[field])
           : undefined;
     return error
-      ? errorMessage(copy, error, label, draft.direction)
+      ? planFieldErrorText(copy, error, label, draft.direction)
       : undefined;
   };
 
@@ -213,27 +209,33 @@ export function PlanEditor({
   }
 
   const futures = draft.market === 'futures';
+  const priced = pricedEntry(draft.entryType);
+  const stopEntry = draft.entryType === 'STOP';
   const result = calculation.data;
+  const expectedFill = result
+    ? shownExpectedFill(result.entryPrice, result.expectedFillPrice)
+    : null;
   const blocked = result?.blocksActivation ?? plan?.blocksActivation ?? false;
   // The chart reads the candles of the plan's own market.
   const charted = pair && pair.market === draft.market ? pair : null;
   const lines = priceLines(
     {
-      entry:
-        draft.entryType === 'LIMIT'
-          ? drawablePrice(draft.entryPrice)
-          : (result?.entryPrice ?? null),
+      entry: priced
+        ? drawablePrice(draft.entryPrice)
+        : (result?.entryPrice ?? null),
       stopLoss: drawablePrice(draft.stopLoss),
       takeProfit: drawablePrice(draft.takeProfit),
       liquidation: futures
         ? (result?.snapshot.estimatedLiquidationPrice ?? null)
         : null,
+      invalidation: priced ? drawablePrice(draft.invalidationPrice) : null,
     },
     {
-      entry: p.colEntry,
+      entry: stopEntry ? p.stopEntryPrice : p.colEntry,
       stopLoss: p.colStopLoss,
       takeProfit: p.colTakeProfit,
       liquidation: p.lineLiquidation,
+      invalidation: p.invalidationPrice,
     },
   );
   const panelProblem = calculation.fieldErrors.quantity
@@ -323,6 +325,35 @@ export function PlanEditor({
               </>
             )}
           </div>
+          <div className="sm:col-span-2">
+            <Select
+              label={p.timeframeField}
+              value={draft.analysisTimeframe}
+              onChange={(event) =>
+                change(
+                  {
+                    analysisTimeframe: event.target
+                      .value as PlanDraft['analysisTimeframe'],
+                  },
+                  'analysisTimeframe',
+                )
+              }
+              error={errorOf('analysisTimeframe', p.timeframeField)}
+              aria-describedby="plan-timeframe-hint"
+            >
+              {draft.analysisTimeframe === '' && (
+                <option value="">{p.timeframeStyle}</option>
+              )}
+              {PLAN_TIMEFRAMES.map((timeframe) => (
+                <option key={timeframe} value={timeframe}>
+                  {timeframe}
+                </option>
+              ))}
+            </Select>
+            <span id="plan-timeframe-hint" className={fieldHintClass}>
+              {p.timeframeHint}
+            </span>
+          </div>
           {futures && (
             <p className="flex items-start gap-1.5 text-[11px] text-warning sm:col-span-2">
               <Info size={12} aria-hidden="true" className="mt-0.5 shrink-0" />
@@ -338,22 +369,28 @@ export function PlanEditor({
               label={p.entryType}
               value={draft.entryType}
               onChange={(entryType) => change({ entryType }, 'entryPrice')}
-              options={(['LIMIT', 'MARKET'] as const).map((value) => ({
+              options={entryTypes.map((value) => ({
                 value,
                 label: p[`entry${value}`],
               }))}
             />
+            {stopEntry && (
+              <span className={fieldHintClass}>{p.stopEntryHint}</span>
+            )}
           </fieldset>
-          {draft.entryType === 'LIMIT' ? (
+          {priced ? (
             <Input
-              label={p.entryPrice}
+              label={stopEntry ? p.stopEntryPrice : p.entryPrice}
               inputMode="decimal"
               autoComplete="off"
               value={draft.entryPrice}
               onChange={(event) =>
                 change({ entryPrice: event.target.value }, 'entryPrice')
               }
-              error={errorOf('entryPrice', p.entryPrice)}
+              error={errorOf(
+                'entryPrice',
+                stopEntry ? p.stopEntryPrice : p.entryPrice,
+              )}
             />
           ) : (
             <div>
@@ -366,6 +403,15 @@ export function PlanEditor({
                 )}
               </p>
               <span className={fieldHintClass}>{p.marketEntryNote}</span>
+              {expectedFill && (
+                <p className="mt-2 text-xs text-fg-2">
+                  <span className="mr-1.5 text-[11px] text-muted-dim">
+                    {p.expectedFill}
+                  </span>
+                  <NumericText value={planPrice(expectedFill)} />
+                  <span className={fieldHintClass}>{p.expectedFillNote}</span>
+                </p>
+              )}
             </div>
           )}
         </Section>
@@ -390,6 +436,44 @@ export function PlanEditor({
               change({ takeProfit: event.target.value }, 'takeProfit')
             }
             error={errorOf('takeProfit', p.takeProfit)}
+          />
+        </Section>
+
+        <Section title={p.sectionValidity}>
+          {priced ? (
+            <Input
+              label={p.invalidationField}
+              inputMode="decimal"
+              autoComplete="off"
+              value={draft.invalidationPrice}
+              onChange={(event) =>
+                change(
+                  { invalidationPrice: event.target.value },
+                  'invalidationPrice',
+                )
+              }
+              error={errorOf('invalidationPrice', p.invalidationPrice)}
+              hint={p.invalidationHint}
+            />
+          ) : (
+            <div>
+              <span className={fieldLabelClass}>{p.invalidationPrice}</span>
+              <p className="text-sm text-muted">{p.invalidationMarket}</p>
+            </div>
+          )}
+          <Input
+            label={p.maxDeviationField}
+            inputMode="decimal"
+            autoComplete="off"
+            value={draft.maxEntryDeviationR}
+            onChange={(event) =>
+              change(
+                { maxEntryDeviationR: event.target.value },
+                'maxEntryDeviationR',
+              )
+            }
+            error={errorOf('maxEntryDeviationR', p.maxDeviation)}
+            hint={p.maxDeviationHint}
           />
         </Section>
 
@@ -522,6 +606,9 @@ export function PlanEditor({
         <PlanWarningsPanel
           warnings={result?.warnings ?? plan?.warnings ?? []}
           blocked={blocked}
+          feeShareOfRisk={
+            (result?.snapshot ?? plan?.snapshot)?.feeShareOfRisk ?? null
+          }
         />
         {saveProblem && Object.keys(saveProblem.fieldErrors).length === 0 && (
           <Banner
