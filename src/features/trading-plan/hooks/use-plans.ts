@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import {
   keepPreviousData,
   useQuery,
@@ -7,6 +7,7 @@ import {
 import { useMutation, type MutationState } from '../../../hooks/use-mutation';
 import { useServices } from '../../../hooks/use-services';
 import { problemOf } from '../../../services/api/errors';
+import { decodeDeviation } from '../../../services/api/trading-plan-dto';
 import type { MarketType, PlanTab, TradingPlan } from '../../../types/domain';
 
 /** CR-04: 20 rows per page. */
@@ -154,8 +155,11 @@ const STALE = new Set([
 /**
  * Activate (UC-18) and cancel (UC-19). The answer replaces the shown plan
  * and every list is read again; after a stale-plan refusal the plan is
- * read again. Nothing changes before the server answers. `errorCode` is
- * the refusal's code (e.g. `PLAN_LIMIT_REACHED`, `TRADING_BLOCKING_WARNING`).
+ * read again. Nothing changes before the server answers, and a second
+ * request is not sent while one runs. `errorCode` is the refusal's code
+ * (e.g. `PLAN_LIMIT_REACHED`, `TRADING_BLOCKING_WARNING`); `deviation` the
+ * body of MSG51 / MSG52 (TP-C): `activate(true)` repeats the activation
+ * with the Trader's confirmation, `dismiss` drops the refusal.
  */
 export function usePlanActions(id: string) {
   const { tradingPlan } = useServices();
@@ -170,10 +174,13 @@ export function usePlanActions(id: string) {
   );
   const activation = useMutation(
     useCallback(
-      () => tradingPlan.activate(id).then(settle),
+      (confirmDeviation: boolean) =>
+        tradingPlan.activate(id, confirmDeviation).then(settle),
       [tradingPlan, id, settle],
     ),
   );
+  // No double submit: the state only says pending on the next render.
+  const busy = useRef(false);
   const cancellation = useMutation(
     useCallback(
       () => tradingPlan.cancel(id).then(settle),
@@ -194,13 +201,28 @@ export function usePlanActions(id: string) {
   );
   const { run: runActivation, reset: resetActivation } = activation;
   const { run: runCancellation, reset: resetCancellation } = cancellation;
-  const activate = useCallback(async () => {
-    resetCancellation();
-    return finish(await runActivation());
-  }, [finish, runActivation, resetCancellation]);
+  const activate = useCallback(
+    async (confirmDeviation = false) => {
+      if (busy.current) return false;
+      busy.current = true;
+      try {
+        resetCancellation();
+        return finish(await runActivation(confirmDeviation));
+      } finally {
+        busy.current = false;
+      }
+    },
+    [finish, runActivation, resetCancellation],
+  );
   const cancel = useCallback(async () => {
-    resetActivation();
-    return finish(await runCancellation());
+    if (busy.current) return false;
+    busy.current = true;
+    try {
+      resetActivation();
+      return finish(await runCancellation());
+    } finally {
+      busy.current = false;
+    }
   }, [finish, runCancellation, resetActivation]);
 
   const error =
@@ -212,8 +234,10 @@ export function usePlanActions(id: string) {
   return {
     activate,
     cancel,
+    dismiss: resetActivation,
     pending: activation.pending || cancellation.pending,
     error,
     errorCode: problemOf(error)?.code ?? null,
+    deviation: decodeDeviation(problemOf(error)),
   };
 }

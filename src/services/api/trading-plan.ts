@@ -23,6 +23,9 @@ export function createPendingTradingPlanService(): TradingPlanService {
 
 const withSignal = (signal?: AbortSignal) => (signal ? { signal } : {});
 const planPath = (id: string) => 'plans/' + encodeURIComponent(id);
+/** Save and Activate confirms MSG51 in the body; read only with `activate`. */
+const confirmation = (activate: boolean, confirmDeviation: boolean) =>
+  activate && confirmDeviation ? { confirmDeviation: true } : {};
 
 /**
  * `/plans/**` with the bearer token (Trader only). The list filter spells
@@ -53,9 +56,13 @@ export function createHttpTradingPlanService(
         decode: decodePlan,
         ...withSignal(signal),
       }),
-    activate: (id) =>
+    // TP-C: the confirmation of MSG51 is a query parameter here (no body).
+    activate: (id, confirmDeviation = false) =>
       http.request({
-        path: planPath(id) + '/activate',
+        path:
+          planPath(id) +
+          '/activate' +
+          (confirmDeviation ? '?confirmDeviation=true' : ''),
         method: 'POST',
         decode: decodePlan,
       }),
@@ -65,11 +72,16 @@ export function createHttpTradingPlanService(
         method: 'POST',
         decode: decodePlan,
       }),
-    create: (pairId, inputs, activate) =>
+    create: (pairId, inputs, activate, confirmDeviation = false) =>
       http.request({
         path: 'plans',
         method: 'POST',
-        body: { pairId, ...encodePlanInputs(inputs), activate },
+        body: {
+          pairId,
+          ...encodePlanInputs(inputs),
+          activate,
+          ...confirmation(activate, confirmDeviation),
+        },
         decode: decodePlan,
       }),
     calculate: (pairId, inputs, signal) =>
@@ -80,11 +92,15 @@ export function createHttpTradingPlanService(
         decode: decodeCalculation,
         ...withSignal(signal),
       }),
-    update: (id, inputs, activate) =>
+    update: (id, inputs, activate, confirmDeviation = false) =>
       http.request({
         path: planPath(id),
         method: 'PUT',
-        body: { ...encodePlanInputs(inputs), activate },
+        body: {
+          ...encodePlanInputs(inputs),
+          activate,
+          ...confirmation(activate, confirmDeviation),
+        },
         decode: decodePlan,
       }),
   };

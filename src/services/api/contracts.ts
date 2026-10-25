@@ -189,8 +189,12 @@ export interface AnalysisService {
 export interface TradingPlanService {
   list(query: PlanListQuery, signal?: AbortSignal): Promise<PlanPage>;
   get(id: string, signal?: AbortSignal): Promise<TradingPlan>;
-  /** DRAFT → ACTIVE after the server re-checks price, warnings and limit (UC-18). */
-  activate(id: string): Promise<TradingPlan>;
+  /**
+   * DRAFT → ACTIVE after the server re-checks price, warnings and limit
+   * (UC-18). A MARKET entry that moved 0.25 R or more is refused with MSG51
+   * until repeated with `confirmDeviation` (TP-C); beyond the limit, MSG52.
+   */
+  activate(id: string, confirmDeviation?: boolean): Promise<TradingPlan>;
   /** DRAFT or ACTIVE → CANCELLED (UC-19). */
   cancel(id: string): Promise<TradingPlan>;
   /**
@@ -202,6 +206,7 @@ export interface TradingPlanService {
     pairId: string,
     inputs: PlanInputs,
     activate: boolean,
+    confirmDeviation?: boolean,
   ): Promise<TradingPlan>;
   /** SCR-17 risk panel for the values entered; nothing is saved. */
   calculate(
@@ -217,6 +222,7 @@ export interface TradingPlanService {
     id: string,
     inputs: PlanInputs,
     activate: boolean,
+    confirmDeviation?: boolean,
   ): Promise<TradingPlan>;
 }
 /** The signed-in Trader's watchlist (`/watchlist/**`; SRS 3.4.1). */

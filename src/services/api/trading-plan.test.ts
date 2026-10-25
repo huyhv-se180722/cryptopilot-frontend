@@ -5,8 +5,10 @@ import {
   createPendingTradingPlanService,
 } from './trading-plan';
 import type { PlanInputs } from '../../types/domain';
+import { problemOf } from './errors';
 import {
   decodeCalculation,
+  decodeDeviation,
   decodePlan,
   decodePlanPage,
 } from './trading-plan-dto';
@@ -606,5 +608,134 @@ describe('plan calculation', () => {
     });
     expect(result.expectedFillPrice).toBe('100010.0');
     expect(result.warnings[0]?.type).toBe('HIGH_FEE_SHARE');
+  });
+});
+
+describe('entry deviation at MARKET activation (TP-C)', () => {
+  /** The MSG51 and MSG52 bodies of the guide. */
+  const MSG51 = {
+    type: 'about:blank',
+    title: 'Bad Request',
+    status: 400,
+    detail:
+      'the MARKET entry moved 0.50000000R from the plan and needs confirmation',
+    code: 'ENTRY_DEVIATION_CONFIRMATION_REQUIRED',
+    messageCode: 'MSG51',
+    traceId: 'trace-1',
+    messageArgs: ['0.50000000', '0.033300000000', '1.66666667'],
+    deviationR: '0.50000000',
+    maxDeviationR: '0.75000000',
+    expectedFillPrice: '101000',
+    positionQuantity: '0.033300000000',
+    riskRewardRatio: '1.66666667',
+    netRiskReward: '1.49828071',
+  };
+  const MSG52 = {
+    status: 409,
+    code: 'ENTRY_DEVIATION_REFUSED',
+    messageCode: 'MSG52',
+    messageArgs: ['1.00000000', '0.75000000'],
+    deviationR: '1.00000000',
+    maxDeviationR: '0.75000000',
+    expectedFillPrice: '102000',
+    takeProfitReached: false,
+  };
+
+  function setup(status: number, reply: unknown) {
+    const calls: { url: URL; body: unknown }[] = [];
+    const http = createHttpClient({
+      baseUrl: 'https://api.example.test/api/v1',
+      fetcher: vi.fn<typeof fetch>(async (input, init = {}) => {
+        calls.push({
+          url: new URL(String(input)),
+          body: init.body ? JSON.parse(String(init.body)) : undefined,
+        });
+        return new Response(JSON.stringify(reply), { status });
+      }),
+      session: { accessToken: () => 'token-1', refresh: async () => 'renewed' },
+    });
+    return { plans: createHttpTradingPlanService(http), calls };
+  }
+
+  it('reads the MSG51 body into the dialog values, never its developer text', async () => {
+    const { plans } = setup(400, MSG51);
+    const error = await plans.activate(PLAN.id).catch((caught) => caught);
+    const problem = problemOf(error);
+    expect(problem?.messageArgs).toEqual(MSG51.messageArgs);
+    expect(problem?.extensions).not.toHaveProperty('detail');
+    expect(problem?.extensions).not.toHaveProperty('title');
+    expect(decodeDeviation(problem)).toEqual({
+      deviationR: '0.50000000',
+      maxDeviationR: '0.75000000',
+      expectedFillPrice: '101000',
+      positionQuantity: '0.033300000000',
+      riskRewardRatio: '1.66666667',
+      netRiskReward: '1.49828071',
+      takeProfitReached: false,
+    });
+  });
+
+  it('reads the MSG52 body with takeProfitReached', async () => {
+    const { plans } = setup(409, { ...MSG52, takeProfitReached: true });
+    const error = await plans.activate(PLAN.id).catch((caught) => caught);
+    expect(decodeDeviation(problemOf(error))).toMatchObject({
+      deviationR: '1.00000000',
+      positionQuantity: null,
+      takeProfitReached: true,
+    });
+  });
+
+  it('is no deviation for another refusal or a body without its members', () => {
+    expect(
+      decodeDeviation({
+        status: 409,
+        code: 'PLAN_LIMIT_REACHED',
+        messageCode: 'MSG27',
+        messageArgs: [],
+        fieldErrors: {},
+        extensions: { deviationR: '1' },
+      }),
+    ).toBeNull();
+    expect(
+      decodeDeviation({
+        status: 400,
+        code: 'ENTRY_DEVIATION_CONFIRMATION_REQUIRED',
+        messageCode: 'MSG51',
+        messageArgs: [],
+        fieldErrors: {},
+      }),
+    ).toBeNull();
+  });
+
+  it('confirms Activate with the query parameter, and only when asked', async () => {
+    const { plans, calls } = setup(200, PLAN);
+    await plans.activate(PLAN.id);
+    await plans.activate(PLAN.id, true);
+    expect(calls[0]?.url.search).toBe('');
+    expect(calls[0]?.body).toBeUndefined();
+    expect(calls[1]?.url.pathname).toBe(
+      '/api/v1/plans/' + PLAN.id + '/activate',
+    );
+    expect(calls[1]?.url.search).toBe('?confirmDeviation=true');
+    expect(calls[1]?.body).toBeUndefined();
+  });
+
+  it('confirms Save and Activate in the body, and never for a draft save', async () => {
+    const { plans, calls } = setup(200, PLAN);
+    await plans.create(PLAN.pairId, INPUTS, true, true);
+    await plans.update(PLAN.id, INPUTS, true, true);
+    await plans.update(PLAN.id, INPUTS, true);
+    await plans.update(PLAN.id, INPUTS, false, true);
+    expect(calls[0]?.body).toMatchObject({
+      activate: true,
+      confirmDeviation: true,
+    });
+    expect(calls[1]?.body).toMatchObject({
+      activate: true,
+      confirmDeviation: true,
+    });
+    expect(calls[2]?.body).not.toHaveProperty('confirmDeviation');
+    expect(calls[3]?.body).not.toHaveProperty('confirmDeviation');
+    expect(calls.every((call) => call.url.search === '')).toBe(true);
   });
 });

@@ -9,28 +9,41 @@ import { useCopy } from '../../../hooks/use-copy';
 import { useToast } from '../../../hooks/use-toast';
 import { errorText, messageText } from '../../../i18n/messages';
 import type { TradingPlan } from '../../../types/domain';
+import { problemOf } from '../../../services/api/errors';
+import {
+  DEVIATION_CONFIRM,
+  DEVIATION_REFUSED,
+} from '../../../services/api/trading-plan-dto';
 import { usePlanActions } from '../hooks/use-plans';
+import { DeviationConfirmDialog, DeviationRefusal } from './DeviationDialogs';
 
 /**
  * SCR-18 actions (SRS 3.5.3): Edit while DRAFT (SCR-17), Activate for a
  * DRAFT (UC-18; the server re-checks price, warnings and the plan limit;
  * MSG19 on success, MSG18 or MSG27 in a banner), Cancel for DRAFT and
  * ACTIVE after the MSG20 confirmation (UC-19). Buttons are disabled while
- * a request runs, and nothing changes before the server answers.
+ * a request runs, and nothing changes before the server answers. A MARKET
+ * entry that moved from the plan asks for confirmation (MSG51) or is
+ * refused (MSG52, TP-C).
  */
 export function PlanActions({ plan }: { plan: TradingPlan }) {
   const copy = useCopy();
   const p = copy.plan;
   const { show } = useToast();
-  const { activate, cancel, pending, error, errorCode } = usePlanActions(
-    plan.id,
-  );
+  const { activate, cancel, dismiss, pending, error, errorCode, deviation } =
+    usePlanActions(plan.id);
   const [confirming, setConfirming] = useState(false);
 
-  async function onActivate() {
-    if (await activate())
+  async function onActivate(confirmDeviation = false) {
+    if (await activate(confirmDeviation))
       show({ tone: 'success', message: messageText(copy, 'MSG19') });
   }
+  const args = problemOf(error)?.messageArgs ?? [];
+  // TP-C: MSG51 asks to confirm, MSG52 refuses.
+  const askDeviation =
+    errorCode === DEVIATION_CONFIRM && deviation !== null ? deviation : null;
+  const refusedDeviation =
+    errorCode === DEVIATION_REFUSED && deviation !== null ? deviation : null;
 
   async function onCancel() {
     setConfirming(false);
@@ -78,7 +91,10 @@ export function PlanActions({ plan }: { plan: TradingPlan }) {
           {messageText(copy, 'MSG18')}
         </p>
       )}
-      {error !== null && (
+      {refusedDeviation && (
+        <DeviationRefusal deviation={refusedDeviation} messageArgs={args} />
+      )}
+      {error !== null && !askDeviation && !refusedDeviation && (
         <Alert
           tone="danger"
           title={errorText(copy, error)}
@@ -92,6 +108,13 @@ export function PlanActions({ plan }: { plan: TradingPlan }) {
           {errorCode === 'TRADING_BLOCKING_WARNING' && p.blockedHint}
         </Alert>
       )}
+      <DeviationConfirmDialog
+        deviation={askDeviation}
+        messageArgs={args}
+        pending={pending}
+        onConfirm={() => void onActivate(true)}
+        onBack={dismiss}
+      />
       <Dialog
         open={confirming}
         onOpenChange={setConfirming}

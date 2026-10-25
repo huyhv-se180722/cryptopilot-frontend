@@ -15,6 +15,39 @@ export interface ApiProblem {
   fieldErrors: Readonly<Record<string, string>>;
   /** Reference shown in MSG43. */
   traceId?: string;
+  /**
+   * RFC 9457 extension members carrying values, e.g. `deviationR` of MSG51
+   * (TP-C): decimal texts and booleans only; text members never pass.
+   */
+  extensions?: Readonly<Record<string, string | boolean>>;
+}
+
+/** Members of the problem itself, never extensions (title and detail are developer text). */
+const STANDARD = new Set([
+  'type',
+  'title',
+  'status',
+  'detail',
+  'instance',
+  'code',
+  'messageCode',
+  'traceId',
+  'messageArgs',
+  'errors',
+]);
+const DECIMAL_TEXT = /^-?\d{1,30}(\.\d{1,20})?$/;
+
+function extensionsOf(
+  body: Record<string, unknown>,
+): Record<string, string | boolean> {
+  const values: Record<string, string | boolean> = {};
+  for (const [key, value] of Object.entries(body)) {
+    if (STANDARD.has(key) || !/^[a-z][A-Za-z0-9]{0,63}$/.test(key)) continue;
+    if (typeof value === 'boolean') values[key] = value;
+    else if (typeof value === 'string' && DECIMAL_TEXT.test(value))
+      values[key] = value;
+  }
+  return values;
 }
 
 const MESSAGE_ID = /^MSG\d{2}$/;
@@ -45,6 +78,7 @@ export function decodeProblem(
       fieldErrors[field] = MESSAGE_ID.test(value) ? value : 'MSG01';
     }
   }
+  const extensions = extensionsOf(body);
   return {
     status,
     code,
@@ -54,5 +88,6 @@ export function decodeProblem(
     ...(typeof traceId === 'string' && /^[\w.:-]{1,64}$/.test(traceId)
       ? { traceId }
       : {}),
+    ...(Object.keys(extensions).length > 0 ? { extensions } : {}),
   };
 }

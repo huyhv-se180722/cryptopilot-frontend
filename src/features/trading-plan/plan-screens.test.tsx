@@ -471,7 +471,7 @@ describe('SCR-18 plan detail (T-041)', () => {
       await screen.findByRole('button', { name: 'Activate' }),
     );
     expect(await screen.findByText('Trading plan activated.')).toBeTruthy();
-    expect(service.activate).toHaveBeenCalledWith(PLAN.id);
+    expect(service.activate).toHaveBeenCalledWith(PLAN.id, false);
     await waitFor(() =>
       expect(screen.queryByRole('button', { name: 'Activate' })).toBeNull(),
     );
@@ -646,6 +646,7 @@ describe('SCR-17 new plan (T-040, UC-16)', () => {
           takeProfit: '2800',
         }),
         false,
+        false,
       ),
     );
     expect(await screen.findByText('Saved successfully.')).toBeTruthy();
@@ -677,6 +678,7 @@ describe('SCR-17 new plan (T-040, UC-16)', () => {
         ROW.pairId,
         expect.anything(),
         true,
+        false,
       ),
     );
     expect(
@@ -786,6 +788,7 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
     expect(service.update).toHaveBeenCalledWith(
       SPOT_DRAFT.id,
       expect.objectContaining({ stopLoss: '60000', entryPrice: '62000' }),
+      false,
       false,
     );
     expect(
@@ -1626,5 +1629,234 @@ describe('SCR-16 and SCR-18 validity and position (T-041)', () => {
     expect(
       panel.getByText(/filled before positions were recorded/),
     ).toBeTruthy();
+  });
+});
+
+describe('entry deviation at MARKET activation (T-113)', () => {
+  const MARKET_DRAFT: TradingPlan = {
+    ...PLAN,
+    direction: 'LONG',
+    entryType: 'MARKET',
+    entryPrice: '100000.000000000000',
+    stopLoss: '98000.000000000000',
+    takeProfit: '106000.000000000000',
+  };
+  const ACTIVATED: TradingPlan = {
+    ...MARKET_DRAFT,
+    status: 'ACTIVE',
+    editable: false,
+    statusHistory: [
+      ...MARKET_DRAFT.statusHistory,
+      { status: 'ACTIVE', at: '2026-10-09T02:20:00Z' },
+    ],
+  };
+  const confirmRequired = () =>
+    new ServiceError('refused', 'HTTP_ERROR', 400, {
+      status: 400,
+      code: 'ENTRY_DEVIATION_CONFIRMATION_REQUIRED',
+      messageCode: 'MSG51',
+      messageArgs: ['0.50000000', '0.033300000000', '1.66666667'],
+      fieldErrors: {},
+      extensions: {
+        deviationR: '0.50000000',
+        maxDeviationR: '0.75000000',
+        expectedFillPrice: '101000',
+        positionQuantity: '0.033300000000',
+        riskRewardRatio: '1.66666667',
+        netRiskReward: '1.49828071',
+      },
+    });
+  const refused = (takeProfitReached: boolean) =>
+    new ServiceError('refused', 'HTTP_ERROR', 409, {
+      status: 409,
+      code: 'ENTRY_DEVIATION_REFUSED',
+      messageCode: 'MSG52',
+      messageArgs: ['1.00000000', '0.75000000'],
+      fieldErrors: {},
+      extensions: {
+        deviationR: '1.00000000',
+        maxDeviationR: '0.75000000',
+        expectedFillPrice: '102000',
+        takeProfitReached,
+      },
+    });
+  const MSG51_TEXT =
+    'The price has moved 0.50R from your plan. New quantity 0.0333, risk/reward 1.67. Activate anyway?';
+
+  it('asks MSG51 with the refusal’s values and activates with the confirmation', async () => {
+    const activate = vi.fn(async (_id: string, confirm?: boolean) => {
+      if (!confirm) throw confirmRequired();
+      return ACTIVATED;
+    });
+    await open(
+      '/plans/' + PLAN.id,
+      fakePlans({ get: vi.fn(async () => MARKET_DRAFT), activate }),
+    );
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Activate' }));
+    const dialog = within(
+      await screen.findByRole('dialog', { name: 'The market price has moved' }),
+    );
+    expect(dialog.getByText(MSG51_TEXT)).toBeTruthy();
+    const value = (label: string) =>
+      dialog.getByText(label).nextSibling?.textContent;
+    expect(value('Moved from the plan')).toBe('0.50 R');
+    expect(value('Allowed')).toBe('0.75 R');
+    expect(value('Expected fill')).toBe('101,000.00');
+    expect(value('New quantity')).toBe('0.0333');
+    expect(value('Reward / risk')).toBe('1.67');
+    expect(value('R:R after fees')).toBe('1.50');
+    await user.click(dialog.getByRole('button', { name: 'Activate anyway' }));
+    await waitFor(() =>
+      expect(activate).toHaveBeenLastCalledWith(PLAN.id, true),
+    );
+    expect(await screen.findByText('Trading plan activated.')).toBeTruthy();
+    expect(activate).toHaveBeenCalledTimes(2);
+  });
+
+  it('leaves the plan unchanged on Back', async () => {
+    const activate = vi.fn(async () => {
+      throw confirmRequired();
+    });
+    await open(
+      '/plans/' + PLAN.id,
+      fakePlans({ get: vi.fn(async () => MARKET_DRAFT), activate }),
+    );
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Activate' }));
+    const dialog = await screen.findByRole('dialog', {
+      name: 'The market price has moved',
+    });
+    await user.click(within(dialog).getByRole('button', { name: 'Back' }));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: 'The market price has moved' }),
+      ).toBeNull(),
+    );
+    expect(activate).toHaveBeenCalledTimes(1);
+    expect(activate).toHaveBeenCalledWith(PLAN.id, false);
+    expect(screen.getByRole('button', { name: 'Activate' })).toBeTruthy();
+    expect(screen.queryByText('Trading plan activated.')).toBeNull();
+  });
+
+  it.each([
+    [false, 'The move is beyond the allowed deviation.'],
+    [true, 'The expected fill is at or past the take profit.'],
+  ])(
+    'refuses MSG52 without a confirm dialog (take profit reached: %s)',
+    async (reached, detail) => {
+      const activate = vi.fn(async () => {
+        throw refused(reached);
+      });
+      await open(
+        '/plans/' + PLAN.id,
+        fakePlans({ get: vi.fn(async () => MARKET_DRAFT), activate }),
+      );
+      const user = userEvent.setup();
+      await user.click(await screen.findByRole('button', { name: 'Activate' }));
+      expect(
+        await screen.findByText(
+          'The price has moved 1.00R from your plan, beyond the allowed 0.75R or past the take profit. The plan was not activated.',
+        ),
+      ).toBeTruthy();
+      expect(screen.getByText(new RegExp(detail))).toBeTruthy();
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect(
+        screen.queryByRole('button', { name: 'Activate anyway' }),
+      ).toBeNull();
+    },
+  );
+
+  it('sends the confirmation once however often it is clicked', async () => {
+    let release: (plan: TradingPlan) => void = () => undefined;
+    const activate = vi.fn((_id: string, confirm?: boolean) =>
+      confirm
+        ? new Promise<TradingPlan>((resolve) => {
+            release = resolve;
+          })
+        : Promise.reject(confirmRequired()),
+    );
+    await open(
+      '/plans/' + PLAN.id,
+      fakePlans({ get: vi.fn(async () => MARKET_DRAFT), activate }),
+    );
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Activate' }));
+    const dialog = within(
+      await screen.findByRole('dialog', { name: 'The market price has moved' }),
+    );
+    const confirm = dialog.getByRole('button', { name: 'Activate anyway' });
+    await user.dblClick(confirm);
+    await user.click(confirm);
+    expect(activate.mock.calls.filter(([, flag]) => flag)).toHaveLength(1);
+    expect((confirm as HTMLButtonElement).disabled).toBe(true);
+    release(ACTIVATED);
+    expect(await screen.findByText('Trading plan activated.')).toBeTruthy();
+  });
+
+  it('confirms Save and Activate in the same request body', async () => {
+    const create = vi.fn(
+      async (
+        _pair: string,
+        _inputs: unknown,
+        _activate: boolean,
+        confirm?: boolean,
+      ) => {
+        if (!confirm) throw confirmRequired();
+        return { ...ACTIVATED, id: 'new-plan' };
+      },
+    );
+    const service = fakePlans({
+      create,
+      get: vi.fn(async () => ({ ...ACTIVATED, id: 'new-plan' })),
+    });
+    await open('/plans/new', service);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('radio', { name: 'Market' }));
+    await user.type(screen.getByLabelText('Stop loss'), '98000');
+    await user.type(screen.getByLabelText('Take profit'), '106000');
+    await user.click(screen.getByRole('button', { name: 'Save and activate' }));
+    const dialog = within(
+      await screen.findByRole('dialog', { name: 'The market price has moved' }),
+    );
+    expect(dialog.getByText(MSG51_TEXT)).toBeTruthy();
+    await user.click(dialog.getByRole('button', { name: 'Activate anyway' }));
+    await waitFor(() =>
+      expect(create).toHaveBeenLastCalledWith(
+        ROW.pairId,
+        expect.objectContaining({ entryType: 'MARKET' }),
+        true,
+        true,
+      ),
+    );
+    expect(create.mock.calls[0]?.[3]).toBe(false);
+    expect(await screen.findByText('Trading plan activated.')).toBeTruthy();
+  });
+
+  it('shows MSG52 on Save and Activate and keeps Save as draft', async () => {
+    const service = fakePlans({
+      create: vi.fn(async () => {
+        throw refused(false);
+      }),
+    });
+    await open('/plans/new', service);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('radio', { name: 'Market' }));
+    await user.type(screen.getByLabelText('Stop loss'), '98000');
+    await user.type(screen.getByLabelText('Take profit'), '106000');
+    await user.click(screen.getByRole('button', { name: 'Save and activate' }));
+    expect(
+      await screen.findByText(
+        /beyond the allowed 0.75R or past the take profit/,
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Save as draft',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(false);
   });
 });

@@ -29,6 +29,7 @@ function refuse(
   messageCode: string,
   messageArgs: readonly string[] = [],
   fieldErrors: Readonly<Record<string, string>> = {},
+  extensions?: Readonly<Record<string, string | boolean>>,
 ): never {
   throw new ServiceError('Development plan refusal.', 'HTTP_ERROR', status, {
     status,
@@ -36,7 +37,32 @@ function refuse(
     messageCode,
     messageArgs,
     fieldErrors,
+    ...(extensions ? { extensions } : {}),
   });
+}
+
+/**
+ * TP-C, scripted: a MARKET activation without the confirmation answers
+ * MSG51 as if the price had moved 0.5 R from the plan; with it, the plan
+ * activates. The numbers are the guide's BTC example.
+ */
+function askDeviation(entryType: PlanInputs['entryType'], confirmed: boolean) {
+  if (entryType !== 'MARKET' || confirmed) return;
+  refuse(
+    400,
+    'ENTRY_DEVIATION_CONFIRMATION_REQUIRED',
+    'MSG51',
+    ['0.50000000', '0.033300000000', '1.66666667'],
+    {},
+    {
+      deviationR: '0.50000000',
+      maxDeviationR: '0.75000000',
+      expectedFillPrice: '101000',
+      positionQuantity: '0.033300000000',
+      riskRewardRatio: '1.66666667',
+      netRiskReward: '1.49828071',
+    },
+  );
 }
 
 /**
@@ -246,7 +272,7 @@ export function createDevelopmentTradingPlan(
       enabled(pairId, inputs);
       return calculation(pairId, inputs);
     },
-    async create(pairId, inputs, activate) {
+    async create(pairId, inputs, activate, confirmDeviation = false) {
       await pause();
       checkInputs(inputs);
       enabled(pairId, inputs);
@@ -255,6 +281,7 @@ export function createDevelopmentTradingPlan(
       if (activate && result.blocksActivation)
         refuse(409, 'TRADING_BLOCKING_WARNING', 'MSG18');
       if (activate) await activeLimit();
+      if (activate) askDeviation(inputs.entryType, confirmDeviation);
       const at = new Date(now()).toISOString();
       const plan: TradingPlan = {
         id: `0199a2c4-0000-7000-8000-${String(900 + created++).padStart(12, '0')}`,
@@ -272,7 +299,7 @@ export function createDevelopmentTradingPlan(
       plans.set(plan.id, plan);
       return activate ? move(plan, 'ACTIVE') : plan;
     },
-    async update(id, inputs, activate) {
+    async update(id, inputs, activate, confirmDeviation = false) {
       await pause();
       const plan = find(id);
       if (plan.status !== 'DRAFT')
@@ -283,6 +310,7 @@ export function createDevelopmentTradingPlan(
       if (activate && result.blocksActivation)
         refuse(409, 'TRADING_BLOCKING_WARNING', 'MSG18');
       if (activate) await activeLimit();
+      if (activate) askDeviation(inputs.entryType, confirmDeviation);
       const next: TradingPlan = { ...plan, ...saved(inputs, result) };
       plans.set(id, next);
       return activate ? move(next, 'ACTIVE') : next;
@@ -307,7 +335,7 @@ export function createDevelopmentTradingPlan(
       await pause(signal);
       return find(id);
     },
-    async activate(id) {
+    async activate(id, confirmDeviation = false) {
       await pause();
       const plan = find(id);
       if (plan.status !== 'DRAFT')
@@ -315,6 +343,7 @@ export function createDevelopmentTradingPlan(
       if (plan.blocksActivation)
         refuse(409, 'TRADING_BLOCKING_WARNING', 'MSG18');
       await activeLimit();
+      askDeviation(plan.entryType, confirmDeviation);
       return move(plan, 'ACTIVE');
     },
     async cancel(id) {

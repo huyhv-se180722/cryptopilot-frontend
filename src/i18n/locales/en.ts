@@ -43,6 +43,9 @@ export const en = {
     MSG18: 'This plan has blocking warnings and cannot be activated.',
     MSG19: 'Trading plan activated.',
     MSG20: 'Cancel this trading plan? This action cannot be undone.',
+    MSG21: 'Close this position at about {price}? Estimated P/L: {pnl}.',
+    MSG23: '{pair} position closed by {reason} at {price}. P/L: {pnl}.',
+    MSG24: '{pair} position was liquidated at {price}. Loss: {pnl}.',
     MSG25: '{pair} added to watchlist.',
     MSG26: 'Removing {pair} will also delete {n} alerts. Continue?',
     MSG27:
@@ -61,6 +64,13 @@ export const en = {
     MSG46: 'Please wait {time} before requesting another verification email.',
     MSG48:
       'The Aggressive profile allows higher risk per trade and higher leverage and can lead to large losses. Continue?',
+    MSG51:
+      'The price has moved {deviation}R from your plan. New quantity {quantity}, risk/reward {rr}. Activate anyway?',
+    MSG52:
+      'The price has moved {deviation}R from your plan, beyond the allowed {max}R or past the take profit. The plan was not activated.',
+    // Not worded in the FE guide yet (TECHNICAL_DESIGN, T-046): client text.
+    MSG53: 'Your {pair} plan expired before its entry filled.',
+    MSG54: 'Your {pair} plan was invalidated: {reason}.',
     MSG56:
       'This post is under moderation review, so its images and videos cannot be removed. You can still edit the text or add media.',
   },
@@ -594,6 +604,16 @@ export const en = {
       'the take profit must be below the current price',
     rule_reachedStopLONG: 'the stop price must be above the current price',
     rule_reachedStopSHORT: 'the stop price must be below the current price',
+    deviationTitle: 'The market price has moved',
+    deviationMoved: 'Moved from the plan',
+    deviationLimit: 'Allowed',
+    deviationQuantity: 'New quantity',
+    deviationBack: 'Back',
+    deviationConfirm: 'Activate anyway',
+    deviationPastTakeProfit:
+      'The expected fill is at or past the take profit. Edit the plan to take the new price, or cancel it.',
+    deviationBeyondLimit:
+      'The move is beyond the allowed deviation. Edit the plan to take the new price, or cancel it.',
     errLeverageBracket:
       'Leverage is above the maximum of this pair’s leverage brackets.',
     stopPrice: 'Stop price',

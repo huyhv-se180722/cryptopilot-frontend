@@ -1,6 +1,7 @@
 import type {
   CandleTimeframe,
   CloseReason,
+  EntryDeviation,
   InvalidationReason,
   PlanCalculation,
   PlanDirection,
@@ -31,6 +32,7 @@ import {
   text,
 } from './decode';
 import { marketOf } from './market-dto';
+import type { ApiProblem } from './problem';
 
 /**
  * Decoders for `/plans/**` (SRS 3.5.1–3.5.3), checked against the FE guide
@@ -310,5 +312,47 @@ export function encodePlanInputs(inputs: PlanInputs) {
       inputs.entryType === 'MARKET' ? null : inputs.invalidationPrice,
     maxEntryDeviationR: inputs.maxEntryDeviationR,
     analysisTimeframe: inputs.analysisTimeframe,
+  };
+}
+
+/** The two refusals of a moved MARKET entry at activation (TP-C). */
+export const DEVIATION_CONFIRM = 'ENTRY_DEVIATION_CONFIRMATION_REQUIRED';
+export const DEVIATION_REFUSED = 'ENTRY_DEVIATION_REFUSED';
+
+/**
+ * The extension members of MSG51 (400) or MSG52 (409), or null when the
+ * problem is neither or lacks them. MSG51 carries the recalculated
+ * quantity and R:R; MSG52 whether the take profit was reached.
+ */
+export function decodeDeviation(
+  problem: ApiProblem | undefined,
+): EntryDeviation | null {
+  if (
+    !problem ||
+    (problem.code !== DEVIATION_CONFIRM && problem.code !== DEVIATION_REFUSED)
+  )
+    return null;
+  const x = problem.extensions ?? {};
+  const text = (key: string) => {
+    const value = x[key];
+    return typeof value === 'string' ? value : null;
+  };
+  const deviationR = text('deviationR');
+  const maxDeviationR = text('maxDeviationR');
+  const expectedFillPrice = text('expectedFillPrice');
+  if (
+    deviationR === null ||
+    maxDeviationR === null ||
+    expectedFillPrice === null
+  )
+    return null;
+  return {
+    deviationR,
+    maxDeviationR,
+    expectedFillPrice,
+    positionQuantity: text('positionQuantity'),
+    riskRewardRatio: text('riskRewardRatio'),
+    netRiskReward: text('netRiskReward'),
+    takeProfitReached: x.takeProfitReached === true,
   };
 }

@@ -1,4 +1,10 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import {
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Info, Loader2, Play, Save } from 'lucide-react';
 import { Alert as Banner } from '../../../components/feedback/States';
@@ -21,6 +27,11 @@ import { formatCopy } from '../../../i18n/copy';
 import type { Copy } from '../../../i18n/locales/en';
 import { errorText, fieldErrorText, messageText } from '../../../i18n/messages';
 import { problemOf } from '../../../services/api/errors';
+import {
+  DEVIATION_CONFIRM,
+  DEVIATION_REFUSED,
+  decodeDeviation,
+} from '../../../services/api/trading-plan-dto';
 import type {
   MarketPair,
   MarketType,
@@ -35,6 +46,7 @@ import {
   useSavePlan,
   useTraderProfile,
 } from '../hooks/use-plan-editor';
+import { DeviationConfirmDialog, DeviationRefusal } from './DeviationDialogs';
 import { Panel, PlanSnapshotRows, PlanWarningsPanel } from './PlanDetailPanels';
 import { planAmount, planPrice } from './plan-format';
 import { priceLines } from './plan-lines';
@@ -201,6 +213,8 @@ export function PlanEditor({
   );
   const save = useSavePlan(plan?.id ?? null, pairId);
   const [activating, setActivating] = useState(false);
+  // No double submit: `save.pending` only shows on the next render.
+  const busy = useRef(false);
 
   const change = (patch: Partial<PlanDraft>, field?: PlanField) => {
     setDraft((current) => ({ ...current, ...patch }));
@@ -245,13 +259,20 @@ export function PlanEditor({
       : undefined;
   };
 
-  async function submit(activate: boolean) {
+  async function submit(activate: boolean, confirmDeviation = false) {
     if (!checked.ok || !pairId) {
       setTouched(new Set(FIELDS));
       return;
     }
+    if (busy.current) return;
+    busy.current = true;
     setActivating(activate);
-    const result = await save.run(checked.inputs, activate);
+    // MSG51 confirmed: the same body again, with the confirmation (TP-C).
+    const result = await save
+      .run(checked.inputs, activate, confirmDeviation)
+      .finally(() => {
+        busy.current = false;
+      });
     if (result.status !== 'success') return;
     show({
       tone: 'success',
@@ -299,6 +320,12 @@ export function PlanEditor({
       : null;
   const calcFailed =
     calculation.isError && Object.keys(calculation.fieldErrors).length === 0;
+  const saveArgs = saveProblem?.messageArgs ?? [];
+  const saveDeviation = decodeDeviation(saveProblem);
+  const askDeviation =
+    saveProblem?.code === DEVIATION_CONFIRM ? saveDeviation : null;
+  const refusedDeviation =
+    saveProblem?.code === DEVIATION_REFUSED ? saveDeviation : null;
   const noteId = 'plan-note';
   const noteError = errorOf('note', p.note);
   // TP-D: the profile's capital, or the one the last calculation used.
@@ -668,22 +695,38 @@ export function PlanEditor({
           blocked={blocked}
           feeShareOfRisk={(result ?? plan)?.snapshot.feeShareOfRisk ?? null}
         />
-        {saveProblem && Object.keys(saveProblem.fieldErrors).length === 0 && (
-          <Banner
-            tone="danger"
-            title={errorText(
-              copy,
-              save.state.status === 'error' ? save.state.error : null,
-            )}
-          >
-            {saveProblem.code === 'PLAN_LIMIT_REACHED' && (
-              <Link to="/subscription" className="font-medium">
-                {p.upgrade}
-              </Link>
-            )}
-            {saveProblem.code === 'TRADING_BLOCKING_WARNING' && p.blockedHint}
-          </Banner>
+        {refusedDeviation && (
+          <DeviationRefusal
+            deviation={refusedDeviation}
+            messageArgs={saveArgs}
+          />
         )}
+        {saveProblem &&
+          !askDeviation &&
+          !refusedDeviation &&
+          Object.keys(saveProblem.fieldErrors).length === 0 && (
+            <Banner
+              tone="danger"
+              title={errorText(
+                copy,
+                save.state.status === 'error' ? save.state.error : null,
+              )}
+            >
+              {saveProblem.code === 'PLAN_LIMIT_REACHED' && (
+                <Link to="/subscription" className="font-medium">
+                  {p.upgrade}
+                </Link>
+              )}
+              {saveProblem.code === 'TRADING_BLOCKING_WARNING' && p.blockedHint}
+            </Banner>
+          )}
+        <DeviationConfirmDialog
+          deviation={askDeviation}
+          messageArgs={saveArgs}
+          pending={save.pending}
+          onConfirm={() => void submit(true, true)}
+          onBack={save.reset}
+        />
         <div className="flex flex-col gap-2">
           <Button type="submit" disabled={save.pending || !pairId}>
             <Save size={14} aria-hidden="true" />
