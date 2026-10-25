@@ -543,7 +543,8 @@ export const en = {
     marketEntryPrice: 'Current last price',
     capitalHint: 'Leave empty to use your default capital.',
     riskHint: 'From 0.1 to 10 %. Leave empty to use your default.',
-    leverageHint: 'A whole number from 1 to the pair’s maximum.',
+    leverageHint:
+      'A whole number from 1 to the maximum for the position size. Empty uses 1x.',
     expiryField: 'Expiry (optional)',
     expiryHint: 'Leave empty for 7 days on a limit or stop entry.',
     noteHint: 'Up to 1000 characters.',
@@ -589,6 +590,8 @@ export const en = {
     errNumber: '{field} must be a number.',
     errPositive: '{field} must be greater than 0.',
     errLeverage: '{field} must be a whole number of at least 1.',
+    errLeverageMax:
+      'Leverage is above the maximum for this position size, or the pair has no leverage brackets yet.',
     errFuture: 'The expiry must be in the future.',
     errTooLong: '{field} can be at most {max} characters.',
     errDeviation: '{field} must be above 0 and at most {max} R.',
