@@ -203,6 +203,7 @@ function fakePlans(overrides: Partial<TradingPlanService> = {}) {
       blocksActivation: PLAN.blocksActivation,
     })),
     update: vi.fn(async () => PLAN),
+    changeLevels: vi.fn(async () => PLAN),
     ...overrides,
   };
   return service;

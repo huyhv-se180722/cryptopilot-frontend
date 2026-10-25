@@ -382,6 +382,40 @@ describe('HTTP trading plan adapter', () => {
     ]);
   });
 
+  it('moves only the levels given of an open position (TP-E)', async () => {
+    const bodies: unknown[] = [];
+    const http = createHttpClient({
+      baseUrl: 'https://api.example.test/api/v1',
+      fetcher: vi.fn<typeof fetch>(async (input, init = {}) => {
+        bodies.push({
+          method: init.method,
+          path: new URL(String(input)).pathname,
+          body: JSON.parse(String(init.body)),
+        });
+        return new Response(JSON.stringify(PLAN), { status: 200 });
+      }),
+      session: { accessToken: () => 'token-1', refresh: async () => 'renewed' },
+    });
+    const plans = createHttpTradingPlanService(http);
+    await plans.changeLevels(PLAN.id, { stopLoss: '61000', takeProfit: null });
+    await plans.changeLevels(PLAN.id, {
+      stopLoss: '61000',
+      takeProfit: '70000',
+    });
+    expect(bodies).toEqual([
+      {
+        method: 'PATCH',
+        path: '/api/v1/plans/' + PLAN.id + '/position-levels',
+        body: { stopLoss: '61000' },
+      },
+      {
+        method: 'PATCH',
+        path: '/api/v1/plans/' + PLAN.id + '/position-levels',
+        body: { stopLoss: '61000', takeProfit: '70000' },
+      },
+    ]);
+  });
+
   it('calculates with the pair and saves a DRAFT with or without activation', async () => {
     const inputs: PlanInputs = {
       market: 'spot',

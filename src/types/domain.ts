@@ -385,6 +385,12 @@ export interface PlanPosition {
   levelsEffectiveFrom: ISODateTime | null;
 }
 
+/** New levels of an OPEN position (D-124); null keeps the current one. */
+export interface PositionLevels {
+  stopLoss: Decimal | null;
+  takeProfit: Decimal | null;
+}
+
 /** SCR-18: inputs, snapshot, warnings and status history of one plan. */
 export interface TradingPlan {
   id: string;

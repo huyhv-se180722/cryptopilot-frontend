@@ -69,6 +69,7 @@ import type {
   PaperOrderList,
   PlanCalculation,
   PlanInputs,
+  PositionLevels,
   PlanListQuery,
   PlanPage,
   NewsArticleDetail,
@@ -241,6 +242,13 @@ export interface TradingPlanService {
     inputs: PlanInputs,
     activate: boolean,
   ): Promise<TradingPlan>;
+  /**
+   * TP-E: moves the stop loss and/or take profit of the plan's OPEN
+   * position (D-124), checked against the current last price (MSG16 on the
+   * field); the answer's position carries the new levels, their history
+   * and `levelWarnings`. 409 MSG43 once the position is no longer open.
+   */
+  changeLevels(id: string, levels: PositionLevels): Promise<TradingPlan>;
 }
 /** The signed-in Trader's watchlist (`/watchlist/**`; SRS 3.4.1). */
 export interface WatchlistService {

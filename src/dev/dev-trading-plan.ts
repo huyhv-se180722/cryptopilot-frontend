@@ -9,6 +9,7 @@ import type {
   TradingPlan,
   TradingPlanSummary,
 } from '../types/domain';
+import { compareDecimal } from '../utils/decimal-format';
 import { devPairs } from './fixtures/market';
 import { devPlanSeeds } from './fixtures/trading-plan';
 
@@ -354,6 +355,54 @@ export function createDevelopmentTradingPlan(
       if (plan.status !== 'DRAFT' && plan.status !== 'ACTIVE')
         refuse(409, 'TRADING_PLAN_STATUS_TRANSITION_INVALID', 'MSG43');
       return move(plan, 'CANCELLED');
+    },
+    // TP-E with its refusals: neither level, a level on the wrong side of
+    // the current price (MSG16), no open position (409 MSG43). Risk-profile
+    // warnings and the breakeven stop are not recalculated here.
+    async changeLevels(id, levels) {
+      await pause();
+      const plan = find(id);
+      const position = plan.position;
+      if (!position || position.status !== 'OPEN')
+        refuse(409, 'POSITION_NOT_OPEN', 'MSG43');
+      if (levels.stopLoss === null && levels.takeProfit === null)
+        refuse(400, 'VALIDATION_FAILED', 'MSG01', [], { stopLoss: 'MSG01' });
+      const last = position.currentPrice ?? position.fillPrice;
+      const long = plan.direction === 'LONG';
+      const errors: Record<string, string> = {};
+      const below = (value: string) => compareDecimal(value, last) < 0;
+      if (levels.stopLoss !== null && below(levels.stopLoss) !== long)
+        errors.stopLoss = 'MSG16';
+      if (levels.takeProfit !== null && below(levels.takeProfit) === long)
+        errors.takeProfit = 'MSG16';
+      if (Object.keys(errors).length)
+        refuse(400, 'VALIDATION_FAILED', 'MSG01', [], errors);
+      const at = now();
+      const next: TradingPlan = {
+        ...plan,
+        position: {
+          ...position,
+          stopLoss: levels.stopLoss ?? position.stopLoss,
+          takeProfit: levels.takeProfit ?? position.takeProfit,
+          levelChangeCount: position.levelChangeCount + 1,
+          levelChanges: [
+            ...position.levelChanges,
+            {
+              changedAt: new Date(at).toISOString(),
+              oldStopLoss: position.stopLoss,
+              oldTakeProfit: position.takeProfit,
+              newStopLoss: levels.stopLoss ?? position.stopLoss,
+              newTakeProfit: levels.takeProfit ?? position.takeProfit,
+            },
+          ],
+          levelsEffectiveFrom: new Date(
+            Math.floor(at / 60_000) * 60_000 + 60_000,
+          ).toISOString(),
+          levelWarnings: [],
+        },
+      };
+      plans.set(id, next);
+      return next;
     },
   };
 }
