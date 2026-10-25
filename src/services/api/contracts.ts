@@ -10,7 +10,12 @@ import type {
   CommentPage,
   Engagement,
   FeedQuery,
+  Influencer,
+  InfluencerRank,
   MemberProfile,
+  PostAuthor,
+  PostSentiment,
+  PostVotes,
   PostComment,
   PostDetail,
   PostDraft,
@@ -352,6 +357,28 @@ export interface CommunityService {
   removeComment(id: string): Promise<void>;
   report(postId: string, report: PostReport): Promise<void>;
   member(id: string, signal?: AbortSignal): Promise<MemberProfile>;
+  /** Votes a post Bullish or Bearish, or takes the vote back with null (D-99). */
+  vote(postId: string, sentiment: PostSentiment | null): Promise<PostVotes>;
+  /** Follows a member or stops; the count is their followers (D-99). */
+  follow(memberId: string, active: boolean): Promise<Engagement>;
+  /** Blocks a member or stops; the count is the caller's blocks (D-99). */
+  block(memberId: string, active: boolean): Promise<Engagement>;
+  /** Top Influencers, by influence or analytical depth (D-99). */
+  influencers(
+    rank: InfluencerRank,
+    limit: number,
+    signal?: AbortSignal,
+  ): Promise<readonly Influencer[]>;
+  /** The coins the week's posts talk about most (D-99). */
+  trendingCoins(
+    limit: number,
+    signal?: AbortSignal,
+  ): Promise<readonly CoinDiscussion[]>;
+  /** Traders whose name starts with the text (D-99); a Trader's search. */
+  searchMembers(
+    text: string,
+    signal?: AbortSignal,
+  ): Promise<readonly PostAuthor[]>;
   /**
    * Signs a form, checks the file against its limits (MSG32) and uploads
    * it; the key goes into the post. `onProgress` gets 0–1.

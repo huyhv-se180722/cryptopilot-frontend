@@ -17,11 +17,15 @@ test.describe('Community: read, publish, discuss, report', () => {
     { tag: ['@workflow', '@mobile'] },
     async ({ page }) => {
       const noErrors = failOnPageErrors(page);
-      await page.goto('/community');
-      await test.step('the feed lists the pinned announcements first (BR-61)', async () => {
+      await page.goto('/community?tab=LATEST');
+      await test.step('Latest lists the pinned announcements first (BR-61)', async () => {
         const first = page.getByRole('article').first();
         await expect(first.getByText('Pinned')).toBeVisible();
-        await expect(page.getByRole('tab', { name: 'Saved' })).toHaveCount(0);
+        await page.getByRole('button', { name: 'Choose the feed' }).click();
+        await expect(page.getByRole('menuitem', { name: 'Saved' })).toHaveCount(
+          0,
+        );
+        await page.keyboard.press('Escape');
         expect(await overflowsHorizontally(page)).toBe(false);
       });
       await test.step('a like asks the Guest to sign in', async () => {
@@ -78,7 +82,7 @@ test.describe('Community: read, publish, discuss, report', () => {
             name: 'Watching ETH into the weekend',
           }),
         ).toBeVisible();
-        await expect(page.getByRole('link', { name: '$ETH' })).toBeVisible();
+        await expect(page.getByRole('link', { name: /^ETH\b/ })).toBeVisible();
       });
       await test.step('comment, then reply to the comment', async () => {
         await page.getByLabel('Comment text').fill('First thought.');
@@ -106,6 +110,61 @@ test.describe('Community: read, publish, discuss, report', () => {
         await expect(
           page.getByRole('link', { name: 'Watching ETH into the weekend' }),
         ).toHaveCount(0);
+      });
+      noErrors();
+    },
+  );
+
+  test(
+    'D-99 · a Trader reads the feed, follows an author, votes and posts from the dialog',
+    { tag: ['@workflow'] },
+    async ({ page }) => {
+      const noErrors = failOnPageErrors(page);
+      await signIn(page, ACCOUNTS.pro);
+      await open(page, '/community');
+      await test.step('Latest opens with the coin list and Top Influencers', async () => {
+        await expect(
+          page.getByRole('heading', { name: 'Latest Posts' }),
+        ).toBeVisible();
+        await expect(
+          page.getByRole('heading', { name: 'Top Influencers' }),
+        ).toBeVisible();
+        await expect(page.getByText('Showing Posts of:')).toBeVisible();
+      });
+      const card = page.getByRole('article', {
+        name: 'BNB holds the weekly level again',
+      });
+      await test.step('follow the author and vote Bearish', async () => {
+        await card.getByRole('button', { name: /^Follow / }).click();
+        await expect(
+          card.getByRole('button', { name: /^Unfollow / }),
+        ).toBeVisible();
+        await card.getByRole('button', { name: 'Vote bearish' }).click();
+        await expect(
+          card.getByRole('button', { name: 'Take back your vote' }),
+        ).toBeVisible();
+      });
+      await test.step('the followed author fills the Following feed', async () => {
+        await page.getByRole('button', { name: 'Choose the feed' }).click();
+        await page.getByRole('menuitem', { name: 'Following' }).click();
+        await expect(
+          page.getByRole('link', { name: 'BNB holds the weekly level again' }),
+        ).toBeVisible();
+      });
+      await test.step('the Post dialog publishes with the title and cashtags', async () => {
+        await page.getByRole('button', { name: 'New post' }).click();
+        const dialog = page.getByRole('dialog', { name: 'Post' });
+        await dialog.getByLabel('Title').fill('SOL into the weekend');
+        await dialog.getByLabel('Content').fill('Watching $SOL closely.');
+        await dialog.getByRole('button', { name: 'Bullish' }).click();
+        await expect(dialog.getByText('Coins: $SOL')).toBeVisible();
+        await dialog.getByRole('button', { name: 'Post', exact: true }).click();
+        await expect(page.getByText('Post published.')).toBeVisible();
+        await page.getByRole('button', { name: 'Choose the feed' }).click();
+        await page.getByRole('menuitem', { name: 'Latest' }).click();
+        await expect(
+          page.getByRole('link', { name: 'SOL into the weekend' }),
+        ).toBeVisible();
       });
       noErrors();
     },

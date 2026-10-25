@@ -84,6 +84,14 @@ export const screenPages: Readonly<Record<string, PageModule>> = {
   '/community': async () => ({
     Component: (await import('../../pages/trader/CommunityPage')).CommunityPage,
   }),
+  '/community/topics': async () => ({
+    Component: (await import('../../pages/trader/CommunityTopicsPage'))
+      .CommunityTopicsPage,
+  }),
+  '/community/articles': async () => ({
+    Component: (await import('../../pages/trader/CommunityArticlesPage'))
+      .CommunityArticlesPage,
+  }),
   '/community/new': async () => ({
     Component: (await import('../../pages/trader/PostEditorPage'))
       .PostEditorPage,

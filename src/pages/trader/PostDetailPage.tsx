@@ -14,9 +14,15 @@ import {
   RulesCard,
 } from '../../features/community/components/CommunitySidebar';
 import { PostGallery } from '../../features/community/components/PostMediaView';
+import { CoinPricesProvider } from '../../features/community/components/CoinPricesProvider';
+import { CommunityNav } from '../../features/community/components/CommunityNav';
+import { InfluencerList } from '../../features/community/components/CommunityAside';
 import {
   CoinTags,
+  FollowButton,
   PostByline,
+  PostText,
+  SentimentTag,
 } from '../../features/community/components/PostParts';
 import { ReactionBar } from '../../features/community/components/ReactionBar';
 import { usePostInteractions } from '../../features/community/components/use-post-interactions';
@@ -25,10 +31,11 @@ import { useCopy } from '../../hooks/use-copy';
 import { errorText } from '../../i18n/messages';
 
 /**
- * SCR-25 Post detail (SRS 3.7.1, 3.7.3): the full text and media, like
- * and save (BR-45), the author's Edit and Delete or anyone else's Report
- * (SCR-27), and the comments. A hidden post shows only to its author, with
- * a note (BR-47). Guests read it (D-99).
+ * SCR-25 Post detail (SRS 3.7.1, 3.7.3): the full text with its cashtags
+ * and media, like, save and the Bullish or Bearish vote (BR-45, D-99),
+ * Follow of the author, the author's Edit and Delete or anyone else's
+ * Report (SCR-27), and the comments. A hidden post shows only to its
+ * author, with a note (BR-47). Guests read it (D-99).
  */
 export function PostDetailPage() {
   const { postId = '' } = useParams();
@@ -85,60 +92,86 @@ export function PostDetailPage() {
   }
 
   const data = post.data;
+  const showFollow =
+    !actions.isMine(data) && !data.official && actions.role !== 'other';
   return (
-    <div className="mx-auto w-full max-w-6xl">
-      {back}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
-        <div className="min-w-0">
-          <article
-            aria-labelledby="post-title"
-            className="rounded-2xl border border-line bg-surface p-4 sm:p-6"
-          >
-            {data.status === 'HIDDEN' && (
-              <Alert tone="warning" title={c.hidden} className="mb-4">
-                {c.hiddenNote}
-              </Alert>
-            )}
-            <PostByline post={data} trailing={actions.menu(data)} />
-            <h1
-              id="post-title"
-              className="mt-4 text-lg leading-snug font-semibold text-fg"
+    <CoinPricesProvider>
+      <div className="mx-auto w-full max-w-6xl">
+        <CommunityNav trader={actions.trader} />
+        {back}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="min-w-0">
+            <article
+              aria-labelledby="post-title"
+              className="rounded-2xl border border-line bg-surface p-4 sm:p-6"
             >
-              {data.title}
-            </h1>
-            <div className="mt-3 text-sm leading-relaxed break-words whitespace-pre-line text-fg-2">
-              {data.content}
-            </div>
-            <PostGallery media={data.media} title={data.title} />
-            {(data.coins.length > 0 || data.market) && (
-              <div className="mt-4">
-                <CoinTags coins={data.coins} market={data.market} />
-              </div>
-            )}
-            <div className="mt-4 border-t border-line pt-3">
-              <ReactionBar
+              {data.status === 'HIDDEN' && (
+                <Alert tone="warning" title={c.hidden} className="mb-4">
+                  {c.hiddenNote}
+                </Alert>
+              )}
+              <PostByline
                 post={data}
-                commentsTo="#comments"
-                onReact={(action, active) =>
-                  void actions.react(data.id, action, active)
-                }
-                pending={actions.reacting}
+                {...(showFollow
+                  ? {
+                      follow: (
+                        <FollowButton
+                          name={data.author.displayName ?? c.noName}
+                          following={data.authorStanding.followedByMe}
+                          pending={actions.following}
+                          onToggle={(active) =>
+                            void actions.follow(data.author.userId, active)
+                          }
+                        />
+                      ),
+                    }
+                  : {})}
               />
-            </div>
-          </article>
-          <CommentSection
-            postId={data.id}
-            canWrite={actions.trader}
-            onGuest={actions.askToJoin}
-          />
+              <h1
+                id="post-title"
+                className="mt-4 flex flex-wrap items-center gap-2 text-xl leading-snug font-semibold text-fg"
+              >
+                {data.title}
+                {data.sentiment && <SentimentTag sentiment={data.sentiment} />}
+              </h1>
+              <PostText
+                text={data.content}
+                className="mt-3 text-[15px] leading-relaxed break-words whitespace-pre-line text-fg-2"
+              />
+              <PostGallery media={data.media} title={data.title} />
+              {(data.coins.length > 0 || data.market) && (
+                <div className="mt-4">
+                  <CoinTags coins={data.coins} market={data.market} />
+                </div>
+              )}
+              <div className="mt-4 border-t border-line pt-3">
+                <ReactionBar
+                  post={data}
+                  commentsTo="#comments"
+                  onReact={(action, active) =>
+                    void actions.react(data.id, action, active)
+                  }
+                  onVote={(sentiment) => void actions.vote(data.id, sentiment)}
+                  menu={actions.menu(data)}
+                  pending={actions.reacting || actions.voting}
+                />
+              </div>
+            </article>
+            <CommentSection
+              postId={data.id}
+              canWrite={actions.trader}
+              onGuest={actions.askToJoin}
+            />
+          </div>
+          <aside className="flex flex-col gap-4">
+            {firstCoin && <CoinDiscussionCard coin={firstCoin} />}
+            <InfluencerList />
+            {actions.role === 'guest' && <JoinCard />}
+            <RulesCard />
+          </aside>
         </div>
-        <aside className="flex flex-col gap-4">
-          {firstCoin && <CoinDiscussionCard coin={firstCoin} />}
-          {actions.role === 'guest' && <JoinCard />}
-          <RulesCard />
-        </aside>
+        {actions.dialogs}
       </div>
-      {actions.dialogs}
-    </div>
+    </CoinPricesProvider>
   );
 }

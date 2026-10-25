@@ -1,10 +1,11 @@
-import { Flag, Link2, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Ban, Flag, Link2, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Menu, type MenuItem } from '../../../components/ui/Menu';
 import { useCopy } from '../../../hooks/use-copy';
 
 /**
  * The ⋯ menu of a post: Edit and Delete for its author, Report for anyone
- * else (SRS 3.7.4: never on an own post), and Copy link.
+ * else (SRS 3.7.4: never on an own post), Block its author (D-99), and
+ * Copy link.
  */
 export function PostMenu({
   mine,
@@ -12,8 +13,12 @@ export function PostMenu({
   onDelete,
   onReport,
   onCopyLink,
+  blockLabel,
+  onBlock,
 }: {
   mine: boolean;
+  blockLabel?: string;
+  onBlock?: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onReport: () => void;
@@ -44,6 +49,14 @@ export function PostMenu({
           onSelect: onReport,
         },
       ];
+  if (blockLabel && onBlock)
+    items.push({
+      id: 'block',
+      label: blockLabel,
+      icon: <Ban size={13} />,
+      tone: 'danger',
+      onSelect: onBlock,
+    });
   items.push({
     id: 'link',
     label: c.share,
