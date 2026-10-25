@@ -22,7 +22,8 @@ import {
 /**
  * `/notifications/**` and the `/user/queue/notifications` push (SRS 3.4.5,
  * UC-15), checked against the backend community branch @ d43b90c:
- * `NotificationResponse`, `UnreadCountResponse`.
+ * `NotificationResponse`, `UnreadCountResponse`; the SYSTEM type and the
+ * NEWS_SOURCE reference against `develop` @ 103d7cf.
  */
 const TYPES: readonly NotificationType[] = [
   'ALERT',
@@ -30,12 +31,14 @@ const TYPES: readonly NotificationType[] = [
   'MODERATION',
   'SUBSCRIPTION',
   'COMMENT',
+  'SYSTEM',
 ];
 const REFERENCES: readonly NotificationReferenceType[] = [
   'ALERT',
   'PLAN',
   'POST',
   'SUBSCRIPTION',
+  'NEWS_SOURCE',
 ];
 export const NOTIFICATION_QUEUE = '/user/queue/notifications';
 
