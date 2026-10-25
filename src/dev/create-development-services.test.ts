@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { createDevelopmentAdminPairs } from './dev-admin-pairs';
 import { createDevelopmentServices } from './create-development-services';
 import { createDevelopmentAuth } from './dev-auth';
 import { createDevelopmentMarket } from './dev-market';
@@ -643,5 +644,116 @@ describe('development plan editing (SCR-17)', () => {
       plans.update(btcDraft, { ...inputs, stopLoss: '58000' }, true),
     ).rejects.toMatchObject({ problem: { messageCode: 'MSG27' } });
     expect((await plans.get(btcDraft)).stopLoss).toBe('59000');
+  });
+});
+
+describe('development pair administration (SCR-37, SCR-38)', () => {
+  const btc = DEV_PAIR_IDS.BTCUSDT!;
+  const eth = DEV_PAIR_IDS.ETHUSDT!;
+
+  it('lists, searches and registers a pair the exchange trades, once', async () => {
+    const pairs = createDevelopmentAdminPairs();
+    const all = await pairs.list({});
+    expect(all[0]?.symbol).toBe('BTCUSDT');
+    expect((await pairs.list({ q: 'eth' })).map((pair) => pair.symbol)).toEqual(
+      ['ETHUSDT'],
+    );
+    const [sui] = await pairs.exchangeSymbols('sui');
+    const added = await pairs.register(sui!.symbol);
+    expect(added).toMatchObject({ status: 'INACTIVE', bracketCount: 0 });
+    await expect(pairs.register('SUIUSDT')).rejects.toMatchObject({
+      problem: { code: 'PAIR_ALREADY_REGISTERED' },
+    });
+    await expect(pairs.register('NOPEUSDT')).rejects.toMatchObject({
+      problem: { code: 'PAIR_NOT_TRADING' },
+    });
+  });
+
+  it('refuses a market off with open positions, a ceiling above the first bracket and no ceiling', async () => {
+    const pairs = createDevelopmentAdminPairs();
+    const settings = {
+      status: 'ACTIVE' as const,
+      spotEnabled: true,
+      futuresEnabled: false,
+      maxLeverage: 100,
+      displayOrder: 2,
+    };
+    await expect(pairs.update(eth, settings)).rejects.toMatchObject({
+      status: 409,
+      problem: { code: 'PAIR_HAS_OPEN_POSITIONS', messageCode: 'MSG40' },
+    });
+    await expect(
+      pairs.update(eth, {
+        ...settings,
+        futuresEnabled: true,
+        maxLeverage: 101,
+      }),
+    ).rejects.toMatchObject({
+      problem: { fieldErrors: { maxLeverage: 'MSG15' } },
+    });
+    await expect(
+      pairs.update(btc, {
+        ...settings,
+        futuresEnabled: true,
+        maxLeverage: null,
+      }),
+    ).rejects.toMatchObject({
+      problem: { fieldErrors: { maxLeverage: 'MSG01' } },
+    });
+    expect(
+      (
+        await pairs.update(btc, {
+          ...settings,
+          futuresEnabled: true,
+          maxLeverage: 50,
+        })
+      ).maxLeverage,
+    ).toBe(50);
+  });
+
+  it('replaces brackets that join up, works the amounts out and names a broken cell', async () => {
+    const pairs = createDevelopmentAdminPairs();
+    expect((await pairs.brackets(btc)).brackets[1]?.maintenanceAmount).toBe(
+      '50',
+    );
+    const saved = await pairs.replaceBrackets(btc, [
+      {
+        notionalFloor: '0',
+        notionalCap: '10000',
+        maxLeverage: 125,
+        maintenanceMarginRate: '0.004',
+      },
+      {
+        notionalFloor: '10000',
+        notionalCap: '90000',
+        maxLeverage: 50,
+        maintenanceMarginRate: '0.01',
+      },
+    ]);
+    expect(saved.brackets.map((b) => b.maintenanceAmount)).toEqual(['0', '60']);
+    await expect(
+      pairs.replaceBrackets(btc, [
+        {
+          notionalFloor: '0',
+          notionalCap: '10000',
+          maxLeverage: 50,
+          maintenanceMarginRate: '0.004',
+        },
+        {
+          notionalFloor: '20000',
+          notionalCap: '15000',
+          maxLeverage: 75,
+          maintenanceMarginRate: '0.01',
+        },
+      ]),
+    ).rejects.toMatchObject({
+      problem: {
+        fieldErrors: {
+          'brackets[1].notionalFloor': 'MSG15',
+          'brackets[1].notionalCap': 'MSG15',
+          'brackets[1].maxLeverage': 'MSG15',
+        },
+      },
+    });
   });
 });

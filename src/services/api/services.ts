@@ -1,6 +1,7 @@
 import type { AuthService } from '../auth/contracts';
 import type {
   AcademyService,
+  AdminPairService,
   AdminService,
   AiService,
   AlertsService,
@@ -47,4 +48,5 @@ export interface Services {
   ai: AiService;
   subscription: SubscriptionService;
   admin: AdminService;
+  adminPairs: AdminPairService;
 }

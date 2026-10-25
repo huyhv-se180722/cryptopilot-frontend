@@ -8,6 +8,7 @@ import type {
   AcademyTerm,
   AcademyTopic,
   AdminLog,
+  AdminPair,
   AiConversation,
   Alert,
   AlertListQuery,
@@ -96,6 +97,11 @@ import type {
   Watchlist,
   WatchlistItem,
   WatchlistItemUpdate,
+  ExchangeSymbol,
+  LeverageBracketInput,
+  PairBrackets,
+  PairSettings,
+  PairStatus,
 } from '../../types/domain';
 
 /** UI-facing contracts only. Pagination and transport DTOs need backend agreement. */
@@ -538,6 +544,27 @@ export interface AnnouncementService {
   create(draft: AnnouncementDraft): Promise<PostDetail>;
   update(id: string, draft: AnnouncementDraft): Promise<PostDetail>;
   remove(id: string): Promise<void>;
+}
+
+/**
+ * The pairs of the administration console (UC-45, UC-46), Admin only: the
+ * pairs with their markets, a new pair from the exchange's symbols, a
+ * pair's settings (status, market switches, leverage ceiling, order) and
+ * its leverage brackets, replaced as a whole.
+ */
+export interface AdminPairService {
+  list(
+    query: { q?: string; status?: PairStatus },
+    signal?: AbortSignal,
+  ): Promise<AdminPair[]>;
+  exchangeSymbols(q: string, signal?: AbortSignal): Promise<ExchangeSymbol[]>;
+  register(symbol: string): Promise<AdminPair>;
+  update(pairId: string, settings: PairSettings): Promise<AdminPair>;
+  brackets(pairId: string, signal?: AbortSignal): Promise<PairBrackets>;
+  replaceBrackets(
+    pairId: string,
+    brackets: readonly LeverageBracketInput[],
+  ): Promise<PairBrackets>;
 }
 
 /**

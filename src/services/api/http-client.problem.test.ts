@@ -38,6 +38,28 @@ describe('HTTP problem details', () => {
     expect(JSON.stringify(error)).not.toContain('Internal explanation');
   });
 
+  it('keeps field errors of list items, keyed by their index', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      problemResponse(400, {
+        code: 'VALIDATION_FAILED',
+        messageCode: 'MSG01',
+        errors: {
+          'brackets[0].maxLeverage': 'MSG15',
+          'bad key<script>': 'MSG01',
+        },
+      }),
+    );
+    const error = await createHttpClient({
+      baseUrl: 'https://api.example.test',
+      fetcher,
+    })
+      .request({ path: 'admin/pairs/p/brackets', method: 'PUT', decode })
+      .catch((caught: unknown) => caught);
+    expect((error as ServiceError).problem?.fieldErrors).toEqual({
+      'brackets[0].maxLeverage': 'MSG15',
+    });
+  });
+
   it('treats a sign-in 401 as wrong credentials, not an ended session', async () => {
     const onUnauthorized = vi.fn();
     const fetcher = vi.fn<typeof fetch>().mockImplementation(async () =>

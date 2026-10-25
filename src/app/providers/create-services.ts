@@ -77,6 +77,10 @@ import {
 import { createAiService } from '../../services/api/ai';
 import { createSubscriptionService } from '../../services/api/subscription';
 import { createAdminService } from '../../services/api/admin';
+import {
+  createHttpAdminPairService,
+  createPendingAdminPairService,
+} from '../../services/api/admin-pairs';
 
 export async function createServices(env: Environment): Promise<Services> {
   // The session renews through the same client it authorizes (anonymous call).
@@ -156,6 +160,9 @@ export async function createServices(env: Environment): Promise<Services> {
     ai: createAiService(),
     subscription: createSubscriptionService(),
     admin: createAdminService(),
+    adminPairs: connected
+      ? createHttpAdminPairService(http)
+      : createPendingAdminPairService(),
   };
   // Compile-time DEV guard removes the import and all fixtures from production.
   if (import.meta.env.DEV && env.useDevFixtures) {

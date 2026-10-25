@@ -1526,3 +1526,81 @@ export interface AcademyProgress {
   pathCompleted: number;
   pathTotal: number;
 }
+
+/** Whether a pair is offered at all (UC-45); its markets switch on and off apart. */
+export type PairStatus = 'ACTIVE' | 'INACTIVE';
+/** What the exchange reports for a pair on one market (NSF-01). */
+export type ExchangeStatus = 'TRADING' | 'NOT_TRADING' | 'DELISTED';
+
+/** One market of a pair as the exchange lists it; all null when never listed there. */
+export interface ExchangeMarketInfo {
+  exchangeStatus: ExchangeStatus | null;
+  /** The exchange's own word, e.g. "BREAK". */
+  exchangeStatusRaw: string | null;
+  tickSize: Decimal | null;
+  stepSize: Decimal | null;
+  minNotional: Decimal | null;
+}
+
+/** SCR-37: a pair as the administration console manages it (UC-45, BR-59). */
+export interface AdminPair {
+  pairId: string;
+  symbol: string;
+  baseAsset: string | null;
+  quoteAsset: string | null;
+  status: PairStatus;
+  spotEnabled: boolean;
+  futuresEnabled: boolean;
+  /** The pair's leverage ceiling (BR-26); null while Futures was never set up. */
+  maxLeverage: number | null;
+  displayOrder: number;
+  spot: ExchangeMarketInfo;
+  futures: ExchangeMarketInfo;
+  bracketCount: number;
+  lastSyncedAt: ISODateTime | null;
+  updatedAt: ISODateTime;
+}
+
+/** A symbol the exchange trades, to register as a new pair. */
+export interface ExchangeSymbol {
+  symbol: string;
+  baseAsset: string;
+  quoteAsset: string;
+  spotTrading: boolean;
+  futuresTrading: boolean;
+}
+
+/** The settings of a pair the Admin may change; the whole set is sent. */
+export interface PairSettings {
+  status: PairStatus;
+  spotEnabled: boolean;
+  futuresEnabled: boolean;
+  /** 1–125; required while Futures is enabled, at most the first bracket's. */
+  maxLeverage: number | null;
+  displayOrder: number;
+}
+
+/** SCR-38: one leverage bracket of a Futures pair (UC-46, BR-26, BR-27). */
+export interface LeverageBracket {
+  bracketNo: number;
+  notionalFloor: Decimal;
+  notionalCap: Decimal;
+  maxLeverage: number;
+  /** A fraction: "0.004" is 0.4 %. */
+  maintenanceMarginRate: Decimal;
+  /** Worked out by the server from the brackets before it (BR-27). */
+  maintenanceAmount: Decimal;
+}
+
+/** A bracket as entered; the server works out the maintenance amount. */
+export type LeverageBracketInput = Omit<
+  LeverageBracket,
+  'bracketNo' | 'maintenanceAmount'
+>;
+
+export interface PairBrackets {
+  pairId: string;
+  symbol: string;
+  /** In order from the first, notional 0 upwards. */
+  brackets: readonly LeverageBracket[];
+}

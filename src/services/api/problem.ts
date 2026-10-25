@@ -59,7 +59,8 @@ export function decodeProblem(
   const fieldErrors: Record<string, string> = {};
   if (isRecord(errors)) {
     for (const [field, value] of Object.entries(errors)) {
-      if (typeof value !== 'string' || !/^[A-Za-z][\w.]{0,63}$/.test(field))
+      // A list item is keyed by its index: `brackets[0].maxLeverage`.
+      if (typeof value !== 'string' || !/^[A-Za-z][\w.[\]]{0,63}$/.test(field))
         continue;
       fieldErrors[field] = MESSAGE_ID.test(value) ? value : 'MSG01';
     }
