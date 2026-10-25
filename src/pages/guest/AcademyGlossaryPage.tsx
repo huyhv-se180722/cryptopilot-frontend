@@ -5,6 +5,7 @@ import { EmptyState, ErrorState } from '../../components/feedback/States';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { AcademyDisclaimer } from '../../features/academy/components/AcademyDisclaimer';
 import { AcademyLocale } from '../../features/academy/components/AcademyLocale';
+import { ACADEMY_HERO_IMAGE } from '../../features/academy/academy-assets';
 import { useAcademyTerms } from '../../features/academy/hooks/use-academy';
 import { useCopy } from '../../hooks/use-copy';
 import { errorText } from '../../i18n/messages';
@@ -64,28 +65,38 @@ function Glossary() {
         {a.backToAcademy}
       </Link>
       <section
-        className="mb-4 overflow-hidden rounded-3xl p-6 text-white shadow-lg sm:p-8"
-        style={{
-          background: 'linear-gradient(135deg, #0b1a3a 0%, #13284f 100%)',
-        }}
+        className="relative mb-4 overflow-hidden rounded-3xl p-6 text-white shadow-lg sm:p-8"
+        style={{ backgroundColor: '#0b1a3a' }}
       >
-        <h1 className="flex items-center gap-2 text-2xl font-bold text-white sm:text-3xl">
-          <BookOpenText size={26} aria-hidden="true" />
-          {a.glossaryTitle}
-        </h1>
-        <p className="mt-1 text-sm text-white/80">{a.glossarySubtitle}</p>
-        <label className="mt-5 flex max-w-xl items-center gap-2 rounded-2xl bg-white px-4 py-3 shadow-lg">
-          <Search size={18} aria-hidden="true" className="text-slate-400" />
-          <span className="sr-only">{a.searchTerms}</span>
-          <input
-            type="search"
-            value={text}
-            maxLength={100}
-            placeholder={a.searchTermsPlaceholder}
-            onChange={(event) => setText(event.target.value)}
-            className="w-full bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
-          />
-        </label>
+        <img
+          src={ACADEMY_HERO_IMAGE.url}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 size-full object-cover"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-r from-[#0b1a3a] via-[#0b1a3a]/85 to-[#0b1a3a]/40"
+        />
+        <div className="relative">
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-white sm:text-3xl">
+            <BookOpenText size={26} aria-hidden="true" />
+            {a.glossaryTitle}
+          </h1>
+          <p className="mt-1 text-sm text-white/80">{a.glossarySubtitle}</p>
+          <label className="mt-5 flex max-w-xl items-center gap-2 rounded-2xl bg-white px-4 py-3 shadow-lg">
+            <Search size={18} aria-hidden="true" className="text-slate-400" />
+            <span className="sr-only">{a.searchTerms}</span>
+            <input
+              type="search"
+              value={text}
+              maxLength={100}
+              placeholder={a.searchTermsPlaceholder}
+              onChange={(event) => setText(event.target.value)}
+              className="w-full bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+            />
+          </label>
+        </div>
       </section>
       <div
         role="group"

@@ -10,6 +10,7 @@ import {
 import { useCopy } from '../../../hooks/use-copy';
 import { formatCopy } from '../../../i18n/copy';
 import type { AcademyTerm } from '../../../types/domain';
+import { ACADEMY_HERO_IMAGE } from '../academy-assets';
 
 const QUICK_TERMS = 6;
 const DAY_MS = 86_400_000;
@@ -57,13 +58,17 @@ export function AcademyHero({
   return (
     <section
       className="relative mb-8 overflow-hidden rounded-3xl p-6 text-white shadow-xl sm:p-8"
-      style={{
-        background: 'linear-gradient(135deg, #0b1a3a 0%, #13284f 100%)',
-      }}
+      style={{ backgroundColor: '#0b1a3a' }}
     >
+      <img
+        src={ACADEMY_HERO_IMAGE.url}
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 size-full object-cover"
+      />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-24 -right-24 size-80 rounded-full bg-white/10 blur-3xl"
+        className="absolute inset-0 bg-gradient-to-r from-[#0b1a3a]/95 via-[#0b1a3a]/60 to-transparent"
       />
       <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex flex-col justify-center">
