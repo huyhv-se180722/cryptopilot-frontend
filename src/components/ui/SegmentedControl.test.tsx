@@ -26,4 +26,38 @@ describe('SegmentedControl', () => {
     await userEvent.click(screen.getByRole('radio', { name: 'Dark' }));
     expect(onChange).toHaveBeenCalledWith('dark');
   });
+
+  it('colours a chosen long green and a chosen short red, never by colour alone', () => {
+    const { rerender } = render(
+      <SegmentedControl
+        label="Direction"
+        value="LONG"
+        onChange={() => undefined}
+        options={[
+          { value: 'LONG', label: 'Long', tone: 'positive' },
+          { value: 'SHORT', label: 'Short', tone: 'negative' },
+        ]}
+      />,
+    );
+    const long = screen.getByRole('radio', { name: 'Long' });
+    expect(long.className).toContain('text-positive');
+    expect(long.getAttribute('aria-checked')).toBe('true');
+    rerender(
+      <SegmentedControl
+        label="Direction"
+        value="SHORT"
+        onChange={() => undefined}
+        options={[
+          { value: 'LONG', label: 'Long', tone: 'positive' },
+          { value: 'SHORT', label: 'Short', tone: 'negative' },
+        ]}
+      />,
+    );
+    expect(screen.getByRole('radio', { name: 'Short' }).className).toContain(
+      'text-negative',
+    );
+    expect(screen.getByRole('radio', { name: 'Long' }).className).not.toContain(
+      'text-positive',
+    );
+  });
 });
