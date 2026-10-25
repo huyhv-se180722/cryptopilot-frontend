@@ -228,15 +228,26 @@ export interface FuturesMetrics {
     fundingSettlements: ISODateTime | null;
   };
 }
-/** Plan lifecycle (BR-32): DRAFT → ACTIVE | CANCELLED; ACTIVE → EXECUTED | CANCELLED | EXPIRED. */
+/**
+ * Plan lifecycle (BR-32, BR-68): DRAFT → ACTIVE | CANCELLED; ACTIVE →
+ * EXECUTED | CANCELLED | EXPIRED | INVALIDATED.
+ */
 export type PlanStatus =
-  'DRAFT' | 'ACTIVE' | 'EXECUTED' | 'CANCELLED' | 'EXPIRED';
-/** SCR-16 tabs; the last one holds CANCELLED and EXPIRED. */
+  'DRAFT' | 'ACTIVE' | 'EXECUTED' | 'CANCELLED' | 'EXPIRED' | 'INVALIDATED';
+/** SCR-16 tabs; the last one holds CANCELLED, EXPIRED and INVALIDATED. */
 export type PlanTab = 'DRAFT' | 'ACTIVE' | 'EXECUTED' | 'CANCELLED_EXPIRED';
 export type PlanDirection = 'LONG' | 'SHORT';
-export type PlanEntryType = 'LIMIT' | 'MARKET';
+/** STOP is a stop-market breakout entry: `entryPrice` is the stop price (TP-A). */
+export type PlanEntryType = 'LIMIT' | 'MARKET' | 'STOP';
+/** What ended a waiting plan before its entry filled (BR-68, D-111). */
+export type InvalidationReason =
+  'TAKE_PROFIT_REACHED' | 'STOP_LOSS_REACHED' | 'INVALIDATION_PRICE';
 export type WarningSeverity = 'INFO' | 'WARNING' | 'BLOCKING';
-/** BR-28, BR-29; the UI words each type itself. */
+/**
+ * BR-28, BR-29 (nine since D-116); the UI words each type itself. A type
+ * this client does not know is kept as UNKNOWN with its severity, so one
+ * new warning does not take a screen down (ADR-009).
+ */
 export type PlanWarningType =
   | 'INSUFFICIENT_CAPITAL'
   | 'SL_BEYOND_LIQUIDATION'
@@ -245,14 +256,23 @@ export type PlanWarningType =
   | 'HIGH_LEVERAGE'
   | 'TOTAL_OPEN_RISK'
   | 'WIDE_STOP_LOSS'
-  | 'HIGH_FUNDING_RATE';
+  | 'HIGH_FUNDING_RATE'
+  | 'HIGH_FEE_SHARE'
+  | 'UNKNOWN';
 
 export interface PlanWarning {
   type: PlanWarningType;
   severity: WarningSeverity;
+  /** The type as the server sent it; only for UNKNOWN. */
+  rawType?: string;
 }
 
-/** Risk calculation stored with the plan (BR-31); Futures adds margin, MMR and liquidation. */
+/**
+ * Risk calculation stored with the plan (BR-31); Futures adds margin, MMR
+ * and liquidation. The expected costs (TP-0, D-116) are null on a plan
+ * saved before TP-0; funding and the liquidation clearance fee are not in
+ * them.
+ */
 export interface PlanSnapshot {
   positionQuantity: Decimal;
   notionalValue: Decimal;
@@ -262,12 +282,56 @@ export interface PlanSnapshot {
   rewardAmount: Decimal;
   riskRewardRatio: Decimal;
   estimatedLiquidationPrice: Decimal | null;
+  estimatedEntryFee: Decimal | null;
+  estimatedStopLossExitFee: Decimal | null;
+  estimatedTakeProfitExitFee: Decimal | null;
+  estimatedSlippage: Decimal | null;
+  /** "Real loss at stop loss": risk plus the fees and slippage. */
+  lossAtStopLoss: Decimal | null;
+  /** (lossAtStopLoss − riskAmount) / riskAmount, a fraction. */
+  feeShareOfRisk: Decimal | null;
+  /** "R:R after fees". */
+  netRiskReward: Decimal | null;
+}
+
+export type PositionStatus = 'OPEN' | 'CLOSED';
+export type CloseReason =
+  'TAKE_PROFIT' | 'STOP_LOSS' | 'LIQUIDATION' | 'MANUAL';
+
+/**
+ * The position of an EXECUTED plan (T-048a; exits T-048b). The current
+ * price and unrealized P/L (no fees, no funding, Q-55) are OPEN only and
+ * null when no price is cached; the exit fields are CLOSED only.
+ */
+export interface PlanPosition {
+  status: PositionStatus;
+  /** Actual entry fill, slippage included. */
+  fillPrice: Decimal;
+  quantity: Decimal;
+  entryTime: ISODateTime;
+  entryFee: Decimal;
+  /** Futures only. */
+  liquidationPrice: Decimal | null;
+  currentPrice: Decimal | null;
+  unrealizedPnl: Decimal | null;
+  exitPrice: Decimal | null;
+  exitTime: ISODateTime | null;
+  closeReason: CloseReason | null;
+  /** Price result only (BR-35). */
+  realizedPnl: Decimal | null;
+  /** Entry fee + exit (or clearance) fee (BR-36). */
+  feeAmount: Decimal | null;
+  /** Signed funding so far, + received / − paid; null on Spot. */
+  fundingFeeAmount: Decimal | null;
+  /** realized − fees + funding (BR-38): the P/L to headline. */
+  netPnl: Decimal | null;
+  /** A funding settlement is still missing; the net may change. */
+  provisional: boolean;
 }
 
 /**
  * A row of SCR-16. The pair is named by its id only, which the market lists
- * resolve to a symbol (FEQ-01); position status and P/L wait for the
- * matching engine.
+ * resolve to a symbol (FEQ-01); the P/L is not in the row.
  */
 export interface TradingPlanSummary {
   id: string;
@@ -275,7 +339,10 @@ export interface TradingPlanSummary {
   market: MarketType;
   direction: PlanDirection;
   entryType: PlanEntryType;
+  /** MARKET: the reference (planned) price. */
   entryPrice: Decimal;
+  /** MARKET only: the price the quantity was sized on (TP-0). */
+  expectedFillPrice: Decimal | null;
   stopLoss: Decimal;
   takeProfit: Decimal;
   /** Null on Spot. */
@@ -286,25 +353,44 @@ export interface TradingPlanSummary {
   createdAt: ISODateTime;
   activatedAt: ISODateTime | null;
   expiresAt: ISODateTime | null;
+  invalidatedAt: ISODateTime | null;
+  invalidationReason: InvalidationReason | null;
+  /** OPEN / CLOSED on EXECUTED rows (T-048a), else null. */
+  positionStatus: PositionStatus | null;
 }
 
-/** SCR-18: inputs, snapshot, warnings and status history of one plan. */
+/** SCR-18: inputs, snapshot, warnings, status history and position of one plan. */
 export interface TradingPlan {
   id: string;
   pairId: string;
   market: MarketType;
   direction: PlanDirection;
   entryType: PlanEntryType;
+  /** MARKET: the reference price (= plannedEntryPrice). */
   entryPrice: Decimal;
+  /** MARKET only: the price the quantity was sized on (TP-0). */
+  expectedFillPrice: Decimal | null;
+  /** Entered price (LIMIT, STOP) or reference price of the last save (MARKET). */
+  plannedEntryPrice: Decimal | null;
   stopLoss: Decimal;
   takeProfit: Decimal;
+  /** The profile's capital at the last save or at activation (TP-D). */
   capital: Decimal;
   riskPercent: Decimal;
   leverage: number | null;
   marginMode: 'ISOLATED' | null;
   expiresAt: ISODateTime | null;
   note: string | null;
+  invalidationPrice: Decimal | null;
+  maxEntryDeviationR: Decimal | null;
+  analysisTimeframe: CandleTimeframe;
   status: PlanStatus;
+  /** Set only with INVALIDATED. */
+  invalidationReason: InvalidationReason | null;
+  /** 0–100 taken at activation; null before it or when unreadable (never 0). */
+  setupScoreAtPlan: Decimal | null;
+  /** E.g. "DAY_TRADING v1"; null before activation. */
+  setupScorePreset: string | null;
   /** True only for DRAFT. */
   editable: boolean;
   snapshot: PlanSnapshot;
@@ -312,40 +398,78 @@ export interface TradingPlan {
   blocksActivation: boolean;
   /** Oldest first. */
   statusHistory: readonly { status: PlanStatus; at: ISODateTime }[];
+  /** Null until EXECUTED, and on a plan filled before T-048a. */
+  position: PlanPosition | null;
 }
 
 /**
  * SCR-17 inputs (SRS 3.5.1, UC-16, UC-17). Editing replaces them whole;
  * the pair never changes. Null leaves a value to the server's default
- * (entry price for MARKET, capital and risk % from the profile, a 7-day
- * expiry for LIMIT).
+ * (entry price for MARKET, risk % from the profile, a 7-day expiry for
+ * LIMIT and STOP). The capital is always the profile's (TP-D, D-121).
  */
 export interface PlanInputs {
   market: MarketType;
   /** LONG only on Spot (BR-21). */
   direction: PlanDirection;
   entryType: PlanEntryType;
+  /** LIMIT: the limit price; STOP: the stop price; MARKET: null. */
   entryPrice: Decimal | null;
   stopLoss: Decimal;
   takeProfit: Decimal;
-  capital: Decimal | null;
   riskPercent: Decimal | null;
   /** Futures only; null on Spot. */
   leverage: number | null;
   expiresAt: ISODateTime | null;
   note: string | null;
+  /** LIMIT and STOP only. */
+  invalidationPrice: Decimal | null;
+  /** > 0 and at most the system block value. */
+  maxEntryDeviationR: Decimal | null;
+  analysisTimeframe: CandleTimeframe | null;
 }
 
 /** The live risk panel of SCR-17 (`POST /plans/calculate`); nothing is saved. */
 export interface PlanCalculation {
-  /** On the tick; for MARKET the current last price. */
+  /** On the tick; for MARKET the current last price (the reference price). */
   entryPrice: Decimal;
-  /** After the profile defaults. */
+  /** MARKET only: the reference moved by the slippage; null LIMIT/STOP. */
+  expectedFillPrice: Decimal | null;
+  /** The profile's default capital (TP-D). */
   capital: Decimal;
   riskPercent: Decimal;
   snapshot: PlanSnapshot;
   warnings: readonly PlanWarning[];
   blocksActivation: boolean;
+}
+
+/** SCR-19: what closing now would give (T-046 contract of 2026-10-25). */
+export interface CloseEstimate {
+  currentPrice: Decimal;
+  /** The last price moved by the slippage, taker. */
+  estimatedExitPrice: Decimal;
+  priceResult: Decimal;
+  entryFee: Decimal;
+  estimatedExitFee: Decimal;
+  /** Null on Spot. */
+  fundingSoFar: Decimal | null;
+  fundingProvisional: boolean;
+  /** priceResult − entryFee − estimatedExitFee + fundingSoFar. */
+  estimatedNetPnl: Decimal;
+  at: ISODateTime;
+}
+
+/** MSG51 (400) and MSG52 (409) at a MARKET activation (TP-C). */
+export interface EntryDeviation {
+  deviationR: Decimal;
+  maxDeviationR: Decimal;
+  expectedFillPrice: Decimal;
+  /** MSG51 only. */
+  positionQuantity: Decimal | null;
+  riskRewardRatio: Decimal | null;
+  netRiskReward: Decimal | null;
+  /** MSG52 only: the expected fill is at or past the take profit. */
+  takeProfitReached: boolean;
 }
 
 export interface PlanListQuery {

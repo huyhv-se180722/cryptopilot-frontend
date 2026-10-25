@@ -112,7 +112,17 @@ export function PlanTable({
     {
       id: 'status',
       header: p.colStatus,
-      render: (row) => <PlanStatusBadge status={row.status} />,
+      render: (row) =>
+        row.invalidationReason ? (
+          <span className="flex flex-col items-start gap-0.5">
+            <PlanStatusBadge status={row.status} />
+            <span className="text-[10px] text-muted-dim">
+              {p[`reason${row.invalidationReason}`]}
+            </span>
+          </span>
+        ) : (
+          <PlanStatusBadge status={row.status} />
+        ),
     },
     ...(tab === 'EXECUTED'
       ? [

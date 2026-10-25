@@ -74,6 +74,7 @@ const ROW: TradingPlanSummary = {
   entryPrice: '62000.000000000000',
   stopLoss: '63000.000000000000',
   takeProfit: '59000.000000000000',
+  expectedFillPrice: null,
   leverage: 5,
   riskAmount: '10.00000000',
   riskRewardRatio: '3.00000000',
@@ -81,6 +82,9 @@ const ROW: TradingPlanSummary = {
   createdAt: '2026-10-08T02:20:00Z',
   activatedAt: null,
   expiresAt: EXPIRES_AT,
+  invalidatedAt: null,
+  invalidationReason: null,
+  positionStatus: null,
 };
 
 const PLAN: TradingPlan = {
@@ -92,13 +96,21 @@ const PLAN: TradingPlan = {
   entryPrice: '62000.000000000000',
   stopLoss: '63000.000000000000',
   takeProfit: '59000.000000000000',
+  expectedFillPrice: null,
+  plannedEntryPrice: '62000.000000000000',
   capital: '1000',
   riskPercent: '1',
   leverage: 5,
   marginMode: 'ISOLATED',
   expiresAt: EXPIRES_AT,
   note: 'Retest of the range high.',
+  invalidationPrice: null,
+  maxEntryDeviationR: null,
+  analysisTimeframe: '1h',
   status: 'DRAFT',
+  invalidationReason: null,
+  setupScoreAtPlan: null,
+  setupScorePreset: null,
   editable: true,
   snapshot: {
     positionQuantity: '0.010000000000',
@@ -109,6 +121,13 @@ const PLAN: TradingPlan = {
     rewardAmount: '30.00000000',
     riskRewardRatio: '3.00000000',
     estimatedLiquidationPrice: '74103.100000000000',
+    estimatedEntryFee: '0.12400000',
+    estimatedStopLossExitFee: '0.31500000',
+    estimatedTakeProfitExitFee: '0.11800000',
+    estimatedSlippage: '0.00000000',
+    lossAtStopLoss: '10.43900000',
+    feeShareOfRisk: '0.04390000',
+    netRiskReward: '2.80000000',
   },
   warnings: [
     { type: 'HIGH_LEVERAGE', severity: 'WARNING' },
@@ -116,6 +135,7 @@ const PLAN: TradingPlan = {
   ],
   blocksActivation: false,
   statusHistory: [{ status: 'DRAFT', at: '2026-10-08T02:20:00Z' }],
+  position: null,
 };
 
 const refusal = (
@@ -163,6 +183,7 @@ function fakePlans(overrides: Partial<TradingPlanService> = {}) {
     create: vi.fn(async () => PLAN),
     calculate: vi.fn(async () => ({
       entryPrice: PLAN.entryPrice,
+      expectedFillPrice: null,
       capital: PLAN.capital,
       riskPercent: PLAN.riskPercent,
       snapshot: PLAN.snapshot,
@@ -675,6 +696,7 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
   const editPath = '/plans/' + SPOT_DRAFT.id + '/edit';
   const calculation = (overrides: Partial<TradingPlan['snapshot']> = {}) => ({
     entryPrice: '62000.00',
+    expectedFillPrice: null,
     capital: '1000',
     riskPercent: '1',
     snapshot: { ...SPOT_DRAFT.snapshot, ...overrides },
@@ -687,13 +709,14 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
       get: vi.fn(async () => SPOT_DRAFT),
       calculate: vi.fn(async (_pair, inputs) =>
         calculation({
-          riskAmount: inputs.capital === '2000' ? '20.00000000' : '10.00000000',
+          riskAmount:
+            inputs.riskPercent === '2' ? '20.00000000' : '10.00000000',
         }),
       ),
     });
     await open(editPath, service);
-    const capital = await screen.findByLabelText('Capital (USDT)');
-    expect((capital as HTMLInputElement).value).toBe('1000');
+    const risk = await screen.findByLabelText('Risk per trade (%)');
+    expect((risk as HTMLInputElement).value).toBe('1');
     expect((screen.getByLabelText('Stop loss') as HTMLInputElement).value).toBe(
       '60000',
     );
@@ -704,8 +727,8 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
       (await panel.findByText('Risk (USDT)')).nextSibling?.textContent,
     ).toBe('10.00');
     const user = userEvent.setup();
-    await user.clear(capital);
-    await user.type(capital, '2000');
+    await user.clear(risk);
+    await user.type(risk, '2');
     await waitFor(() =>
       expect(panel.getByText('Risk (USDT)').nextSibling?.textContent).toBe(
         '20.00',
@@ -717,7 +740,7 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
     expect(vi.mocked(service.calculate).mock.calls.at(-1)?.[1]).toMatchObject({
       market: 'spot',
       direction: 'LONG',
-      capital: '2000',
+      riskPercent: '2',
       leverage: null,
     });
   });
@@ -867,5 +890,99 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
       ),
     ).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Save as draft' })).toBeNull();
+  });
+});
+
+describe('contract sync: new statuses, entry type and warnings (T-041, T-040)', () => {
+  it('lists an INVALIDATED plan in Cancelled / Expired with its reason', async () => {
+    const service = fakePlans({
+      list: vi.fn(async (query) => ({
+        items:
+          query.tab === 'CANCELLED_EXPIRED'
+            ? (
+                [
+                  'TAKE_PROFIT_REACHED',
+                  'STOP_LOSS_REACHED',
+                  'INVALIDATION_PRICE',
+                ] as const
+              ).map((reason, index) => ({
+                ...ROW,
+                id: ROW.id.slice(0, -1) + index,
+                status: 'INVALIDATED' as const,
+                invalidatedAt: '2026-10-09T02:20:00Z',
+                invalidationReason: reason,
+              }))
+            : [],
+        page: 1,
+        pageSize: 20,
+        total: query.tab === 'CANCELLED_EXPIRED' ? 3 : 0,
+      })),
+    });
+    await open('/plans?tab=CANCELLED_EXPIRED', service);
+    const table = within(
+      await screen.findByRole('region', {
+        name: 'Cancelled / Expired trading plans',
+      }),
+    );
+    expect(await table.findAllByText('Invalidated')).toHaveLength(3);
+    expect(
+      table.getByText('Take profit reached before the entry'),
+    ).toBeTruthy();
+    expect(table.getByText('Stop loss reached before the entry')).toBeTruthy();
+    expect(table.getByText('Invalidation price reached')).toBeTruthy();
+  });
+
+  it('shows a STOP entry, HIGH_FEE_SHARE with its share and an unknown warning', async () => {
+    await open(
+      '/plans/' + PLAN.id,
+      fakePlans({
+        get: vi.fn(async () => ({
+          ...PLAN,
+          entryType: 'STOP' as const,
+          snapshot: { ...PLAN.snapshot, feeShareOfRisk: '0.23450000' },
+          warnings: [
+            { type: 'HIGH_FEE_SHARE' as const, severity: 'WARNING' as const },
+            {
+              type: 'UNKNOWN' as const,
+              severity: 'INFO' as const,
+              rawType: 'NEW_RULE',
+            },
+          ],
+        })),
+      }),
+    );
+    const inputs = within(
+      await screen.findByRole('region', { name: 'Plan inputs' }),
+    );
+    expect(inputs.getByText('Stop (breakout)')).toBeTruthy();
+    const warnings = within(screen.getByRole('region', { name: 'Warnings' }));
+    expect(
+      warnings.getByText('Fees and slippage are 23.45% of your risk'),
+    ).toBeTruthy();
+    expect(
+      warnings.getByText('Warning: Fees and slippage are 23.45% of your risk', {
+        exact: false,
+      }),
+    ).toBeTruthy();
+    expect(warnings.getByText('Unrecognised warning (NEW_RULE)')).toBeTruthy();
+  });
+
+  it('shows the reason of an INVALIDATED plan on its detail', async () => {
+    await open(
+      '/plans/' + PLAN.id,
+      fakePlans({
+        get: vi.fn(async () => ({
+          ...PLAN,
+          status: 'INVALIDATED' as const,
+          editable: false,
+          invalidationReason: 'INVALIDATION_PRICE' as const,
+        })),
+      }),
+    );
+    const inputs = within(
+      await screen.findByRole('region', { name: 'Plan inputs' }),
+    );
+    expect(inputs.getByText('Invalidation price reached')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Cancel plan' })).toBeNull();
   });
 });

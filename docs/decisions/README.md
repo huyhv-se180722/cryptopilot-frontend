@@ -43,3 +43,13 @@ React context handles service injection; useSyncExternalStore subscribes to the 
 Approved OpenAPI and auth/session contract; realtime protocol; exact Figma tokens; plan lifecycle; risk thresholds and calculation precision; alert trigger policies; subscription renew/upgrade policies; deployment host; observability; branch protection and release process.
 
 Any change must preserve the source constraints: support/paper trading only, no exchange-account connection or real execution, no copied prototype records, deterministic risk outputs primary, and dynamic backend subscription packages.
+
+## ADR-009 — Unknown plan warning types (accepted)
+
+Context: the backend adds warning types to `PlanWarningResponse.type` as rules arrive (`HIGH_FEE_SHARE` with TP-0, D-116). The plan decoders used to throw on any value they did not list, so one new warning took down the plan list, the plan detail and the SCR-17 risk panel.
+
+Decision: a warning whose `type` the client does not know is decoded as `UNKNOWN`, keeping the server's code in `rawType` and its `severity`. The severity must still be `INFO`, `WARNING` or `BLOCKING`; an unknown severity is refused, because it decides whether activation is blocked. The UI shows the warning with its severity badge and the text "Unrecognised warning ({type})"; the server's English `message` is still never shown (FE guide 04-enums). Activation follows the server's `blocksActivation`, not the client's reading of the list. This applies to warning types only: an unknown plan status, entry type, invalidation reason, position status or close reason is still refused, since screens branch on those values and cannot show them safely.
+
+Alternatives: refuse unknown types (the previous behaviour; one backend release breaks three screens); hide unknown warnings (a BLOCKING warning would disappear while activation stays disabled with no reason shown).
+
+Consequences: a new warning type renders at once with a generic label; adding it to `PlanWarningType`, the decoder list and the copy gives it its own words. Decoder tests cover the known and the unknown case.

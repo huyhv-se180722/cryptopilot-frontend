@@ -21,7 +21,6 @@ export interface PlanDraft {
   entryPrice: string;
   stopLoss: string;
   takeProfit: string;
-  capital: string;
   riskPercent: string;
   leverage: string;
   /** `datetime-local` value in the Trader's time zone; empty = server default. */
@@ -52,7 +51,6 @@ export type PlanFieldError =
 
 export const NOTE_MAX = 1000;
 const DECIMAL = /^\d{1,16}(\.\d{1,12})?$/;
-const CAPITAL = /^\d{1,20}(\.\d{1,8})?$/;
 const PERCENT = /^\d{1,2}(\.\d{1,3})?$/;
 
 /** A new plan: Spot, LONG, a limit entry, the profile's capital and risk. */
@@ -63,7 +61,6 @@ export const EMPTY_PLAN_DRAFT: PlanDraft = {
   entryPrice: '',
   stopLoss: '',
   takeProfit: '',
-  capital: '',
   riskPercent: '',
   leverage: '',
   expiry: '',
@@ -77,10 +74,9 @@ export function draftOfPlan(plan: TradingPlan): PlanDraft {
     direction: plan.direction,
     entryType: plan.entryType,
     entryPrice:
-      plan.entryType === 'LIMIT' ? trimDecimal(plan.entryPrice, 0) : '',
+      plan.entryType === 'MARKET' ? '' : trimDecimal(plan.entryPrice, 0),
     stopLoss: trimDecimal(plan.stopLoss, 0),
     takeProfit: trimDecimal(plan.takeProfit, 0),
-    capital: trimDecimal(plan.capital, 0),
     riskPercent: trimDecimal(plan.riskPercent, 0),
     leverage: plan.leverage === null ? '' : String(plan.leverage),
     expiry: plan.expiresAt ? toLocalInput(plan.expiresAt) : '',
@@ -109,8 +105,8 @@ export const drawablePrice = (raw: string): string | null => {
 };
 
 /**
- * Checks the draft and builds the inputs the API takes. An empty capital or
- * risk % is left to the profile defaults; an empty expiry to the server's
+ * Checks the draft and builds the inputs the API takes. An empty risk % is
+ * left to the profile default (the capital is always the profile's, TP-D); an empty expiry to the server's
  * 7 days (LIMIT); a MARKET entry is priced by the server.
  */
 export function toInputs(
@@ -128,16 +124,12 @@ export function toInputs(
     else if (isZero(raw)) errors[field] = { kind: 'positive' };
     return raw;
   };
-  const limit = draft.entryType === 'LIMIT';
+  // LIMIT: the limit price; STOP: the stop price; MARKET: priced by the server.
+  const limit = draft.entryType !== 'MARKET';
   const entry = limit ? price('entryPrice') : '';
   const stop = price('stopLoss');
   const take = price('takeProfit');
 
-  const capital = value(draft.capital);
-  if (capital !== '') {
-    if (!CAPITAL.test(capital)) errors.capital = { kind: 'number' };
-    else if (isZero(capital)) errors.capital = { kind: 'positive' };
-  }
   const risk = value(draft.riskPercent);
   if (risk !== '') {
     if (!PERCENT.test(risk)) errors.riskPercent = { kind: 'number' };
@@ -188,11 +180,13 @@ export function toInputs(
       entryPrice: limit ? entry : null,
       stopLoss: stop,
       takeProfit: take,
-      capital: capital === '' ? null : capital,
       riskPercent: risk === '' ? null : risk,
       leverage,
       expiresAt,
       note: draft.note.trim() === '' ? null : draft.note.trim(),
+      invalidationPrice: null,
+      maxEntryDeviationR: null,
+      analysisTimeframe: null,
     },
   };
 }

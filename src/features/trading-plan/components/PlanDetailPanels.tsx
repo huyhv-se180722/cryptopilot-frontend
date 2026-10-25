@@ -15,6 +15,7 @@ import {
 } from '../../../utils/instant-format';
 import { PlanStatusBadge, SeverityBadge } from './PlanBadges';
 import { planAmount, planPrice, planQuantity, planRatio } from './plan-format';
+import { warningText } from './plan-text';
 
 export function Panel({
   id,
@@ -102,6 +103,12 @@ export function PlanInputsPanel({ plan }: { plan: TradingPlan }) {
         ] as [string, ReactNode][])
       : []),
     [p.expiresAt, plan.expiresAt ? when(plan.expiresAt) : p.noExpiry],
+    ...(plan.invalidationReason
+      ? ([[p.invalidationReason, p[`reason${plan.invalidationReason}`]]] as [
+          string,
+          ReactNode,
+        ][])
+      : []),
   ];
   return (
     <Panel id="plan-inputs-title" title={p.inputsTitle}>
@@ -181,10 +188,13 @@ export function PlanSnapshotPanel({ plan }: { plan: TradingPlan }) {
 export function PlanWarningsPanel({
   warnings,
   blocked,
+  feeShareOfRisk = null,
 }: {
   warnings: readonly PlanWarning[];
   /** Show the blocking hint (a DRAFT whose activation is blocked). */
   blocked: boolean;
+  /** The snapshot's fee share, for HIGH_FEE_SHARE. */
+  feeShareOfRisk?: string | null;
 }) {
   const copy = useCopy();
   const p = copy.plan;
@@ -194,21 +204,24 @@ export function PlanWarningsPanel({
         <p className="text-xs text-muted">{p.noWarnings}</p>
       ) : (
         <ul className="flex flex-col gap-2">
-          {warnings.map((warning) => (
-            <li
-              key={warning.type}
-              className="flex items-start gap-2 text-xs text-fg-2"
-            >
-              <SeverityBadge severity={warning.severity} />
-              <span className="sr-only">
-                {messageText(copy, 'MSG17', [], {
-                  severity: p[`severity${warning.severity}`],
-                  message: p[`warning${warning.type}`],
-                })}
-              </span>
-              <span aria-hidden="true">{p[`warning${warning.type}`]}</span>
-            </li>
-          ))}
+          {warnings.map((warning, index) => {
+            const text = warningText(copy, warning, feeShareOfRisk);
+            return (
+              <li
+                key={(warning.rawType ?? warning.type) + index}
+                className="flex items-start gap-2 text-xs text-fg-2"
+              >
+                <SeverityBadge severity={warning.severity} />
+                <span className="sr-only">
+                  {messageText(copy, 'MSG17', [], {
+                    severity: p[`severity${warning.severity}`],
+                    message: text,
+                  })}
+                </span>
+                <span aria-hidden="true">{text}</span>
+              </li>
+            );
+          })}
         </ul>
       )}
       {blocked && (

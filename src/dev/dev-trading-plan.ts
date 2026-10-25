@@ -49,13 +49,15 @@ function checkInputs(inputs: PlanInputs) {
   const errors: Record<string, string> = {};
   const positive = (value: string | null) =>
     value !== null && /^\d+(\.\d+)?$/.test(value) && Number(value) > 0;
-  if (inputs.entryType === 'LIMIT' && inputs.entryPrice === null)
+  if (inputs.entryType !== 'MARKET' && inputs.entryPrice === null)
     errors.entryPrice = 'MSG01';
+  if (inputs.entryType === 'MARKET' && inputs.invalidationPrice !== null)
+    errors.invalidationPrice = 'MSG01';
   for (const key of [
     'entryPrice',
     'stopLoss',
     'takeProfit',
-    'capital',
+    'invalidationPrice',
   ] as const)
     if (inputs[key] !== null && !positive(inputs[key])) errors[key] = 'MSG15';
   const risk = inputs.riskPercent === null ? null : Number(inputs.riskPercent);
@@ -83,7 +85,7 @@ const TABS: Record<PlanTab, readonly PlanStatus[]> = {
   DRAFT: ['DRAFT'],
   ACTIVE: ['ACTIVE'],
   EXECUTED: ['EXECUTED'],
-  CANCELLED_EXPIRED: ['CANCELLED', 'EXPIRED'],
+  CANCELLED_EXPIRED: ['CANCELLED', 'EXPIRED', 'INVALIDATED'],
 };
 
 function summaryOf(plan: TradingPlan): TradingPlanSummary {
@@ -98,6 +100,7 @@ function summaryOf(plan: TradingPlan): TradingPlanSummary {
     direction: plan.direction,
     entryType: plan.entryType,
     entryPrice: plan.entryPrice,
+    expectedFillPrice: plan.expectedFillPrice,
     stopLoss: plan.stopLoss,
     takeProfit: plan.takeProfit,
     leverage: plan.leverage,
@@ -107,6 +110,12 @@ function summaryOf(plan: TradingPlan): TradingPlanSummary {
     createdAt: created,
     activatedAt: activated?.at ?? null,
     expiresAt: plan.expiresAt,
+    invalidatedAt:
+      plan.status === 'INVALIDATED'
+        ? (plan.statusHistory.at(-1)?.at ?? null)
+        : null,
+    invalidationReason: plan.invalidationReason,
+    positionStatus: plan.position?.status ?? null,
   };
 }
 
@@ -160,21 +169,44 @@ export function createDevelopmentTradingPlan(
     if (!base) return refuse(404, 'RESOURCE_NOT_FOUND', 'MSG41');
     return {
       entryPrice: inputs.entryPrice ?? base.entryPrice,
-      capital: inputs.capital ?? base.capital,
+      expectedFillPrice:
+        inputs.entryType === 'MARKET'
+          ? (base.expectedFillPrice ?? base.entryPrice)
+          : null,
+      capital: base.capital,
       riskPercent: inputs.riskPercent ?? base.riskPercent,
       snapshot: base.snapshot,
       warnings: base.warnings,
       blocksActivation: base.blocksActivation,
     };
   };
+  /** What a save stores from the inputs and the scripted calculation. */
+  const saved = (inputs: PlanInputs, result: PlanCalculation) => ({
+    ...inputs,
+    entryPrice: result.entryPrice,
+    expectedFillPrice: result.expectedFillPrice,
+    plannedEntryPrice: result.entryPrice,
+    capital: result.capital,
+    riskPercent: result.riskPercent,
+    analysisTimeframe: inputs.analysisTimeframe ?? '1h',
+    expiresAt:
+      inputs.expiresAt ??
+      (inputs.entryType === 'MARKET'
+        ? null
+        : new Date(now() + 7 * 86_400_000).toISOString()),
+    snapshot: result.snapshot,
+    warnings: result.warnings,
+    blocksActivation: result.blocksActivation,
+  });
   const activeLimit = async () => {
     const entitlements = (await session())?.entitlements;
     const max =
       entitlements && entitlements !== 'unknown'
         ? entitlements.limits.ACTIVE_PLAN_MAX
         : undefined;
+    // An open position keeps its slot (BR-62, T-048a).
     const active = [...plans.values()].filter(
-      (other) => other.status === 'ACTIVE',
+      (other) => other.status === 'ACTIVE' || other.position?.status === 'OPEN',
     ).length;
     if (typeof max === 'number' && active >= max)
       refuse(409, 'PLAN_LIMIT_REACHED', 'MSG27', [
@@ -205,22 +237,15 @@ export function createDevelopmentTradingPlan(
       const plan: TradingPlan = {
         id: `0199a2c4-0000-7000-8000-${String(900 + created++).padStart(12, '0')}`,
         pairId,
-        ...inputs,
-        entryPrice: result.entryPrice,
-        capital: result.capital,
-        riskPercent: result.riskPercent,
+        ...saved(inputs, result),
         marginMode: inputs.market === 'futures' ? 'ISOLATED' : null,
-        expiresAt:
-          inputs.expiresAt ??
-          (inputs.entryType === 'LIMIT'
-            ? new Date(now() + 7 * 86_400_000).toISOString()
-            : null),
         status: 'DRAFT',
+        invalidationReason: null,
+        setupScoreAtPlan: null,
+        setupScorePreset: null,
         editable: true,
-        snapshot: result.snapshot,
-        warnings: result.warnings,
-        blocksActivation: result.blocksActivation,
         statusHistory: [{ status: 'DRAFT', at }],
+        position: null,
       };
       plans.set(plan.id, plan);
       return activate ? move(plan, 'ACTIVE') : plan;
@@ -236,23 +261,9 @@ export function createDevelopmentTradingPlan(
       if (activate && result.blocksActivation)
         refuse(409, 'TRADING_BLOCKING_WARNING', 'MSG18');
       if (activate) await activeLimit();
-      const saved: TradingPlan = {
-        ...plan,
-        ...inputs,
-        entryPrice: result.entryPrice,
-        capital: result.capital,
-        riskPercent: result.riskPercent,
-        expiresAt:
-          inputs.expiresAt ??
-          (inputs.entryType === 'LIMIT'
-            ? new Date(now() + 7 * 86_400_000).toISOString()
-            : null),
-        snapshot: result.snapshot,
-        warnings: result.warnings,
-        blocksActivation: result.blocksActivation,
-      };
-      plans.set(id, saved);
-      return activate ? move(saved, 'ACTIVE') : saved;
+      const next: TradingPlan = { ...plan, ...saved(inputs, result) };
+      plans.set(id, next);
+      return activate ? move(next, 'ACTIVE') : next;
     },
     async list({ tab, pairId, market, from, page, pageSize }, signal) {
       await pause(signal);

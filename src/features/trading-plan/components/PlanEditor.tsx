@@ -30,7 +30,7 @@ import { pairLabel } from '../../../utils/pair-label';
 import type { ChartPriceLine } from '../../chart/components/AnalysisChart';
 import { usePlanCalculation, useSavePlan } from '../hooks/use-plan-editor';
 import { Panel, PlanSnapshotRows, PlanWarningsPanel } from './PlanDetailPanels';
-import { planPrice } from './plan-format';
+import { planAmount, planPrice } from './plan-format';
 import { priceLines } from './plan-lines';
 import {
   EMPTY_PLAN_DRAFT,
@@ -220,7 +220,7 @@ export function PlanEditor({
   const lines = priceLines(
     {
       entry:
-        draft.entryType === 'LIMIT'
+        draft.entryType !== 'MARKET'
           ? drawablePrice(draft.entryPrice)
           : (result?.entryPrice ?? null),
       stopLoss: drawablePrice(draft.stopLoss),
@@ -344,7 +344,7 @@ export function PlanEditor({
               }))}
             />
           </fieldset>
-          {draft.entryType === 'LIMIT' ? (
+          {draft.entryType !== 'MARKET' ? (
             <Input
               label={p.entryPrice}
               inputMode="decimal"
@@ -394,17 +394,23 @@ export function PlanEditor({
         </Section>
 
         <Section title={p.sectionSizing}>
-          <Input
-            label={p.capital}
-            inputMode="decimal"
-            autoComplete="off"
-            value={draft.capital}
-            onChange={(event) =>
-              change({ capital: event.target.value }, 'capital')
-            }
-            error={errorOf('capital', p.capital)}
-            hint={p.capitalHint}
-          />
+          <div>
+            <span className={fieldLabelClass}>{p.capital}</span>
+            <p className="text-sm text-fg">
+              {result ? (
+                <NumericText value={planAmount(result.capital)} />
+              ) : (
+                copy.market.noValue
+              )}
+            </p>
+            <span
+              className={
+                errorOf('capital', p.capital) ? fieldErrorClass : fieldHintClass
+              }
+            >
+              {errorOf('capital', p.capital) ?? p.capitalHint}
+            </span>
+          </div>
           <Input
             label={`${p.riskPercent} (%)`}
             inputMode="decimal"
@@ -522,6 +528,7 @@ export function PlanEditor({
         <PlanWarningsPanel
           warnings={result?.warnings ?? plan?.warnings ?? []}
           blocked={blocked}
+          feeShareOfRisk={(result ?? plan)?.snapshot.feeShareOfRisk ?? null}
         />
         {saveProblem && Object.keys(saveProblem.fieldErrors).length === 0 && (
           <Banner

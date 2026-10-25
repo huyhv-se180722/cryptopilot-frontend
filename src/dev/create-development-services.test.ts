@@ -307,18 +307,38 @@ describe('development plan seam', () => {
   it('filters by tab, market and period, newest first', async () => {
     const plans = createDevelopmentTradingPlan(async () => free);
     const drafts = await plans.list({ tab: 'DRAFT', page: 1, pageSize: 20 });
-    expect(drafts.items.map((row) => row.status)).toEqual([
-      'DRAFT',
-      'DRAFT',
-      'DRAFT',
-    ]);
+    expect(drafts.total).toBe(5);
+    expect(new Set(drafts.items.map((row) => row.status))).toEqual(
+      new Set(['DRAFT']),
+    );
     const closed = await plans.list({
       tab: 'CANCELLED_EXPIRED',
       page: 1,
       pageSize: 20,
       from: new Date(Date.now() - 30 * 86_400_000).toISOString(),
     });
-    expect(closed.items.map((row) => row.status)).toEqual(['CANCELLED']);
+    // Newest first: INVALIDATED (6, 8 and 9 days), then CANCELLED (12).
+    expect(closed.items.map((row) => row.status)).toEqual([
+      'INVALIDATED',
+      'INVALIDATED',
+      'INVALIDATED',
+      'CANCELLED',
+    ]);
+    expect(closed.items.map((row) => row.invalidationReason)).toEqual([
+      'TAKE_PROFIT_REACHED',
+      'STOP_LOSS_REACHED',
+      'INVALIDATION_PRICE',
+      null,
+    ]);
+    const executed = await plans.list({
+      tab: 'EXECUTED',
+      page: 1,
+      pageSize: 20,
+    });
+    expect(executed.items.map((row) => row.positionStatus)).toEqual([
+      'OPEN',
+      'OPEN',
+    ]);
     const futures = await plans.list({
       tab: 'ACTIVE',
       market: 'futures',
@@ -334,6 +354,12 @@ describe('development plan seam', () => {
     await expect(plans.activate(draft(3))).rejects.toMatchObject({
       problem: { messageCode: 'MSG18' },
     });
+    // Two ACTIVE plans and two open positions fill ACTIVE_PLAN_MAX 3.
+    await expect(plans.activate(draft(1))).rejects.toMatchObject({
+      problem: { messageCode: 'MSG27' },
+    });
+    await plans.cancel(draft(4));
+    await plans.cancel(draft(5));
     expect((await plans.activate(draft(1))).status).toBe('ACTIVE');
     await expect(plans.activate(draft(2))).rejects.toMatchObject({
       problem: {
@@ -502,11 +528,13 @@ describe('development plan editing (SCR-17)', () => {
     entryPrice: '61000',
     stopLoss: '59000',
     takeProfit: '67000',
-    capital: '2000',
     riskPercent: '1',
     leverage: null,
     expiresAt: null,
     note: null,
+    invalidationPrice: null,
+    maxEntryDeviationR: null,
+    analysisTimeframe: '4h',
   };
 
   it('scripts the calculation and refuses inputs like the backend', async () => {
@@ -562,12 +590,12 @@ describe('development plan editing (SCR-17)', () => {
   it('saves a draft, and saves nothing when activation is refused', async () => {
     const plans = createDevelopmentTradingPlan(async () => free);
     const saved = await plans.update(btcDraft, inputs, false);
-    expect(saved).toMatchObject({ status: 'DRAFT', capital: '2000' });
+    expect(saved).toMatchObject({ status: 'DRAFT', riskPercent: '1' });
     expect(saved.expiresAt).not.toBeNull();
     // One ACTIVE plan in the seeds already fills ACTIVE_PLAN_MAX 1.
     await expect(
-      plans.update(btcDraft, { ...inputs, capital: '3000' }, true),
+      plans.update(btcDraft, { ...inputs, riskPercent: '2' }, true),
     ).rejects.toMatchObject({ problem: { messageCode: 'MSG27' } });
-    expect((await plans.get(btcDraft)).capital).toBe('2000');
+    expect((await plans.get(btcDraft)).riskPercent).toBe('1');
   });
 });
