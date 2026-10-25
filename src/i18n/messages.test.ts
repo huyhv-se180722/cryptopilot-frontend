@@ -55,6 +55,20 @@ describe('errorText', () => {
       ),
     ).toBe('Too many failed attempts. Please try again after 12 minutes.');
   });
+  it('never shows a placeholder the problem leaves unfilled', () => {
+    expect(
+      errorText(
+        copy,
+        httpError(
+          { code: 'VALIDATION_FAILED', messageCode: 'MSG01', messageArgs: [] },
+          400,
+        ),
+      ),
+    ).toBe(
+      'The server could not accept this request: a value is missing or not valid.',
+    );
+  });
+
   it('maps account status arguments to words', () => {
     expect(
       errorText(

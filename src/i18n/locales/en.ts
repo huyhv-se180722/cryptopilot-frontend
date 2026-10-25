@@ -97,6 +97,8 @@ export const en = {
     rateLimited:
       'Too many requests. Please wait {seconds} seconds and try again.',
     unknownReference: '—',
+    invalidRequest:
+      'The server could not accept this request: a value is missing or not valid.',
   },
   screens: {
     publicHome: 'Market overview',
