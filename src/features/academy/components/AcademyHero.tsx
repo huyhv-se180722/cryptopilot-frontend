@@ -58,8 +58,7 @@ export function AcademyHero({
     <section
       className="relative mb-8 overflow-hidden rounded-3xl p-6 text-white shadow-xl sm:p-8"
       style={{
-        background:
-          'linear-gradient(135deg, #0b1a3a 0%, #1d4ed8 55%, #7c3aed 100%)',
+        background: 'linear-gradient(135deg, #0b1a3a 0%, #13284f 100%)',
       }}
     >
       <div

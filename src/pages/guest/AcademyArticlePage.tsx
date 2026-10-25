@@ -99,7 +99,6 @@ function Lesson({ article }: { article: AcademyArticle }) {
   return (
     <article>
       <LessonCover
-        slug={article.slug}
         topicSlug={article.topicSlug}
         iconSize={96}
         className="mb-8 rounded-3xl shadow-lg"

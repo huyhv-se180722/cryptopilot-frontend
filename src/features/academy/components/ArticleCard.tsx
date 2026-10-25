@@ -46,7 +46,6 @@ export function ArticleCard({
       className="group flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface no-underline shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lg"
     >
       <LessonCover
-        slug={article.slug}
         topicSlug={article.topicSlug}
         iconSize={44}
         className="h-32 transition-transform duration-300 group-hover:scale-[1.02]"

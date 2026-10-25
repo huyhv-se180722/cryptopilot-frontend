@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { Check, ChevronDown, Search } from 'lucide-react';
 import { EmptyState, ErrorState } from '../../components/feedback/States';
 import { Button } from '../../components/ui/Button';
-import { Select } from '../../components/ui/Select';
+import { Menu } from '../../components/ui/Menu';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { AcademyDisclaimer } from '../../features/academy/components/AcademyDisclaimer';
 import { AcademyHero } from '../../features/academy/components/AcademyHero';
@@ -99,6 +99,7 @@ function AcademyHome() {
   const pages = articles.data
     ? Math.max(1, Math.ceil(articles.data.total / articles.data.pageSize))
     : 1;
+  const topicName = topics.data?.find((t) => t.slug === topic)?.name;
   const lessonTotal = topics.data?.reduce((sum, t) => sum + t.articles, 0);
 
   return (
@@ -125,20 +126,46 @@ function AcademyHome() {
             {a.lessonsTitle}
           </h2>
           <div className="flex flex-wrap items-center gap-3">
-            <Select
+            <Menu
               label={a.topicLabel}
-              inline
-              value={topic ?? ''}
-              onChange={(event) => update({ topic: event.target.value })}
-              className="min-w-60"
-            >
-              <option value="">{a.allTopics}</option>
-              {topics.data?.map((item) => (
-                <option key={item.slug} value={item.slug}>
-                  {item.name} ({item.articles})
-                </option>
-              ))}
-            </Select>
+              align="end"
+              trigger={
+                <span className="inline-flex min-w-60 items-center justify-between gap-3 rounded-full border border-line bg-surface px-4 py-2 text-sm shadow-sm hover:border-line-strong">
+                  <span className="text-xs text-muted-dim">{a.topicLabel}</span>
+                  <span className="font-medium text-fg">
+                    {topicName ?? a.allTopics}
+                  </span>
+                  <ChevronDown
+                    size={14}
+                    aria-hidden="true"
+                    className="text-muted-dim"
+                  />
+                </span>
+              }
+              items={[
+                {
+                  id: 'all',
+                  label: a.allTopics,
+                  icon: topic ? (
+                    <span className="inline-block w-3.5" />
+                  ) : (
+                    <Check size={14} />
+                  ),
+                  onSelect: () => update({ topic: undefined }),
+                },
+                ...(topics.data ?? []).map((item) => ({
+                  id: item.slug,
+                  label: item.name + ' (' + String(item.articles) + ')',
+                  icon:
+                    item.slug === topic ? (
+                      <Check size={14} />
+                    ) : (
+                      <span className="inline-block w-3.5" />
+                    ),
+                  onSelect: () => update({ topic: item.slug }),
+                })),
+              ]}
+            />
             <div
               role="group"
               aria-label={a.levelLabel}

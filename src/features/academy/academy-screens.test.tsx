@@ -68,7 +68,8 @@ function academy(overrides: Partial<AcademyService>): AcademyService {
 }
 
 describe('Academy screens', () => {
-  it('shows a Guest the lessons and the topic select in Vietnamese', async () => {
+  it('shows a Guest the lessons and the topic menu in Vietnamese', async () => {
+    const user = userEvent.setup();
     await renderRoutes(
       [page('/academy', <AcademyPage />)],
       '/academy',
@@ -79,9 +80,11 @@ describe('Academy screens', () => {
       await screen.findByRole('heading', { name: 'Học viện Crypto' }),
     ).toBeTruthy();
     expect(screen.queryByText('Bước 1')).toBeNull();
+    await user.click(await screen.findByRole('button', { name: 'Chủ đề' }));
     expect(
-      await screen.findByRole('option', { name: 'Nhập môn crypto (3)' }),
+      screen.getByRole('menuitem', { name: 'Nhập môn crypto (3)' }),
     ).toBeTruthy();
+    await user.keyboard('{Escape}');
     expect(screen.queryByRole('progressbar')).toBeNull();
     expect(
       (await screen.findAllByRole('link', { name: /Tiền mã hóa là gì\?/ })).map(
@@ -113,10 +116,9 @@ describe('Academy screens', () => {
       { page: 2, pageSize: 12 },
       expect.anything(),
     );
-    await screen.findByRole('option', { name: 'Nhập môn crypto (3)' });
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Chủ đề' }),
-      'nhap-mon-crypto',
+    await user.click(await screen.findByRole('button', { name: 'Chủ đề' }));
+    await user.click(
+      await screen.findByRole('menuitem', { name: 'Nhập môn crypto (3)' }),
     );
     expect(articles).toHaveBeenLastCalledWith(
       { topic: 'nhap-mon-crypto', page: 1, pageSize: 12 },

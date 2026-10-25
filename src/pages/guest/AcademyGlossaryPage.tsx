@@ -66,8 +66,7 @@ function Glossary() {
       <section
         className="mb-4 overflow-hidden rounded-3xl p-6 text-white shadow-lg sm:p-8"
         style={{
-          background:
-            'linear-gradient(135deg, #0b1a3a 0%, #1d4ed8 60%, #0ea5e9 100%)',
+          background: 'linear-gradient(135deg, #0b1a3a 0%, #13284f 100%)',
         }}
       >
         <h1 className="flex items-center gap-2 text-2xl font-bold text-white sm:text-3xl">
