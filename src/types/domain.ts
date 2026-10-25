@@ -1063,3 +1063,59 @@ export interface MarketTrade {
   time: ISODateTime;
   buyerMaker: boolean;
 }
+
+/** How much a reader should already know before an Academy lesson (T-114). */
+export type AcademyLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+export interface AcademyTopic {
+  slug: string;
+  name: string;
+  description: string;
+  /** Published lessons in the topic. */
+  articles: number;
+}
+export interface AcademyArticleSummary {
+  slug: string;
+  title: string;
+  summary: string;
+  level: AcademyLevel;
+  readingMinutes: number;
+  topicSlug: string;
+  topicName: string;
+  /** Place on the beginner path, or null when the lesson is not on it. */
+  pathOrder: number | null;
+}
+export interface AcademyArticlePage {
+  items: readonly AcademyArticleSummary[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+export interface AcademyArticleQuery {
+  topic?: string;
+  level?: AcademyLevel;
+  q?: string;
+  page: number;
+  pageSize: number;
+}
+export interface AcademyArticleLink {
+  slug: string;
+  title: string;
+}
+export interface AcademyArticle extends AcademyArticleSummary {
+  /** Markdown. */
+  body: string;
+  /** A screen of the app the lesson leads to, such as /trade/spot. */
+  appLink: string | null;
+  publishedAt: string;
+  updatedAt: string;
+  previous: AcademyArticleLink | null;
+  next: AcademyArticleLink | null;
+  related: readonly AcademyArticleSummary[];
+}
+export interface AcademyTerm {
+  slug: string;
+  term: string;
+  definition: string;
+  articleSlug: string | null;
+  articleTitle: string | null;
+}

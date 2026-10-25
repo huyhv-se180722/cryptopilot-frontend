@@ -1,4 +1,10 @@
 import type {
+  AcademyArticle,
+  AcademyArticlePage,
+  AcademyArticleQuery,
+  AcademyArticleSummary,
+  AcademyTerm,
+  AcademyTopic,
   AdminLog,
   AiConversation,
   Alert,
@@ -364,6 +370,25 @@ export interface CommunityService {
   ): Promise<PostMediaRef>;
 }
 export type NewsService = ReadService<NewsArticle>;
+
+/**
+ * The Academy (T-114): lessons of crypto theory and a glossary that
+ * everyone, a Guest included, reads. Only published lessons are served.
+ */
+export interface AcademyService {
+  topics(signal?: AbortSignal): Promise<readonly AcademyTopic[]>;
+  articles(
+    query: AcademyArticleQuery,
+    signal?: AbortSignal,
+  ): Promise<AcademyArticlePage>;
+  article(slug: string, signal?: AbortSignal): Promise<AcademyArticle>;
+  /** The beginner path, in order. */
+  path(signal?: AbortSignal): Promise<readonly AcademyArticleSummary[]>;
+  terms(
+    query: { q?: string; letter?: string },
+    signal?: AbortSignal,
+  ): Promise<readonly AcademyTerm[]>;
+}
 
 /**
  * The report moderation queue of SCR-36 (SRS 3.11.3, UC-43), Admin only:

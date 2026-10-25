@@ -8,6 +8,7 @@ import {
   Coins,
   CreditCard,
   FileText,
+  GraduationCap,
   LayoutDashboard,
   Layers,
   Megaphone,
@@ -61,6 +62,8 @@ export const traderNav: readonly NavItem[] = [
   { to: '/ai', labelKey: 'ai', icon: Bot },
   { to: '/news', labelKey: 'news', icon: Newspaper },
   { to: '/community', labelKey: 'community', icon: Users },
+  // The Academy (T-114).
+  { to: '/academy', labelKey: 'academy', icon: GraduationCap },
 ];
 
 /** Account destinations (avatar menu, bell, plan chip). */
