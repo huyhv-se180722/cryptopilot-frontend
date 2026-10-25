@@ -136,25 +136,75 @@ describe('news screen (SCR-28, UC-34)', () => {
     expect(asked.at(-1)).toEqual({ range: '7d' });
   });
 
-  it('loads the next page on request', async () => {
+  it('numbers the pages, keeps the page in the address, and a filter starts again at page 1', async () => {
     const user = userEvent.setup();
+    const asked: { page: number; sentiment?: string }[] = [];
     await openNews(
       service({
-        feed: async (q) => ({
-          items: [
-            { ...summarized, id: 'p' + q.page, title: 'Story ' + q.page },
-          ],
-          page: q.page,
-          pageSize: 1,
-          total: 2,
-        }),
+        feed: async (q) => {
+          asked.push({
+            page: q.page,
+            ...(q.sentiment ? { sentiment: q.sentiment } : {}),
+          });
+          return {
+            items: [
+              { ...summarized, id: 'p' + q.page, title: 'Story ' + q.page },
+            ],
+            page: q.page,
+            pageSize: 20,
+            total: 95,
+          };
+        },
       }),
     );
 
     expect(await screen.findByText('Story 1')).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: 'Xem thêm' }));
-    expect(await screen.findByText('Story 2')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Xem thêm' })).toBeNull();
+    const pager = screen.getByRole('navigation', { name: 'Các trang tin' });
+    expect(
+      within(pager)
+        .getAllByRole('button')
+        .map((b) => b.textContent),
+    ).toEqual(['Trước', '1', '2', '…', '5', 'Sau'].filter((t) => t !== '…'));
+    expect(
+      within(pager)
+        .getByRole('button', { name: 'Trước' })
+        .hasAttribute('disabled'),
+    ).toBe(true);
+
+    await user.click(within(pager).getByRole('button', { name: 'Trang 5' }));
+    expect(await screen.findByText('Story 5')).toBeTruthy();
+    expect(
+      within(pager)
+        .getByRole('button', { name: 'Trang 5' })
+        .getAttribute('aria-current'),
+    ).toBe('page');
+    expect(
+      within(pager)
+        .getByRole('button', { name: 'Sau' })
+        .hasAttribute('disabled'),
+    ).toBe(true);
+
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Xu hướng' }),
+      'BULLISH',
+    );
+    expect(asked.at(-1)).toEqual({ page: 1, sentiment: 'BULLISH' });
+  });
+
+  it('opens the page named in the address', async () => {
+    const asked: number[] = [];
+    await openNews(
+      service({
+        feed: async (q) => {
+          asked.push(q.page);
+          return { items: [collected], page: q.page, pageSize: 20, total: 60 };
+        },
+      }),
+      '/news?page=3',
+    );
+
+    expect(await screen.findByText('Ether staking grows')).toBeTruthy();
+    expect(new Set(asked)).toEqual(new Set([3]));
   });
 
   it('says so when the feed cannot be read, and retries', async () => {

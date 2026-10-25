@@ -35,6 +35,19 @@ export function newsParagraphs(body: string): string[] {
     .filter((p) => p !== '');
 }
 
+/**
+ * The page numbers a pager shows: the first and the last, the current one
+ * with one on each side, and null where pages are skipped.
+ */
+export function pageNumbers(page: number, pages: number): (number | null)[] {
+  const out: (number | null)[] = [];
+  for (let p = 1; p <= pages; p++) {
+    if (p === 1 || p === pages || Math.abs(p - page) <= 1) out.push(p);
+    else if (out.at(-1) !== null) out.push(null);
+  }
+  return out;
+}
+
 /** The sentiments in the order the screen lists them. */
 export const SENTIMENTS: readonly NewsSentiment[] = [
   'BULLISH',

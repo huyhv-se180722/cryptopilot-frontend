@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useServices } from '../../../hooks/use-services';
 import type { NewsQuery } from '../../../types/domain';
 
@@ -8,21 +8,17 @@ export const NEWS_PAGE_SIZE = 20;
 
 export type NewsFilter = Omit<NewsQuery, 'page' | 'pageSize'>;
 
-const nextPage = (last: { page: number; pageSize: number; total: number }) =>
-  last.page * last.pageSize < last.total ? last.page + 1 : undefined;
-
-/** The SCR-28 feed, newest first, a page at a time. */
-export function useNewsFeed(filter: NewsFilter) {
+/**
+ * One numbered page of the SCR-28 feed, newest first; the page shown stays
+ * while the next one loads, so the list does not jump.
+ */
+export function useNewsFeed(filter: NewsFilter, page: number) {
   const { news } = useServices();
-  return useInfiniteQuery({
-    queryKey: [...NEWS_KEY, 'feed', filter],
-    initialPageParam: 1,
-    queryFn: ({ pageParam, signal }) =>
-      news.feed(
-        { ...filter, page: pageParam, pageSize: NEWS_PAGE_SIZE },
-        signal,
-      ),
-    getNextPageParam: nextPage,
+  return useQuery({
+    queryKey: [...NEWS_KEY, 'feed', filter, page],
+    queryFn: ({ signal }) =>
+      news.feed({ ...filter, page, pageSize: NEWS_PAGE_SIZE }, signal),
+    placeholderData: keepPreviousData,
   });
 }
 

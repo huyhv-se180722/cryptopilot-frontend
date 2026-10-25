@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import { Newspaper } from 'lucide-react';
 import { EmptyState, ErrorState } from '../../components/feedback/States';
 import { PageHeader } from '../../components/layout/PageHeader';
-import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { NewsCard } from '../../features/news/components/NewsCard';
 import { NewsLocale } from '../../features/news/components/NewsLocale';
@@ -13,7 +12,11 @@ import {
   type NewsFilterValue,
 } from '../../features/news/components/NewsFilters';
 import { SENTIMENTS } from '../../features/news/components/news-format';
-import { useNewsFeed } from '../../features/news/hooks/use-news';
+import {
+  NEWS_PAGE_SIZE,
+  useNewsFeed,
+} from '../../features/news/hooks/use-news';
+import { NewsPagination } from '../../features/news/components/NewsPagination';
 import { MarketOverview } from '../../features/market/components/MarketOverview';
 import { useCopy } from '../../hooks/use-copy';
 import { errorText } from '../../i18n/messages';
@@ -61,11 +64,16 @@ function NewsFeed() {
   );
   const filtered = filters.coin !== '' || filters.sentiment !== '';
 
+  const pageParam = Number(params.get('page') ?? '1');
+  const page = Number.isInteger(pageParam) && pageParam > 0 ? pageParam : 1;
+
   const update = useCallback(
     (next: NewsFilterValue) => {
       setParams(
         (current) => {
           const out = new URLSearchParams(current);
+          // Another filter is another list: it starts at its first page.
+          out.delete('page');
           for (const [key, value] of Object.entries(next)) {
             if (!value || (key === 'range' && value === DEFAULT_RANGE))
               out.delete(key);
@@ -79,12 +87,31 @@ function NewsFeed() {
     [setParams],
   );
 
-  const feed = useNewsFeed({
-    ...(filters.coin ? { coin: filters.coin } : {}),
-    ...(filters.sentiment ? { sentiment: filters.sentiment } : {}),
-    range: filters.range,
-  });
-  const articles = feed.data?.pages.flatMap((p) => p.items) ?? [];
+  const goTo = useCallback(
+    (next: number) => {
+      setParams((current) => {
+        const out = new URLSearchParams(current);
+        if (next <= 1) out.delete('page');
+        else out.set('page', String(next));
+        return out;
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    [setParams],
+  );
+
+  const feed = useNewsFeed(
+    {
+      ...(filters.coin ? { coin: filters.coin } : {}),
+      ...(filters.sentiment ? { sentiment: filters.sentiment } : {}),
+      range: filters.range,
+    },
+    page,
+  );
+  const articles = feed.data?.items ?? [];
+  const pages = feed.data
+    ? Math.max(1, Math.ceil(feed.data.total / NEWS_PAGE_SIZE))
+    : 1;
 
   const body = feed.isPending ? (
     <div className="grid gap-3">
@@ -108,17 +135,7 @@ function NewsFeed() {
       {articles.map((article) => (
         <NewsCard key={article.id} article={article} />
       ))}
-      {feed.hasNextPage && (
-        <div className="flex justify-center pt-1">
-          <Button
-            variant="secondary"
-            disabled={feed.isFetchingNextPage}
-            onClick={() => void feed.fetchNextPage()}
-          >
-            {n.loadMore}
-          </Button>
-        </div>
-      )}
+      <NewsPagination page={page} pages={pages} onChange={goTo} />
     </div>
   );
 
