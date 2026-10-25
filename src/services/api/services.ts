@@ -4,6 +4,7 @@ import type {
   AdminPairService,
   AdminService,
   AdminSettingService,
+  AdminUserService,
   AiService,
   AlertsService,
   AnalysisService,
@@ -51,4 +52,5 @@ export interface Services {
   admin: AdminService;
   adminPairs: AdminPairService;
   adminSettings: AdminSettingService;
+  adminUsers: AdminUserService;
 }

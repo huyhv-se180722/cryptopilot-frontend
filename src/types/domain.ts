@@ -1624,3 +1624,61 @@ export interface SystemSetting {
   updatedBy: string | null;
   updatedAt: ISODateTime;
 }
+
+/** SCR-34: one account as the administration console lists it (UC-42). */
+export interface AdminUserSummary {
+  userId: string;
+  email: string;
+  displayName: string | null;
+  role: AccountRole;
+  status: AccountStatus;
+  /** The effective plan now. */
+  plan: PlanTier;
+  emailVerified: boolean;
+  lastLoginAt: ISODateTime | null;
+  createdAt: ISODateTime;
+}
+
+export interface AdminUserQuery {
+  /** Part of the email or display name. */
+  q?: string;
+  role?: AccountRole;
+  status?: AccountStatus;
+  plan?: PlanTier;
+  /** One-based. */
+  page: number;
+}
+
+export interface AdminUserPage {
+  items: readonly AdminUserSummary[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+/** One audit entry about an account, newest first (BR-57). */
+export interface AuditEntry {
+  recordedAt: ISODateTime;
+  /** Null for the system. */
+  actorId: string | null;
+  /** e.g. ACCOUNT_LOCKED; kept as sent so a new action still shows. */
+  action: string;
+  /** The changed fields as JSON text. */
+  oldValue: string | null;
+  newValue: string | null;
+  ipAddress: string | null;
+}
+
+/** SCR-35: an account with its profile, activity counts and audit. */
+export interface AdminUserDetail {
+  account: AdminUserSummary;
+  tradingStyle: TradingStyle | null;
+  riskProfile: RiskProfile | null;
+  /** Named counts, e.g. plans, trades, posts. */
+  activity: Readonly<Record<string, number>>;
+  /** The latest 20 entries. */
+  recentAudit: readonly AuditEntry[];
+}
+
+/** The status changes of UC-42; each needs a reason (MSG39). */
+export type AccountAction = 'lock' | 'unlock' | 'ban';

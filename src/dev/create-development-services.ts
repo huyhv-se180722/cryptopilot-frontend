@@ -1,6 +1,7 @@
 import type { Services } from '../services/api/services';
 import { createDevelopmentAdminPairs } from './dev-admin-pairs';
 import { createDevelopmentAdminSettings } from './dev-admin-settings';
+import { createDevelopmentAdminUsers } from './dev-admin-users';
 import { createDevelopmentAuth } from './dev-auth';
 import { createDevelopmentCommunity } from './dev-community';
 import { createDevelopmentMarket } from './dev-market';
@@ -30,5 +31,6 @@ export function createDevelopmentServices(base: Services): Services {
     ...createDevelopmentNotifications(() => auth.restoreSession()),
     adminPairs: createDevelopmentAdminPairs(),
     adminSettings: createDevelopmentAdminSettings(),
+    adminUsers: createDevelopmentAdminUsers(() => auth.restoreSession()),
   };
 }
