@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { useCopy } from '../../../hooks/use-copy';
 import { useServices } from '../../../hooks/use-services';
 import { errorText } from '../../../i18n/messages';
@@ -9,8 +10,8 @@ const LATEST = 5;
 
 /**
  * Latest news (SCR-08, opens SCR-28): the five newest articles of the
- * feed, the AI's headline once summarized (D-123), each opening the
- * original article in a new tab.
+ * feed, the AI's headline once summarized (D-123), each opening its page
+ * in the app (D-125).
  */
 export function NewsBlock() {
   const copy = useCopy();
@@ -34,13 +35,9 @@ export function NewsBlock() {
               key={article.id}
               className="border-b border-line px-4 py-3 text-xs last:border-b-0"
             >
-              <a
-                href={article.originalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <Link to={'/news/' + encodeURIComponent(article.id)}>
                 {article.title}
-              </a>
+              </Link>
               <span className="mt-0.5 block text-[11px] text-muted-dim">
                 {article.source}
               </span>

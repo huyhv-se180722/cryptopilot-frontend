@@ -102,6 +102,10 @@ export const screenPages: Readonly<Record<string, PageModule>> = {
   '/news': async () => ({
     Component: (await import('../../pages/trader/NewsPage')).NewsPage,
   }),
+  '/news/:articleId': async () => ({
+    Component: (await import('../../pages/trader/NewsArticlePage'))
+      .NewsArticlePage,
+  }),
   '/profile': async () => ({
     Component: (await import('../../pages/trader/ProfilePage')).ProfilePage,
   }),

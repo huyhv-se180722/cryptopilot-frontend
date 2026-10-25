@@ -11,7 +11,8 @@ const LATEST = 5;
 
 /**
  * SCR-10 / SCR-11 latest news tagged with the base coin (SRS 3.3.2),
- * linking to that coin's news on SCR-28.
+ * linking to that coin's news on SCR-28; an article opens its page in the
+ * app (D-125).
  */
 export function PairNews({ coin }: { coin: string }) {
   const copy = useCopy();
@@ -49,13 +50,9 @@ export function PairNews({ coin }: { coin: string }) {
         <ul className="flex flex-col gap-2">
           {query.data.items.map((article) => (
             <li key={article.id} className="text-xs">
-              <a
-                href={article.originalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <Link to={'/news/' + encodeURIComponent(article.id)}>
                 {article.title}
-              </a>
+              </Link>
               <span className="ml-1.5 text-[11px] text-muted-dim">
                 {article.source}
               </span>

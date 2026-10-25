@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createHttpClient } from './http-client';
 import { createHttpNewsService, createPendingNewsService } from './news';
 
-/** Shapes of backend `feature/T-080-news-api` @ cdfefd7 (`NewsArticleResponse`). */
+/** Shapes of backend `feature/T-080c-news-article` @ 4109a68 (`NewsArticleResponse`). */
 const ARTICLE = {
   articleId: '019b76da-a800-7d01-8000-0000000000a1',
   title: 'ETF Bitcoin bị rút $635 triệu',
@@ -17,6 +17,7 @@ const ARTICLE = {
     { symbol: 'BTC', primary: true },
     { symbol: 'ETH', primary: false },
   ],
+  imageUrl: 'https://img.example.test/a1.jpg',
 };
 const PAGE = { items: [ARTICLE], page: 1, pageSize: 20, total: 1 };
 
@@ -69,7 +70,40 @@ describe('news service (UC-34)', () => {
       aiSummarized: true,
       sentiment: 'BEARISH',
       coins: ARTICLE.coins,
+      imageUrl: 'https://img.example.test/a1.jpg',
     });
+  });
+
+  it('reads one article for its page, with the body the AI wrote (D-125)', async () => {
+    const { service, calls } = setup({
+      ...ARTICLE,
+      body: 'Đoạn một.\n\nĐoạn hai.',
+    });
+
+    const article = await service.article(ARTICLE.articleId);
+
+    expect(calls[0]?.pathname).toBe('/api/v1/news/' + ARTICLE.articleId);
+    expect(article).toMatchObject({
+      id: ARTICLE.articleId,
+      body: 'Đoạn một.\n\nĐoạn hai.',
+      imageUrl: 'https://img.example.test/a1.jpg',
+    });
+    const { service: bare } = setup({ ...ARTICLE, body: null, imageUrl: null });
+    expect(await bare.article('x')).toMatchObject({
+      body: null,
+      imageUrl: null,
+    });
+  });
+
+  it('drops an image address that is not http(s), so the placeholder shows', async () => {
+    const { service } = setup({
+      ...PAGE,
+      items: [{ ...ARTICLE, imageUrl: 'javascript:alert(1)' }],
+    });
+
+    const [article] = (await service.feed({ page: 1, pageSize: 20 })).items;
+
+    expect(article?.imageUrl).toBeNull();
   });
 
   it('reads an unsummarized article without sentiment, summary or coins', async () => {

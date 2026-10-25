@@ -1,5 +1,6 @@
 import type {
   NewsArticle,
+  NewsArticleDetail,
   NewsCoinTag,
   NewsPage,
   NewsSentiment,
@@ -17,9 +18,10 @@ import {
 } from './decode';
 
 /**
- * Decoders for `/news` and `/news/sentiment-summary` (UC-34, D-122,
- * D-123), checked against backend `feature/T-080-news-api` @ cdfefd7:
- * `PageResponse<NewsArticleResponse>` and `NewsSentimentSummaryResponse`.
+ * Decoders for `/news`, `/news/{id}` and `/news/sentiment-summary` (UC-34,
+ * D-122, D-123, D-125), checked against backend
+ * `feature/T-080c-news-article` @ 4109a68: `PageResponse<NewsArticleResponse>`,
+ * `NewsArticleDetailResponse` and `NewsSentimentSummaryResponse`.
  */
 export const NEWS_SENTIMENTS: readonly NewsSentiment[] = [
   'BULLISH',
@@ -50,6 +52,16 @@ function webAddress(value: unknown, name: string): string {
   return url.href;
 }
 
+/** An image address from outside data: kept only when it is http(s), else the placeholder is shown. */
+function imageAddress(value: unknown, name: string): string | null {
+  if (value === null || value === undefined) return null;
+  try {
+    return webAddress(value, name);
+  } catch {
+    return null;
+  }
+}
+
 function decodeCoin(body: unknown): NewsCoinTag {
   const value = record(body, 'coin');
   return {
@@ -74,6 +86,15 @@ export function decodeNewsArticle(body: unknown): NewsArticle {
         ? null
         : oneOf(NEWS_SENTIMENTS, value.sentiment, 'sentiment'),
     coins: list(value.coins ?? [], 'coins').map(decodeCoin),
+    imageUrl: imageAddress(value.imageUrl, 'imageUrl'),
+  };
+}
+
+export function decodeNewsArticleDetail(body: unknown): NewsArticleDetail {
+  const value = record(body, 'article');
+  return {
+    ...decodeNewsArticle(body),
+    body: nullableText(value.body, 'body'),
   };
 }
 

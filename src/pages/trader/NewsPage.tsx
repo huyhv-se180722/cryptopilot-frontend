@@ -6,6 +6,7 @@ import { PageHeader } from '../../components/layout/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { NewsCard } from '../../features/news/components/NewsCard';
+import { NewsLocale } from '../../features/news/components/NewsLocale';
 import {
   DEFAULT_RANGE,
   NewsFilters,
@@ -27,8 +28,18 @@ const RANGES: readonly NewsRange[] = ['24h', '7d', '30d'];
  * Filters by coin, sentiment and period live in the URL, so a coin tag or
  * an analysis screen links to its news; the 24-hour summary bar filters
  * by sentiment. No Figma frame: the layout follows SCR-24 and SCR-15.
+ * Items read like a news site and open their page in the app (D-125); the
+ * screen is in Vietnamese like the articles.
  */
 export function NewsPage() {
+  return (
+    <NewsLocale>
+      <NewsFeed />
+    </NewsLocale>
+  );
+}
+
+function NewsFeed() {
   const copy = useCopy();
   const n = copy.news;
   const [params, setParams] = useSearchParams();

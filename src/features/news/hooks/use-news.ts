@@ -26,6 +26,15 @@ export function useNewsFeed(filter: NewsFilter) {
   });
 }
 
+/** One article for its page in the app (D-125). */
+export function useNewsArticle(id: string) {
+  const { news } = useServices();
+  return useQuery({
+    queryKey: [...NEWS_KEY, 'article', id],
+    queryFn: ({ signal }) => news.article(id, signal),
+  });
+}
+
 /** The 24-hour count per sentiment of the summary bar (SRS 3.8.1). */
 export function useSentimentSummary() {
   const { news } = useServices();

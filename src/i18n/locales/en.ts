@@ -123,6 +123,7 @@ export const en = {
     postEdit: 'Edit post',
     member: 'Member',
     news: 'News',
+    newsArticle: 'News article',
     ai: 'AI assistant',
     subscription: 'Subscription',
     paymentResult: 'Payment result',
@@ -1404,6 +1405,17 @@ export const en = {
     disclaimer:
       'AI summaries and sentiment describe the article; they are not advice to buy or sell.',
     allCoinNews: 'All {coin} news',
+    backToNews: 'All news',
+    articleNotFound: 'This article is not available',
+    articleNotFoundHint: 'It may have been removed from the feed.',
+    publishedOn: 'Published {date}',
+    imageCredit: 'Image: {source}',
+    sourceLabel: 'Source',
+    readOriginal: 'Read the original article',
+    aiRewritten:
+      'This article was rewritten and shortened by AI from the original. Figures and quotes come from the source; check it for details. It is not advice to buy or sell.',
+    bodyPending:
+      'The full article is still being written; here is its summary for now.',
   },
   notifications: {
     title: 'Notifications',

@@ -22,6 +22,19 @@ export function newsAge(copy: Copy, iso: string, now = Date.now()): string {
   return formatInstantLocal(iso).slice(0, 10);
 }
 
+/** The in-app page of an article (D-125). */
+export function newsArticlePath(id: string): string {
+  return '/news/' + encodeURIComponent(id);
+}
+
+/** The article written again, as its paragraphs: split on blank lines, empty ones dropped. */
+export function newsParagraphs(body: string): string[] {
+  return body
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter((p) => p !== '');
+}
+
 /** The sentiments in the order the screen lists them. */
 export const SENTIMENTS: readonly NewsSentiment[] = [
   'BULLISH',
