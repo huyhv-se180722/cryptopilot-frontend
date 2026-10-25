@@ -141,11 +141,11 @@ export async function createServices(env: Environment): Promise<Services> {
     newsAdmin: connected
       ? createHttpNewsAdminService(http)
       : createPendingNewsAdminService(),
-    // The bell polls (TD 9 fallback) until the backend accepts a
-    // subscription to the notification queue (Q-75): the refusal closes
-    // the account's connection, and with it the demo trading pushes.
+    // New notifications are pushed on the signed-in connection (Q-75
+    // answered: the backend admits the queue); the bell polls only while
+    // that connection is not open (TD 9 fallback).
     notifications: connected
-      ? createHttpNotificationService(http)
+      ? createHttpNotificationService(http, accountFeed)
       : createPendingNotificationService(),
     moderation: connected
       ? createHttpModerationService(http)
