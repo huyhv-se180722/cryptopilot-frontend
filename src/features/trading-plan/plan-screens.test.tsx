@@ -562,6 +562,67 @@ describe('SCR-18 plan detail (T-041)', () => {
     ).toBe('—');
   });
 
+  it('shows the real loss, R:R after fees, the costs and the fee share (D-116)', async () => {
+    const costly: TradingPlan = {
+      ...PLAN,
+      entryType: 'MARKET',
+      entryPrice: '62000.000000000000',
+      expectedFillPrice: '62003.100000000000',
+      snapshot: {
+        ...PLAN.snapshot,
+        estimatedEntryFee: '3.10015500',
+        estimatedStopLossExitFee: '3.09500000',
+        estimatedTakeProfitExitFee: '1.24600000',
+        estimatedSlippage: '0.30950000',
+        lossAtStopLoss: '16.50465500',
+        feeShareOfRisk: '0.65046550',
+        netRiskReward: '1.51213436',
+      },
+      warnings: [{ type: 'HIGH_FEE_SHARE', severity: 'WARNING' }],
+    };
+    await open(
+      '/plans/' + PLAN.id,
+      fakePlans({ get: vi.fn(async () => costly) }),
+    );
+    const snapshot = within(
+      await screen.findByRole('region', { name: 'Calculation snapshot' }),
+    );
+    const value = (label: string) =>
+      snapshot.getByText(label).nextSibling?.textContent;
+    expect(value('Real loss at stop loss (USDT)')).toBe('16.50');
+    expect(value('Reward / risk after fees')).toBe('1.51');
+    expect(value('Entry fee (USDT)')).toBe('3.10');
+    expect(value('Exit fee at stop loss (USDT)')).toBe('3.10');
+    expect(value('Exit fee at take profit (USDT)')).toBe('1.25');
+    expect(value('Slippage (USDT)')).toBe('0.31');
+    expect(value('Share of the risk')).toBe('65.05%');
+    expect(snapshot.getByText(/Funding and the liquidation fee/)).toBeTruthy();
+    const inputs = within(screen.getByRole('region', { name: 'Plan inputs' }));
+    expect(inputs.getByText('Expected fill').nextSibling?.textContent).toBe(
+      '62,003.10',
+    );
+    const warnings = within(screen.getByRole('region', { name: 'Warnings' }));
+    expect(
+      warnings.getByText('Fees and slippage are 65.05% of the risk'),
+    ).toBeTruthy();
+  });
+
+  it('shows a dash for the costs of a plan saved before them', async () => {
+    await open('/plans/' + PLAN.id);
+    const snapshot = within(
+      await screen.findByRole('region', { name: 'Calculation snapshot' }),
+    );
+    expect(
+      snapshot.getByText('Real loss at stop loss (USDT)').nextSibling
+        ?.textContent,
+    ).toBe('—');
+    expect(
+      snapshot.getByText('Reward / risk after fees').nextSibling?.textContent,
+    ).toBe('—');
+    expect(snapshot.queryByText('Fees and slippage (est.)')).toBeNull();
+    expect(screen.queryByText('Expected fill')).toBeNull();
+  });
+
   it('activates a draft with MSG19 and shows the new status', async () => {
     const service = await open('/plans/' + PLAN.id);
     await userEvent.click(
@@ -969,6 +1030,39 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
       capital: '2000',
       leverage: null,
     });
+  });
+
+  it('shows the expected fill of a market entry only when slippage moves it (D-112)', async () => {
+    const market = { ...SPOT_DRAFT, entryType: 'MARKET' as const };
+    const service = fakePlans({
+      get: vi.fn(async () => market),
+      calculate: vi.fn(async () => ({
+        ...calculation(),
+        expectedFillPrice: '62003.10',
+      })),
+    });
+    await open(editPath, service);
+    expect(
+      (await screen.findByText('Expected fill')).nextSibling?.textContent,
+    ).toBe('62,003.10');
+  });
+
+  it('hides the expected fill when it equals the current price', async () => {
+    const market = { ...SPOT_DRAFT, entryType: 'MARKET' as const };
+    const service = fakePlans({
+      get: vi.fn(async () => market),
+      calculate: vi.fn(async () => ({
+        ...calculation(),
+        expectedFillPrice: '62000.000',
+      })),
+    });
+    await open(editPath, service);
+    const panel = within(
+      await screen.findByRole('region', { name: 'Risk calculation' }),
+    );
+    await panel.findByText('Risk (USDT)');
+    expect(screen.getByText('Current last price')).toBeTruthy();
+    expect(screen.queryByText('Expected fill')).toBeNull();
   });
 
   it('shows MSG16 under the stop loss and sends nothing while the order is wrong', async () => {
