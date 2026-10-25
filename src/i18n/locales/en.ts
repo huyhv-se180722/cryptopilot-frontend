@@ -1601,6 +1601,47 @@ export const en = {
     registered: '{pair} added as inactive.',
     alreadyRegistered: 'This symbol is already a pair.',
   },
+  adminBrackets: {
+    title: 'Leverage brackets',
+    subtitle:
+      'The notional ranges of a Futures pair, with the highest leverage and the maintenance margin rate of each.',
+    pairField: 'Futures pair',
+    noFutures: 'No pair is listed on Futures by the exchange.',
+    ceiling:
+      'Pair ceiling: {value}x. The first bracket must allow at least that.',
+    noCeiling:
+      'The pair has no leverage ceiling yet; set it with Edit on Pairs.',
+    empty:
+      'This pair has no brackets: Futures plans on it are refused until they are saved.',
+    tableCaption: 'Leverage brackets of {pair}',
+    colNo: '#',
+    colFrom: 'From (USDT)',
+    colTo: 'To (USDT)',
+    colLeverage: 'Max leverage',
+    colRate: 'Maintenance margin (%)',
+    colAmount: 'Maintenance amount (USDT)',
+    colRemove: 'Remove',
+    toLabel: 'To (USDT) of bracket {n}',
+    leverageLabel: 'Max leverage of bracket {n}',
+    rateLabel: 'Maintenance margin (%) of bracket {n}',
+    removeLabel: 'Remove bracket {n}',
+    amountPending: 'Worked out on save',
+    addBracket: 'Add bracket',
+    save: 'Save brackets',
+    discard: 'Discard changes',
+    saved: 'Brackets of {pair} saved.',
+    rules:
+      'Each bracket starts where the one before ends; the leverage never rises from one bracket to the next; the maintenance amount follows from the rates (BR-26, BR-27). Up to 50 brackets.',
+    errRequired: 'Required.',
+    errCap: 'Above the start of the bracket.',
+    errLeverage: 'A whole number from 1 to 125, at most the bracket before.',
+    errRate: 'Above 0 and below 100, up to 6 decimals.',
+    errFloor: 'Must start where the bracket before ends.',
+    errFirstLeverage:
+      'Below the pair ceiling; raise it or lower the ceiling first.',
+    errAmount: 'Does not follow from the rates.',
+    notTrading: 'The exchange has never listed this pair on Futures.',
+  },
   announcements: {
     title: 'Announcements',
     subtitle:
