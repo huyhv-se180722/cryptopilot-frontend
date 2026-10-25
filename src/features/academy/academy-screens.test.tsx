@@ -68,7 +68,7 @@ function academy(overrides: Partial<AcademyService>): AcademyService {
 }
 
 describe('Academy screens', () => {
-  it('shows a Guest the path, the topics and the lessons in Vietnamese', async () => {
+  it('shows a Guest the lessons and the topic select in Vietnamese', async () => {
     await renderRoutes(
       [page('/academy', <AcademyPage />)],
       '/academy',
@@ -78,12 +78,11 @@ describe('Academy screens', () => {
     expect(
       await screen.findByRole('heading', { name: 'Học viện Crypto' }),
     ).toBeTruthy();
-    expect(await screen.findByText('Bước 1')).toBeTruthy();
+    expect(screen.queryByText('Bước 1')).toBeNull();
     expect(
-      (
-        await screen.findByRole('button', { name: /Nhập môn crypto/ })
-      ).getAttribute('aria-pressed'),
-    ).toBe('false');
+      await screen.findByRole('option', { name: 'Nhập môn crypto (3)' }),
+    ).toBeTruthy();
+    expect(screen.queryByRole('progressbar')).toBeNull();
     expect(
       (await screen.findAllByRole('link', { name: /Tiền mã hóa là gì\?/ })).map(
         (link) => link.getAttribute('href'),
@@ -114,8 +113,10 @@ describe('Academy screens', () => {
       { page: 2, pageSize: 12 },
       expect.anything(),
     );
-    await user.click(
-      await screen.findByRole('button', { name: /Nhập môn crypto/ }),
+    await screen.findByRole('option', { name: 'Nhập môn crypto (3)' });
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Chủ đề' }),
+      'nhap-mon-crypto',
     );
     expect(articles).toHaveBeenLastCalledWith(
       { topic: 'nhap-mon-crypto', page: 1, pageSize: 12 },
@@ -265,7 +266,7 @@ describe('Academy screens', () => {
     expect(progress).not.toHaveBeenCalled();
   });
 
-  it("shows a Trader's progress on the beginner path", async () => {
+  it('shows a Trader how many lessons they have read', async () => {
     await renderRoutes(
       [page('/academy', <AcademyPage />)],
       '/academy',
@@ -283,16 +284,14 @@ describe('Academy screens', () => {
         }),
       },
     );
-    expect(
-      await screen.findByText('Bạn đã học 1/11 bài của lộ trình'),
-    ).toBeTruthy();
+    expect(await screen.findByText('Bạn đã đọc 1/21 bài')).toBeTruthy();
     expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe(
       '1',
     );
     expect(screen.getAllByText('Đã học').length).toBeGreaterThan(0);
   });
 
-  it('puts the glossary at the top and keeps one topic filter', async () => {
+  it('puts the glossary at the top', async () => {
     await renderRoutes(
       [page('/academy', <AcademyPage />)],
       '/academy',
@@ -320,11 +319,5 @@ describe('Academy screens', () => {
         .getByRole('link', { name: /Xem tất cả 1 thuật ngữ/ })
         .getAttribute('href'),
     ).toBe('/academy/glossary');
-    expect(screen.queryByRole('combobox')).toBeNull();
-    expect(
-      screen
-        .getByRole('button', { name: /Tất cả chủ đề/ })
-        .getAttribute('aria-pressed'),
-    ).toBe('true');
   });
 });

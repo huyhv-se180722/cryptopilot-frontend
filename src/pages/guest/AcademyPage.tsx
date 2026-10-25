@@ -1,19 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, X } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { EmptyState, ErrorState } from '../../components/feedback/States';
 import { Button } from '../../components/ui/Button';
+import { Select } from '../../components/ui/Select';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { AcademyDisclaimer } from '../../features/academy/components/AcademyDisclaimer';
 import { AcademyHero } from '../../features/academy/components/AcademyHero';
 import { AcademyLocale } from '../../features/academy/components/AcademyLocale';
 import { ArticleCard } from '../../features/academy/components/ArticleCard';
-import { BeginnerPath } from '../../features/academy/components/BeginnerPath';
-import { TopicFilter } from '../../features/academy/components/TopicFilter';
 import {
   ACADEMY_PAGE_SIZE,
   useAcademyArticles,
-  useAcademyPath,
   useAcademyProgress,
   useAcademyTerms,
   useAcademyTopics,
@@ -38,9 +36,9 @@ const asLevel = (value: string | null): AcademyLevel | undefined =>
 
 /**
  * The Academy home (T-114), as Binance Academy or Bitcoin.com Learn: a hero
- * with the lesson search and the glossary, the beginner path, the topics —
- * which are the topic filter — and every lesson with its cover, filtered by
- * topic, level and the search. The filters and the page are in the address,
+ * with the lesson search, the glossary and, for a Trader, how many lessons
+ * they have read; then every lesson with its cover, filtered by a topic
+ * select, the level and the search. The filters and the page are in the address,
  * so a reload or a shared link opens the same list. Guests read it.
  */
 export function AcademyPage() {
@@ -91,7 +89,6 @@ function AcademyHome() {
   );
   const topics = useAcademyTopics();
   const terms = useAcademyTerms({});
-  const path = useAcademyPath();
   const articles = useAcademyArticles({
     ...(topic ? { topic } : {}),
     ...(level ? { level } : {}),
@@ -103,7 +100,6 @@ function AcademyHome() {
     ? Math.max(1, Math.ceil(articles.data.total / articles.data.pageSize))
     : 1;
   const lessonTotal = topics.data?.reduce((sum, t) => sum + t.articles, 0);
-  const topicName = topics.data?.find((t) => t.slug === topic)?.name;
 
   return (
     <div className="mx-auto w-full max-w-6xl">
@@ -113,78 +109,58 @@ function AcademyHome() {
         lessons={lessonTotal}
         topics={topics.data?.length}
         terms={terms.data}
+        read={
+          progress.data
+            ? {
+                done: progress.data.completed.length,
+                total: progress.data.publishedTotal,
+              }
+            : undefined
+        }
       />
 
-      {path.isPending ? (
-        <Skeleton className="mb-10 h-48 w-full rounded-2xl" />
-      ) : path.isError ? (
-        <ErrorState
-          message={errorText(copy, path.error)}
-          onRetry={() => void path.refetch()}
-        />
-      ) : (
-        <BeginnerPath steps={path.data} progress={progress.data} />
-      )}
-
-      <section aria-labelledby="academy-topics" className="mb-10">
-        <h2 id="academy-topics" className="mb-4 text-lg font-semibold text-fg">
-          {a.topicsTitle}
-        </h2>
-        {topics.isPending ? (
-          <Skeleton className="h-36 w-full rounded-2xl" />
-        ) : topics.isError ? (
-          <ErrorState
-            message={errorText(copy, topics.error)}
-            onRetry={() => void topics.refetch()}
-          />
-        ) : (
-          <TopicFilter
-            topics={topics.data}
-            selected={topic}
-            total={lessonTotal ?? 0}
-            onSelect={(next) => update({ topic: next })}
-          />
-        )}
-      </section>
-
       <section aria-labelledby="academy-lessons">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 id="academy-lessons" className="text-lg font-semibold text-fg">
-              {a.lessonsTitle}
-            </h2>
-            {topicName && (
-              <button
-                type="button"
-                onClick={() => update({ topic: undefined })}
-                className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-primary"
-              >
-                {formatCopy(a.filteringBy, { topic: topicName })}
-                <X size={12} aria-label={a.clearFilter} />
-              </button>
-            )}
-          </div>
-          <div
-            role="group"
-            aria-label={a.levelLabel}
-            className="inline-flex rounded-full border border-line bg-surface p-1"
-          >
-            {[undefined, ...LEVELS].map((item) => (
-              <button
-                key={item ?? 'all'}
-                type="button"
-                aria-pressed={level === item}
-                onClick={() => update({ level: item })}
-                className={classNames(
-                  'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
-                  level === item
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'text-muted-dim hover:text-fg',
-                )}
-              >
-                {item ? a.levels[item] : a.allLevels}
-              </button>
-            ))}
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <h2 id="academy-lessons" className="text-lg font-semibold text-fg">
+            {a.lessonsTitle}
+          </h2>
+          <div className="flex flex-wrap items-center gap-3">
+            <Select
+              label={a.topicLabel}
+              inline
+              value={topic ?? ''}
+              onChange={(event) => update({ topic: event.target.value })}
+              className="min-w-60"
+            >
+              <option value="">{a.allTopics}</option>
+              {topics.data?.map((item) => (
+                <option key={item.slug} value={item.slug}>
+                  {item.name} ({item.articles})
+                </option>
+              ))}
+            </Select>
+            <div
+              role="group"
+              aria-label={a.levelLabel}
+              className="inline-flex rounded-full border border-line bg-surface p-1"
+            >
+              {[undefined, ...LEVELS].map((item) => (
+                <button
+                  key={item ?? 'all'}
+                  type="button"
+                  aria-pressed={level === item}
+                  onClick={() => update({ level: item })}
+                  className={classNames(
+                    'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
+                    level === item
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'text-muted-dim hover:text-fg',
+                  )}
+                >
+                  {item ? a.levels[item] : a.allLevels}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

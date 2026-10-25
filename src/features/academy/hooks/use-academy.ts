@@ -29,16 +29,6 @@ export function useAcademyTopics() {
   });
 }
 
-/** The beginner path, in order. */
-export function useAcademyPath() {
-  const { academy } = useServices();
-  return useQuery({
-    queryKey: [...ACADEMY_KEY, 'path'],
-    queryFn: ({ signal }) => academy.path(signal),
-    staleTime: STALE_MS,
-  });
-}
-
 /** One page of lessons; the shown page stays while the next one loads. */
 export function useAcademyArticles(query: AcademyArticleQuery) {
   const { academy } = useServices();

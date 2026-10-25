@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, BookOpenText, Search, Sparkles } from 'lucide-react';
+import {
+  ArrowRight,
+  BookOpenText,
+  CheckCircle2,
+  Search,
+  Sparkles,
+} from 'lucide-react';
 import { useCopy } from '../../../hooks/use-copy';
 import { formatCopy } from '../../../i18n/copy';
 import type { AcademyTerm } from '../../../types/domain';
@@ -12,7 +18,8 @@ const DAY_MS = 86_400_000;
  * The top of the Academy home (T-114): the title, the lesson search, the
  * size of the Academy and, beside them, the glossary — a term of the day
  * with its definition and a few more to look up — so definitions are the
- * first thing a beginner finds, not the last.
+ * first thing a beginner finds, not the last. A Trader also sees how many
+ * lessons they have read.
  */
 export function AcademyHero({
   text,
@@ -20,12 +27,15 @@ export function AcademyHero({
   lessons,
   topics,
   terms,
+  read,
 }: {
   text: string;
   onText: (value: string) => void;
   lessons: number | undefined;
   topics: number | undefined;
   terms: readonly AcademyTerm[] | undefined;
+  /** The lessons a signed-in Trader has read, or nothing for anyone else. */
+  read?: { done: number; total: number } | undefined;
 }) {
   const a = useCopy().academy;
   // The term changes every day and is the same for every reader that day.
@@ -93,6 +103,31 @@ export function AcademyHero({
               </div>
             ))}
           </dl>
+          {read && (
+            <div className="mt-5 max-w-sm">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-white/90">
+                <CheckCircle2 size={14} aria-hidden="true" />
+                {formatCopy(a.readProgress, read)}
+              </p>
+              <div
+                role="progressbar"
+                aria-label={a.readProgressLabel}
+                aria-valuemin={0}
+                aria-valuemax={read.total}
+                aria-valuenow={read.done}
+                className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/20"
+              >
+                <div
+                  className="h-full rounded-full bg-emerald-400 transition-all"
+                  style={{
+                    width:
+                      String(read.total ? (100 * read.done) / read.total : 0) +
+                      '%',
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         <aside
