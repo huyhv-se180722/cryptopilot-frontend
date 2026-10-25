@@ -97,6 +97,8 @@ export function PlanDetailPage() {
                     stopLoss: p.colStopLoss,
                     takeProfit: p.colTakeProfit,
                     liquidation: p.lineLiquidation,
+                    invalidation: p.invalidationPrice,
+                    fill: p.lineFill,
                   })}
                 />
               ) : pair ? (

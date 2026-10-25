@@ -557,10 +557,30 @@ describe('development plan editing (SCR-17)', () => {
       plans.calculate(plan.pairId, {
         ...inputs,
         market: 'futures',
-        leverage: 3,
+        leverage: 25,
       }),
     ).rejects.toMatchObject({
       problem: { fieldErrors: { leverage: 'MSG15' } },
+    });
+    // Futures plans are sized since the brackets exist (T-085).
+    expect(
+      (
+        await plans.calculate(plan.pairId, {
+          ...inputs,
+          market: 'futures',
+          leverage: 3,
+        })
+      ).entryPrice,
+    ).toBe('61000');
+    await expect(
+      plans.calculate(plan.pairId, { ...inputs, maxEntryDeviationR: '0.8' }),
+    ).rejects.toMatchObject({
+      problem: { fieldErrors: { maxEntryDeviationR: 'MSG15' } },
+    });
+    await expect(
+      plans.calculate(plan.pairId, { ...inputs, invalidationPrice: '60000' }),
+    ).rejects.toMatchObject({
+      problem: { fieldErrors: { invalidationPrice: 'MSG16' } },
     });
   });
 

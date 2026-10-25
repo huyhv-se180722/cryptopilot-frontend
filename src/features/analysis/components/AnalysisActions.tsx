@@ -14,8 +14,8 @@ import type { MarketType } from '../../../types/domain';
  * list gives (FEQ-01). Add to watchlist appends the pair (UC-12), or shows
  * it is watched; Create alert opens SCR-14 on the pair, which the server
  * adds to the watchlist when it is not there yet (BR-16). Create trading
- * plan opens SCR-17 on the pair (`planHref`); without it, as on Futures
- * until leverage brackets exist, it stays disabled and says why. Ask AI is PRO and
+ * plan opens SCR-17 on the pair (`planHref`); without it, it stays
+ * disabled and says why. Ask AI is PRO and
  * PREMIUM only: on a plan without AI questions it shows MSG29; otherwise it
  * opens SCR-29 with the pair.
  */

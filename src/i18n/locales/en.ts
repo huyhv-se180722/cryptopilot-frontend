@@ -374,8 +374,7 @@ export const en = {
     createAlert: 'Create alert',
     createPlan: 'Create trading plan',
     askAi: 'Ask AI',
-    planPending:
-      'Futures plans cannot be created until leverage brackets are configured.',
+    planPending: 'Trading plans cannot be created for this pair.',
     addedWatchlist: '{pair} added to your watchlist.',
     newsTitle: 'Latest {coin} news',
     futuresTitle: 'Mark price and funding',
@@ -490,6 +489,7 @@ export const en = {
     riskReward: 'Reward / risk',
     liquidation: 'Est. liquidation price',
     lineLiquidation: 'Liquidation (est.)',
+    lineFill: 'Fill',
     chartUnlisted:
       'No chart: this pair is no longer listed on the market of the plan.',
     warningsTitle: 'Warnings',
@@ -516,9 +516,8 @@ export const en = {
     blockedHint: 'Resolve the blocking warnings by editing the plan.',
     notFound: 'This plan was not found. It may belong to another account.',
     createTitle: 'New trading plan',
-    createSpotOnly:
-      'New plans are Spot for now: Futures plans cannot be calculated until leverage brackets are configured.',
-    createNoPairs: 'No Spot pair is enabled, so no plan can be created.',
+    createNoPairs:
+      'No pair is enabled on this market, so no plan can be created.',
     editTitle: 'Edit plan {id}',
     backToPlan: 'Plan {id}',
     notEditable: 'Only draft plans can be edited. This plan is {status}.',
@@ -534,14 +533,12 @@ export const en = {
     marketEntryNote:
       'A market entry uses the current last price; it is shown in the risk panel.',
     marketEntryPrice: 'Current last price',
-    capitalHint: 'Your account size from Profile & Settings.',
+    capitalHint: 'Your account size, from Profile & Settings.',
     riskHint: 'From 0.1 to 10 %. Leave empty to use your default.',
-    leverageHint: 'A whole number from 1 to the pair’s maximum.',
+    leverageHint: 'A whole number from 1 to the pair’s bracket maximum.',
     expiryField: 'Expiry (optional)',
-    expiryHint: 'Leave empty for 7 days on a limit entry.',
+    expiryHint: 'Leave empty for 7 days on a limit or stop entry.',
     noteHint: 'Up to 1000 characters.',
-    futuresPending:
-      'Futures plans cannot be calculated until leverage brackets are configured.',
     riskTitle: 'Risk calculation',
     riskIdle: 'Fill in the fields to see the risk calculation.',
     riskUpdating: 'Updating…',
@@ -561,8 +558,53 @@ export const en = {
     errLeverage: '{field} must be a whole number of at least 1.',
     errFuture: 'The expiry must be in the future.',
     errTooLong: '{field} can be at most {max} characters.',
-    ruleLONG: 'stop loss < entry price < take profit',
-    ruleSHORT: 'take profit < entry price < stop loss',
+    rule_orderLONG: 'stop loss < entry price < take profit',
+    rule_orderSHORT: 'take profit < entry price < stop loss',
+    rule_invalidationLONGLIMIT:
+      'the invalidation price must be above the current price',
+    rule_invalidationLONGSTOP:
+      'the invalidation price must be below the current price',
+    rule_invalidationSHORTLIMIT:
+      'the invalidation price must be below the current price',
+    rule_invalidationSHORTSTOP:
+      'the invalidation price must be above the current price',
+    rule_reachedStopLossLONG: 'the stop loss must be below the current price',
+    rule_reachedStopLossSHORT: 'the stop loss must be above the current price',
+    rule_reachedTakeProfitLONG:
+      'the take profit must be above the current price',
+    rule_reachedTakeProfitSHORT:
+      'the take profit must be below the current price',
+    rule_reachedStopLONG: 'the stop price must be above the current price',
+    rule_reachedStopSHORT: 'the stop price must be below the current price',
+    errLeverageBracket:
+      'Leverage is above the maximum of this pair’s leverage brackets.',
+    stopPrice: 'Stop price',
+    stopEntryHint:
+      'Breakout entry: it triggers when the price reaches the stop price and fills as taker at the stop, or at the candle open if the price gaps past it (a worse price).',
+    expectedFill: 'Expected fill',
+    invalidationPrice: 'Invalidation price',
+    invalidationField: 'Invalidation price (optional)',
+    invalidationHint:
+      'The plan is invalidated if the price reaches this level before the entry fills.',
+    maxDeviation: 'Max entry deviation',
+    maxDeviationField: 'Max entry deviation in R (optional)',
+    maxDeviationHint:
+      'Above 0 and up to {max} R. Checked when a market plan is activated.',
+    timeframeField: 'Analysis timeframe',
+    timeframeHint: 'Defaults from your trading style.',
+    capitalLink: 'Change in Profile & Settings',
+    capitalMissing:
+      'Your profile has no default capital. Set it in Profile & Settings to size plans.',
+    lossAtStopLoss: 'Real loss at stop loss (USDT)',
+    netRiskReward: 'R:R after fees',
+    feeEntry: 'Entry fee (est.)',
+    feeStopLoss: 'Exit fee at stop loss (est.)',
+    feeTakeProfit: 'Exit fee at take profit (est.)',
+    feeSlippage: 'Slippage (est.)',
+    feeShare: 'Fees and slippage / risk',
+    feesInfo: 'About fees',
+    feesTooltip:
+      'Includes the trading fees of the entry and of the exit at the stop loss (or the take profit, for R:R after fees) and the configured slippage. Funding and the liquidation clearance fee are not included.',
     directionNameLONG: 'long',
     directionNameSHORT: 'short',
   },

@@ -6,20 +6,25 @@ import { useCopy } from '../../hooks/use-copy';
 import { errorText } from '../../i18n/messages';
 import { useMarketPairs } from '../../features/market/hooks/use-market-data';
 import { PlanEditor } from '../../features/trading-plan/components/PlanEditor';
+import type { MarketType } from '../../types/domain';
 import { PlanChart } from './plan-chart';
 
 /**
- * SCR-17 New Trading Plan (SRS 3.5.1, UC-16): the plan form on a Spot pair
- * of the market list, by its id (FEQ-01); `?symbol=` starts on a pair, as
- * the analysis screen's Create trading plan does. Futures plans wait for
- * the leverage brackets, so a new plan is Spot for now.
+ * SCR-17 New Trading Plan (SRS 3.5.1, UC-16): the plan form on a Spot or
+ * Futures pair of the market lists, by its id (FEQ-01); `?symbol=` and
+ * `?market=` start on a pair, as the analysis screens' Create trading
+ * plan does. Futures plans are sized on the pair's leverage brackets.
  */
 export function PlanCreatePage() {
   const copy = useCopy();
   const p = copy.plan;
   const [params] = useSearchParams();
   const symbol = params.get('symbol')?.toUpperCase() ?? null;
-  const pairs = useMarketPairs('spot');
+  const market: MarketType =
+    params.get('market') === 'futures' ? 'futures' : 'spot';
+  const spot = useMarketPairs('spot');
+  const futures = useMarketPairs('futures');
+  const pairs = market === 'spot' ? spot : futures;
   const start = pairs.data?.find((pair) => pair.symbol === symbol);
 
   return (
@@ -50,10 +55,13 @@ export function PlanCreatePage() {
         </p>
       ) : (
         <PlanEditor
-          key={start?.pairId ?? 'new'}
+          key={(start?.pairId ?? 'new') + market}
           target={{
             mode: 'create',
-            pairs: pairs.data,
+            // The other market's list may still load, or have failed: it
+            // then offers no pair until it arrives.
+            pairs: { spot: spot.data ?? [], futures: futures.data ?? [] },
+            market,
             pairId: start?.pairId ?? null,
           }}
           chart={(pair, lines) => <PlanChart pair={pair} lines={lines} />}

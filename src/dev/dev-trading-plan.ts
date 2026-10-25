@@ -42,8 +42,9 @@ function refuse(
 /**
  * The request rules of `CreateTradingPlanRequest` and the price order of
  * BR-22 as field errors (MSG01 / MSG15 / MSG16), checked in that order like
- * the backend; Futures is refused on `leverage` (no brackets, D-70). The
- * calculation itself is not re-implemented.
+ * the backend, with the TP-A fields; leverage above 20x is refused on
+ * `leverage` as above the fixture pairs' largest bracket. The calculation
+ * itself is not re-implemented.
  */
 function checkInputs(inputs: PlanInputs) {
   const errors: Record<string, string> = {};
@@ -66,10 +67,22 @@ function checkInputs(inputs: PlanInputs) {
   if (inputs.market === 'spot' && inputs.direction === 'SHORT')
     errors.direction = 'MSG01';
   if ((inputs.note?.length ?? 0) > 1000) errors.note = 'MSG15';
+  const deviation =
+    inputs.maxEntryDeviationR === null
+      ? null
+      : Number(inputs.maxEntryDeviationR);
+  if (deviation !== null && !(deviation > 0 && deviation <= 0.75))
+    errors.maxEntryDeviationR = 'MSG15';
+  if (
+    inputs.analysisTimeframe !== null &&
+    !['15m', '1h', '4h', '1d'].includes(inputs.analysisTimeframe)
+  )
+    errors.analysisTimeframe = 'MSG15';
+  // The fixture pairs' largest bracket allows 20x.
+  if (inputs.market === 'futures' && (inputs.leverage ?? 1) > 20)
+    errors.leverage = 'MSG15';
   if (Object.keys(errors).length)
     refuse(400, 'VALIDATION_FAILED', 'MSG01', [], errors);
-  if (inputs.market === 'futures')
-    refuse(400, 'VALIDATION_FAILED', 'MSG01', [], { leverage: 'MSG15' });
   if (inputs.entryPrice === null) return;
   const entry = Number(inputs.entryPrice);
   const long = inputs.direction === 'LONG';
@@ -79,6 +92,15 @@ function checkInputs(inputs: PlanInputs) {
     refuse(400, 'VALIDATION_FAILED', 'MSG01', [], { stopLoss: 'MSG16' });
   if (long ? take <= entry : take >= entry)
     refuse(400, 'VALIDATION_FAILED', 'MSG01', [], { takeProfit: 'MSG16' });
+  // TP-A: the far side of the entry (the backend compares with the last price).
+  if (inputs.invalidationPrice !== null) {
+    const invalidation = Number(inputs.invalidationPrice);
+    const above = long === (inputs.entryType === 'LIMIT');
+    if (above ? invalidation <= entry : invalidation >= entry)
+      refuse(400, 'VALIDATION_FAILED', 'MSG01', [], {
+        invalidationPrice: 'MSG16',
+      });
+  }
 }
 
 const TABS: Record<PlanTab, readonly PlanStatus[]> = {

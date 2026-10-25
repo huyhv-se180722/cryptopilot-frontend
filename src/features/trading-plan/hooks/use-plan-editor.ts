@@ -58,6 +58,21 @@ export function usePlanCalculation(pairId: string, inputs: PlanInputs | null) {
   };
 }
 
+/**
+ * The Trader's profile (SCR-07): the default capital every plan is sized
+ * on (TP-D) and the trading style the analysis timeframe defaults from
+ * (TP-A). A failed read leaves both to the server.
+ */
+export function useTraderProfile() {
+  const { profile } = useServices();
+  return useQuery({
+    queryKey: ['profile', 'me'],
+    queryFn: ({ signal }) => profile.get(signal),
+    retry: false,
+    staleTime: 60_000,
+  });
+}
+
 /** Answers after which the plan on screen is no longer a DRAFT or changed. */
 const STALE = new Set([
   'TRADING_PLAN_STATUS_TRANSITION_INVALID',

@@ -23,21 +23,30 @@ import { errorText, fieldErrorText, messageText } from '../../../i18n/messages';
 import { problemOf } from '../../../services/api/errors';
 import type {
   MarketPair,
-  PlanDirection,
+  MarketType,
+  PlanEntryType,
   TradingPlan,
 } from '../../../types/domain';
+import { compare } from '../../../utils/decimal-math';
 import { pairLabel } from '../../../utils/pair-label';
 import type { ChartPriceLine } from '../../chart/components/AnalysisChart';
-import { usePlanCalculation, useSavePlan } from '../hooks/use-plan-editor';
+import {
+  usePlanCalculation,
+  useSavePlan,
+  useTraderProfile,
+} from '../hooks/use-plan-editor';
 import { Panel, PlanSnapshotRows, PlanWarningsPanel } from './PlanDetailPanels';
 import { planAmount, planPrice } from './plan-format';
 import { priceLines } from './plan-lines';
 import {
   EMPTY_PLAN_DRAFT,
+  ENTRY_DEVIATION_BLOCK_R,
   NOTE_MAX,
+  TIMEFRAMES,
   draftOfPlan,
   drawablePrice,
   serverFieldError,
+  timeframeOfStyle,
   toInputs,
   type PlanDraft,
   type PlanField,
@@ -54,13 +63,17 @@ const FIELDS: readonly PlanField[] = [
   'leverage',
   'expiresAt',
   'note',
+  'invalidationPrice',
+  'maxEntryDeviationR',
+  'analysisTimeframe',
 ];
+const ENTRY_TYPES: readonly PlanEntryType[] = ['LIMIT', 'MARKET', 'STOP'];
 
 function errorMessage(
   copy: Copy,
   error: PlanFieldError,
   label: string,
-  direction: PlanDirection,
+  direction: TradingPlan['direction'],
 ): string {
   const p = copy.plan;
   switch (error.kind) {
@@ -78,10 +91,12 @@ function errorMessage(
       });
     case 'leverage':
       return formatCopy(p.errLeverage, { field: label });
-    case 'order':
+    case 'leverageBracket':
+      return p.errLeverageBracket;
+    case 'rule':
       return messageText(copy, 'MSG16', [], {
         direction: p[`directionName${direction}`],
-        rule: p[`rule${direction}`],
+        rule: p[`rule_${error.rule}`],
       });
     case 'future':
       return p.errFuture;
@@ -115,8 +130,10 @@ export type PlanEditorTarget =
     }
   | {
       mode: 'create';
-      /** The pairs a new plan can be on (Spot, by the id of the list). */
-      pairs: readonly MarketPair[];
+      /** The pairs a new plan can be on, per market (by the id of the list). */
+      pairs: Readonly<Record<MarketType, readonly MarketPair[]>>;
+      /** The market to start on. */
+      market: MarketType;
       /** The pair to start on, e.g. the analysis screen's. */
       pairId: string | null;
     };
@@ -125,11 +142,13 @@ export type PlanEditorTarget =
  * SCR-17 (SRS 3.5.1): a new plan (UC-16) or a DRAFT (UC-17, BR-32). The
  * inputs on the left, under the chart of the pair with the entry, stop loss
  * and take profit as typed; on the right the risk panel recalculated by the
- * server as the Trader types (BR-23…BR-27), the warnings with their severity
- * (MSG17), and Save as Draft (MSG14) or Save and Activate (MSG19; refused
- * with MSG18 or MSG27, nothing saved). A new plan picks its pair from the
- * market list by id (FEQ-01); a DRAFT's pair is fixed. The page draws the
- * chart, given the pair and the lines.
+ * server as the Trader types (BR-23…BR-27) with the expected fees (TP-0),
+ * the warnings with their severity (MSG17), and Save as Draft (MSG14) or
+ * Save and Activate (MSG19; refused with MSG18 or MSG27, nothing saved).
+ * Entries are LIMIT, MARKET (the current price) or STOP (a breakout, TP-A);
+ * the capital is the profile's (TP-D). A new plan picks its market and its
+ * pair from the market list by id (FEQ-01); a DRAFT's pair is fixed. The
+ * page draws the chart, given the pair and the lines.
  */
 export function PlanEditor({
   target,
@@ -144,12 +163,18 @@ export function PlanEditor({
   const { show } = useToast();
   const plan = target.mode === 'edit' ? target.plan : null;
   const [draft, setDraft] = useState<PlanDraft>(() =>
-    plan ? draftOfPlan(plan) : EMPTY_PLAN_DRAFT,
+    plan
+      ? draftOfPlan(plan)
+      : target.mode === 'create'
+        ? { ...EMPTY_PLAN_DRAFT, market: target.market }
+        : EMPTY_PLAN_DRAFT,
   );
+  const createPairs =
+    target.mode === 'create' ? target.pairs[draft.market] : [];
   const [chosenPairId, setChosenPairId] = useState(() =>
     target.mode === 'create'
-      ? (target.pairs.find((each) => each.pairId === target.pairId)?.pairId ??
-        target.pairs[0]?.pairId ??
+      ? (createPairs.find((each) => each.pairId === target.pairId)?.pairId ??
+        createPairs[0]?.pairId ??
         '')
       : '',
   );
@@ -157,15 +182,25 @@ export function PlanEditor({
   const pair =
     target.mode === 'edit'
       ? target.pair
-      : target.pairs.find((each) => each.pairId === chosenPairId);
+      : createPairs.find((each) => each.pairId === chosenPairId);
   const [touched, setTouched] = useState<ReadonlySet<PlanField>>(new Set());
   const [now] = useState(() => Date.now());
-  const checked = useMemo(() => toInputs(draft, now), [draft, now]);
+  const profile = useTraderProfile();
+  // The style's timeframe until the Trader picks one (TP-A).
+  const styleTimeframe = profile.data
+    ? timeframeOfStyle(profile.data.tradingStyle)
+    : null;
+  const timeframe = draft.timeframe || styleTimeframe || '1h';
+  const checked = useMemo(
+    () => toInputs(draft, now, styleTimeframe),
+    [draft, now, styleTimeframe],
+  );
   const calculation = usePlanCalculation(
     pairId,
     checked.ok && pairId ? checked.inputs : null,
   );
   const save = useSavePlan(plan?.id ?? null, pairId);
+  const [activating, setActivating] = useState(false);
 
   const change = (patch: Partial<PlanDraft>, field?: PlanField) => {
     setDraft((current) => ({ ...current, ...patch }));
@@ -173,22 +208,37 @@ export function PlanEditor({
     save.reset();
   };
 
+  function changeMarket(market: MarketType) {
+    if (target.mode !== 'create' || market === draft.market) return;
+    change({
+      market,
+      // Spot is long only (BR-21); leverage is Futures only.
+      ...(market === 'spot' ? { direction: 'LONG', leverage: '' } : {}),
+    });
+    setChosenPairId(target.pairs[market][0]?.pairId ?? '');
+  }
+
   // Client errors once a field was changed (all of them after a save);
   // then the server's field errors of the last calculation or save.
   const saveProblem = problemOf(
     save.state.status === 'error' ? save.state.error : null,
   );
-  const serverFields = {
-    ...calculation.fieldErrors,
-    ...(saveProblem?.fieldErrors ?? {}),
+  const serverFields = calculation.fieldErrors;
+  const saveFields = saveProblem?.fieldErrors ?? {};
+  const serverError = (field: PlanField): PlanFieldError | undefined => {
+    if (saveFields[field])
+      return serverFieldError(field, saveFields[field], draft, activating);
+    if (serverFields[field])
+      return serverFieldError(field, serverFields[field], draft);
+    return undefined;
   };
   const errorOf = (field: PlanField, label: string) => {
     const client = checked.ok ? undefined : checked.errors[field];
     const error =
       client && touched.has(field)
         ? client
-        : !client && serverFields[field]
-          ? serverFieldError(field, serverFields[field])
+        : !client
+          ? serverError(field)
           : undefined;
     return error
       ? errorMessage(copy, error, label, draft.direction)
@@ -200,6 +250,7 @@ export function PlanEditor({
       setTouched(new Set(FIELDS));
       return;
     }
+    setActivating(activate);
     const result = await save.run(checked.inputs, activate);
     if (result.status !== 'success') return;
     show({
@@ -213,27 +264,32 @@ export function PlanEditor({
   }
 
   const futures = draft.market === 'futures';
+  const market = draft.entryType === 'MARKET';
+  const stop = draft.entryType === 'STOP';
   const result = calculation.data;
   const blocked = result?.blocksActivation ?? plan?.blocksActivation ?? false;
   // The chart reads the candles of the plan's own market.
   const charted = pair && pair.market === draft.market ? pair : null;
   const lines = priceLines(
     {
-      entry:
-        draft.entryType !== 'MARKET'
-          ? drawablePrice(draft.entryPrice)
-          : (result?.entryPrice ?? null),
+      entry: !market
+        ? drawablePrice(draft.entryPrice)
+        : (result?.entryPrice ?? null),
       stopLoss: drawablePrice(draft.stopLoss),
       takeProfit: drawablePrice(draft.takeProfit),
       liquidation: futures
         ? (result?.snapshot.estimatedLiquidationPrice ?? null)
         : null,
+      invalidation: !market ? drawablePrice(draft.invalidationPrice) : null,
+      fill: null,
     },
     {
       entry: p.colEntry,
       stopLoss: p.colStopLoss,
       takeProfit: p.colTakeProfit,
       liquidation: p.lineLiquidation,
+      invalidation: p.invalidationPrice,
+      fill: p.lineFill,
     },
   );
   const panelProblem = calculation.fieldErrors.quantity
@@ -245,6 +301,15 @@ export function PlanEditor({
     calculation.isError && Object.keys(calculation.fieldErrors).length === 0;
   const noteId = 'plan-note';
   const noteError = errorOf('note', p.note);
+  // TP-D: the profile's capital, or the one the last calculation used.
+  const capital = profile.data?.defaultCapital ?? result?.capital ?? null;
+  const capitalError = errorOf('capital', p.capital);
+  // MARKET: show the expected fill only when the slippage moves it (TP-0).
+  const expectedFill =
+    result?.expectedFillPrice &&
+    compare(result.expectedFillPrice, result.entryPrice) !== 0
+      ? result.expectedFillPrice
+      : null;
 
   return (
     <form
@@ -268,7 +333,7 @@ export function PlanEditor({
                   save.reset();
                 }}
               >
-                {target.pairs.map((each) => (
+                {createPairs.map((each) => (
                   <option key={each.pairId} value={each.pairId}>
                     {pairLabel(each.symbol)}
                   </option>
@@ -291,12 +356,26 @@ export function PlanEditor({
             )}
           </div>
           <div>
-            <span className={fieldLabelClass}>{p.marketField}</span>
-            <p className="text-sm font-medium text-fg">
-              {futures ? copy.market.futures : copy.market.spot}
-            </p>
-            {target.mode === 'create' && (
-              <span className={fieldHintClass}>{p.createSpotOnly}</span>
+            {target.mode === 'create' ? (
+              <fieldset>
+                <legend className={fieldLabelClass}>{p.marketField}</legend>
+                <SegmentedControl
+                  label={p.marketField}
+                  value={draft.market}
+                  onChange={changeMarket}
+                  options={(['spot', 'futures'] as const).map((value) => ({
+                    value,
+                    label: copy.market[value],
+                  }))}
+                />
+              </fieldset>
+            ) : (
+              <>
+                <span className={fieldLabelClass}>{p.marketField}</span>
+                <p className="text-sm font-medium text-fg">
+                  {futures ? copy.market.futures : copy.market.spot}
+                </p>
+              </>
             )}
           </div>
           <div className="sm:col-span-2">
@@ -323,12 +402,6 @@ export function PlanEditor({
               </>
             )}
           </div>
-          {futures && (
-            <p className="flex items-start gap-1.5 text-[11px] text-warning sm:col-span-2">
-              <Info size={12} aria-hidden="true" className="mt-0.5 shrink-0" />
-              {p.futuresPending}
-            </p>
-          )}
         </Section>
 
         <Section title={p.sectionEntry}>
@@ -337,23 +410,33 @@ export function PlanEditor({
             <SegmentedControl
               label={p.entryType}
               value={draft.entryType}
-              onChange={(entryType) => change({ entryType }, 'entryPrice')}
-              options={(['LIMIT', 'MARKET'] as const).map((value) => ({
+              onChange={(entryType) => change({ entryType })}
+              options={ENTRY_TYPES.map((value) => ({
                 value,
                 label: p[`entry${value}`],
               }))}
             />
+            {stop && (
+              <p className="mt-2 flex items-start gap-1.5 text-[11px] text-muted-dim">
+                <Info
+                  size={12}
+                  aria-hidden="true"
+                  className="mt-0.5 shrink-0"
+                />
+                {p.stopEntryHint}
+              </p>
+            )}
           </fieldset>
-          {draft.entryType !== 'MARKET' ? (
+          {!market ? (
             <Input
-              label={p.entryPrice}
+              label={stop ? p.stopPrice : p.entryPrice}
               inputMode="decimal"
               autoComplete="off"
               value={draft.entryPrice}
               onChange={(event) =>
                 change({ entryPrice: event.target.value }, 'entryPrice')
               }
-              error={errorOf('entryPrice', p.entryPrice)}
+              error={errorOf('entryPrice', stop ? p.stopPrice : p.entryPrice)}
             />
           ) : (
             <div>
@@ -365,9 +448,67 @@ export function PlanEditor({
                   copy.market.noValue
                 )}
               </p>
+              {expectedFill && (
+                <p className="text-xs text-fg-2">
+                  {p.expectedFill}{' '}
+                  <NumericText value={planPrice(expectedFill)} />
+                </p>
+              )}
               <span className={fieldHintClass}>{p.marketEntryNote}</span>
             </div>
           )}
+          {!market && (
+            <Input
+              label={p.invalidationField}
+              inputMode="decimal"
+              autoComplete="off"
+              value={draft.invalidationPrice}
+              onChange={(event) =>
+                change(
+                  { invalidationPrice: event.target.value },
+                  'invalidationPrice',
+                )
+              }
+              error={errorOf('invalidationPrice', p.invalidationPrice)}
+              hint={p.invalidationHint}
+            />
+          )}
+          <Input
+            label={p.maxDeviationField}
+            inputMode="decimal"
+            autoComplete="off"
+            value={draft.maxEntryDeviation}
+            onChange={(event) =>
+              change(
+                { maxEntryDeviation: event.target.value },
+                'maxEntryDeviationR',
+              )
+            }
+            error={errorOf('maxEntryDeviationR', p.maxDeviation)}
+            hint={formatCopy(p.maxDeviationHint, {
+              max: ENTRY_DEVIATION_BLOCK_R,
+            })}
+          />
+          <div>
+            <Select
+              label={p.timeframeField}
+              value={timeframe}
+              onChange={(event) =>
+                change(
+                  { timeframe: event.target.value as PlanDraft['timeframe'] },
+                  'analysisTimeframe',
+                )
+              }
+              error={errorOf('analysisTimeframe', p.timeframeField)}
+            >
+              {TIMEFRAMES.map((each) => (
+                <option key={each} value={each}>
+                  {each}
+                </option>
+              ))}
+            </Select>
+            <span className={fieldHintClass}>{p.timeframeHint}</span>
+          </div>
         </Section>
 
         <Section title={p.sectionExits}>
@@ -397,18 +538,15 @@ export function PlanEditor({
           <div>
             <span className={fieldLabelClass}>{p.capital}</span>
             <p className="text-sm text-fg">
-              {result ? (
-                <NumericText value={planAmount(result.capital)} />
+              {capital ? (
+                <NumericText value={planAmount(capital)} />
               ) : (
                 copy.market.noValue
               )}
             </p>
-            <span
-              className={
-                errorOf('capital', p.capital) ? fieldErrorClass : fieldHintClass
-              }
-            >
-              {errorOf('capital', p.capital) ?? p.capitalHint}
+            <span className={capitalError ? fieldErrorClass : fieldHintClass}>
+              {capitalError ? p.capitalMissing : p.capitalHint}{' '}
+              <Link to="/profile">{p.capitalLink}</Link>
             </span>
           </div>
           <Input

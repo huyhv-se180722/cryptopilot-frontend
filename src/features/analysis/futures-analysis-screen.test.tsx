@@ -293,18 +293,12 @@ describe('SCR-11 Futures analysis (T-034)', () => {
         'href',
       ),
     ).toBe('/ai?symbol=BTCUSDT&market=futures');
+    // Leverage brackets exist (T-085): a Futures plan opens SCR-17.
     expect(
-      (
-        screen.getByRole('button', {
-          name: 'Create trading plan',
-        }) as HTMLButtonElement
-      ).disabled,
-    ).toBe(true);
-    expect(
-      screen.getByText(
-        'Futures plans cannot be created until leverage brackets are configured.',
-      ),
-    ).toBeTruthy();
+      screen
+        .getByRole('link', { name: 'Create trading plan' })
+        .getAttribute('href'),
+    ).toBe('/plans/new?market=futures&symbol=BTCUSDT');
   });
 
   it('shows MSG29 on FREE and reads no analysis', async () => {

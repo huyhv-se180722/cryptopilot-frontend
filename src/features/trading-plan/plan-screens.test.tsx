@@ -8,9 +8,11 @@ import { PlanEditPage } from '../../pages/trader/PlanEditPage';
 import { PlansPage } from '../../pages/trader/PlansPage';
 import type {
   MarketService,
+  ProfileService,
   TradingPlanService,
 } from '../../services/api/contracts';
 import { ServiceError } from '../../services/api/errors';
+import type { Services } from '../../services/api/services';
 import type {
   MarketPair,
   MarketType,
@@ -18,6 +20,7 @@ import type {
   Session,
   TradingPlan,
   TradingPlanSummary,
+  UserProfile,
 } from '../../types/domain';
 import { fakeAuth, page, renderRoutes, testTrader } from '../../test/render';
 
@@ -243,6 +246,7 @@ async function open(
   service = fakePlans(),
   tier: 'FREE' | 'PRO' = 'FREE',
   market = fakeMarket(),
+  extra: Partial<Omit<Services, 'auth'>> = {},
 ) {
   const session: Session = { ...testTrader, entitlements: plan(tier) };
   await renderRoutes(
@@ -254,7 +258,7 @@ async function open(
     ],
     path,
     fakeAuth({ restoreSession: async () => session }),
-    { tradingPlan: service, market },
+    { tradingPlan: service, market, ...extra },
   );
   return service;
 }
@@ -610,7 +614,6 @@ describe('SCR-17 new plan (T-040, UC-16)', () => {
     ).toBeTruthy();
     const pair = screen.getByLabelText('Pair') as HTMLSelectElement;
     expect(pair.value).toBe('eth-id');
-    expect(screen.getByText(/New plans are Spot for now/)).toBeTruthy();
     const user = await fill('2500', '2400', '2800');
     await waitFor(() =>
       expect(service.calculate).toHaveBeenCalledWith(
@@ -984,5 +987,354 @@ describe('contract sync: new statuses, entry type and warnings (T-041, T-040)', 
     );
     expect(inputs.getByText('Invalidation price reached')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Cancel plan' })).toBeNull();
+  });
+});
+
+describe('SCR-17 validity, fees and capital (T-040)', () => {
+  const profileOf = (
+    overrides: Partial<UserProfile> = {},
+  ): Partial<Omit<Services, 'auth'>> => ({
+    profile: {
+      get: vi.fn(async () => ({
+        email: 'trader@example.test',
+        displayName: 'Trader',
+        avatarUrl: null,
+        defaultCapital: '2500.00000000',
+        defaultRiskPercent: '1',
+        tradingStyle: 'SCALPING' as const,
+        riskProfile: 'BALANCED' as const,
+        notifyEmail: true,
+        notifyPush: false,
+        ...overrides,
+      })),
+    } as unknown as ProfileService,
+  });
+  const lastInputs = (service: TradingPlanService) =>
+    vi.mocked(service.calculate).mock.calls.at(-1)?.[1];
+  const typePrices = async (
+    user: ReturnType<typeof userEvent.setup>,
+    entryLabel: string | null,
+    entry: string,
+    stop: string,
+    take: string,
+  ) => {
+    if (entryLabel)
+      await user.type(await screen.findByLabelText(entryLabel), entry);
+    await user.type(screen.getByLabelText('Stop loss'), stop);
+    await user.type(screen.getByLabelText('Take profit'), take);
+  };
+  const refusedOn = (field: string, messageCode: string) =>
+    vi.fn(async () => {
+      throw new ServiceError('refused', 'HTTP_ERROR', 400, {
+        status: 400,
+        code: 'VALIDATION_FAILED',
+        messageCode: 'MSG01',
+        messageArgs: [],
+        fieldErrors: { [field]: messageCode },
+      });
+    });
+
+  it('offers STOP with the breakout hint and sends the stop price', async () => {
+    const service = fakePlans();
+    await open('/plans/new', service);
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole('radio', { name: 'Stop (breakout)' }),
+    );
+    expect(screen.getByText(/Breakout entry: it triggers/)).toBeTruthy();
+    await typePrices(user, 'Stop price', '64000', '63000', '67000');
+    await waitFor(() =>
+      expect(lastInputs(service)).toMatchObject({
+        entryType: 'STOP',
+        entryPrice: '64000',
+      }),
+    );
+  });
+
+  it('prices MARKET on the server, hides the invalidation price and shows a moved fill', async () => {
+    const service = fakePlans({
+      calculate: vi.fn(async () => ({
+        entryPrice: '62000.00',
+        expectedFillPrice: '62006.20',
+        capital: '1000',
+        riskPercent: '1',
+        snapshot: PLAN.snapshot,
+        warnings: [],
+        blocksActivation: false,
+      })),
+    });
+    await open('/plans/new', service);
+    const user = userEvent.setup();
+    expect(
+      await screen.findByLabelText('Invalidation price (optional)'),
+    ).toBeTruthy();
+    await user.click(screen.getByRole('radio', { name: 'Market' }));
+    expect(screen.queryByLabelText('Invalidation price (optional)')).toBeNull();
+    expect(screen.queryByLabelText('Entry price')).toBeNull();
+    await typePrices(user, null, '', '61000', '65000');
+    expect(await screen.findByText('Expected fill')).toBeTruthy();
+    expect(screen.getByText('62,006.20')).toBeTruthy();
+    expect(lastInputs(service)).toMatchObject({
+      entryType: 'MARKET',
+      entryPrice: null,
+      invalidationPrice: null,
+    });
+  });
+
+  it('shows no expected fill when it equals the entry price', async () => {
+    const service = fakePlans({
+      calculate: vi.fn(async () => ({
+        entryPrice: '62000.00',
+        expectedFillPrice: '62000.0000',
+        capital: '1000',
+        riskPercent: '1',
+        snapshot: PLAN.snapshot,
+        warnings: [],
+        blocksActivation: false,
+      })),
+    });
+    await open('/plans/new', service);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('radio', { name: 'Market' }));
+    await typePrices(user, null, '', '61000', '65000');
+    expect(
+      await within(
+        screen.getByRole('region', { name: 'Risk calculation' }),
+      ).findByText('Real loss at stop loss (USDT)'),
+    ).toBeTruthy();
+    expect(screen.queryByText('Expected fill')).toBeNull();
+  });
+
+  it('checks the invalidation side before sending it (TP-A)', async () => {
+    const service = fakePlans();
+    await open('/plans/new', service);
+    const user = userEvent.setup();
+    await typePrices(user, 'Entry price', '62000', '60000', '66000');
+    const invalidation = screen.getByLabelText('Invalidation price (optional)');
+    await user.type(invalidation, '61000');
+    expect(
+      await screen.findByText(
+        'For long positions: the invalidation price must be above the current price.',
+      ),
+    ).toBeTruthy();
+    await user.clear(invalidation);
+    await user.type(invalidation, '63000');
+    await waitFor(() =>
+      expect(lastInputs(service)).toMatchObject({ invalidationPrice: '63000' }),
+    );
+    expect(screen.queryByText(/invalidation price must be/)).toBeNull();
+  });
+
+  it('words the server’s MSG16 on the invalidation price from direction and entry type (M-11)', async () => {
+    const service = fakePlans({
+      calculate: refusedOn('invalidationPrice', 'MSG16'),
+    });
+    await open('/plans/new', service);
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole('radio', { name: 'Stop (breakout)' }),
+    );
+    await typePrices(user, 'Stop price', '64000', '63000', '67000');
+    await user.type(
+      screen.getByLabelText('Invalidation price (optional)'),
+      '61000',
+    );
+    expect(
+      await screen.findByText(
+        'For long positions: the invalidation price must be below the current price.',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('keeps the entry deviation above 0 and at most 0.75 R (MSG15)', async () => {
+    const service = fakePlans();
+    await open('/plans/new', service);
+    const user = userEvent.setup();
+    const deviation = await screen.findByLabelText(
+      'Max entry deviation in R (optional)',
+    );
+    await user.type(deviation, '0.8');
+    expect(
+      await screen.findByText(
+        'Max entry deviation must be between 0 and 0.75.',
+      ),
+    ).toBeTruthy();
+    await user.clear(deviation);
+    await user.type(deviation, '0');
+    expect(
+      await screen.findByText('Max entry deviation must be greater than 0.'),
+    ).toBeTruthy();
+    await user.clear(deviation);
+    await user.type(deviation, '0.75');
+    await typePrices(user, 'Entry price', '62000', '60000', '66000');
+    await waitFor(() =>
+      expect(lastInputs(service)).toMatchObject({ maxEntryDeviationR: '0.75' }),
+    );
+  });
+
+  it('defaults the analysis timeframe from the trading style and sends a pick', async () => {
+    const service = fakePlans();
+    await open('/plans/new', service, 'FREE', fakeMarket(), profileOf());
+    const timeframe = (await screen.findByLabelText(
+      'Analysis timeframe',
+    )) as HTMLSelectElement;
+    await waitFor(() => expect(timeframe.value).toBe('15m'));
+    const user = userEvent.setup();
+    await typePrices(user, 'Entry price', '62000', '60000', '66000');
+    await waitFor(() =>
+      expect(lastInputs(service)).toMatchObject({ analysisTimeframe: '15m' }),
+    );
+    await user.selectOptions(timeframe, '4h');
+    await waitFor(() =>
+      expect(lastInputs(service)).toMatchObject({ analysisTimeframe: '4h' }),
+    );
+  });
+
+  it('shows the profile capital read-only with the link to Profile & Settings (TP-D)', async () => {
+    await open('/plans/new', fakePlans(), 'FREE', fakeMarket(), profileOf());
+    expect(await screen.findByText('2,500.00')).toBeTruthy();
+    expect(screen.queryByRole('textbox', { name: /Capital/ })).toBeNull();
+    expect(
+      screen
+        .getByRole('link', { name: 'Change in Profile & Settings' })
+        .getAttribute('href'),
+    ).toBe('/profile');
+    expect(
+      screen.queryByText(/Your profile has no default capital/),
+    ).toBeNull();
+  });
+
+  it('says the profile has no capital on MSG01 under capital (TP-D)', async () => {
+    const service = fakePlans({ calculate: refusedOn('capital', 'MSG01') });
+    await open(
+      '/plans/new',
+      service,
+      'FREE',
+      fakeMarket(),
+      profileOf({ defaultCapital: null }),
+    );
+    const user = userEvent.setup();
+    await typePrices(user, 'Entry price', '62000', '60000', '66000');
+    expect(
+      await screen.findByText(/Your profile has no default capital/),
+    ).toBeTruthy();
+  });
+
+  it('shows real loss, R:R after fees, the fee lines, the note and HIGH_FEE_SHARE', async () => {
+    const service = fakePlans({
+      calculate: vi.fn(async () => ({
+        entryPrice: '62000.00',
+        expectedFillPrice: null,
+        capital: '1000',
+        riskPercent: '1',
+        snapshot: {
+          ...PLAN.snapshot,
+          lossAtStopLoss: '12.34000000',
+          netRiskReward: '2.38382659',
+          feeShareOfRisk: '0.23400000',
+        },
+        warnings: [
+          { type: 'HIGH_FEE_SHARE' as const, severity: 'WARNING' as const },
+        ],
+        blocksActivation: false,
+      })),
+    });
+    await open('/plans/new', service);
+    const user = userEvent.setup();
+    await typePrices(user, 'Entry price', '62000', '60000', '66000');
+    const panel = within(
+      screen.getByRole('region', { name: 'Risk calculation' }),
+    );
+    const value = async (label: string) =>
+      (await panel.findByText(label)).nextSibling?.textContent;
+    expect(await value('Real loss at stop loss (USDT)')).toBe('12.34');
+    expect(await value('R:R after fees')).toBe('2.38');
+    expect(await value('Entry fee (est.)')).toBe('0.12');
+    expect(await value('Exit fee at stop loss (est.)')).toBe('0.32');
+    expect(await value('Exit fee at take profit (est.)')).toBe('0.12');
+    expect(await value('Slippage (est.)')).toBe('0.00');
+    expect(await value('Fees and slippage / risk')).toBe('23.40%');
+    expect(
+      panel.getByText(
+        /Funding and the liquidation clearance fee are not included/,
+      ),
+    ).toBeTruthy();
+    const warnings = within(screen.getByRole('region', { name: 'Warnings' }));
+    expect(
+      warnings.getByText('Fees and slippage are 23.40% of your risk'),
+    ).toBeTruthy();
+    expect(warnings.getByText('Warning')).toBeTruthy();
+  });
+
+  it('shows a dash for the fee figures of a plan saved before TP-0', async () => {
+    await open(
+      '/plans/' + PLAN.id,
+      fakePlans({
+        get: vi.fn(async () => ({
+          ...PLAN,
+          snapshot: {
+            ...PLAN.snapshot,
+            lossAtStopLoss: null,
+            netRiskReward: null,
+            estimatedEntryFee: null,
+            feeShareOfRisk: null,
+          },
+        })),
+      }),
+    );
+    const panel = within(
+      await screen.findByRole('region', { name: 'Calculation snapshot' }),
+    );
+    expect(
+      panel.getByText('Real loss at stop loss (USDT)').nextSibling?.textContent,
+    ).toBe('—');
+    expect(panel.getByText('R:R after fees').nextSibling?.textContent).toBe(
+      '—',
+    );
+  });
+
+  it('creates a Futures plan: market, direction and leverage', async () => {
+    const service = fakePlans();
+    await open('/plans/new', service);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('radio', { name: 'Futures' }));
+    await user.click(screen.getByRole('radio', { name: 'Short' }));
+    await user.type(screen.getByLabelText('Leverage'), '5');
+    await typePrices(user, 'Entry price', '62000', '63000', '59000');
+    await waitFor(() =>
+      expect(service.calculate).toHaveBeenCalledWith(
+        ROW.pairId,
+        expect.objectContaining({
+          market: 'futures',
+          direction: 'SHORT',
+          leverage: 5,
+        }),
+        expect.anything(),
+      ),
+    );
+    expect(screen.queryByText(/leverage brackets are configured/)).toBeNull();
+  });
+
+  it('starts on the Futures pair the analysis screen links to', async () => {
+    await open('/plans/new?market=futures&symbol=BTCUSDT', fakePlans());
+    expect(
+      (await screen.findByRole('radio', { name: 'Futures' })).getAttribute(
+        'aria-checked',
+      ),
+    ).toBe('true');
+    expect(screen.getByLabelText('Leverage')).toBeTruthy();
+  });
+
+  it('says the leverage is above the pair’s brackets on MSG15', async () => {
+    const service = fakePlans({ calculate: refusedOn('leverage', 'MSG15') });
+    await open('/plans/new?market=futures', service);
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText('Leverage'), '125');
+    await typePrices(user, 'Entry price', '62000', '61000', '65000');
+    expect(
+      await screen.findByText(
+        'Leverage is above the maximum of this pair’s leverage brackets.',
+      ),
+    ).toBeTruthy();
   });
 });

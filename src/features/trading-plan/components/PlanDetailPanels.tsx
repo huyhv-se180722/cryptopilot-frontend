@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { AlertTriangle, Clock } from 'lucide-react';
+import { AlertTriangle, Clock, Info } from 'lucide-react';
 import { NumericText } from '../../../components/ui/NumericText';
 import { useCopy } from '../../../hooks/use-copy';
 import { messageText } from '../../../i18n/messages';
@@ -8,7 +8,11 @@ import type {
   PlanWarning,
   TradingPlan,
 } from '../../../types/domain';
-import { shiftDecimal, toFixedDecimal } from '../../../utils/decimal-format';
+import {
+  fractionToPercent,
+  shiftDecimal,
+  toFixedDecimal,
+} from '../../../utils/decimal-format';
 import {
   formatInstantLocal,
   formatInstantUtc,
@@ -125,7 +129,10 @@ export function PlanInputsPanel({ plan }: { plan: TradingPlan }) {
 
 /**
  * The calculation stored with the plan (BR-31) or the live one of SCR-17;
- * Futures adds margin, MMR and liquidation.
+ * Futures adds margin, MMR and liquidation. "Real loss at stop loss" sits
+ * next to the risk and "R:R after fees" next to the R:R, then the fee
+ * breakdown (TP-0); a plan saved before TP-0 shows a dash for them. The
+ * figures come from the server, never computed here.
  */
 export function PlanSnapshotRows({
   snapshot: s,
@@ -134,13 +141,41 @@ export function PlanSnapshotRows({
   snapshot: PlanSnapshot;
   single?: boolean;
 }) {
-  const p = useCopy().plan;
+  const copy = useCopy();
+  const p = copy.plan;
+  const dash = copy.market.noValue;
+  const amount = (value: string | null) =>
+    value === null ? dash : <NumericText value={planAmount(value)} />;
   const rows: [string, ReactNode][] = [
     [p.quantity, <NumericText value={planQuantity(s.positionQuantity)} />],
     [p.notional, <NumericText value={planAmount(s.notionalValue)} />],
     [p.riskAmount, <NumericText value={planAmount(s.riskAmount)} />],
+    [p.lossAtStopLoss, amount(s.lossAtStopLoss)],
     [p.rewardAmount, <NumericText value={planAmount(s.rewardAmount)} />],
     [p.riskReward, <NumericText value={planRatio(s.riskRewardRatio)} />],
+    [
+      p.netRiskReward,
+      s.netRiskReward === null ? (
+        dash
+      ) : (
+        <NumericText value={planRatio(s.netRiskReward)} />
+      ),
+    ],
+    [p.feeEntry, amount(s.estimatedEntryFee)],
+    [p.feeStopLoss, amount(s.estimatedStopLossExitFee)],
+    [p.feeTakeProfit, amount(s.estimatedTakeProfitExitFee)],
+    [p.feeSlippage, amount(s.estimatedSlippage)],
+    [
+      p.feeShare,
+      s.feeShareOfRisk === null ? (
+        dash
+      ) : (
+        <NumericText
+          value={fractionToPercent(s.feeShareOfRisk, 2)}
+          suffix="%"
+        />
+      ),
+    ],
     ...(s.initialMargin !== null
       ? ([
           [
@@ -172,7 +207,15 @@ export function PlanSnapshotRows({
         ] as [string, ReactNode][])
       : []),
   ];
-  return <Rows rows={rows} single={single} />;
+  return (
+    <>
+      <Rows rows={rows} single={single} />
+      <p className="mt-2 flex items-start gap-1.5 text-[10px] leading-relaxed text-muted-dim">
+        <Info size={11} aria-hidden="true" className="mt-0.5 shrink-0" />
+        <span title={p.feesTooltip}>{p.feesTooltip}</span>
+      </p>
+    </>
+  );
 }
 
 export function PlanSnapshotPanel({ plan }: { plan: TradingPlan }) {
