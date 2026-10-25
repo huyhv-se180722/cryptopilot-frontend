@@ -1086,6 +1086,18 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
     expect(screen.getByRole('radio', { name: 'Stop' })).toBeTruthy();
   });
 
+  it('edits a Futures draft with its direction, leverage and the fixed isolated margin (BR-26)', async () => {
+    await open('/plans/' + PLAN.id + '/edit', fakePlans(), 'PRO');
+    const short = await screen.findByRole('radio', { name: 'Short' });
+    expect(short.getAttribute('aria-checked')).toBe('true');
+    expect((screen.getByLabelText('Leverage') as HTMLInputElement).value).toBe(
+      '5',
+    );
+    expect(screen.getByText('Margin mode').nextSibling?.textContent).toBe(
+      'Isolated',
+    );
+  });
+
   it('shows MSG16 under the stop loss and sends nothing while the order is wrong', async () => {
     const service = fakePlans({ get: vi.fn(async () => SPOT_DRAFT) });
     await open(editPath, service);

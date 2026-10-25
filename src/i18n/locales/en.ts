@@ -473,6 +473,8 @@ export const en = {
     leverage: 'Leverage',
     marginMode: 'Margin mode',
     isolated: 'Isolated',
+    isolatedHint:
+      'Plans use isolated margin: the margin of this position alone can be lost.',
     expiresAt: 'Expires',
     noExpiry: 'No expiry',
     note: 'Note',

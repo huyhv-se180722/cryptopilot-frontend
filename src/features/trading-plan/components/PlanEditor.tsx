@@ -312,6 +312,7 @@ export function PlanEditor({
                   options={(['LONG', 'SHORT'] as const).map((value) => ({
                     value,
                     label: p[`direction${value}`],
+                    tone: value === 'LONG' ? 'positive' : 'negative',
                   }))}
                 />
               </fieldset>
@@ -512,6 +513,13 @@ export function PlanEditor({
               error={errorOf('leverage', p.leverage)}
               hint={p.leverageHint}
             />
+          )}
+          {futures && (
+            <div>
+              <span className={fieldLabelClass}>{p.marginMode}</span>
+              <p className="text-sm font-medium text-fg">{p.isolated}</p>
+              <span className={fieldHintClass}>{p.isolatedHint}</span>
+            </div>
           )}
         </Section>
 
