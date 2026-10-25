@@ -715,12 +715,59 @@ export interface NotificationPage {
   pageSize: number;
   total: number;
 }
+/** The tone the AI reads in an article (NSF-11). */
+export type NewsSentiment = 'BULLISH' | 'NEUTRAL' | 'BEARISH';
+/** How far back the news feed reaches (SRS 3.8.1); 7d when none is named. */
+export type NewsRange = '24h' | '7d' | '30d';
+export interface NewsCoinTag {
+  symbol: string;
+  /** The first coin the headline names. */
+  primary: boolean;
+}
+/**
+ * One item of the news feed (SCR-28, UC-34), the same on every plan
+ * (D-122). Once summarized, title and summary are the AI's Vietnamese text
+ * (D-123); until then the collected headline and the feed's excerpt.
+ * Selecting it opens the article's page in the app (D-125).
+ */
 export interface NewsArticle {
   id: string;
   title: string;
-  summary: string;
+  /** The headline as the outlet wrote it. */
+  originalTitle: string;
+  source: string;
+  /** An http(s) address, linked at the end of the article's page. */
   originalUrl: string;
   publishedAt: ISODateTime;
+  summary: string | null;
+  aiSummarized: boolean;
+  /** Absent until the article is summarized. */
+  sentiment: NewsSentiment | null;
+  /** Primary coin first. */
+  coins: readonly NewsCoinTag[];
+  /** The outlet's cover image, an http(s) address shown from the outlet; null for a placeholder. */
+  imageUrl: string | null;
+}
+/**
+ * An article read on its own page (D-125): the item with the article the AI
+ * wrote again in its own words, paragraphs split by a blank line; null until
+ * then, when the page shows the summary.
+ */
+export interface NewsArticleDetail extends NewsArticle {
+  body: string | null;
+}
+export interface NewsQuery {
+  coin?: string;
+  sentiment?: NewsSentiment;
+  range?: NewsRange;
+  page: number;
+  pageSize: number;
+}
+export interface NewsPage {
+  items: readonly NewsArticle[];
+  page: number;
+  pageSize: number;
+  total: number;
 }
 export interface AiConversation {
   id: string;

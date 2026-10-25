@@ -4,19 +4,19 @@
 
 ## Existing frontend ports
 
-| Service       | Initial port                            | Frontend domain model       |
-| ------------- | --------------------------------------- | --------------------------- |
-| auth          | restoreSession, login, register, logout | Session, User, Entitlements |
-| market        | list                                    | MarketQuote                 |
-| coin-analysis | get by symbol/market/timeframe          | CoinAnalysis                |
-| trading-plan  | list                                    | TradingPlan                 |
-| journal       | list                                    | JournalEntry                |
-| alerts        | list                                    | PriceAlert                  |
-| community     | list                                    | CommunityPost               |
-| news          | list                                    | NewsArticle                 |
-| ai            | list historical conversations           | AiConversation              |
-| subscription  | list packages                           | SubscriptionPackage         |
-| admin         | list logs                               | AdminLog                    |
+| Service       | Initial port                              | Frontend domain model                    |
+| ------------- | ----------------------------------------- | ---------------------------------------- |
+| auth          | restoreSession, login, register, logout   | Session, User, Entitlements              |
+| market        | list                                      | MarketQuote                              |
+| coin-analysis | get by symbol/market/timeframe            | CoinAnalysis                             |
+| trading-plan  | list                                      | TradingPlan                              |
+| journal       | list                                      | JournalEntry                             |
+| alerts        | list                                      | PriceAlert                               |
+| community     | list                                      | CommunityPost                            |
+| news          | feed, article (HTTP, T-080, D-125, D-126) | NewsArticle, NewsArticleDetail, NewsPage |
+| ai            | list historical conversations             | AiConversation                           |
+| subscription  | list packages                             | SubscriptionPackage                      |
+| admin         | list logs                                 | AdminLog                                 |
 
 These minimal read ports reserve integration ownership. They are not comprehensive feature models. Indicator alerts, OHLCV, futures context, risk metrics, watchlist, notifications, payment operations, AI invocation, and admin mutations must be designed in their feature tasks against confirmed requirements. No speculative endpoint or real trading operation exists.
 

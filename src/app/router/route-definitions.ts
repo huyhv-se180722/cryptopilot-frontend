@@ -79,6 +79,7 @@ export const traderRoutes = [
   { path: '/community/new', screen: 'SCR-26', titleKey: 'postNew' },
   { path: '/community/:postId/edit', screen: 'SCR-26', titleKey: 'postEdit' },
   { path: '/news', screen: 'SCR-28', titleKey: 'news' },
+  { path: '/news/:articleId', screen: 'SCR-28', titleKey: 'newsArticle' },
   { path: '/ai', screen: 'SCR-29', titleKey: 'ai' },
   { path: '/subscription', screen: 'SCR-30', titleKey: 'subscription' },
   {

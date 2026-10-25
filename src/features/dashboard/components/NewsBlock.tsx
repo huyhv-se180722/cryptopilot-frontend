@@ -1,21 +1,25 @@
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { useCopy } from '../../../hooks/use-copy';
 import { useServices } from '../../../hooks/use-services';
 import { errorText } from '../../../i18n/messages';
 import { DashboardCard, PendingBlock } from './DashboardCard';
 
+/** The latest articles the block lists. */
+const LATEST = 5;
+
 /**
- * Latest news (SCR-08, opens SCR-28). The news API is T-079/T-080: until
- * it exists the port answers NOT_CONFIGURED and the block says so instead
- * of showing invented articles.
+ * Latest news (SCR-08, opens SCR-28): the five newest articles of the
+ * feed, the AI's headline once summarized (D-123), each opening its page
+ * in the app (D-125).
  */
 export function NewsBlock() {
   const copy = useCopy();
   const d = copy.dashboard;
   const { news } = useServices();
   const query = useQuery({
-    queryKey: ['news', 'latest'],
-    queryFn: ({ signal }) => news.list({ limit: 5, signal }),
+    queryKey: ['news', 'latest', null, LATEST],
+    queryFn: ({ signal }) => news.feed({ page: 1, pageSize: LATEST }, signal),
   });
   return (
     <DashboardCard
@@ -31,9 +35,12 @@ export function NewsBlock() {
               key={article.id}
               className="border-b border-line px-4 py-3 text-xs last:border-b-0"
             >
-              <a href={article.originalUrl} target="_blank" rel="noreferrer">
+              <Link to={'/news/' + encodeURIComponent(article.id)}>
                 {article.title}
-              </a>
+              </Link>
+              <span className="mt-0.5 block text-[11px] text-muted-dim">
+                {article.source}
+              </span>
             </li>
           ))}
         </ul>
