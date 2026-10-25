@@ -54,11 +54,16 @@ describe('community screens', () => {
       fakeAuth(),
       { community: community({}) },
     );
-    expect(await screen.findByRole('tab', { name: 'Latest' })).toBeTruthy();
-    expect(screen.queryByRole('tab', { name: 'Saved' })).toBeNull();
-    expect(screen.getByRole('tab', { name: 'Latest' }).ariaSelected).toBe(
-      'true',
-    );
+    const user = userEvent.setup();
+    // A Trader's own tab falls back to Latest.
+    expect(
+      await screen.findByRole('heading', { name: 'Latest Posts' }),
+    ).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Choose the feed' }));
+    expect(screen.getByRole('menuitem', { name: 'Latest' })).toBeTruthy();
+    expect(screen.queryByRole('menuitem', { name: 'Saved' })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: 'Following' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'My Page' })).toBeNull();
     expect(
       screen.getByRole('heading', { name: 'Sign in to join the discussion' }),
     ).toBeTruthy();
@@ -117,6 +122,12 @@ describe('community screens', () => {
       coins: [],
       likeCount: 0,
       commentCount: 0,
+      viewCount: 0,
+      bullishCount: 0,
+      bearishCount: 0,
+      myVote: null,
+      sentiment: null,
+      authorStanding: { influenceScore: 0, followers: 0, followedByMe: false },
       likedByMe: false,
       savedByMe: false,
       createdAt: '2026-10-22T08:00:00Z',

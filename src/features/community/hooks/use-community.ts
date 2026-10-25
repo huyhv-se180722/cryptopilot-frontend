@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import {
+  keepPreviousData,
   useInfiniteQuery,
   useQuery,
   useQueryClient,
@@ -14,12 +15,17 @@ import type {
   CommentPage,
   Engagement,
   FeedQuery,
+  InfluencerRank,
+  MemberProfile,
+  OfficialCategory,
   PostComment,
   PostDetail,
   PostDraft,
   PostMediaKind,
   PostPage,
   PostReport,
+  PostSentiment,
+  PostSummary,
 } from '../../../types/domain';
 
 export const COMMUNITY_KEY = ['community'] as const;
@@ -27,8 +33,7 @@ const FEED_KEY = [...COMMUNITY_KEY, 'feed'] as const;
 const postKey = (id: string) => [...COMMUNITY_KEY, 'post', id] as const;
 const commentsKey = (id: string) => [...COMMUNITY_KEY, 'comments', id] as const;
 
-/** Twenty cards a page, as the backend's default (CR-04). */
-export const FEED_PAGE_SIZE = 20;
+/** Twenty comments a page, as the backend's default (CR-04). */
 const COMMENT_PAGE_SIZE = 20;
 
 const nextPage = (last: { page: number; pageSize: number; total: number }) =>
@@ -43,20 +48,59 @@ export function useCommunityRole(): 'trader' | 'guest' | 'other' {
 
 export type FeedFilter = Omit<FeedQuery, 'page' | 'pageSize'>;
 
-/** One feed tab, read a page at a time (SCR-24). */
-export function useFeed(filter: FeedFilter, enabled = true) {
+/** Cards per numbered page of the community lists (CR-04). */
+export const LIST_PAGE_SIZE = 10;
+
+/**
+ * One numbered page of a feed tab (SCR-24); the page shown stays while the
+ * next one loads.
+ */
+export function useFeedPage(filter: FeedFilter, page: number, enabled = true) {
   const { community } = useServices();
-  return useInfiniteQuery({
-    queryKey: [...FEED_KEY, filter],
+  return useQuery({
+    queryKey: [...FEED_KEY, filter, { page }],
     enabled,
-    initialPageParam: 1,
-    queryFn: ({ pageParam, signal }) =>
-      community.feed(
-        { ...filter, page: pageParam, pageSize: FEED_PAGE_SIZE },
+    placeholderData: keepPreviousData,
+    queryFn: ({ signal }) =>
+      community.feed({ ...filter, page, pageSize: LIST_PAGE_SIZE }, signal),
+  });
+}
+
+/** One numbered page of the team's official posts of a category (D-99). */
+export function useArticlesPage(
+  category: OfficialCategory | undefined,
+  page: number,
+) {
+  const { community } = useServices();
+  return useQuery({
+    // Under the feed key, so reactions and new posts reach it like a feed.
+    queryKey: [...FEED_KEY, { articles: category ?? 'ALL' }, { page }],
+    placeholderData: keepPreviousData,
+    queryFn: ({ signal }) =>
+      community.pinned(
+        {
+          ...(category ? { category } : {}),
+          page,
+          pageSize: LIST_PAGE_SIZE,
+        },
         signal,
       ),
-    getNextPageParam: nextPage,
   });
+}
+
+/** A cached feed is a numbered page or the pages of a Load more list. */
+type CachedFeed = PostPage | InfiniteData<PostPage>;
+function mapFeed(
+  data: CachedFeed | undefined,
+  patch: <T extends PostSummary>(post: T) => T,
+): CachedFeed | undefined {
+  if (!data) return data;
+  if ('pages' in data)
+    return {
+      ...data,
+      pages: data.pages.map((p) => ({ ...p, items: p.items.map(patch) })),
+    };
+  return { ...data, items: data.items.map(patch) };
 }
 
 /** The published announcements pinned above the feed (BR-61). */
@@ -107,6 +151,143 @@ export function useCoinDiscussion(symbol: string | undefined) {
   });
 }
 
+/** Top Influencers by influence or analytical depth (D-99). */
+export function useInfluencers(rank: InfluencerRank, limit = 8) {
+  const { community } = useServices();
+  return useQuery({
+    queryKey: [...COMMUNITY_KEY, 'influencers', rank, limit],
+    queryFn: ({ signal }) => community.influencers(rank, limit, signal),
+  });
+}
+
+/** The coins the week's posts talk about most (D-99). */
+export function useTrendingCoins(limit = 20) {
+  const { community } = useServices();
+  return useQuery({
+    queryKey: [...COMMUNITY_KEY, 'trending-coins', limit],
+    queryFn: ({ signal }) => community.trendingCoins(limit, signal),
+  });
+}
+
+/** Members whose name starts with the text; a Trader's search (D-99). */
+export function useMemberSearch(text: string, enabled: boolean) {
+  const { community } = useServices();
+  const q = text.trim();
+  return useQuery({
+    queryKey: [...COMMUNITY_KEY, 'member-search', q],
+    enabled: enabled && q.length > 0 && q.length <= 50,
+    queryFn: ({ signal }) => community.searchMembers(q, signal),
+  });
+}
+
+/** Applies `change` to every cached copy of the posts `which` picks. */
+function patchPosts(
+  client: QueryClient,
+  which: (post: PostSummary | PostDetail) => boolean,
+  change: <T extends PostSummary | PostDetail>(post: T) => T,
+) {
+  const patch = <T extends PostSummary | PostDetail>(post: T): T =>
+    which(post) ? change(post) : post;
+  client.setQueriesData<CachedFeed>({ queryKey: FEED_KEY }, (data) =>
+    mapFeed(data, patch),
+  );
+  client.setQueriesData<PostPage>(
+    { queryKey: [...COMMUNITY_KEY, 'pinned'] },
+    (data) => data && { ...data, items: data.items.map(patch) },
+  );
+  client.setQueriesData<PostDetail>(
+    { queryKey: [...COMMUNITY_KEY, 'post'] },
+    (post) => post && patch(post),
+  );
+}
+
+/**
+ * A Bullish or Bearish vote, or null to take it back (D-99). The counts
+ * change when the server answers.
+ */
+export function useVote() {
+  const { community } = useServices();
+  const client = useQueryClient();
+  return useMutation(
+    useCallback(
+      async (postId: string, sentiment: PostSentiment | null) => {
+        const result = await community.vote(postId, sentiment);
+        patchPosts(
+          client,
+          (post) => post.id === postId,
+          (post) => ({ ...post, ...result }),
+        );
+        return result;
+      },
+      [community, client],
+    ),
+  );
+}
+
+/**
+ * Follows a member or stops (D-99): every card of theirs, their page and
+ * the influencer list follow the server's answer; the Following tab reads
+ * again.
+ */
+export function useFollow() {
+  const { community } = useServices();
+  const client = useQueryClient();
+  return useMutation(
+    useCallback(
+      async (memberId: string, active: boolean) => {
+        const result = await community.follow(memberId, active);
+        patchPosts(
+          client,
+          (post) => post.author.userId === memberId,
+          (post) => ({
+            ...post,
+            authorStanding: {
+              ...post.authorStanding,
+              followedByMe: result.active,
+              followers: result.count,
+            },
+          }),
+        );
+        client.setQueryData<MemberProfile>(
+          [...COMMUNITY_KEY, 'member', memberId],
+          (member) =>
+            member && {
+              ...member,
+              followedByMe: result.active,
+              followers: result.count,
+            },
+        );
+        void client.invalidateQueries({
+          queryKey: [...COMMUNITY_KEY, 'influencers'],
+        });
+        void client.invalidateQueries({
+          queryKey: FEED_KEY,
+          predicate: (q) =>
+            (q.queryKey[2] as FeedFilter | undefined)?.tab === 'FOLLOWING',
+        });
+        return result;
+      },
+      [community, client],
+    ),
+  );
+}
+
+/** Blocks a member or stops (D-99); everything of the community reads again. */
+export function useBlock() {
+  const { community } = useServices();
+  const client = useQueryClient();
+  return useMutation(
+    useCallback(
+      async (memberId: string, active: boolean) => {
+        const result = await community.block(memberId, active);
+        await client.invalidateQueries({ queryKey: COMMUNITY_KEY });
+        return result;
+      },
+      [community, client],
+    ),
+  );
+}
+
 /** Writes the server's answer to a post reaction into every cached copy. */
 function applyPostReaction(
   client: QueryClient,
@@ -120,13 +301,8 @@ function applyPostReaction(
       : action === 'like'
         ? { ...post, likedByMe: result.active, likeCount: result.count }
         : { ...post, savedByMe: result.active };
-  client.setQueriesData<InfiniteData<PostPage>>(
-    { queryKey: FEED_KEY },
-    (data) =>
-      data && {
-        ...data,
-        pages: data.pages.map((p) => ({ ...p, items: p.items.map(patch) })),
-      },
+  client.setQueriesData<CachedFeed>({ queryKey: FEED_KEY }, (data) =>
+    mapFeed(data, patch),
   );
   client.setQueriesData<PostPage>(
     { queryKey: [...COMMUNITY_KEY, 'pinned'] },

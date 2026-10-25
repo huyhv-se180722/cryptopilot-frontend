@@ -1,19 +1,38 @@
 import type { CommunityService, ReactionTarget } from './contracts';
 import { ServiceError, integrationPending } from './errors';
 import type { HttpClient } from './http-client';
-import type { PostMediaKind, PostMediaRef } from '../../types/domain';
+import type {
+  PostAuthor,
+  PostMediaKind,
+  PostMediaRef,
+} from '../../types/domain';
+import { list, nullableText, record, text } from './decode';
 import {
   decodeCoinDiscussion,
   decodeComment,
   decodeCommentPage,
   decodeEngagement,
+  decodeInfluencers,
   decodeMember,
   decodePostDetail,
   decodePostPage,
+  decodeTrendingCoins,
   decodeUploadForm,
+  decodeVotes,
   encodePostDraft,
   type UploadForm,
 } from './community-dto';
+
+function decodeAuthors(body: unknown): PostAuthor[] {
+  return list(body, 'members').map((item) => {
+    const value = record(item, 'member');
+    return {
+      userId: text(value.userId, 'userId'),
+      displayName: nullableText(value.displayName, 'displayName'),
+      avatarUrl: nullableText(value.avatarUrl, 'avatarUrl'),
+    };
+  });
+}
 
 /** Used while no API base URL is configured. */
 export function createPendingCommunityService(): CommunityService {
@@ -32,6 +51,12 @@ export function createPendingCommunityService(): CommunityService {
     removeComment: async () => integrationPending(),
     report: async () => integrationPending(),
     member: async () => integrationPending(),
+    vote: async () => integrationPending(),
+    follow: async () => integrationPending(),
+    block: async () => integrationPending(),
+    influencers: async () => integrationPending(),
+    trendingCoins: async () => integrationPending(),
+    searchMembers: async () => integrationPending(),
     upload: async () => integrationPending(),
   };
 }
@@ -283,6 +308,43 @@ export function createHttpCommunityService(http: HttpClient): CommunityService {
       http.request({
         path: 'community/members/' + id(memberId),
         decode: decodeMember,
+        ...withSignal(signal),
+      }),
+    vote: (postId, sentiment) =>
+      http.request({
+        path: 'posts/' + id(postId) + '/vote',
+        method: sentiment ? 'PUT' : 'DELETE',
+        ...(sentiment ? { body: { sentiment } } : {}),
+        decode: decodeVotes,
+      }),
+    follow: (memberId, active) =>
+      http.request({
+        path: 'community/members/' + id(memberId) + '/follow',
+        method: active ? 'POST' : 'DELETE',
+        decode: decodeEngagement,
+      }),
+    block: (memberId, active) =>
+      http.request({
+        path: 'community/members/' + id(memberId) + '/block',
+        method: active ? 'POST' : 'DELETE',
+        decode: decodeEngagement,
+      }),
+    influencers: (rank, limit, signal) =>
+      http.request({
+        path: 'community/influencers' + query({ rank, limit }),
+        decode: decodeInfluencers,
+        ...withSignal(signal),
+      }),
+    trendingCoins: (limit, signal) =>
+      http.request({
+        path: 'posts/trending-coins' + query({ limit }),
+        decode: decodeTrendingCoins,
+        ...withSignal(signal),
+      }),
+    searchMembers: (q, signal) =>
+      http.request({
+        path: 'community/members' + query({ q }),
+        decode: decodeAuthors,
         ...withSignal(signal),
       }),
     upload: async (

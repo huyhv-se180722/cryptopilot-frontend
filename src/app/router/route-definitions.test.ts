@@ -46,6 +46,8 @@ describe('route definitions', () => {
   it('lets guests read the community and keeps writing for traders (D-99)', () => {
     expect(communityReadRoutes.map((route) => route.path)).toEqual([
       '/community',
+      '/community/topics',
+      '/community/articles',
       '/community/:postId',
       '/community/members/:memberId',
     ]);

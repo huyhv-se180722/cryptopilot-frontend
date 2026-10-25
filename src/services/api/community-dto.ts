@@ -1,7 +1,9 @@
 import type {
+  AuthorStanding,
   CoinDiscussion,
   CommentPage,
   Engagement,
+  Influencer,
   MemberProfile,
   OfficialCategory,
   PostAuthor,
@@ -11,9 +13,11 @@ import type {
   PostMedia,
   PostMediaKind,
   PostPage,
+  PostSentiment,
   PostStatus,
   PostSummary,
   PostType,
+  PostVotes,
 } from '../../types/domain';
 import {
   flag,
@@ -39,11 +43,35 @@ import { marketOf } from './market-dto';
 const STATUSES: readonly PostStatus[] = ['PUBLISHED', 'HIDDEN', 'DELETED'];
 const TYPES: readonly PostType[] = ['TEXT', 'VIDEO'];
 const KINDS: readonly PostMediaKind[] = ['IMAGE', 'VIDEO'];
+const SENTIMENTS: readonly PostSentiment[] = ['BULLISH', 'BEARISH'];
 const CATEGORIES: readonly OfficialCategory[] = [
   'ANNOUNCEMENT',
   'PLATFORM_UPDATE',
   'EDUCATION',
 ];
+
+function sentimentOf(value: unknown, name: string): PostSentiment | null {
+  return value === null || value === undefined
+    ? null
+    : oneOf(SENTIMENTS, value, name);
+}
+function score(value: unknown, name: string): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0)
+    throw new Error(name + ' must be a score');
+  return value;
+}
+
+function decodeStanding(body: unknown): AuthorStanding {
+  // A backend before D-99 sends none; the card then shows no score.
+  if (body === null || body === undefined)
+    return { influenceScore: 0, followers: 0, followedByMe: false };
+  const value = record(body, 'authorStanding');
+  return {
+    influenceScore: score(value.influenceScore, 'influenceScore'),
+    followers: count(value.followers, 'followers'),
+    followedByMe: flag(value.followedByMe, 'followedByMe'),
+  };
+}
 
 function nullableInteger(value: unknown, name: string): number | null {
   return value === null || value === undefined ? null : integer(value, name);
@@ -87,6 +115,7 @@ function decodeBase(value: Record<string, unknown>) {
   return {
     id: text(value.id, 'id'),
     author: decodeAuthor(value.author),
+    authorStanding: decodeStanding(value.authorStanding),
     title: text(value.title, 'title'),
     postType: oneOf(TYPES, value.postType, 'postType'),
     market: market === null || market === undefined ? null : marketOf(market),
@@ -96,9 +125,14 @@ function decodeBase(value: Record<string, unknown>) {
         ? null
         : oneOf(CATEGORIES, category, 'officialCategory'),
     status: oneOf(STATUSES, value.status, 'status'),
+    sentiment: sentimentOf(value.sentiment, 'sentiment'),
     coins: list(value.coins, 'coins').map((coin) => text(coin, 'coin')),
     likeCount: count(value.likeCount, 'likeCount'),
     commentCount: count(value.commentCount, 'commentCount'),
+    viewCount: count(value.viewCount ?? 0, 'viewCount'),
+    bullishCount: count(value.bullishCount ?? 0, 'bullishCount'),
+    bearishCount: count(value.bearishCount ?? 0, 'bearishCount'),
+    myVote: sentimentOf(value.myVote, 'myVote'),
     likedByMe: flag(value.likedByMe, 'likedByMe'),
     savedByMe: flag(value.savedByMe, 'savedByMe'),
     createdAt: instant(value.createdAt, 'createdAt'),
@@ -197,8 +231,43 @@ export function decodeMember(body: unknown): MemberProfile {
     joinedAt: instant(value.joinedAt, 'joinedAt'),
     posts: count(value.posts, 'posts'),
     likesReceived: count(value.likesReceived, 'likesReceived'),
+    followers: count(value.followers ?? 0, 'followers'),
+    following: count(value.following ?? 0, 'following'),
+    followedByMe: flag(value.followedByMe ?? false, 'followedByMe'),
+    blockedByMe: flag(value.blockedByMe ?? false, 'blockedByMe'),
     me: flag(value.me, 'me'),
   };
+}
+
+export function decodeVotes(body: unknown): PostVotes {
+  const value = record(body);
+  return {
+    myVote: sentimentOf(value.myVote, 'myVote'),
+    bullishCount: count(value.bullishCount, 'bullishCount'),
+    bearishCount: count(value.bearishCount, 'bearishCount'),
+  };
+}
+
+export function decodeInfluencers(body: unknown): Influencer[] {
+  return list(body, 'influencers').map((item) => {
+    const value = record(item, 'influencer');
+    return {
+      userId: text(value.userId, 'userId'),
+      displayName: nullableText(value.displayName, 'displayName'),
+      avatarUrl: nullableText(value.avatarUrl, 'avatarUrl'),
+      influenceScore: score(value.influenceScore, 'influenceScore'),
+      depthScore: score(value.depthScore, 'depthScore'),
+      followers: count(value.followers, 'followers'),
+      bullishPosts: count(value.bullishPosts, 'bullishPosts'),
+      bearishPosts: count(value.bearishPosts, 'bearishPosts'),
+      followedByMe: flag(value.followedByMe, 'followedByMe'),
+      me: flag(value.me, 'me'),
+    };
+  });
+}
+
+export function decodeTrendingCoins(body: unknown): CoinDiscussion[] {
+  return list(body, 'coins').map(decodeCoinDiscussion);
 }
 
 /** The signed form of one file (D-98); the fields go to the storage as is. */
@@ -251,6 +320,7 @@ export function encodePostDraft(draft: PostDraft) {
       publicId: item.publicId,
       mediaType: item.kind,
     })),
+    sentiment: draft.sentiment ?? null,
     ...(draft.officialCategory
       ? { officialCategory: draft.officialCategory }
       : {}),

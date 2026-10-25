@@ -452,8 +452,14 @@ export interface AlertPage {
   pageSize: number;
   total: number;
 }
-/** Community feed tabs (SRS 3.7.1); SAVED and MINE are the Trader's own. */
-export type FeedTab = 'LATEST' | 'MOST_LIKED' | 'SAVED' | 'MINE';
+/**
+ * Community feed tabs (SRS 3.7.1, D-99): TRENDING is "For You", the most
+ * discussed posts of the week; SAVED, MINE and FOLLOWING are the Trader's.
+ */
+export type FeedTab =
+  'TRENDING' | 'LATEST' | 'MOST_LIKED' | 'FOLLOWING' | 'SAVED' | 'MINE';
+/** Which way a post leans: its author's stance, a reader's vote (D-99). */
+export type PostSentiment = 'BULLISH' | 'BEARISH';
 /** HIDDEN shows only in the author's own views; DELETED never (BR-47). */
 export type PostStatus = 'PUBLISHED' | 'HIDDEN' | 'DELETED';
 export type PostType = 'TEXT' | 'VIDEO';
@@ -467,6 +473,13 @@ export interface PostAuthor {
   /** null for an account without a profile. */
   displayName: string | null;
   avatarUrl: string | null;
+}
+/** How the author of a post counts in the community (D-99). */
+export interface AuthorStanding {
+  influenceScore: number;
+  followers: number;
+  /** The caller follows them, so the card offers Following. */
+  followedByMe: boolean;
 }
 export interface PostMedia {
   /** The key an edit names to keep the file. */
@@ -482,6 +495,7 @@ export interface PostMedia {
 interface PostBase {
   id: string;
   author: PostAuthor;
+  authorStanding: AuthorStanding;
   title: string;
   postType: PostType;
   market: MarketType | null;
@@ -489,10 +503,18 @@ interface PostBase {
   official: boolean;
   officialCategory: OfficialCategory | null;
   status: PostStatus;
+  /** The author's stance, or null (D-99). */
+  sentiment: PostSentiment | null;
   /** Coin symbols, alphabetical. */
   coins: readonly string[];
   likeCount: number;
   commentCount: number;
+  /** Signed-in members other than the author who opened it (D-99). */
+  viewCount: number;
+  bullishCount: number;
+  bearishCount: number;
+  /** The caller's Bullish or Bearish vote, or null. */
+  myVote: PostSentiment | null;
   likedByMe: boolean;
   savedByMe: boolean;
   createdAt: ISODateTime;
@@ -539,6 +561,8 @@ export interface PostDraft {
   market: MarketType | null;
   coins: readonly string[];
   media: readonly PostMediaRef[];
+  /** The author's stance; absent or null for none (D-99). */
+  sentiment?: PostSentiment | null;
   /** Set only on an official post, which only an Admin publishes (BR-61). */
   officialCategory?: OfficialCategory;
 }
@@ -597,6 +621,32 @@ export interface MemberProfile {
   joinedAt: ISODateTime;
   posts: number;
   likesReceived: number;
+  followers: number;
+  following: number;
+  followedByMe: boolean;
+  blockedByMe: boolean;
+  me: boolean;
+}
+/** A post's Bullish and Bearish votes after the caller voted (D-99). */
+export interface PostVotes {
+  myVote: PostSentiment | null;
+  bullishCount: number;
+  bearishCount: number;
+}
+/** Social Influence or Analytical Depth (D-99). */
+export type InfluencerRank = 'INFLUENCE' | 'DEPTH';
+/** One row of Top Influencers (D-99). */
+export interface Influencer {
+  userId: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  influenceScore: number;
+  depthScore: number;
+  followers: number;
+  /** Their posts of the last 30 days marked Bullish. */
+  bullishPosts: number;
+  bearishPosts: number;
+  followedByMe: boolean;
   me: boolean;
 }
 /** Where a report stands (SRS 3.11.3): filed, opened by a moderator, decided. */

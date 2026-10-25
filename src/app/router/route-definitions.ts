@@ -33,6 +33,12 @@ export const publicRoutes = [
  */
 export const communityReadRoutes = [
   { path: '/community', screen: 'SCR-24', titleKey: 'community' },
+  { path: '/community/topics', screen: 'D-99', titleKey: 'communityTopics' },
+  {
+    path: '/community/articles',
+    screen: 'D-99',
+    titleKey: 'communityArticles',
+  },
   { path: '/community/:postId', screen: 'SCR-25', titleKey: 'postDetail' },
   {
     path: '/community/members/:memberId',
