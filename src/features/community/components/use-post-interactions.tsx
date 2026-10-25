@@ -3,13 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../hooks/use-auth';
 import { useCopy } from '../../../hooks/use-copy';
 import { useToast } from '../../../hooks/use-toast';
+import { formatCopy } from '../../../i18n/copy';
 import { errorText, messageText } from '../../../i18n/messages';
-import type { PostSummary } from '../../../types/domain';
+import type {
+  PostAuthor,
+  PostSentiment,
+  PostSummary,
+} from '../../../types/domain';
 import {
+  useBlock,
   useCommunityRole,
   useDeletePost,
+  useFollow,
   useReaction,
   useReportPost,
+  useVote,
 } from '../hooks/use-community';
 import {
   ConfirmDeleteDialog,
@@ -21,9 +29,9 @@ import { PostMenu } from './PostMenu';
 
 /**
  * What a reader can do with a post wherever it shows (feed, detail,
- * member page): react, report, edit, delete, copy its link. A Guest is
- * asked to sign in instead (D-99). Returns the handlers and the dialogs
- * to render once.
+ * member page): react, vote Bullish or Bearish, follow or block its
+ * author, report, edit, delete, copy its link. A Guest is asked to sign
+ * in instead (D-99). Returns the handlers and the dialogs to render once.
  */
 export function usePostInteractions(onDeleted?: () => void) {
   const copy = useCopy();
@@ -33,6 +41,9 @@ export function usePostInteractions(onDeleted?: () => void) {
   const role = useCommunityRole();
   const me = useAuth().session?.user.id;
   const reaction = useReaction();
+  const voting = useVote();
+  const following = useFollow();
+  const blocking = useBlock();
   const report = useReportPost();
   const removal = useDeletePost();
   const [joining, setJoining] = useState(false);
@@ -55,6 +66,42 @@ export function usePostInteractions(onDeleted?: () => void) {
     [trader, askToJoin, reaction, show, copy],
   );
 
+  const vote = useCallback(
+    async (postId: string, sentiment: PostSentiment | null) => {
+      if (!trader) return askToJoin();
+      const result = await voting.run(postId, sentiment);
+      if (result.status === 'error')
+        show({ tone: 'error', message: errorText(copy, result.error) });
+    },
+    [trader, askToJoin, voting, show, copy],
+  );
+
+  const follow = useCallback(
+    async (memberId: string, active: boolean) => {
+      if (!trader) return askToJoin();
+      const result = await following.run(memberId, active);
+      if (result.status === 'error')
+        show({ tone: 'error', message: errorText(copy, result.error) });
+    },
+    [trader, askToJoin, following, show, copy],
+  );
+
+  const block = useCallback(
+    async (author: PostAuthor, active: boolean) => {
+      if (!trader) return askToJoin();
+      const name = author.displayName ?? c.noName;
+      const result = await blocking.run(author.userId, active);
+      if (result.status === 'error')
+        show({ tone: 'error', message: errorText(copy, result.error) });
+      else if (result.status === 'success')
+        show({
+          tone: 'success',
+          message: formatCopy(active ? c.blocked : c.unblocked, { name }),
+        });
+    },
+    [trader, askToJoin, blocking, show, copy, c],
+  );
+
   const isMine = useCallback(
     (post: Pick<PostSummary, 'author'> & { mine?: boolean }) =>
       post.mine ?? (me !== undefined && post.author.userId === me),
@@ -62,10 +109,20 @@ export function usePostInteractions(onDeleted?: () => void) {
   );
 
   const menu = (
-    post: Pick<PostSummary, 'id' | 'author'> & { mine?: boolean },
+    post: Pick<PostSummary, 'id' | 'author' | 'official'> & {
+      mine?: boolean;
+    },
   ) => (
     <PostMenu
       mine={trader && isMine(post)}
+      {...(trader && !isMine(post) && !post.official
+        ? {
+            blockLabel: formatCopy(c.block, {
+              name: post.author.displayName ?? c.noName,
+            }),
+            onBlock: () => void block(post.author, true),
+          }
+        : {})}
       onEdit={() => navigate(postPath(post.id) + '/edit')}
       onDelete={() => setDeleting(post.id)}
       onReport={() => (trader ? setReporting(post.id) : askToJoin())}
@@ -122,9 +179,17 @@ export function usePostInteractions(onDeleted?: () => void) {
     trader,
     role,
     react,
+    vote,
+    follow,
+    block,
+    isMine,
     menu,
     askToJoin,
     dialogs,
     reacting: reaction.pending,
+    voting: voting.pending,
+    following: following.pending,
   };
 }
+
+export type PostActions = ReturnType<typeof usePostInteractions>;

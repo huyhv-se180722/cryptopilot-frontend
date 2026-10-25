@@ -17,6 +17,7 @@ import type {
   PostDraft,
   PostMedia,
   PostMediaKind,
+  PostSentiment,
   PostSummary,
   ReportReason,
   ReportStatus,
@@ -25,6 +26,7 @@ import type {
 import { devPairs } from './fixtures/market';
 import {
   DEV_ADMIN_AUTHOR,
+  devFollowSeeds,
   devCommentSeeds,
   devMembers,
   devPostSeeds,
@@ -97,6 +99,9 @@ interface StoredPost {
   updatedAt: number;
   likes: Set<string>;
   saves: Set<string>;
+  sentiment: PostSentiment | null;
+  votes: Map<string, PostSentiment>;
+  views: number;
 }
 interface StoredComment {
   id: string;
@@ -159,9 +164,20 @@ export function createDevelopmentCommunity(
         updatedAt: built - seed.minutesAgo * MINUTE,
         likes: new Set(seed.likedBy),
         saves: new Set(seed.savedByMe ? [ME] : []),
+        sentiment: seed.sentiment ?? null,
+        votes: new Map(
+          (seed.votes ?? []).map(
+            (vote, i) => ['dev-voter-' + String(i), vote] as const,
+          ),
+        ),
+        views: seed.views ?? seed.likedBy.length * 9,
       },
     ]),
   );
+  /** "source>target" pairs: who follows and who blocks whom (D-99). */
+  const follows = new Set<string>(devFollowSeeds);
+  const blocks = new Set<string>();
+  const relation = (source: string, target: string) => source + '>' + target;
   const comments = new Map<string, StoredComment>(
     devCommentSeeds.map((seed) => [
       seed.id,
@@ -245,10 +261,70 @@ export function createDevelopmentCommunity(
     [...comments.values()].filter((c) => c.postId === postId && !c.deleted)
       .length;
 
+  /** Influence of a member, the backend's formula over the fixture (D-99). */
+  function standing(authorId: string, key: string | null) {
+    const theirs = [...posts.values()].filter(
+      (p) => p.authorId === authorId && p.status === 'PUBLISHED' && !p.official,
+    );
+    const followers = [...follows].filter((f) =>
+      f.endsWith('>' + authorId),
+    ).length;
+    const likes = theirs.reduce((sum, p) => sum + p.likes.size, 0);
+    const replies = [...comments.values()].filter(
+      (c) =>
+        !c.deleted &&
+        c.authorId !== authorId &&
+        theirs.some((p) => p.id === c.postId),
+    ).length;
+    const deep = theirs.filter(
+      (p) => p.media.length > 0 || p.content.length >= 600,
+    ).length;
+    const round = (n: number) => Math.round(n * 100) / 100;
+    const since = Date.now() - 30 * 1440 * MINUTE;
+    return {
+      followers,
+      influenceScore: round(
+        40 * Math.log1p(followers) +
+          25 * Math.log1p(likes) +
+          15 * Math.log1p(replies) +
+          10 * Math.log1p(theirs.length),
+      ),
+      depthScore: round(
+        50 * Math.log1p(deep) +
+          20 * Math.log1p(likes) +
+          10 * Math.log1p(replies),
+      ),
+      posts: theirs.length,
+      bullishPosts: theirs.filter(
+        (p) => p.sentiment === 'BULLISH' && p.createdAt >= since,
+      ).length,
+      bearishPosts: theirs.filter(
+        (p) => p.sentiment === 'BEARISH' && p.createdAt >= since,
+      ).length,
+      followedByMe: key !== null && follows.has(relation(key, authorId)),
+    };
+  }
+  const votesOf = (post: StoredPost, vote: PostSentiment) =>
+    [...post.votes.values()].filter((v) => v === vote).length;
+  const blockedEitherWay = (key: string | null, other: string) =>
+    key !== null &&
+    (blocks.has(relation(key, other)) || blocks.has(relation(other, key)));
+
   function base(post: StoredPost, key: string | null, me: Session | null) {
+    const author = standing(post.authorId, key);
     return {
       id: post.id,
       author: authorOf(post.authorId, me),
+      authorStanding: {
+        influenceScore: author.influenceScore,
+        followers: author.followers,
+        followedByMe: author.followedByMe,
+      },
+      sentiment: post.sentiment,
+      viewCount: post.views,
+      bullishCount: votesOf(post, 'BULLISH'),
+      bearishCount: votesOf(post, 'BEARISH'),
+      myVote: key === null ? null : (post.votes.get(key) ?? null),
       title: post.title,
       postType: post.media.some((m) => m.kind === 'VIDEO')
         ? ('VIDEO' as const)
@@ -307,6 +383,33 @@ export function createDevelopmentCommunity(
     const now = Date.now();
     let found = [...posts.values()];
     switch (q.tab) {
+      case 'TRENDING': {
+        const hot = (p: StoredPost) =>
+          (p.likes.size * 3 +
+            p.votes.size * 3 +
+            publishedComments(p.id) * 4 +
+            p.views * 0.5 +
+            1) /
+          Math.pow((now - p.createdAt) / (60 * MINUTE) + 2, 1.5);
+        found = found.filter(
+          (p) =>
+            p.status === 'PUBLISHED' &&
+            !p.official &&
+            p.createdAt >= now - 7 * 24 * 60 * MINUTE,
+        );
+        found.sort((a, b) => hot(b) - hot(a) || b.createdAt - a.createdAt);
+        break;
+      }
+      case 'FOLLOWING':
+        found = found.filter(
+          (p) =>
+            p.status === 'PUBLISHED' &&
+            !p.official &&
+            key !== null &&
+            follows.has(relation(key, p.authorId)),
+        );
+        found.sort((a, b) => b.createdAt - a.createdAt);
+        break;
       case 'LATEST':
         found = found.filter((p) => p.status === 'PUBLISHED' && !p.official);
         found.sort((a, b) => b.createdAt - a.createdAt);
@@ -330,6 +433,8 @@ export function createDevelopmentCommunity(
         found.sort((a, b) => b.createdAt - a.createdAt);
         break;
     }
+    if (q.tab !== 'MINE')
+      found = found.filter((p) => !blockedEitherWay(key, p.authorId));
     const coin = q.coin?.toUpperCase();
     if (coin) found = found.filter((p) => p.coins.includes(coin));
     if (q.market) found = found.filter((p) => p.market === q.market);
@@ -444,7 +549,11 @@ export function createDevelopmentCommunity(
     async feed(q, signal) {
       await pause(signal);
       const who = await caller();
-      if (!who && (q.tab === 'SAVED' || q.tab === 'MINE')) signInRequired();
+      if (
+        !who &&
+        (q.tab === 'SAVED' || q.tab === 'MINE' || q.tab === 'FOLLOWING')
+      )
+        signInRequired();
       const text = q.q?.trim();
       if (
         text !== undefined &&
@@ -524,6 +633,9 @@ export function createDevelopmentCommunity(
         updatedAt: now,
         likes: new Set(),
         saves: new Set(),
+        sentiment: draft.sentiment ?? null,
+        votes: new Map(),
+        views: 0,
       };
       posts.set(post.id, post);
       for (const m of checked.media) uploads.delete(m.publicId);
@@ -540,6 +652,7 @@ export function createDevelopmentCommunity(
         market: draft.market,
         coins: checked.coins,
         media: checked.media,
+        sentiment: draft.sentiment ?? null,
         updatedAt: Date.now(),
       });
       for (const m of checked.media) uploads.delete(m.publicId);
@@ -680,8 +793,140 @@ export function createDevelopmentCommunity(
         joinedAt: new Date(built - joinedDaysAgo * 1440 * MINUTE).toISOString(),
         posts: theirs.length,
         likesReceived: theirs.reduce((sum, p) => sum + p.likes.size, 0),
+        followers: [...follows].filter((f) => f.endsWith('>' + key)).length,
+        following: [...follows].filter((f) => f.startsWith(key + '>')).length,
+        followedByMe: who !== null && follows.has(relation(who.key, key)),
+        blockedByMe: who !== null && blocks.has(relation(who.key, key)),
         me: key === ME && me !== null,
       };
+    },
+    async vote(postId, sentiment) {
+      await pause();
+      const who = await trader();
+      const post = seenPost(postId, who.key);
+      if (sentiment) post.votes.set(who.key, sentiment);
+      else post.votes.delete(who.key);
+      return {
+        myVote: sentiment,
+        bullishCount: votesOf(post, 'BULLISH'),
+        bearishCount: votesOf(post, 'BEARISH'),
+      };
+    },
+    async follow(memberId, active) {
+      await pause();
+      const who = await trader();
+      const key = authorKey(memberId, who.session);
+      if (key === who.key) refuse(409, 'FOLLOW_SELF', 'MSG43');
+      if (key === DEV_ADMIN_AUTHOR.userId)
+        refuse(409, 'RELATION_NOT_ALLOWED', 'MSG43');
+      if (active) follows.add(relation(who.key, key));
+      else follows.delete(relation(who.key, key));
+      return {
+        active,
+        count: [...follows].filter((f) => f.endsWith('>' + key)).length,
+      };
+    },
+    async block(memberId, active) {
+      await pause();
+      const who = await trader();
+      const key = authorKey(memberId, who.session);
+      if (key === who.key) refuse(409, 'BLOCK_SELF', 'MSG43');
+      if (active) {
+        blocks.add(relation(who.key, key));
+        follows.delete(relation(who.key, key));
+        follows.delete(relation(key, who.key));
+      } else blocks.delete(relation(who.key, key));
+      return {
+        active,
+        count: [...blocks].filter((b) => b.startsWith(who.key + '>')).length,
+      };
+    },
+    async influencers(rank, limit, signal) {
+      await pause(signal);
+      const who = await caller();
+      const key = who?.key ?? null;
+      const ids = new Set(
+        [...posts.values()]
+          .filter((p) => p.status === 'PUBLISHED' && !p.official)
+          .map((p) => p.authorId),
+      );
+      return [...ids]
+        .filter((id) => !blockedEitherWay(key, id))
+        .map((id) => {
+          const author = authorOf(id, who?.session ?? null);
+          const counted = standing(id, key);
+          return {
+            userId: author.userId,
+            displayName: author.displayName,
+            avatarUrl: author.avatarUrl,
+            influenceScore: counted.influenceScore,
+            depthScore: counted.depthScore,
+            followers: counted.followers,
+            bullishPosts: counted.bullishPosts,
+            bearishPosts: counted.bearishPosts,
+            followedByMe: counted.followedByMe,
+            me: key !== null && id === key,
+          };
+        })
+        .sort((a, b) =>
+          rank === 'DEPTH'
+            ? b.depthScore - a.depthScore
+            : b.influenceScore - a.influenceScore,
+        )
+        .slice(0, limit);
+    },
+    async trendingCoins(limit, signal) {
+      await pause(signal);
+      const now = Date.now();
+      const week = [...posts.values()].filter(
+        (p) =>
+          p.status === 'PUBLISHED' && p.createdAt >= now - 7 * 1440 * MINUTE,
+      );
+      const names = new Map(
+        devPairs('spot').map((p) => [p.baseAsset, p.baseAssetName] as const),
+      );
+      const symbols = [...new Set(week.flatMap((p) => p.coins))];
+      return symbols
+        .map((symbol) => {
+          const tagged = week.filter((p) => p.coins.includes(symbol));
+          return {
+            symbol,
+            name: names.get(symbol) ?? symbol,
+            postsLastDay: tagged.filter(
+              (p) => p.createdAt >= now - 1440 * MINUTE,
+            ).length,
+            postsLastWeek: tagged.length,
+            totalPosts: tagged.length,
+            lastPostAt: new Date(
+              Math.max(...tagged.map((p) => p.createdAt)),
+            ).toISOString(),
+          };
+        })
+        .sort(
+          (a, b) =>
+            b.postsLastDay - a.postsLastDay ||
+            b.postsLastWeek - a.postsLastWeek,
+        )
+        .slice(0, limit);
+    },
+    async searchMembers(text, signal) {
+      await pause(signal);
+      const who = await trader();
+      const prefix = text.trim().toLowerCase();
+      if (prefix.length < 1 || prefix.length > 50)
+        refuse(400, 'VALIDATION_FAILED', 'MSG01', { q: 'MSG15' });
+      return devMembers
+        .filter(
+          (m) =>
+            m.displayName.toLowerCase().startsWith(prefix) &&
+            !blockedEitherWay(who.key, m.userId),
+        )
+        .slice(0, 10)
+        .map((m) => ({
+          userId: m.userId,
+          displayName: m.displayName,
+          avatarUrl: m.avatarUrl,
+        }));
     },
     async upload(file, kind: PostMediaKind, onProgress, signal) {
       const who = await trader();
@@ -879,6 +1124,9 @@ export function createDevelopmentCommunity(
         updatedAt: now,
         likes: new Set(),
         saves: new Set(),
+        sentiment: null,
+        votes: new Map(),
+        views: 0,
       };
       posts.set(post.id, post);
       return detail(post, null, null);

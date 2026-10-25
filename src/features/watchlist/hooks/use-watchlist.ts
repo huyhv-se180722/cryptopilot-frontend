@@ -11,11 +11,15 @@ import type {
 
 export const WATCHLIST_KEY = ['watchlist'] as const;
 
-/** The Trader's whole watchlist with the plan's limit (SCR-12). */
-export function useWatchlist() {
+/**
+ * The Trader's whole watchlist with the plan's limit (SCR-12). A screen a
+ * Guest also opens passes `enabled` false for them.
+ */
+export function useWatchlist(enabled = true) {
   const { watchlist } = useServices();
   return useQuery({
     queryKey: WATCHLIST_KEY,
+    enabled,
     queryFn: ({ signal }) => watchlist.get(signal),
   });
 }

@@ -84,6 +84,14 @@ export const screenPages: Readonly<Record<string, PageModule>> = {
   '/community': async () => ({
     Component: (await import('../../pages/trader/CommunityPage')).CommunityPage,
   }),
+  '/community/topics': async () => ({
+    Component: (await import('../../pages/trader/CommunityTopicsPage'))
+      .CommunityTopicsPage,
+  }),
+  '/community/articles': async () => ({
+    Component: (await import('../../pages/trader/CommunityArticlesPage'))
+      .CommunityArticlesPage,
+  }),
   '/community/new': async () => ({
     Component: (await import('../../pages/trader/PostEditorPage'))
       .PostEditorPage,
@@ -98,6 +106,24 @@ export const screenPages: Readonly<Record<string, PageModule>> = {
   }),
   '/community/members/:memberId': async () => ({
     Component: (await import('../../pages/trader/MemberPage')).MemberPage,
+  }),
+  '/news': async () => ({
+    Component: (await import('../../pages/trader/NewsPage')).NewsPage,
+  }),
+  '/news/:articleId': async () => ({
+    Component: (await import('../../pages/trader/NewsArticlePage'))
+      .NewsArticlePage,
+  }),
+  '/academy': async () => ({
+    Component: (await import('../../pages/guest/AcademyPage')).AcademyPage,
+  }),
+  '/academy/glossary': async () => ({
+    Component: (await import('../../pages/guest/AcademyGlossaryPage'))
+      .AcademyGlossaryPage,
+  }),
+  '/academy/:slug': async () => ({
+    Component: (await import('../../pages/guest/AcademyArticlePage'))
+      .AcademyArticlePage,
   }),
   '/profile': async () => ({
     Component: (await import('../../pages/trader/ProfilePage')).ProfilePage,
@@ -117,6 +143,14 @@ export const screenPages: Readonly<Record<string, PageModule>> = {
   '/admin/announcements/:postId': async () => ({
     Component: (await import('../../pages/admin/AdminAnnouncementEditorPage'))
       .AdminAnnouncementEditorPage,
+  }),
+  '/admin/news-sources': async () => ({
+    Component: (await import('../../pages/admin/AdminNewsSourcesPage'))
+      .AdminNewsSourcesPage,
+  }),
+  '/admin/news-articles': async () => ({
+    Component: (await import('../../pages/admin/AdminNewsArticlesPage'))
+      .AdminNewsArticlesPage,
   }),
   '/admin/account': async () => ({
     Component: (await import('../../pages/admin/AdminAccountPage'))

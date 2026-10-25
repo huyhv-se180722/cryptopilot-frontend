@@ -519,8 +519,14 @@ export interface AlertPage {
   pageSize: number;
   total: number;
 }
-/** Community feed tabs (SRS 3.7.1); SAVED and MINE are the Trader's own. */
-export type FeedTab = 'LATEST' | 'MOST_LIKED' | 'SAVED' | 'MINE';
+/**
+ * Community feed tabs (SRS 3.7.1, D-99): TRENDING is "For You", the most
+ * discussed posts of the week; SAVED, MINE and FOLLOWING are the Trader's.
+ */
+export type FeedTab =
+  'TRENDING' | 'LATEST' | 'MOST_LIKED' | 'FOLLOWING' | 'SAVED' | 'MINE';
+/** Which way a post leans: its author's stance, a reader's vote (D-99). */
+export type PostSentiment = 'BULLISH' | 'BEARISH';
 /** HIDDEN shows only in the author's own views; DELETED never (BR-47). */
 export type PostStatus = 'PUBLISHED' | 'HIDDEN' | 'DELETED';
 export type PostType = 'TEXT' | 'VIDEO';
@@ -534,6 +540,13 @@ export interface PostAuthor {
   /** null for an account without a profile. */
   displayName: string | null;
   avatarUrl: string | null;
+}
+/** How the author of a post counts in the community (D-99). */
+export interface AuthorStanding {
+  influenceScore: number;
+  followers: number;
+  /** The caller follows them, so the card offers Following. */
+  followedByMe: boolean;
 }
 export interface PostMedia {
   /** The key an edit names to keep the file. */
@@ -549,6 +562,7 @@ export interface PostMedia {
 interface PostBase {
   id: string;
   author: PostAuthor;
+  authorStanding: AuthorStanding;
   title: string;
   postType: PostType;
   market: MarketType | null;
@@ -556,10 +570,18 @@ interface PostBase {
   official: boolean;
   officialCategory: OfficialCategory | null;
   status: PostStatus;
+  /** The author's stance, or null (D-99). */
+  sentiment: PostSentiment | null;
   /** Coin symbols, alphabetical. */
   coins: readonly string[];
   likeCount: number;
   commentCount: number;
+  /** Signed-in members other than the author who opened it (D-99). */
+  viewCount: number;
+  bullishCount: number;
+  bearishCount: number;
+  /** The caller's Bullish or Bearish vote, or null. */
+  myVote: PostSentiment | null;
   likedByMe: boolean;
   savedByMe: boolean;
   createdAt: ISODateTime;
@@ -606,6 +628,8 @@ export interface PostDraft {
   market: MarketType | null;
   coins: readonly string[];
   media: readonly PostMediaRef[];
+  /** The author's stance; absent or null for none (D-99). */
+  sentiment?: PostSentiment | null;
   /** Set only on an official post, which only an Admin publishes (BR-61). */
   officialCategory?: OfficialCategory;
 }
@@ -664,6 +688,32 @@ export interface MemberProfile {
   joinedAt: ISODateTime;
   posts: number;
   likesReceived: number;
+  followers: number;
+  following: number;
+  followedByMe: boolean;
+  blockedByMe: boolean;
+  me: boolean;
+}
+/** A post's Bullish and Bearish votes after the caller voted (D-99). */
+export interface PostVotes {
+  myVote: PostSentiment | null;
+  bullishCount: number;
+  bearishCount: number;
+}
+/** Social Influence or Analytical Depth (D-99). */
+export type InfluencerRank = 'INFLUENCE' | 'DEPTH';
+/** One row of Top Influencers (D-99). */
+export interface Influencer {
+  userId: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  influenceScore: number;
+  depthScore: number;
+  followers: number;
+  /** Their posts of the last 30 days marked Bullish. */
+  bullishPosts: number;
+  bearishPosts: number;
+  followedByMe: boolean;
   me: boolean;
 }
 /** Where a report stands (SRS 3.11.3): filed, opened by a moderator, decided. */
@@ -732,12 +782,158 @@ export interface NotificationPage {
   pageSize: number;
   total: number;
 }
+/** How a crawl of a news source ended (NSF-10). */
+export type CrawlStatus = 'SUCCESS' | 'PARTIAL' | 'FAILED';
+/**
+ * An RSS source of SCR-41 (UC-49) as the console shows it: its settings,
+ * its last crawl and when it is crawled next (null while switched off, or
+ * before its first crawl).
+ */
+export interface NewsSource {
+  id: string;
+  sourceName: string;
+  feedUrl: string;
+  crawlIntervalMinutes: number;
+  active: boolean;
+  categoryFilter: string | null;
+  bodySelector: string | null;
+  excludedSelectors: string | null;
+  userAgent: string | null;
+  lastCrawledAt: ISODateTime | null;
+  lastCrawl: {
+    startedAt: ISODateTime;
+    status: CrawlStatus;
+    articlesFound: number | null;
+    articlesInserted: number | null;
+  } | null;
+  nextCrawlAt: ISODateTime | null;
+}
+/** What an administrator sets on a source; blank optional values are none. */
+export interface NewsSourceDraft {
+  sourceName: string;
+  feedUrl: string;
+  crawlIntervalMinutes: number;
+  active: boolean;
+  categoryFilter: string | null;
+  bodySelector: string | null;
+  excludedSelectors: string | null;
+  userAgent: string | null;
+}
+export interface NewsCrawlLog {
+  id: string;
+  startedAt: ISODateTime;
+  finishedAt: ISODateTime | null;
+  status: CrawlStatus;
+  articlesFound: number | null;
+  articlesInserted: number | null;
+  errorMessage: string | null;
+}
+export interface NewsCrawlLogPage {
+  items: readonly NewsCrawlLog[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+/**
+ * Where a collected article stands for the console (T-080b, D-124):
+ * FAILED once NSF-11 has used its attempts without a summary.
+ */
+export type NewsArticleStatus = 'PENDING' | 'FAILED' | 'SUMMARIZED' | 'HIDDEN';
+/**
+ * How many shown articles of the last 24 hours carry each sentiment
+ * (D-126): the administrators' view of the feed's tone. Articles not
+ * summarized yet are not counted.
+ */
+export interface NewsSentimentCounts {
+  since: ISODateTime;
+  bullish: number;
+  neutral: number;
+  bearish: number;
+}
+export interface AdminNewsArticle {
+  id: string;
+  sourceId: string;
+  source: string;
+  title: string;
+  aiTitle: string | null;
+  /** An http(s) address. */
+  originalUrl: string;
+  excerpt: string | null;
+  aiSummary: string | null;
+  sentiment: 'BULLISH' | 'NEUTRAL' | 'BEARISH' | null;
+  publishedAt: ISODateTime;
+  collectedAt: ISODateTime;
+  status: NewsArticleStatus;
+  summaryAttempts: number;
+  summaryError: string | null;
+  summaryAttemptedAt: ISODateTime | null;
+  hiddenAt: ISODateTime | null;
+}
+export interface AdminNewsArticleQuery {
+  status?: NewsArticleStatus;
+  sourceId?: string;
+  page: number;
+  pageSize: number;
+}
+export interface AdminNewsArticlePage {
+  items: readonly AdminNewsArticle[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+/** The tone the AI reads in an article (NSF-11). */
+export type NewsSentiment = 'BULLISH' | 'NEUTRAL' | 'BEARISH';
+/** How far back the news feed reaches (SRS 3.8.1); 7d when none is named. */
+export type NewsRange = '24h' | '7d' | '30d';
+export interface NewsCoinTag {
+  symbol: string;
+  /** The first coin the headline names. */
+  primary: boolean;
+}
+/**
+ * One item of the news feed (SCR-28, UC-34), the same on every plan
+ * (D-122). Once summarized, title and summary are the AI's Vietnamese text
+ * (D-123); until then the collected headline and the feed's excerpt.
+ * Selecting it opens the article's page in the app (D-125).
+ */
 export interface NewsArticle {
   id: string;
   title: string;
-  summary: string;
+  /** The headline as the outlet wrote it. */
+  originalTitle: string;
+  source: string;
+  /** An http(s) address, linked at the end of the article's page. */
   originalUrl: string;
   publishedAt: ISODateTime;
+  summary: string | null;
+  aiSummarized: boolean;
+  /** Absent until the article is summarized. */
+  sentiment: NewsSentiment | null;
+  /** Primary coin first. */
+  coins: readonly NewsCoinTag[];
+  /** The outlet's cover image, an http(s) address shown from the outlet; null for a placeholder. */
+  imageUrl: string | null;
+}
+/**
+ * An article read on its own page (D-125): the item with the article the AI
+ * wrote again in its own words, paragraphs split by a blank line; null until
+ * then, when the page shows the summary.
+ */
+export interface NewsArticleDetail extends NewsArticle {
+  body: string | null;
+}
+export interface NewsQuery {
+  coin?: string;
+  sentiment?: NewsSentiment;
+  range?: NewsRange;
+  page: number;
+  pageSize: number;
+}
+export interface NewsPage {
+  items: readonly NewsArticle[];
+  page: number;
+  pageSize: number;
+  total: number;
 }
 export interface AiConversation {
   id: string;
@@ -1129,4 +1325,75 @@ export interface MarketTrade {
   quantity: Decimal;
   time: ISODateTime;
   buyerMaker: boolean;
+}
+
+/** How much a reader should already know before an Academy lesson (T-114). */
+export type AcademyLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+export interface AcademyTopic {
+  slug: string;
+  name: string;
+  description: string;
+  /** Published lessons in the topic. */
+  articles: number;
+}
+export interface AcademyArticleSummary {
+  slug: string;
+  title: string;
+  summary: string;
+  level: AcademyLevel;
+  readingMinutes: number;
+  topicSlug: string;
+  topicName: string;
+  /** Place on the beginner path, or null when the lesson is not on it. */
+  pathOrder: number | null;
+  /** The cover photo, or null for a lesson that has none yet. */
+  coverImageUrl: string | null;
+}
+export interface AcademyArticlePage {
+  items: readonly AcademyArticleSummary[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+export interface AcademyArticleQuery {
+  topic?: string;
+  level?: AcademyLevel;
+  q?: string;
+  page: number;
+  pageSize: number;
+}
+export interface AcademyArticleLink {
+  slug: string;
+  title: string;
+}
+export interface AcademyArticle extends AcademyArticleSummary {
+  /** Markdown. */
+  body: string;
+  /** A screen of the app the lesson leads to, such as /trade/spot. */
+  appLink: string | null;
+  publishedAt: string;
+  updatedAt: string;
+  previous: AcademyArticleLink | null;
+  next: AcademyArticleLink | null;
+  related: readonly AcademyArticleSummary[];
+  /** Who took the cover photo, e.g. "Jane Doe / Unsplash". */
+  coverCredit: string | null;
+}
+export interface AcademyTerm {
+  slug: string;
+  term: string;
+  definition: string;
+  articleSlug: string | null;
+  articleTitle: string | null;
+}
+export interface AcademyCompletedLesson {
+  slug: string;
+  completedAt: string;
+}
+/** How far a Trader is in the Academy (T-114). */
+export interface AcademyProgress {
+  completed: readonly AcademyCompletedLesson[];
+  publishedTotal: number;
+  pathCompleted: number;
+  pathTotal: number;
 }

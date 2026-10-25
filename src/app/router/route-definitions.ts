@@ -4,10 +4,12 @@ import type { Copy } from '../../i18n/locales/en';
  * Route metadata is UI configuration, never business data.
  * `screen` traces each route to the SRS screen inventory (SCR-01…44);
  * demo trading is not in SRS v1.0 and traces to its decision D-86 (D-101),
- * community member pages to D-99.
+ * community member pages to D-99, the news article console to D-124, the Academy to
+ * its task T-114.
  * Dialog screens (SCR-14, SCR-19, SCR-27) have no route of their own.
  */
-export type ScreenId = `SCR-${string}` | 'D-86' | 'D-99' | 'UC-44';
+export type ScreenId =
+  `SCR-${string}` | 'D-86' | 'D-99' | 'D-124' | 'UC-44' | 'T-114';
 export type ScreenTitleKey = keyof Copy['screens'];
 
 export interface RouteDefinition {
@@ -33,12 +35,28 @@ export const publicRoutes = [
  */
 export const communityReadRoutes = [
   { path: '/community', screen: 'SCR-24', titleKey: 'community' },
+  { path: '/community/topics', screen: 'D-99', titleKey: 'communityTopics' },
+  {
+    path: '/community/articles',
+    screen: 'D-99',
+    titleKey: 'communityArticles',
+  },
   { path: '/community/:postId', screen: 'SCR-25', titleKey: 'postDetail' },
   {
     path: '/community/members/:memberId',
     screen: 'D-99',
     titleKey: 'member',
   },
+] as const satisfies readonly RouteDefinition[];
+
+/**
+ * The Academy (T-114): lessons of crypto theory and a glossary that
+ * everyone reads, a Trader in their own shell. Not in SRS v1.0.
+ */
+export const academyReadRoutes = [
+  { path: '/academy', screen: 'T-114', titleKey: 'academy' },
+  { path: '/academy/glossary', screen: 'T-114', titleKey: 'academyGlossary' },
+  { path: '/academy/:slug', screen: 'T-114', titleKey: 'academyArticle' },
 ] as const satisfies readonly RouteDefinition[];
 
 /** Guests only; signed-in users are sent to their home. */
@@ -73,6 +91,7 @@ export const traderRoutes = [
   { path: '/community/new', screen: 'SCR-26', titleKey: 'postNew' },
   { path: '/community/:postId/edit', screen: 'SCR-26', titleKey: 'postEdit' },
   { path: '/news', screen: 'SCR-28', titleKey: 'news' },
+  { path: '/news/:articleId', screen: 'SCR-28', titleKey: 'newsArticle' },
   { path: '/ai', screen: 'SCR-29', titleKey: 'ai' },
   { path: '/subscription', screen: 'SCR-30', titleKey: 'subscription' },
   {
@@ -131,6 +150,13 @@ export const adminRoutes = [
     path: '/admin/news-sources',
     screen: 'SCR-41',
     titleKey: 'adminNewsSources',
+  },
+  // The collected articles and their AI summary status (T-080b): no SRS
+  // screen of its own, it extends SCR-41 (D-124).
+  {
+    path: '/admin/news-articles',
+    screen: 'D-124',
+    titleKey: 'adminNewsArticles',
   },
   { path: '/admin/ai-config', screen: 'SCR-42', titleKey: 'adminAiConfig' },
   { path: '/admin/settings', screen: 'SCR-43', titleKey: 'adminSettings' },

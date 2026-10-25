@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   ChevronRight,
+  GraduationCap,
   Lock,
   Menu as MenuIcon,
   Newspaper,
@@ -26,7 +27,7 @@ const navItemClass =
 
 /**
  * Figma GuestShell header, promo strip and footer. Guests read the
- * community (D-99); News is Trader-only (SRS 3.1.3), so for guests it
+ * community (D-99) and the Academy (T-114); News is Trader-only (SRS 3.1.3), so for guests it
  * opens the access gate.
  */
 export function GuestShell() {
@@ -36,6 +37,12 @@ export function GuestShell() {
   const open = [
     { to: '/', end: true, label: copy.nav.markets, icon: TrendingUp },
     { to: '/community', end: false, label: copy.nav.community, icon: Users },
+    {
+      to: '/academy',
+      end: false,
+      label: copy.nav.academy,
+      icon: GraduationCap,
+    },
   ];
   const gated: { feature: GatedFeature; label: string; icon: typeof Users }[] =
     [{ feature: 'news', label: copy.nav.news, icon: Newspaper }];

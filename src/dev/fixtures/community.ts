@@ -3,6 +3,7 @@ import type {
   OfficialCategory,
   PostAuthor,
   PostMedia,
+  PostSentiment,
   ReportReason,
 } from '../../types/domain';
 
@@ -26,6 +27,16 @@ export const DEV_ADMIN_AUTHOR: DevMember = {
   joinedDaysAgo: 120,
 };
 
+/** "source>target": who follows whom at the start (D-99). */
+export const devFollowSeeds: readonly string[] = [
+  'dev-member-2>dev-member-1',
+  'dev-member-3>dev-member-1',
+  'me>dev-member-1',
+  'dev-member-1>dev-member-2',
+  'dev-member-4>dev-member-2',
+  'dev-member-4>dev-member-1',
+];
+
 export const devMembers: readonly DevMember[] = [
   {
     userId: 'dev-member-1',
@@ -45,6 +56,12 @@ export const devMembers: readonly DevMember[] = [
     avatarUrl: null,
     joinedDaysAgo: 12,
   },
+  {
+    userId: 'dev-member-4',
+    displayName: 'Thu Ha (fixture)',
+    avatarUrl: null,
+    joinedDaysAgo: 90,
+  },
 ];
 
 export interface DevPostSeed {
@@ -61,6 +78,11 @@ export interface DevPostSeed {
   /** Members who liked it; 'me' is the signed-in Trader. */
   likedBy: readonly string[];
   savedByMe?: boolean;
+  /** The author's stance (D-99). */
+  sentiment?: PostSentiment;
+  /** Readers' Bullish and Bearish votes (D-99). */
+  votes?: readonly PostSentiment[];
+  views?: number;
 }
 
 const still = (n: number) =>
@@ -103,6 +125,9 @@ export const devPostSeeds: readonly DevPostSeed[] = [
   },
   {
     id: 'dev-post-1',
+    sentiment: 'BULLISH',
+    votes: ['BULLISH', 'BULLISH', 'BEARISH'],
+    views: 312,
     authorId: 'dev-member-1',
     title: 'BTC is back at the weekly support for the third time',
     content:
@@ -125,6 +150,8 @@ export const devPostSeeds: readonly DevPostSeed[] = [
   },
   {
     id: 'dev-post-2',
+    votes: ['BEARISH'],
+    views: 88,
     authorId: 'dev-member-2',
     title: 'How I size positions before every plan',
     content: LONG,
@@ -135,6 +162,9 @@ export const devPostSeeds: readonly DevPostSeed[] = [
   },
   {
     id: 'dev-post-3',
+    sentiment: 'BEARISH',
+    votes: ['BEARISH', 'BEARISH'],
+    views: 141,
     authorId: 'dev-member-3',
     title: 'ETH and SOL funding turned negative together',
     content:
@@ -184,7 +214,49 @@ export const devPostSeeds: readonly DevPostSeed[] = [
     likedBy: ['dev-member-2', 'dev-member-3'],
   },
   {
+    id: 'dev-post-5',
+    authorId: 'dev-member-4',
+    title: 'BNB holds the weekly level again',
+    content:
+      '$BNB bounced off the same weekly level for the third time. Volume on the bounce is lower than the last two, so I watch for a close below before I change my view.',
+    market: 'spot',
+    coins: ['BNB'],
+    minutesAgo: 60 * 2,
+    likedBy: ['dev-member-1', 'dev-member-2', 'dev-member-3'],
+    sentiment: 'BULLISH',
+    votes: ['BULLISH', 'BULLISH'],
+    views: 205,
+  },
+  {
+    id: 'dev-post-6',
+    authorId: 'dev-member-2',
+    title: 'XRP after the 24h move: chasing or waiting?',
+    content:
+      '$XRP is up sharply in 24 hours. Funding turned positive on Futures, which often means late longs. I wait for a retest of the breakout before any plan.',
+    market: 'futures',
+    coins: ['XRP'],
+    minutesAgo: 60 * 3,
+    likedBy: ['dev-member-4'],
+    sentiment: 'BEARISH',
+    votes: ['BEARISH', 'BULLISH'],
+    views: 96,
+  },
+  {
+    id: 'dev-post-7',
+    authorId: 'dev-member-1',
+    title: 'DOGE and LINK: two very different charts',
+    content:
+      '$DOGE moves on volume spikes, $LINK trends slowly. The same stop distance does not fit both; size each from its own volatility.',
+    market: 'spot',
+    coins: ['DOGE', 'LINK'],
+    minutesAgo: 60 * 10,
+    likedBy: ['dev-member-2', 'dev-member-4', 'me'],
+    views: 173,
+  },
+  {
     id: 'dev-post-mine-1',
+    sentiment: 'BULLISH',
+    views: 27,
     authorId: 'me',
     title: 'My first plan with a fixed risk per trade',
     content:

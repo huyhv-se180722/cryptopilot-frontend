@@ -1,4 +1,12 @@
 import type {
+  AcademyArticle,
+  AcademyArticlePage,
+  AcademyArticleQuery,
+  AcademyArticleSummary,
+  AcademyCompletedLesson,
+  AcademyProgress,
+  AcademyTerm,
+  AcademyTopic,
   AdminLog,
   AiConversation,
   Alert,
@@ -10,7 +18,12 @@ import type {
   CommentPage,
   Engagement,
   FeedQuery,
+  Influencer,
+  InfluencerRank,
   MemberProfile,
+  PostAuthor,
+  PostSentiment,
+  PostVotes,
   PostComment,
   PostDetail,
   PostDraft,
@@ -58,7 +71,17 @@ import type {
   PlanInputs,
   PlanListQuery,
   PlanPage,
-  NewsArticle,
+  NewsArticleDetail,
+  NewsPage,
+  NewsQuery,
+  NewsCrawlLog,
+  NewsCrawlLogPage,
+  NewsSource,
+  NewsSourceDraft,
+  AdminNewsArticle,
+  AdminNewsArticlePage,
+  NewsSentimentCounts,
+  AdminNewsArticleQuery,
   ProfileUpdate,
   RiskProfile,
   RiskProfileParams,
@@ -352,6 +375,28 @@ export interface CommunityService {
   removeComment(id: string): Promise<void>;
   report(postId: string, report: PostReport): Promise<void>;
   member(id: string, signal?: AbortSignal): Promise<MemberProfile>;
+  /** Votes a post Bullish or Bearish, or takes the vote back with null (D-99). */
+  vote(postId: string, sentiment: PostSentiment | null): Promise<PostVotes>;
+  /** Follows a member or stops; the count is their followers (D-99). */
+  follow(memberId: string, active: boolean): Promise<Engagement>;
+  /** Blocks a member or stops; the count is the caller's blocks (D-99). */
+  block(memberId: string, active: boolean): Promise<Engagement>;
+  /** Top Influencers, by influence or analytical depth (D-99). */
+  influencers(
+    rank: InfluencerRank,
+    limit: number,
+    signal?: AbortSignal,
+  ): Promise<readonly Influencer[]>;
+  /** The coins the week's posts talk about most (D-99). */
+  trendingCoins(
+    limit: number,
+    signal?: AbortSignal,
+  ): Promise<readonly CoinDiscussion[]>;
+  /** Traders whose name starts with the text (D-99); a Trader's search. */
+  searchMembers(
+    text: string,
+    signal?: AbortSignal,
+  ): Promise<readonly PostAuthor[]>;
   /**
    * Signs a form, checks the file against its limits (MSG32) and uploads
    * it; the key goes into the post. `onProgress` gets 0–1.
@@ -363,7 +408,71 @@ export interface CommunityService {
     signal?: AbortSignal,
   ): Promise<PostMediaRef>;
 }
-export type NewsService = ReadService<NewsArticle>;
+/**
+ * The news feed of SCR-28 (SRS 3.8.1, UC-34), Trader only and the same on
+ * every plan (D-122): newest first, filtered by coin, sentiment and period,
+ * and the 24-hour count per sentiment.
+ */
+export interface NewsService {
+  feed(query: NewsQuery, signal?: AbortSignal): Promise<NewsPage>;
+  /** One article for its page in the app (D-125); a hidden one is not found. */
+  article(id: string, signal?: AbortSignal): Promise<NewsArticleDetail>;
+}
+
+/**
+ * The Academy (T-114): lessons of crypto theory and a glossary that
+ * everyone, a Guest included, reads. Only published lessons are served.
+ */
+export interface AcademyService {
+  topics(signal?: AbortSignal): Promise<readonly AcademyTopic[]>;
+  articles(
+    query: AcademyArticleQuery,
+    signal?: AbortSignal,
+  ): Promise<AcademyArticlePage>;
+  article(slug: string, signal?: AbortSignal): Promise<AcademyArticle>;
+  /** The beginner path, in order. */
+  path(signal?: AbortSignal): Promise<readonly AcademyArticleSummary[]>;
+  terms(
+    query: { q?: string; letter?: string },
+    signal?: AbortSignal,
+  ): Promise<readonly AcademyTerm[]>;
+  /** A Trader's marked lessons and totals; the rest of the service is public. */
+  progress(signal?: AbortSignal): Promise<AcademyProgress>;
+  /** Idempotent: marking again keeps the first instant. */
+  mark(slug: string): Promise<AcademyCompletedLesson>;
+  unmark(slug: string): Promise<void>;
+}
+
+/**
+ * The news part of the administration console, Admin only: the RSS
+ * sources of SCR-41 (UC-49) with their crawl log and a crawl now
+ * (T-080b), and the collected articles with their summary status, hide /
+ * restore and summarize again (D-124).
+ */
+export interface NewsAdminService {
+  sources(signal?: AbortSignal): Promise<readonly NewsSource[]>;
+  createSource(draft: NewsSourceDraft): Promise<NewsSource>;
+  updateSource(id: string, draft: NewsSourceDraft): Promise<NewsSource>;
+  deleteSource(id: string): Promise<void>;
+  crawlLogs(
+    id: string,
+    page: number,
+    pageSize: number,
+    signal?: AbortSignal,
+  ): Promise<NewsCrawlLogPage>;
+  /** Refused within a minute of the source's last crawl (MSG50). */
+  crawlNow(id: string): Promise<NewsCrawlLog>;
+  articles(
+    query: AdminNewsArticleQuery,
+    signal?: AbortSignal,
+  ): Promise<AdminNewsArticlePage>;
+  hide(id: string): Promise<AdminNewsArticle>;
+  restore(id: string): Promise<AdminNewsArticle>;
+  /** Waits for the model; a refusal comes back in `summaryError`. */
+  summarize(id: string): Promise<AdminNewsArticle>;
+  /** The 24-hour count of shown articles per sentiment (D-126). */
+  sentimentSummary(signal?: AbortSignal): Promise<NewsSentimentCounts>;
+}
 
 /**
  * The report moderation queue of SCR-36 (SRS 3.11.3, UC-43), Admin only:

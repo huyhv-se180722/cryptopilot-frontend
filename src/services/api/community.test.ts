@@ -8,6 +8,7 @@ import {
 } from './community';
 import {
   decodeComment,
+  decodeInfluencers,
   decodePostDetail,
   decodePostPage,
   decodeUploadForm,
@@ -112,6 +113,61 @@ describe('community decoders', () => {
     });
   });
 
+  it('decodes the stance, votes, views and author standing (D-99)', () => {
+    const post = decodePostDetail({
+      ...DETAIL,
+      sentiment: 'BULLISH',
+      viewCount: 1200,
+      bullishCount: 3,
+      bearishCount: 1,
+      myVote: 'BEARISH',
+      authorStanding: {
+        influenceScore: 105.73,
+        followers: 12,
+        followedByMe: true,
+      },
+    });
+    expect(post).toMatchObject({
+      sentiment: 'BULLISH',
+      viewCount: 1200,
+      bullishCount: 3,
+      bearishCount: 1,
+      myVote: 'BEARISH',
+      authorStanding: { influenceScore: 105.73, followedByMe: true },
+    });
+    // A backend before D-99 sends none of them.
+    expect(decodePostDetail(DETAIL)).toMatchObject({
+      sentiment: null,
+      viewCount: 0,
+      myVote: null,
+      authorStanding: { influenceScore: 0, followedByMe: false },
+    });
+    expect(() =>
+      decodePostDetail({ ...DETAIL, sentiment: 'SIDEWAYS' }),
+    ).toThrow();
+  });
+
+  it('decodes Top Influencers', () => {
+    const [first] = decodeInfluencers([
+      {
+        userId: 'u1',
+        displayName: 'CZ',
+        avatarUrl: null,
+        influenceScore: 794.1,
+        depthScore: 12.5,
+        followers: 40,
+        bullishPosts: 2,
+        bearishPosts: 0,
+        followedByMe: false,
+        me: false,
+      },
+    ]);
+    expect(first).toMatchObject({ displayName: 'CZ', influenceScore: 794.1 });
+    expect(() =>
+      decodeInfluencers([{ userId: 'u1', influenceScore: -1 }]),
+    ).toThrow();
+  });
+
   it('decodes a post with its media and ownership', () => {
     const post = decodePostDetail(DETAIL);
     expect(post.mine).toBe(true);
@@ -160,7 +216,18 @@ describe('community decoders', () => {
       marketType: 'FUTURES',
       coins: ['BTC', 'ETH'],
       media: [{ publicId: 'k1', mediaType: 'IMAGE' }],
+      sentiment: null,
     });
+    expect(
+      encodePostDraft({
+        title: 'Title here',
+        content: 'Body',
+        market: null,
+        coins: [],
+        media: [],
+        sentiment: 'BEARISH',
+      }).sentiment,
+    ).toBe('BEARISH');
   });
 });
 
@@ -264,6 +331,46 @@ describe('HTTP community adapter', () => {
       'POST /api/v1/posts/p1/save',
       'DELETE /api/v1/comments/c1/like',
     ]);
+  });
+
+  it('votes, follows, blocks and reads the rankings with the D-99 paths', async () => {
+    const votes = setup({
+      myVote: 'BULLISH',
+      bullishCount: 2,
+      bearishCount: 0,
+    });
+    expect(await votes.community.vote('p1', 'BULLISH')).toEqual({
+      myVote: 'BULLISH',
+      bullishCount: 2,
+      bearishCount: 0,
+    });
+    await votes.community.vote('p1', null);
+    expect(votes.calls[0]).toMatchObject({
+      method: 'PUT',
+      body: { sentiment: 'BULLISH' },
+    });
+    expect(votes.calls[1]?.method).toBe('DELETE');
+    expect(votes.calls[1]?.url.pathname).toBe('/api/v1/posts/p1/vote');
+
+    const relations = setup({ active: true, count: 3 });
+    await relations.community.follow('u1', true);
+    await relations.community.block('u1', false);
+    expect(relations.calls.map((c) => c.method + ' ' + c.url.pathname)).toEqual(
+      [
+        'POST /api/v1/community/members/u1/follow',
+        'DELETE /api/v1/community/members/u1/block',
+      ],
+    );
+
+    const ranks = setup([]);
+    await ranks.community.influencers('DEPTH', 8);
+    await ranks.community.trendingCoins(20);
+    expect(ranks.calls[0]?.url.pathname).toBe('/api/v1/community/influencers');
+    expect(Object.fromEntries(ranks.calls[0]?.url.searchParams ?? [])).toEqual({
+      rank: 'DEPTH',
+      limit: '8',
+    });
+    expect(ranks.calls[1]?.url.pathname).toBe('/api/v1/posts/trending-coins');
   });
 
   it('comments, replies and reports with the backend bodies', async () => {

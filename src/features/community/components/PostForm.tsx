@@ -23,6 +23,7 @@ import { formatCopy } from '../../../i18n/copy';
 import { errorText } from '../../../i18n/messages';
 import { problemOf } from '../../../services/api/errors';
 import type {
+  PostSentiment,
   MarketType,
   OfficialCategory,
   PostDetail,
@@ -103,6 +104,9 @@ export function PostForm({
   const [title, setTitle] = useState(post?.title ?? '');
   const [content, setContent] = useState(post?.content ?? '');
   const [market, setMarket] = useState<MarketType | ''>(post?.market ?? '');
+  const [sentiment, setSentiment] = useState<PostSentiment | ''>(
+    post?.sentiment ?? '',
+  );
   const [coins, setCoins] = useState<string[]>([
     ...(post?.coins ?? initialCoins),
   ]);
@@ -282,7 +286,9 @@ export function PostForm({
       market: market === '' ? null : market,
       coins: allCoins,
       media: media.flatMap((m) => (m.ref ? [m.ref] : [])),
-      ...(official ? { officialCategory: category } : {}),
+      ...(official
+        ? { officialCategory: category }
+        : { sentiment: sentiment === '' ? null : sentiment }),
     });
     setPending(false);
     if (!refusal) return;
@@ -462,6 +468,17 @@ export function PostForm({
           <option value="spot">{c.marketSpot}</option>
           <option value="futures">{c.marketFutures}</option>
         </Select>
+        {!official && (
+          <Select
+            label={c.composerStance}
+            value={sentiment}
+            onChange={(e) => setSentiment(e.target.value as PostSentiment | '')}
+          >
+            <option value="">{f.marketNone}</option>
+            <option value="BULLISH">{c.bullish}</option>
+            <option value="BEARISH">{c.bearish}</option>
+          </Select>
+        )}
       </div>
 
       {!official && (

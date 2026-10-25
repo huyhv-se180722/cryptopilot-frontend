@@ -3,6 +3,7 @@ import { en } from '../../i18n/locales/en';
 import { traderNav } from '../layouts/navigation';
 import {
   DIALOG_SCREENS,
+  academyReadRoutes,
   adminRoutes,
   communityReadRoutes,
   guestOnlyRoutes,
@@ -14,6 +15,7 @@ import {
 const all = [
   ...publicRoutes,
   ...communityReadRoutes,
+  ...academyReadRoutes,
   ...guestOnlyRoutes,
   ...traderRoutes,
   ...adminRoutes,
@@ -46,6 +48,8 @@ describe('route definitions', () => {
   it('lets guests read the community and keeps writing for traders (D-99)', () => {
     expect(communityReadRoutes.map((route) => route.path)).toEqual([
       '/community',
+      '/community/topics',
+      '/community/articles',
       '/community/:postId',
       '/community/members/:memberId',
     ]);
@@ -54,6 +58,17 @@ describe('route definitions', () => {
         .filter((route) => route.path.startsWith('/community'))
         .map((route) => route.screen),
     ).toEqual(['SCR-26', 'SCR-26']);
+  });
+
+  it('lets everyone read the Academy, traced to T-114', () => {
+    expect(
+      academyReadRoutes.map((route) => [route.path, route.screen]),
+    ).toEqual([
+      ['/academy', 'T-114'],
+      ['/academy/glossary', 'T-114'],
+      ['/academy/:slug', 'T-114'],
+    ]);
+    expect(traderNav.some((item) => item.to === '/academy')).toBe(true);
   });
 
   it('gives guests only the registration and sign-in screens (SRS 3.1.3)', () => {
