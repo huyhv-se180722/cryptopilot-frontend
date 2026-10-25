@@ -3,6 +3,7 @@ import type {
   AcademyService,
   AdminPairService,
   AdminService,
+  AdminSettingService,
   AiService,
   AlertsService,
   AnalysisService,
@@ -49,4 +50,5 @@ export interface Services {
   subscription: SubscriptionService;
   admin: AdminService;
   adminPairs: AdminPairService;
+  adminSettings: AdminSettingService;
 }
