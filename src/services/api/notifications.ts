@@ -5,6 +5,7 @@ import type { AccountFeed } from './paper-trading';
 import type {
   AppNotification,
   NotificationPage,
+  NotificationMessage,
   NotificationReferenceType,
   NotificationType,
 } from '../../types/domain';
@@ -39,11 +40,32 @@ const REFERENCES: readonly NotificationReferenceType[] = [
 ];
 export const NOTIFICATION_QUEUE = '/user/queue/notifications';
 
+/**
+ * `messageCode` and `messageArgs` are not in `NotificationResponse` (FE
+ * guide 2026-10-25): read only when both are well formed, so the plan
+ * notices (MSG23, MSG24, MSG53, MSG54) can be worded by the client once
+ * the backend sends them; until then the server's title and text show.
+ */
+function messageOf(value: Record<string, unknown>): NotificationMessage | null {
+  const { messageCode, messageArgs } = value;
+  if (typeof messageCode !== 'string' || !/^MSG\d{2}$/.test(messageCode))
+    return null;
+  if (!Array.isArray(messageArgs)) return null;
+  const args = messageArgs.filter(
+    (arg): arg is string => typeof arg === 'string',
+  );
+  return args.length === messageArgs.length
+    ? { code: messageCode, args }
+    : null;
+}
+
 export function decodeNotification(body: unknown): AppNotification {
   const value = record(body, 'notification');
   const referenceType = value.referenceType;
   const referenceId = value.referenceId;
+  const message = messageOf(value);
   return {
+    ...(message ? { message } : {}),
     id: text(value.id, 'id'),
     type: oneOf(TYPES, value.type, 'type'),
     title: text(value.title, 'title'),

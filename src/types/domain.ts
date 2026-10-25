@@ -772,12 +772,22 @@ export type NotificationType =
 /** What opening a notification navigates to (SRS 3.4.5). */
 export type NotificationReferenceType =
   'ALERT' | 'PLAN' | 'POST' | 'SUBSCRIPTION';
+/**
+ * The SRS message a notification carries, when the server names it: the
+ * client then words it itself (MSG23, MSG24, MSG53, MSG54 of a plan). Not
+ * in the FE guide yet; absent, the server's title and text are shown.
+ */
+export interface NotificationMessage {
+  code: string;
+  args: readonly string[];
+}
 /** One entry of the notification center (SCR-15, UC-15). */
 export interface AppNotification {
   id: string;
   type: NotificationType;
   title: string;
   content: string;
+  message?: NotificationMessage;
   reference: { type: NotificationReferenceType; id: string } | null;
   read: boolean;
   readAt: ISODateTime | null;

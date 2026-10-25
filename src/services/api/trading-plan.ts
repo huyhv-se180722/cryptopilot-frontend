@@ -3,6 +3,7 @@ import { integrationPending } from './errors';
 import type { HttpClient } from './http-client';
 import {
   decodeCalculation,
+  decodeCloseEstimate,
   decodePlan,
   decodePlanPage,
   encodePlanInputs,
@@ -18,6 +19,8 @@ export function createPendingTradingPlanService(): TradingPlanService {
     create: async () => integrationPending(),
     calculate: async () => integrationPending(),
     update: async () => integrationPending(),
+    closeEstimate: async () => integrationPending(),
+    closePosition: async () => integrationPending(),
   };
 }
 
@@ -101,6 +104,19 @@ export function createHttpTradingPlanService(
           activate,
           ...confirmation(activate, confirmDeviation),
         },
+        decode: decodePlan,
+      }),
+    // T-046, contract of 2026-10-25 (not in the FE guide yet).
+    closeEstimate: (id, signal) =>
+      http.request({
+        path: planPath(id) + '/close-estimate',
+        decode: decodeCloseEstimate,
+        ...withSignal(signal),
+      }),
+    closePosition: (id) =>
+      http.request({
+        path: planPath(id) + '/close-position',
+        method: 'POST',
         decode: decodePlan,
       }),
   };

@@ -739,3 +739,96 @@ describe('entry deviation at MARKET activation (TP-C)', () => {
     expect(calls.every((call) => call.url.search === '')).toBe(true);
   });
 });
+
+describe('close position (T-046 contract of 2026-10-25)', () => {
+  const ESTIMATE = {
+    currentPrice: '103.00',
+    estimatedExitPrice: '102.90',
+    priceResult: '5.80',
+    entryFee: '0.20000000',
+    estimatedExitFee: '0.10290000',
+    fundingSoFar: '-0.02000000',
+    fundingProvisional: false,
+    estimatedNetPnl: '5.47710000',
+    at: '2026-10-25T12:00:00Z',
+  };
+  function setup(status: number, reply: unknown) {
+    const calls: { url: URL; method: string; body: unknown }[] = [];
+    const http = createHttpClient({
+      baseUrl: 'https://api.example.test/api/v1',
+      fetcher: vi.fn<typeof fetch>(async (input, init = {}) => {
+        calls.push({
+          url: new URL(String(input)),
+          method: init.method ?? 'GET',
+          body: init.body,
+        });
+        return new Response(JSON.stringify(reply), { status });
+      }),
+      session: { accessToken: () => 'token-1', refresh: async () => 'renewed' },
+    });
+    return { plans: createHttpTradingPlanService(http), calls };
+  }
+
+  it('reads the estimate of the contract', async () => {
+    const { plans, calls } = setup(200, ESTIMATE);
+    expect(await plans.closeEstimate(PLAN.id)).toEqual(ESTIMATE);
+    expect(calls[0]?.method).toBe('GET');
+    expect(calls[0]?.url.pathname).toBe(
+      '/api/v1/plans/' + PLAN.id + '/close-estimate',
+    );
+  });
+
+  it('reads a Spot estimate without funding and refuses a malformed one', async () => {
+    const spot = setup(200, { ...ESTIMATE, fundingSoFar: null });
+    expect((await spot.plans.closeEstimate(PLAN.id)).fundingSoFar).toBeNull();
+    const broken = setup(200, { ...ESTIMATE, estimatedNetPnl: 5.47 });
+    await expect(broken.plans.closeEstimate(PLAN.id)).rejects.toMatchObject({
+      code: 'INVALID_RESPONSE',
+    });
+  });
+
+  it('closes with a POST and no body, answering the plan with its CLOSED position', async () => {
+    const { plans, calls } = setup(200, {
+      ...PLAN,
+      status: 'EXECUTED',
+      editable: false,
+      position: { ...CLOSED_POSITION, closeReason: 'MANUAL' },
+    });
+    const plan = await plans.closePosition(PLAN.id);
+    expect(calls[0]?.method).toBe('POST');
+    expect(calls[0]?.url.pathname).toBe(
+      '/api/v1/plans/' + PLAN.id + '/close-position',
+    );
+    expect(calls[0]?.body).toBeUndefined();
+    expect(plan.position).toMatchObject({
+      status: 'CLOSED',
+      closeReason: 'MANUAL',
+    });
+  });
+
+  it.each([
+    [409, 'TRADING_PLAN_STATUS_TRANSITION_INVALID'],
+    [503, 'MARKET_PRICE_UNAVAILABLE'],
+    [404, 'RESOURCE_NOT_FOUND'],
+  ])('passes the %i refusal on', async (status, code) => {
+    const { plans } = setup(status, {
+      status,
+      code,
+      messageCode: status === 404 ? 'MSG41' : 'MSG43',
+      traceId: 't-1',
+    });
+    const error = await plans.closePosition(PLAN.id).catch((e) => e);
+    expect(problemOf(error)).toMatchObject({ status, code });
+    const estimate = await plans.closeEstimate(PLAN.id).catch((e) => e);
+    expect(problemOf(estimate)).toMatchObject({ status, code });
+  });
+
+  it('is pending while no API is configured', async () => {
+    await expect(
+      createPendingTradingPlanService().closeEstimate('x'),
+    ).rejects.toMatchObject({ code: 'NOT_CONFIGURED' });
+    await expect(
+      createPendingTradingPlanService().closePosition('x'),
+    ).rejects.toMatchObject({ code: 'NOT_CONFIGURED' });
+  });
+});

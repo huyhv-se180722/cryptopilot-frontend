@@ -25,3 +25,8 @@ export function formatInstantUtc7(value: string): string {
   const iso = new Date(Date.parse(value) + UTC7_MS).toISOString();
   return `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)} ${iso.slice(11, 16)}`;
 }
+
+/** The time of day of an instant in UTC+7, "HH:mm:ss". */
+export function formatClockUtc7(value: string): string {
+  return new Date(Date.parse(value) + UTC7_MS).toISOString().slice(11, 19);
+}

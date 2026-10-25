@@ -1,7 +1,10 @@
 import type { TradingPlanService } from '../services/api/contracts';
 import { ServiceError } from '../services/api/errors';
+import { add, multiply, subtract } from '../utils/decimal-math';
 import type {
+  CloseEstimate,
   PlanCalculation,
+  PlanPosition,
   PlanInputs,
   PlanStatus,
   PlanTab,
@@ -167,6 +170,45 @@ function summaryOf(plan: TradingPlan): TradingPlanSummary {
   };
 }
 
+/** Taker fee and slippage of the scripted close, as fractions. */
+const CLOSE_FEE = '0.0005';
+const CLOSE_SLIPPAGE = '0.0001';
+
+/**
+ * The close estimate of the contract of 2026-10-25, computed with exact
+ * decimals: the last price moved by the slippage against the Trader, the
+ * price result, the taker exit fee, the funding so far (Futures only) and
+ * the net.
+ */
+function estimateOf(
+  plan: TradingPlan,
+  position: PlanPosition,
+  price: string,
+): Omit<CloseEstimate, 'at'> {
+  const long = plan.direction === 'LONG';
+  const slip = multiply(price, CLOSE_SLIPPAGE);
+  const exit = long ? subtract(price, slip) : add(price, slip);
+  const move = long
+    ? subtract(exit, position.fillPrice)
+    : subtract(position.fillPrice, exit);
+  const priceResult = multiply(move, position.quantity);
+  const exitFee = multiply(multiply(exit, position.quantity), CLOSE_FEE);
+  const funding = plan.market === 'futures' ? '-0.02' : null;
+  return {
+    currentPrice: price,
+    estimatedExitPrice: exit,
+    priceResult,
+    entryFee: position.entryFee,
+    estimatedExitFee: exitFee,
+    fundingSoFar: funding,
+    fundingProvisional: false,
+    estimatedNetPnl: add(
+      subtract(subtract(priceResult, position.entryFee), exitFee),
+      funding ?? '0',
+    ),
+  };
+}
+
 const pause = (signal?: AbortSignal) =>
   new Promise<void>((resolve, reject) => {
     const timer = setTimeout(resolve, 150);
@@ -264,6 +306,20 @@ export function createDevelopmentTradingPlan(
       ]);
   };
 
+  /**
+   * An OPEN position with a current price, as close-position needs it:
+   * 409 MSG43 once it is not OPEN, 503 MSG43 without a price (T-046).
+   */
+  const closable = (id: string) => {
+    const plan = find(id);
+    const position = plan.position;
+    if (!position || position.status !== 'OPEN')
+      return refuse(409, 'TRADING_PLAN_STATUS_TRANSITION_INVALID', 'MSG43');
+    if (position.currentPrice === null)
+      return refuse(503, 'MARKET_PRICE_UNAVAILABLE', 'MSG43');
+    return { plan, position, price: position.currentPrice };
+  };
+
   let created = 0;
   return {
     async calculate(pairId, inputs, signal) {
@@ -352,6 +408,38 @@ export function createDevelopmentTradingPlan(
       if (plan.status !== 'DRAFT' && plan.status !== 'ACTIVE')
         refuse(409, 'TRADING_PLAN_STATUS_TRANSITION_INVALID', 'MSG43');
       return move(plan, 'CANCELLED');
+    },
+    async closeEstimate(id, signal) {
+      await pause(signal);
+      const { plan, position, price } = closable(id);
+      return {
+        ...estimateOf(plan, position, price),
+        at: new Date(now()).toISOString(),
+      };
+    },
+    async closePosition(id) {
+      await pause();
+      const { plan, position, price } = closable(id);
+      const estimate = estimateOf(plan, position, price);
+      const closedPlan: TradingPlan = {
+        ...plan,
+        position: {
+          ...position,
+          status: 'CLOSED',
+          currentPrice: null,
+          unrealizedPnl: null,
+          exitPrice: estimate.estimatedExitPrice,
+          exitTime: new Date(now()).toISOString(),
+          closeReason: 'MANUAL',
+          realizedPnl: estimate.priceResult,
+          feeAmount: add(estimate.entryFee, estimate.estimatedExitFee),
+          fundingFeeAmount: estimate.fundingSoFar,
+          netPnl: estimate.estimatedNetPnl,
+          provisional: estimate.fundingProvisional,
+        },
+      };
+      plans.set(id, closedPlan);
+      return closedPlan;
     },
   };
 }

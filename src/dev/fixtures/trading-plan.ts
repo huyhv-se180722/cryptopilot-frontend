@@ -13,7 +13,8 @@ import type {
  * each reason), the three entry types, both markets, the warning
  * severities with HIGH_FEE_SHARE, a BLOCKING draft, a MARKET plan whose
  * expected fill differs from its reference price, and EXECUTED plans with
- * an OPEN position (one without a current price) and CLOSED ones. Numbers
+ * an OPEN position (one without a current price) and CLOSED ones (each
+ * close reason, one with its funding still provisional). Numbers
  * are written by hand to look like a risk calculation; they are not
  * computed.
  */
@@ -82,6 +83,16 @@ const OPEN = {
   netPnl: null,
   provisional: false,
 } as const;
+
+/** A CLOSED position's shape; the seed adds the numbers (exit an hour after the fill). */
+const closed = (closeReason: NonNullable<PlanPosition['closeReason']>) => ({
+  status: 'CLOSED' as const,
+  currentPrice: null,
+  unrealizedPnl: null,
+  exitTime: '',
+  closeReason,
+  provisional: false,
+});
 
 const SEEDS: readonly Seed[] = [
   {
@@ -478,6 +489,135 @@ const SEEDS: readonly Seed[] = [
     reward: '30.00000000',
     rr: '3.00000000',
   },
+  {
+    n: 15,
+    pairId: BTC_PAIR,
+    market: 'spot',
+    direction: 'LONG',
+    entryType: 'LIMIT',
+    entry: '60000.00',
+    stop: '59000.00',
+    take: '63000.00',
+    leverage: null,
+    path: ['ACTIVE', 'EXECUTED'],
+    createdDaysAgo: 4,
+    quantity: '0.01000',
+    notional: '600.00000000',
+    margin: '600.00000000',
+    risk: '10.00000000',
+    reward: '30.00000000',
+    rr: '3.00000000',
+    position: {
+      ...closed('TAKE_PROFIT'),
+      fillPrice: scale12('60000.00'),
+      entryTime: '',
+      entryFee: '0.06000000',
+      liquidationPrice: null,
+      exitPrice: scale12('63000.00'),
+      realizedPnl: '30.00000000',
+      feeAmount: '0.12300000',
+      fundingFeeAmount: null,
+      netPnl: '29.87700000',
+    },
+  },
+  {
+    n: 16,
+    pairId: ETH_PAIR,
+    market: 'spot',
+    direction: 'LONG',
+    entryType: 'STOP',
+    entry: '2500.00',
+    stop: '2450.00',
+    take: '2650.00',
+    leverage: null,
+    path: ['ACTIVE', 'EXECUTED'],
+    createdDaysAgo: 4.5,
+    quantity: '0.2000',
+    notional: '500.00000000',
+    margin: '500.00000000',
+    risk: '10.00000000',
+    reward: '30.00000000',
+    rr: '3.00000000',
+    position: {
+      ...closed('STOP_LOSS'),
+      fillPrice: scale12('2500.00'),
+      entryTime: '',
+      entryFee: '0.50000000',
+      liquidationPrice: null,
+      exitPrice: scale12('2449.75'),
+      realizedPnl: '-10.05000000',
+      feeAmount: '0.98995000',
+      fundingFeeAmount: null,
+      netPnl: '-11.03995000',
+    },
+  },
+  {
+    n: 17,
+    pairId: SOL_PAIR,
+    market: 'futures',
+    direction: 'LONG',
+    entryType: 'MARKET',
+    entry: '100.00',
+    stop: '89.00',
+    take: '120.00',
+    leverage: 10,
+    path: ['ACTIVE', 'EXECUTED'],
+    createdDaysAgo: 5.5,
+    quantity: '2.00',
+    notional: '200.00000000',
+    margin: '20.00000000',
+    risk: '22.00000000',
+    reward: '40.00000000',
+    rr: '1.81818182',
+    liquidation: '90.37',
+    // The guide's T-048b example (case (c), a liquidation).
+    position: {
+      ...closed('LIQUIDATION'),
+      fillPrice: scale12('100.00'),
+      entryTime: '',
+      entryFee: '0.04000000',
+      liquidationPrice: scale12('90.37'),
+      exitPrice: scale12('90.37'),
+      realizedPnl: '-19.26000000',
+      feeAmount: '0.76296000',
+      fundingFeeAmount: '0.00000000',
+      netPnl: '-20.02296000',
+    },
+  },
+  {
+    n: 18,
+    pairId: BTC_PAIR,
+    market: 'futures',
+    direction: 'SHORT',
+    entryType: 'LIMIT',
+    entry: '63000.0',
+    stop: '64000.0',
+    take: '60000.0',
+    leverage: 5,
+    path: ['ACTIVE', 'EXECUTED'],
+    createdDaysAgo: 7,
+    quantity: '0.010',
+    notional: '630.00000000',
+    margin: '126.00000000',
+    risk: '10.00000000',
+    reward: '30.00000000',
+    rr: '3.00000000',
+    liquidation: '75348.0',
+    // Closed by the Trader while a funding settlement is still missing.
+    position: {
+      ...closed('MANUAL'),
+      fillPrice: scale12('63000.0'),
+      entryTime: '',
+      entryFee: '0.12600000',
+      liquidationPrice: scale12('75348.0'),
+      exitPrice: scale12('62500.0'),
+      realizedPnl: '5.00000000',
+      feeAmount: '0.43850000',
+      fundingFeeAmount: '-0.02000000',
+      netPnl: '4.54150000',
+      provisional: true,
+    },
+  },
 ];
 
 function snapshotOf(seed: Seed): PlanSnapshot {
@@ -571,6 +711,10 @@ export function devPlanSeeds(now: number): TradingPlan[] {
               ...seed.position,
               quantity: scale12(seed.quantity),
               entryTime: filled.at,
+              exitTime:
+                seed.position.status === 'CLOSED'
+                  ? new Date(Date.parse(filled.at) + HOUR).toISOString()
+                  : null,
             }
           : null,
     };

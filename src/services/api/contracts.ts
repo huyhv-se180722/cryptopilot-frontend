@@ -54,6 +54,7 @@ import type {
   PlacePaperOrder,
   PlacePaperOrderList,
   PaperOrderList,
+  CloseEstimate,
   PlanCalculation,
   PlanInputs,
   PlanListQuery,
@@ -224,6 +225,16 @@ export interface TradingPlanService {
     activate: boolean,
     confirmDeviation?: boolean,
   ): Promise<TradingPlan>;
+  /**
+   * SCR-19: what closing the OPEN position now would give (T-046). 409
+   * MSG43 when it is no longer OPEN, 503 MSG43 without a current price.
+   */
+  closeEstimate(id: string, signal?: AbortSignal): Promise<CloseEstimate>;
+  /**
+   * Closes the OPEN position at the current price (UC-21); the plan comes
+   * back with its CLOSED position. 409 MSG43: the engine closed it first.
+   */
+  closePosition(id: string): Promise<TradingPlan>;
 }
 /** The signed-in Trader's watchlist (`/watchlist/**`; SRS 3.4.1). */
 export interface WatchlistService {

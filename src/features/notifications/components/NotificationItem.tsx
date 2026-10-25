@@ -11,6 +11,7 @@ import type { AppNotification, NotificationType } from '../../../types/domain';
 import { classNames } from '../../../utils/class-names';
 import { formatInstantUtc } from '../../../utils/instant-format';
 import { notificationAge } from './notification-format';
+import { notificationText } from './notification-text';
 
 const icons: Record<NotificationType, LucideIcon> = {
   ALERT: Bell,
@@ -28,7 +29,8 @@ const tones: Record<NotificationType, string> = {
 };
 
 /**
- * One notification (SCR-15): icon by type, title, text, age and an unread
+ * One notification (SCR-15): icon by type, title, text (a plan notice
+ * that names its message is worded by the client), age and an unread
  * dot (never colour alone: the row also says "Unread" to screen readers).
  * Clicking opens it (marks it read and follows its reference).
  */
@@ -44,6 +46,7 @@ export function NotificationItem({
   const copy = useCopy();
   const n = copy.notifications;
   const Icon = icons[notification.type];
+  const { title, content } = notificationText(copy, notification);
   return (
     <button
       type="button"
@@ -73,7 +76,7 @@ export function NotificationItem({
                 : 'font-semibold text-fg',
             )}
           >
-            {notification.title}
+            {title}
           </span>
           <time
             dateTime={notification.createdAt}
@@ -83,14 +86,14 @@ export function NotificationItem({
             {notificationAge(copy, notification.createdAt)}
           </time>
         </span>
-        {notification.content && (
+        {content && (
           <span
             className={classNames(
               'mt-0.5 text-[11px] leading-relaxed text-muted-dim',
               compact ? 'line-clamp-1' : 'line-clamp-2',
             )}
           >
-            {notification.content}
+            {content}
           </span>
         )}
         <span className="mt-1 block text-[10px] font-semibold tracking-wider text-muted-x uppercase">

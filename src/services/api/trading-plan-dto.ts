@@ -1,5 +1,6 @@
 import type {
   CandleTimeframe,
+  CloseEstimate,
   CloseReason,
   EntryDeviation,
   InvalidationReason,
@@ -354,5 +355,25 @@ export function decodeDeviation(
     riskRewardRatio: text('riskRewardRatio'),
     netRiskReward: text('netRiskReward'),
     takeProfitReached: x.takeProfitReached === true,
+  };
+}
+
+/**
+ * `GET /plans/{id}/close-estimate` (SCR-19, T-046): the contract of the
+ * team lead of 2026-10-25; the FE guide does not document it yet. The
+ * funding is null on Spot.
+ */
+export function decodeCloseEstimate(body: unknown): CloseEstimate {
+  const value = record(body);
+  return {
+    currentPrice: decimal(value.currentPrice, 'currentPrice'),
+    estimatedExitPrice: decimal(value.estimatedExitPrice, 'estimatedExitPrice'),
+    priceResult: decimal(value.priceResult, 'priceResult'),
+    entryFee: decimal(value.entryFee, 'entryFee'),
+    estimatedExitFee: decimal(value.estimatedExitFee, 'estimatedExitFee'),
+    fundingSoFar: nullableDecimal(value.fundingSoFar, 'fundingSoFar'),
+    fundingProvisional: flag(value.fundingProvisional, 'fundingProvisional'),
+    estimatedNetPnl: decimal(value.estimatedNetPnl, 'estimatedNetPnl'),
+    at: instant(value.at, 'at'),
   };
 }

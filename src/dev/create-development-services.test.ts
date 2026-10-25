@@ -338,6 +338,10 @@ describe('development plan seam', () => {
     expect(executed.items.map((row) => row.positionStatus)).toEqual([
       'OPEN',
       'OPEN',
+      'CLOSED',
+      'CLOSED',
+      'CLOSED',
+      'CLOSED',
     ]);
     const futures = await plans.list({
       tab: 'ACTIVE',
@@ -346,6 +350,41 @@ describe('development plan seam', () => {
       pageSize: 20,
     });
     expect(futures.total).toBe(1);
+  });
+
+  it('estimates and closes an open position like the T-046 contract', async () => {
+    const plans = createDevelopmentTradingPlan(async () => free);
+    const plan = (n: number) =>
+      `0199a2c4-0000-7000-8000-${String(n).padStart(12, '0')}`;
+    const estimate = await plans.closeEstimate(plan(10));
+    // Futures LONG 0.01 filled at 62,006.2, last 62,480: exit 1 bp lower.
+    expect(estimate).toMatchObject({
+      currentPrice: '62480.0',
+      estimatedExitPrice: '62473.752',
+      fundingSoFar: '-0.02',
+      fundingProvisional: false,
+    });
+    expect(estimate.priceResult).toBe('4.67552');
+    // No current price: 503 MSG43; a CLOSED position: 409 MSG43.
+    await expect(plans.closeEstimate(plan(11))).rejects.toMatchObject({
+      status: 503,
+      problem: { messageCode: 'MSG43' },
+    });
+    await expect(plans.closeEstimate(plan(15))).rejects.toMatchObject({
+      status: 409,
+      problem: { messageCode: 'MSG43' },
+    });
+    const closed = await plans.closePosition(plan(10));
+    expect(closed.position).toMatchObject({
+      status: 'CLOSED',
+      closeReason: 'MANUAL',
+      exitPrice: '62473.752',
+      currentPrice: null,
+      netPnl: estimate.estimatedNetPnl,
+    });
+    await expect(plans.closePosition(plan(10))).rejects.toMatchObject({
+      status: 409,
+    });
   });
 
   it('refuses like the backend: MSG18, MSG27, MSG43 and MSG41', async () => {

@@ -4,6 +4,7 @@ import type {
 } from '../services/api/contracts';
 import { ServiceError } from '../services/api/errors';
 import type { AppNotification, Session } from '../types/domain';
+import { DEV_PLAN_NOTIFICATIONS } from './fixtures/plan-notifications';
 
 /**
  * DEVELOPMENT ONLY. An in-memory notification center with the backend's
@@ -95,6 +96,7 @@ const SEEDS: readonly Seed[] = [
     read: true,
     minutesAgo: 60 * 24 * 6,
   },
+  ...DEV_PLAN_NOTIFICATIONS,
 ];
 
 export function createDevelopmentNotifications(

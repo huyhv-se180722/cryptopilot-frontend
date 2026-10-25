@@ -194,6 +194,10 @@ function fakePlans(overrides: Partial<TradingPlanService> = {}) {
       blocksActivation: PLAN.blocksActivation,
     })),
     update: vi.fn(async () => PLAN),
+    closeEstimate: vi.fn(async () => {
+      throw refusal(409, 'TRADING_PLAN_STATUS_TRANSITION_INVALID', 'MSG43');
+    }),
+    closePosition: vi.fn(async () => PLAN),
     ...overrides,
   };
   return service;
@@ -1858,5 +1862,277 @@ describe('entry deviation at MARKET activation (T-113)', () => {
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(false);
+  });
+});
+
+describe('SCR-19 close position and the CLOSED position (T-047)', () => {
+  const POSITION: NonNullable<TradingPlan['position']> = {
+    status: 'OPEN',
+    fillPrice: '100.000000000000',
+    quantity: '2.000000000000',
+    entryTime: '2026-10-25T08:00:00Z',
+    entryFee: '0.20000000',
+    liquidationPrice: '90.370000000000',
+    currentPrice: '103',
+    unrealizedPnl: '6.00000000',
+    exitPrice: null,
+    exitTime: null,
+    closeReason: null,
+    realizedPnl: null,
+    feeAmount: null,
+    fundingFeeAmount: null,
+    netPnl: null,
+    provisional: false,
+  };
+  const OPEN: TradingPlan = {
+    ...PLAN,
+    direction: 'LONG',
+    entryPrice: '100.000000000000',
+    stopLoss: '95.000000000000',
+    takeProfit: '110.000000000000',
+    status: 'EXECUTED',
+    editable: false,
+    position: POSITION,
+  };
+  const closedWith = (
+    closeReason: NonNullable<TradingPlan['position']>['closeReason'],
+    overrides: Partial<NonNullable<TradingPlan['position']>> = {},
+  ): TradingPlan => ({
+    ...OPEN,
+    position: {
+      ...POSITION,
+      status: 'CLOSED',
+      currentPrice: null,
+      unrealizedPnl: null,
+      exitPrice: '102.900000000000',
+      exitTime: '2026-10-25T12:00:00Z',
+      closeReason,
+      realizedPnl: '5.80000000',
+      feeAmount: '0.30290000',
+      fundingFeeAmount: '-0.02000000',
+      netPnl: '5.47710000',
+      provisional: false,
+      ...overrides,
+    },
+  });
+  const ESTIMATE = {
+    currentPrice: '103.00',
+    estimatedExitPrice: '102.90',
+    priceResult: '5.80',
+    entryFee: '0.20000000',
+    estimatedExitFee: '0.10290000',
+    fundingSoFar: '-0.02000000',
+    fundingProvisional: true,
+    estimatedNetPnl: '5.47710000',
+    at: '2026-10-25T12:00:00Z',
+  };
+  const openDialog = async (service: TradingPlanService) => {
+    await open('/plans/' + OPEN.id, service);
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole('button', { name: 'Close position' }),
+    );
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Close position',
+    });
+    return { user, dialog: within(dialog) };
+  };
+
+  it('shows the estimate lines, signed, with funding marked provisional', async () => {
+    const { dialog } = await openDialog(
+      fakePlans({
+        get: vi.fn(async () => OPEN),
+        closeEstimate: vi.fn(async () => ESTIMATE),
+      }),
+    );
+    expect(
+      await dialog.findByText(
+        'Close this position at about 102.90? Estimated P/L: +5.48.',
+      ),
+    ).toBeTruthy();
+    const value = (label: string) =>
+      dialog.getByText(label).nextSibling?.textContent;
+    expect(value('Estimated exit price')).toBe('102.90');
+    expect(value('Price result (USDT)')).toBe('+5.80');
+    expect(value('Entry fee (USDT)')).toBe('0.20');
+    expect(value('Estimated exit fee (USDT)')).toBe('0.10');
+    expect(value('Funding so far (USDT)')).toBe('Provisional-0.02');
+    expect(value('Estimated net P/L (USDT)')).toBe('+5.48');
+    expect(dialog.getByText('+5.48', { selector: 'span' })).toBeTruthy();
+    expect(
+      dialog
+        .getAllByText('+5.48')
+        .some((node) => node.closest('.text-positive')),
+    ).toBe(true);
+    // 12:00 UTC is 19:00 in UTC+7.
+    expect(dialog.getByText(/Estimated at 19:00:00 \(UTC\+7\)/)).toBeTruthy();
+  });
+
+  it('reads the estimate again every 5 s while the dialog is open', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const closeEstimate = vi.fn(async () => ESTIMATE);
+      await openDialog(
+        fakePlans({ get: vi.fn(async () => OPEN), closeEstimate }),
+      );
+      await waitFor(() => expect(closeEstimate).toHaveBeenCalled());
+      const reads = closeEstimate.mock.calls.length;
+      await vi.advanceTimersByTimeAsync(5_000);
+      await waitFor(() =>
+        expect(closeEstimate.mock.calls.length).toBeGreaterThan(reads),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('closes on Confirm, shows the result and the CLOSED block', async () => {
+    const closed = closedWith('MANUAL');
+    const closePosition = vi.fn(async () => closed);
+    const { user, dialog } = await openDialog(
+      fakePlans({
+        get: vi.fn(async () => OPEN),
+        closeEstimate: vi.fn(async () => ESTIMATE),
+        closePosition,
+      }),
+    );
+    await dialog.findByText('Estimated exit price');
+    await user.click(dialog.getByRole('button', { name: 'Close position' }));
+    await user.click(dialog.getByRole('button', { name: 'Close position' }));
+    expect(
+      await screen.findByText('Position closed at 102.90. Net P/L: +5.48.'),
+    ).toBeTruthy();
+    expect(closePosition).toHaveBeenCalledTimes(1);
+    const panel = within(screen.getByRole('region', { name: 'Position' }));
+    expect(panel.getByText('Closed')).toBeTruthy();
+    expect(panel.getByText('Closed by you')).toBeTruthy();
+  });
+
+  it('says the position was already closed on 409 MSG43 and reads the plan again', async () => {
+    // The engine takes profit just before the Trader confirms.
+    let engineClosed = false;
+    const get = vi.fn(async () =>
+      engineClosed ? closedWith('TAKE_PROFIT') : OPEN,
+    );
+    const { user, dialog } = await openDialog(
+      fakePlans({
+        get,
+        closeEstimate: vi.fn(async () => ESTIMATE),
+        closePosition: vi.fn(async () => {
+          engineClosed = true;
+          throw refusal(409, 'TRADING_PLAN_STATUS_TRANSITION_INVALID', 'MSG43');
+        }),
+      }),
+    );
+    await dialog.findByText('Estimated exit price');
+    const readsBefore = get.mock.calls.length;
+    await user.click(dialog.getByRole('button', { name: 'Close position' }));
+    expect(
+      await dialog.findByText(
+        'This position was already closed. The plan has been reloaded.',
+      ),
+    ).toBeTruthy();
+    expect(dialog.queryByRole('button', { name: 'Close position' })).toBeNull();
+    // The plan is read again after the refusal.
+    await waitFor(() =>
+      expect(get.mock.calls.length).toBeGreaterThan(readsBefore),
+    );
+    await user.click(dialog.getByRole('button', { name: 'Back to the plan' }));
+    const panel = within(
+      await screen.findByRole('region', { name: 'Position' }),
+    );
+    expect(await panel.findByText('Take profit')).toBeTruthy();
+  });
+
+  it('keeps Confirm disabled while no current price is cached (503)', async () => {
+    const { dialog } = await openDialog(
+      fakePlans({
+        get: vi.fn(async () => OPEN),
+        closeEstimate: vi.fn(async () => {
+          throw refusal(503, 'MARKET_PRICE_UNAVAILABLE', 'MSG43');
+        }),
+      }),
+    );
+    expect(
+      await dialog.findByText(/The current price is not available/),
+    ).toBeTruthy();
+    expect(
+      (
+        dialog.getByRole('button', {
+          name: 'Close position',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+  });
+
+  it('offers Close position only on an OPEN position', async () => {
+    await open(
+      '/plans/' + OPEN.id,
+      fakePlans({ get: vi.fn(async () => closedWith('STOP_LOSS')) }),
+    );
+    await screen.findByRole('region', { name: 'Position' });
+    expect(screen.queryByRole('button', { name: 'Close position' })).toBeNull();
+  });
+
+  it.each([
+    ['TAKE_PROFIT', 'Take profit'],
+    ['STOP_LOSS', 'Stop loss'],
+    ['LIQUIDATION', 'Liquidation'],
+    ['MANUAL', 'Closed by you'],
+  ] as const)('shows a position CLOSED by %s', async (reason, text) => {
+    await open(
+      '/plans/' + OPEN.id,
+      fakePlans({ get: vi.fn(async () => closedWith(reason)) }),
+    );
+    const panel = within(
+      await screen.findByRole('region', { name: 'Position' }),
+    );
+    const value = (label: string) =>
+      panel.getByText(label).nextSibling?.textContent;
+    expect(value('Closed by')).toBe(text);
+    expect(value('Exit price')).toBe('102.90');
+    expect(value('Exit time (UTC+7)')).toBe('25/10/2026 19:00');
+    expect(value('Realized P/L (price only, USDT)')).toBe('+5.80');
+    expect(value('Fees (USDT)')).toBe('0.30');
+    expect(value('Funding (USDT)')).toBe('-0.02');
+    expect(panel.getAllByText('Net P/L (USDT)').length).toBe(2);
+    expect(panel.queryByText('Provisional')).toBeNull();
+    expect(panel.queryByText('Current price')).toBeNull();
+    expect(panel.queryByText('Live')).toBeNull();
+  });
+
+  it('tags funding and net provisional while a settlement is missing', async () => {
+    await open(
+      '/plans/' + OPEN.id,
+      fakePlans({
+        get: vi.fn(async () => closedWith('STOP_LOSS', { provisional: true })),
+      }),
+    );
+    const panel = within(
+      await screen.findByRole('region', { name: 'Position' }),
+    );
+    // The headline net, the funding line and the net line.
+    expect(panel.getAllByText('Provisional')).toHaveLength(3);
+    expect(panel.getByText(/funding settlement of this position/)).toBeTruthy();
+  });
+
+  it('shows no funding line on a Spot position', async () => {
+    await open(
+      '/plans/' + OPEN.id,
+      fakePlans({
+        get: vi.fn(async () => ({
+          ...closedWith('TAKE_PROFIT', { fundingFeeAmount: null }),
+          market: 'spot' as const,
+          leverage: null,
+          marginMode: null,
+        })),
+      }),
+    );
+    const panel = within(
+      await screen.findByRole('region', { name: 'Position' }),
+    );
+    expect(panel.getByText('Take profit')).toBeTruthy();
+    expect(panel.queryByText('Funding (USDT)')).toBeNull();
+    expect(panel.queryByText('Liquidation price')).toBeNull();
   });
 });

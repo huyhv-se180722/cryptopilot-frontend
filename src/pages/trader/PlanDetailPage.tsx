@@ -6,6 +6,7 @@ import { useCopy } from '../../hooks/use-copy';
 import { formatCopy } from '../../i18n/copy';
 import { errorText } from '../../i18n/messages';
 import { usePairLookup } from '../../features/market/hooks/use-market-data';
+import { ClosePosition } from '../../features/trading-plan/components/ClosePositionDialog';
 import { PlanActions } from '../../features/trading-plan/components/PlanActions';
 import {
   DirectionText,
@@ -110,7 +111,11 @@ export function PlanDetailPage() {
               <PlanInputsPanel plan={plan} />
               <PlanSnapshotPanel plan={plan} />
               {plan.status === 'EXECUTED' && (
-                <PlanPositionPanel plan={plan} freshness={query.freshness} />
+                <PlanPositionPanel
+                  plan={plan}
+                  freshness={query.freshness}
+                  actions={<ClosePosition plan={plan} />}
+                />
               )}
             </div>
             <div className="flex flex-col gap-4">

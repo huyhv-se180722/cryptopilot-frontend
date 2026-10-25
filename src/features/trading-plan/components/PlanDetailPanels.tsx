@@ -389,7 +389,11 @@ export function PlanHistoryPanel({ plan }: { plan: TradingPlan }) {
  * liquidation price; while OPEN the current price (Futures mark, Spot
  * last) and the unrealized P/L without fees or funding (Q-55), with the
  * Live / Delayed badge of its 10 s refresh, and a dash when the server has
- * no current price. A plan filled before T-048a has no position block.
+ * no current price. Once CLOSED (T-048b): the net P/L as the headline,
+ * the exit price and time, the reason, and realized, fees, funding and net
+ * on their own lines (D-97), funding and net tagged "provisional" while a
+ * funding settlement is missing. A plan filled before T-048a has no
+ * position block.
  */
 export function PlanPositionPanel({
   plan,
@@ -455,7 +459,60 @@ export function PlanPositionPanel({
           ],
           [p.unrealizedPnl, <Pnl value={position.unrealizedPnl} />],
         ] as [string, ReactNode][])
-      : []),
+      : ([
+          [
+            p.exitPrice,
+            position.exitPrice ? (
+              <NumericText value={planPrice(position.exitPrice)} />
+            ) : (
+              dash
+            ),
+          ],
+          [
+            p.exitTime,
+            position.exitTime ? (
+              <time
+                dateTime={position.exitTime}
+                title={formatInstantUtc(position.exitTime)}
+              >
+                {formatInstantUtc7(position.exitTime)}
+              </time>
+            ) : (
+              dash
+            ),
+          ],
+          [
+            p.closeReasonLabel,
+            position.closeReason
+              ? p[`closeReason${position.closeReason}`]
+              : dash,
+          ],
+          [p.realizedPnl, <Pnl value={position.realizedPnl} />],
+          [
+            p.feeAmount,
+            position.feeAmount ? (
+              <NumericText value={planAmount(position.feeAmount)} />
+            ) : (
+              dash
+            ),
+          ],
+          ...(plan.market === 'futures'
+            ? ([
+                [
+                  p.fundingFeeAmount,
+                  <Provisional on={position.provisional}>
+                    <Pnl value={position.fundingFeeAmount} />
+                  </Provisional>,
+                ],
+              ] as [string, ReactNode][])
+            : []),
+          [
+            p.netPnl,
+            <Provisional on={position.provisional}>
+              <Pnl value={position.netPnl} />
+            </Provisional>,
+          ],
+        ] as [string, ReactNode][])),
   ];
   return (
     <Panel
@@ -470,12 +527,38 @@ export function PlanPositionPanel({
         </span>
       }
     >
+      {!open && (
+        <p className="mb-3 flex items-baseline justify-between gap-3">
+          <span className="text-xs font-medium text-fg-2">{p.netPnl}</span>
+          <span className="text-lg font-semibold">
+            <Provisional on={position.provisional}>
+              <Pnl value={position.netPnl} />
+            </Provisional>
+          </span>
+        </p>
+      )}
       <Rows rows={rows} />
+      {!open && position.provisional && (
+        <p className="mt-2 text-[11px] text-muted-dim">{p.provisionalHint}</p>
+      )}
       {open && position.currentPrice === null && (
         <p className="mt-2 text-[11px] text-muted-dim">{p.positionNoPrice}</p>
       )}
-      {actions && <div className="mt-3">{actions}</div>}
+      {actions && <div className="mt-3 empty:hidden">{actions}</div>}
     </Panel>
+  );
+}
+
+/** A value with the "provisional" tag while a funding settlement is missing. */
+function Provisional({ on, children }: { on: boolean; children: ReactNode }) {
+  const p = useCopy().plan;
+  return on ? (
+    <span className="inline-flex items-center gap-1.5">
+      <Badge tone="warning">{p.provisional}</Badge>
+      {children}
+    </span>
+  ) : (
+    <>{children}</>
   );
 }
 
