@@ -3,6 +3,7 @@ import {
   CreditCard,
   FileText,
   MessageSquare,
+  ServerCrash,
   ShieldAlert,
   type LucideIcon,
 } from 'lucide-react';
@@ -18,6 +19,7 @@ const icons: Record<NotificationType, LucideIcon> = {
   MODERATION: ShieldAlert,
   SUBSCRIPTION: CreditCard,
   COMMENT: MessageSquare,
+  SYSTEM: ServerCrash,
 };
 const tones: Record<NotificationType, string> = {
   ALERT: 'bg-warning-soft text-warning',
@@ -25,6 +27,7 @@ const tones: Record<NotificationType, string> = {
   MODERATION: 'bg-negative-soft text-negative',
   SUBSCRIPTION: 'bg-accent-soft text-accent',
   COMMENT: 'bg-positive-soft text-positive',
+  SYSTEM: 'bg-warning-soft text-warning',
 };
 
 /**

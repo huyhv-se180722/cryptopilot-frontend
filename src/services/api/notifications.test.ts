@@ -45,6 +45,20 @@ describe('notification decoders', () => {
     });
   });
 
+  it('decodes the SYSTEM notice of a failing news source (develop @ 103d7cf)', () => {
+    expect(
+      decodeNotification({
+        ...ROW,
+        type: 'SYSTEM',
+        title: 'A news source keeps failing',
+        referenceType: 'NEWS_SOURCE',
+      }),
+    ).toMatchObject({
+      type: 'SYSTEM',
+      reference: { type: 'NEWS_SOURCE', id: ROW.referenceId },
+    });
+  });
+
   it('opens nothing without both halves of the reference', () => {
     expect(
       decodeNotification({ ...ROW, referenceType: null, referenceId: null })

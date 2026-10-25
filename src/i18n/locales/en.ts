@@ -1804,6 +1804,7 @@ export const en = {
     typeMODERATION: 'Moderation',
     typeSUBSCRIPTION: 'Subscription',
     typeCOMMENT: 'Comment',
+    typeSYSTEM: 'System',
     ageNow: 'just now',
     ageMinutes: '{n}m ago',
     ageHours: '{n}h ago',

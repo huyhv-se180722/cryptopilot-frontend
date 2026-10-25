@@ -7,8 +7,9 @@ const MINUTE = 60_000;
 
 /**
  * Where opening a notification goes (SRS 3.4.5: the referenced alert,
- * plan, post or subscription). Alerts have no page of their own, so the
- * alert list opens; null when the notification references nothing.
+ * plan, post or subscription; a news source, SCR-41). Alerts have no
+ * page of their own, so the alert list opens; null when the notification
+ * references nothing.
  */
 export function notificationPath(
   reference: AppNotification['reference'],
@@ -24,6 +25,8 @@ export function notificationPath(
       return '/community/' + id;
     case 'SUBSCRIPTION':
       return '/subscription';
+    case 'NEWS_SOURCE':
+      return '/admin/news-sources';
   }
 }
 

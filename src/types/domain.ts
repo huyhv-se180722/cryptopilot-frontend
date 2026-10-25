@@ -759,12 +759,15 @@ export interface ModerationResult {
   /** True when this decision banned the author (not one banned before). */
   authorBanned: boolean;
 }
-/** What a notification is about (SRS 3.4.5; COMMENT from SRS 3.7.3). */
+/**
+ * What a notification is about (SRS 3.4.5; COMMENT from SRS 3.7.3; SYSTEM,
+ * a fault an administrator acts on such as a failing news source, NSF-10).
+ */
 export type NotificationType =
-  'ALERT' | 'PLAN' | 'MODERATION' | 'SUBSCRIPTION' | 'COMMENT';
-/** What opening a notification navigates to (SRS 3.4.5). */
+  'ALERT' | 'PLAN' | 'MODERATION' | 'SUBSCRIPTION' | 'COMMENT' | 'SYSTEM';
+/** What opening a notification navigates to (SRS 3.4.5; NEWS_SOURCE, SCR-41). */
 export type NotificationReferenceType =
-  'ALERT' | 'PLAN' | 'POST' | 'SUBSCRIPTION';
+  'ALERT' | 'PLAN' | 'POST' | 'SUBSCRIPTION' | 'NEWS_SOURCE';
 /** One entry of the notification center (SCR-15, UC-15). */
 export interface AppNotification {
   id: string;
