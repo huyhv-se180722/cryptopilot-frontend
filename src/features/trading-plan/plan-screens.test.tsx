@@ -86,6 +86,7 @@ const ROW: TradingPlanSummary = {
   expiresAt: EXPIRES_AT,
   invalidatedAt: null,
   invalidationReason: null,
+  positionStatus: null,
 };
 
 const PLAN: TradingPlan = {
@@ -136,6 +137,7 @@ const PLAN: TradingPlan = {
   ],
   blocksActivation: false,
   statusHistory: [{ status: 'DRAFT', at: '2026-10-08T02:20:00Z' }],
+  position: null,
 };
 
 const refusal = (

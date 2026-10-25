@@ -98,6 +98,7 @@ const row = (
   activatedAt: '2026-10-12T02:05:00Z',
   expiresAt: null,
   invalidatedAt: null,
+  positionStatus: status === 'EXECUTED' ? 'OPEN' : null,
   invalidationReason: null,
 });
 

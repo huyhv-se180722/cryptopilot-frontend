@@ -145,6 +145,7 @@ function summaryOf(plan: TradingPlan): TradingPlanSummary {
     expiresAt: plan.expiresAt,
     invalidatedAt: at('INVALIDATED'),
     invalidationReason: plan.invalidationReason,
+    positionStatus: plan.position?.status ?? null,
   };
 }
 
@@ -266,6 +267,7 @@ export function createDevelopmentTradingPlan(
         id: `0199a2c4-0000-7000-8000-${String(900 + created++).padStart(12, '0')}`,
         pairId,
         ...inputs,
+        position: null,
         entryPrice: result.entryPrice,
         expectedFillPrice: result.expectedFillPrice,
         plannedEntryPrice: result.entryPrice,
