@@ -1402,6 +1402,8 @@ export const en = {
       'AI summaries and sentiment describe the article; they are not advice to buy or sell.',
     allCoinNews: 'All {coin} news',
     backToNews: 'All news',
+    latestTitle: 'Latest news',
+    latestEmpty: 'No other article yet.',
     articleNotFound: 'This article is not available',
     articleNotFoundHint: 'It may have been removed from the feed.',
     publishedOn: 'Published {date}',

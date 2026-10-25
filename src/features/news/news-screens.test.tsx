@@ -245,6 +245,30 @@ describe('news article page (SCR-28, D-125)', () => {
     expect(screen.queryByText('Ảnh: Desk')).toBeNull();
   });
 
+  it('lists the newest other articles beside the one being read', async () => {
+    await openNews(
+      service({
+        article: async () => detail,
+        feed: async () => ({
+          items: [summarized, collected],
+          page: 1,
+          pageSize: 7,
+          total: 2,
+        }),
+      }),
+      '/news/a1',
+    );
+
+    const latest = await screen.findByRole('region', { name: 'Tin mới nhất' });
+    const link = await within(latest).findByRole('link', {
+      name: /Ether staking grows/,
+    });
+    expect(link.getAttribute('href')).toBe('/news/a2');
+    expect(
+      within(latest).queryByText('ETF Bitcoin bị rút $635 triệu'),
+    ).toBeNull();
+  });
+
   it('says so when the article is gone', async () => {
     await openNews(
       service({

@@ -4,6 +4,7 @@ import { EmptyState, ErrorState } from '../../components/feedback/States';
 import { Badge } from '../../components/ui/Badge';
 import { buttonClassName } from '../../components/ui/button-styles';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { LatestNews } from '../../features/news/components/LatestNews';
 import { NewsCover } from '../../features/news/components/NewsCover';
 import { NewsLocale } from '../../features/news/components/NewsLocale';
 import {
@@ -26,7 +27,8 @@ import {
  * image shown from the outlet, the article the AI wrote again in its own
  * words (its summary until then), and at the end the source with a link to
  * the original in a new tab. The full original text is never stored
- * (BR-48). Rendered in Vietnamese like the feed.
+ * (BR-48). The newest articles stand beside it. Rendered in Vietnamese
+ * like the feed.
  */
 export function NewsArticlePage() {
   return (
@@ -94,106 +96,118 @@ function NewsArticle() {
   const paragraphs = data.body ? newsParagraphs(data.body) : [];
 
   return (
-    <div className="mx-auto w-full max-w-3xl">
+    <div className="mx-auto w-full max-w-6xl">
       {back}
-      <article aria-labelledby="news-article-title">
-        <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-dim">
-          <span className="font-semibold text-fg-2">{data.source}</span>
-          <span aria-hidden="true">·</span>
-          <time
-            dateTime={data.publishedAt}
-            title={formatInstantUtc(data.publishedAt)}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <article aria-labelledby="news-article-title" className="min-w-0">
+          <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-dim">
+            <span className="font-semibold text-fg-2">{data.source}</span>
+            <span aria-hidden="true">·</span>
+            <time
+              dateTime={data.publishedAt}
+              title={formatInstantUtc(data.publishedAt)}
+            >
+              {formatCopy(n.publishedOn, {
+                date: formatInstantLocal(data.publishedAt),
+              })}
+            </time>
+            {data.sentiment && (
+              <Badge tone={SENTIMENT_TONE[data.sentiment]} withDot>
+                {sentimentLabel(copy, data.sentiment)}
+              </Badge>
+            )}
+          </div>
+          <h1
+            id="news-article-title"
+            className="text-xl leading-tight font-bold text-fg sm:text-2xl"
           >
-            {formatCopy(n.publishedOn, {
-              date: formatInstantLocal(data.publishedAt),
-            })}
-          </time>
-          {data.sentiment && (
-            <Badge tone={SENTIMENT_TONE[data.sentiment]} withDot>
-              {sentimentLabel(copy, data.sentiment)}
-            </Badge>
+            {data.title}
+          </h1>
+          {translated && (
+            <p className="mt-2 text-xs text-muted-dim">
+              {formatCopy(n.originalTitle, { title: data.originalTitle })}
+            </p>
           )}
-        </div>
-        <h1
-          id="news-article-title"
-          className="text-xl leading-tight font-bold text-fg sm:text-2xl"
-        >
-          {data.title}
-        </h1>
-        {translated && (
-          <p className="mt-2 text-xs text-muted-dim">
-            {formatCopy(n.originalTitle, { title: data.originalTitle })}
-          </p>
-        )}
-        {data.coins.length > 0 && (
-          <ul className="mt-3 flex flex-wrap gap-1.5" aria-label={n.coinFilter}>
-            {data.coins.map((coin) => (
-              <li key={coin.symbol}>
-                <Link
-                  to={'/news?coin=' + encodeURIComponent(coin.symbol)}
-                  className="rounded-full border border-line bg-raised px-2 py-0.5 font-mono text-[11px] text-fg-2 no-underline hover:border-primary-line hover:text-primary"
-                >
-                  {coin.symbol}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <figure className="my-5">
-          <NewsCover
-            article={data}
-            eager
-            className="aspect-[16/9] w-full rounded-xl"
-          />
-          {data.imageUrl && (
-            <figcaption className="mt-1.5 text-[11px] text-muted-dim">
-              {formatCopy(n.imageCredit, { source: data.source })}
-            </figcaption>
+          {data.coins.length > 0 && (
+            <ul
+              className="mt-3 flex flex-wrap gap-1.5"
+              aria-label={n.coinFilter}
+            >
+              {data.coins.map((coin) => (
+                <li key={coin.symbol}>
+                  <Link
+                    to={'/news?coin=' + encodeURIComponent(coin.symbol)}
+                    className="rounded-full border border-line bg-raised px-2 py-0.5 font-mono text-[11px] text-fg-2 no-underline hover:border-primary-line hover:text-primary"
+                  >
+                    {coin.symbol}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           )}
-        </figure>
 
-        <div className="grid gap-4 text-[15px] leading-relaxed text-fg-2">
-          {paragraphs.length > 0 ? (
-            paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)
-          ) : (
-            <>
-              <p className="text-xs text-muted-dim italic">
-                {data.aiSummarized ? n.bodyPending : n.excerptOnly}
-              </p>
-              {data.summary && <p>{data.summary}</p>}
-            </>
-          )}
-        </div>
-
-        <footer className="mt-8 rounded-xl border border-line bg-surface p-4">
-          <p className="text-[11px] font-semibold tracking-wide text-muted-dim uppercase">
-            {n.sourceLabel}
-          </p>
-          <p className="mt-1 text-sm font-semibold text-fg">{data.source}</p>
-          <p className="mt-0.5 text-xs text-muted-dim">{data.originalTitle}</p>
-          <a
-            href={data.originalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={buttonClassName('secondary', 'sm', 'mt-3 gap-1.5')}
-          >
-            {n.readOriginal}
-            <ExternalLink size={13} aria-hidden="true" />
-          </a>
-        </footer>
-
-        {data.aiSummarized && (
-          <p className="mt-4 flex gap-1.5 text-[11px] leading-relaxed text-muted-dim">
-            <Sparkles
-              size={12}
-              aria-hidden="true"
-              className="mt-0.5 shrink-0 text-primary"
+          <figure className="my-5">
+            <NewsCover
+              article={data}
+              eager
+              className="aspect-[16/9] w-full rounded-xl"
             />
-            {n.aiRewritten}
-          </p>
-        )}
-      </article>
+            {data.imageUrl && (
+              <figcaption className="mt-1.5 text-[11px] text-muted-dim">
+                {formatCopy(n.imageCredit, { source: data.source })}
+              </figcaption>
+            )}
+          </figure>
+
+          <div className="grid gap-4 text-[15px] leading-relaxed text-fg-2">
+            {paragraphs.length > 0 ? (
+              paragraphs.map((paragraph, index) => (
+                <p key={index}>{paragraph}</p>
+              ))
+            ) : (
+              <>
+                <p className="text-xs text-muted-dim italic">
+                  {data.aiSummarized ? n.bodyPending : n.excerptOnly}
+                </p>
+                {data.summary && <p>{data.summary}</p>}
+              </>
+            )}
+          </div>
+
+          <footer className="mt-8 rounded-xl border border-line bg-surface p-4">
+            <p className="text-[11px] font-semibold tracking-wide text-muted-dim uppercase">
+              {n.sourceLabel}
+            </p>
+            <p className="mt-1 text-sm font-semibold text-fg">{data.source}</p>
+            <p className="mt-0.5 text-xs text-muted-dim">
+              {data.originalTitle}
+            </p>
+            <a
+              href={data.originalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={buttonClassName('secondary', 'sm', 'mt-3 gap-1.5')}
+            >
+              {n.readOriginal}
+              <ExternalLink size={13} aria-hidden="true" />
+            </a>
+          </footer>
+
+          {data.aiSummarized && (
+            <p className="mt-4 flex gap-1.5 text-[11px] leading-relaxed text-muted-dim">
+              <Sparkles
+                size={12}
+                aria-hidden="true"
+                className="mt-0.5 shrink-0 text-primary"
+              />
+              {n.aiRewritten}
+            </p>
+          )}
+        </article>
+        <aside className="min-w-0 lg:sticky lg:top-4 lg:self-start">
+          <LatestNews currentId={data.id} />
+        </aside>
+      </div>
     </div>
   );
 }

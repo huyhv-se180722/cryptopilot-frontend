@@ -26,6 +26,15 @@ export function useNewsFeed(filter: NewsFilter) {
   });
 }
 
+/** The newest articles of the feed, one page, for a side list. */
+export function useLatestNews(limit: number) {
+  const { news } = useServices();
+  return useQuery({
+    queryKey: [...NEWS_KEY, 'latest', null, limit],
+    queryFn: ({ signal }) => news.feed({ page: 1, pageSize: limit }, signal),
+  });
+}
+
 /** One article for its page in the app (D-125). */
 export function useNewsArticle(id: string) {
   const { news } = useServices();

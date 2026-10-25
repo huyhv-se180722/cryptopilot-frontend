@@ -41,6 +41,8 @@ export const vi: PartialCopy = {
       'Nội dung và đánh giá xu hướng do AI tạo từ bài báo gốc, không phải khuyến nghị mua hay bán.',
     allCoinNews: 'Tất cả tin {coin}',
     backToNews: 'Tất cả tin tức',
+    latestTitle: 'Tin mới nhất',
+    latestEmpty: 'Chưa có bài nào khác.',
     articleNotFound: 'Bài viết không còn',
     articleNotFoundHint: 'Bài có thể đã bị gỡ khỏi trang tin.',
     publishedOn: 'Đăng lúc {date}',
