@@ -1138,8 +1138,7 @@ export const en = {
     activePlansOf: '{count} of {max} active plans',
     kpiActive: 'Active plans',
     kpiExecuted: 'Open positions',
-    kpiExecutedNote:
-      'Executed plans; position details come with simulated execution.',
+    kpiExecutedNote: 'Executed plans whose simulated position is open.',
     kpiWatchlist: 'Watchlist',
     kpiLimitLeft: '{left} slots left on {plan}',
     kpiLimitFull: 'Limit reached on {plan}',

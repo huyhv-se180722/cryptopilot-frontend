@@ -144,7 +144,13 @@ async function open(locale: Locale = 'en') {
   );
   const tradingPlan = {
     list: vi.fn<TradingPlanService['list']>(async (query) => {
-      const items = query.tab === 'ACTIVE' ? active : [row('e1', 'EXECUTED')];
+      const items =
+        query.tab === 'ACTIVE'
+          ? active
+          : [
+              row('e1', 'EXECUTED'),
+              { ...row('e2', 'EXECUTED'), positionStatus: 'CLOSED' as const },
+            ];
       return {
         items: items.slice(0, query.pageSize),
         page: 1,
@@ -216,6 +222,10 @@ describe('SCR-08 Trader dashboard (T-112)', () => {
     expect(screen.getByText('3 / 10')).toBeTruthy();
     expect(screen.getByText('7 slots left on PRO')).toBeTruthy();
     expect(screen.getByText(/6 of 5 active plans/)).toBeTruthy();
+    // Only the executed plan whose position is still open counts.
+    expect(screen.getByText('Open positions').nextSibling?.textContent).toBe(
+      '1',
+    );
     expect(
       screen.getByRole('link', { name: 'New plan' }).getAttribute('href'),
     ).toBe('/plans/new');

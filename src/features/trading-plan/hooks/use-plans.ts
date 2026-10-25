@@ -86,6 +86,28 @@ export function usePlanCount(tab: PlanTab, enabled = true) {
   });
 }
 
+/** The largest page the plan list answers (PageResponse). */
+const MAX_PAGE = 100;
+
+/**
+ * Open positions (SCR-08): the OPEN rows among the newest 100 EXECUTED
+ * plans; `more` when older executed plans were not read.
+ */
+export function useOpenPositionCount() {
+  const { tradingPlan } = useServices();
+  return useQuery({
+    queryKey: [...LIST_KEY, 'open-positions'],
+    queryFn: ({ signal }) =>
+      tradingPlan
+        .list({ tab: 'EXECUTED', page: 1, pageSize: MAX_PAGE }, signal)
+        .then((page) => ({
+          open: page.items.filter((row) => row.positionStatus === 'OPEN')
+            .length,
+          more: page.total > page.items.length,
+        })),
+  });
+}
+
 /**
  * One plan with snapshot, warnings and status history (SCR-18). `missing`
  * is the 404 the API answers for an unknown plan or another account's.

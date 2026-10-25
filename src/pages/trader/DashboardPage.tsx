@@ -17,7 +17,10 @@ import { PlanSnapshot } from '../../features/dashboard/components/PlanSnapshot';
 import { WatchlistSnapshot } from '../../features/dashboard/components/WatchlistSnapshot';
 import { useMarketPairs } from '../../features/market/hooks/use-market-data';
 import { useMarketTickers } from '../../features/market/hooks/use-market-tickers';
-import { usePlanCount } from '../../features/trading-plan/hooks/use-plans';
+import {
+  useOpenPositionCount,
+  usePlanCount,
+} from '../../features/trading-plan/hooks/use-plans';
 import { useWatchlist } from '../../features/watchlist/hooks/use-watchlist';
 
 /** "3 / 5" with a plan limit, "3" without; `none` until the count is known. */
@@ -60,7 +63,7 @@ export function DashboardPage() {
   const activeMax = usePlanLimit('ACTIVE_PLAN_MAX');
   const watchMax = usePlanLimit('WATCHLIST_MAX');
   const active = usePlanCount('ACTIVE');
-  const executed = usePlanCount('EXECUTED');
+  const positions = useOpenPositionCount();
   const watchlist = useWatchlist();
   const watched = watchlist.data?.items.length;
 
@@ -114,7 +117,11 @@ export function DashboardPage() {
         />
         <StatCard
           label={d.kpiExecuted}
-          value={counted(executed.data, undefined, none)}
+          value={
+            positions.data === undefined
+              ? none
+              : positions.data.open + (positions.data.more ? '+' : '')
+          }
           status={d.kpiExecutedNote}
           accent="positive"
         />

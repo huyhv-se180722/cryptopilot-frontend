@@ -15,8 +15,8 @@ const ROWS = 5;
 
 /**
  * Active plans and open positions (SCR-08): the first five of the ACTIVE
- * or the EXECUTED tab of SCR-16, a row opening SCR-18. Position status and
- * P/L wait for simulated execution (M-10), as on SCR-16.
+ * or the EXECUTED tab of SCR-16, with each executed plan's position open
+ * or closed, a row opening SCR-18 and its position.
  */
 export function PlanSnapshot() {
   const copy = useCopy();
