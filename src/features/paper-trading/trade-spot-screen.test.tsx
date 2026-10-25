@@ -277,11 +277,7 @@ describe('Spot demo trading layout (TR-F1, D-86)', () => {
   it('opens the demo account once and says it is ready', async () => {
     const paperTrading: PaperTradingService = {
       ...createPendingPaperTradingService(),
-      openAccount: vi.fn(async () => ({
-        accountId: 'a-1',
-        positionMode: 'one-way' as const,
-        openedAt: '2026-10-13T00:00:00Z',
-      })),
+      openAccount: vi.fn(async () => ({ openedAt: '2026-10-13T00:00:00Z' })),
     };
     await open('/trade/spot/BTCUSDT', paperTrading);
     await waitFor(() =>
