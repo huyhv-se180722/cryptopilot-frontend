@@ -1,4 +1,5 @@
 import type { Services } from '../services/api/services';
+import { createDevelopmentAdminPairs } from './dev-admin-pairs';
 import { createDevelopmentAuth } from './dev-auth';
 import { createDevelopmentCommunity } from './dev-community';
 import { createDevelopmentMarket } from './dev-market';
@@ -26,5 +27,6 @@ export function createDevelopmentServices(base: Services): Services {
     ),
     ...createDevelopmentCommunity(() => auth.restoreSession()),
     ...createDevelopmentNotifications(() => auth.restoreSession()),
+    adminPairs: createDevelopmentAdminPairs(),
   };
 }
