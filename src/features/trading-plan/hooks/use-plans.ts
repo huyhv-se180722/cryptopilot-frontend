@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import {
   keepPreviousData,
   useQuery,
@@ -206,5 +206,63 @@ export function usePositionLevels(id: string) {
       },
       [tradingPlan, id, client],
     ),
+  );
+}
+
+/** SCR-19 is read again this often while it is open; it reserves nothing. */
+const ESTIMATE_REFRESH_MS = 5_000;
+
+/** The estimated close of the plan's open position, while `enabled` (UC-21). */
+export function useCloseEstimate(id: string, enabled: boolean) {
+  const { tradingPlan } = useServices();
+  return useQuery({
+    queryKey: ['plans', 'close-estimate', id],
+    queryFn: ({ signal }) => tradingPlan.closeEstimate(id, signal),
+    enabled,
+    staleTime: 0,
+    gcTime: 0,
+    retry: false,
+    refetchInterval: enabled ? ESTIMATE_REFRESH_MS : false,
+  });
+}
+
+/**
+ * Closes the open position at market (UC-21, MANUAL). The answer replaces
+ * the shown plan and the lists are read again; a position already closed
+ * (409) reads the plan again to show how it ended.
+ */
+export function useClosePosition(id: string) {
+  const { tradingPlan } = useServices();
+  const client = useQueryClient();
+  return useMutation(
+    useCallback(async () => {
+      try {
+        const plan = await tradingPlan.closePosition(id);
+        client.setQueryData(detailKey(id), plan);
+        void client.invalidateQueries({ queryKey: LIST_KEY });
+        return plan;
+      } catch (error) {
+        if (problemOf(error)?.status === 409)
+          void client.invalidateQueries({ queryKey: detailKey(id) });
+        throw error;
+      }
+    }, [tradingPlan, id, client]),
+  );
+}
+
+/**
+ * Reads the plans again when the server pushes a position change (an exit
+ * by take profit, stop loss, liquidation or a close elsewhere; T-048b).
+ */
+export function usePositionUpdates() {
+  const { tradingPlan } = useServices();
+  const client = useQueryClient();
+  useEffect(
+    () =>
+      tradingPlan.subscribePositions((update) => {
+        void client.invalidateQueries({ queryKey: detailKey(update.planId) });
+        void client.invalidateQueries({ queryKey: LIST_KEY });
+      }),
+    [tradingPlan, client],
   );
 }

@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createHttpClient } from './http-client';
+import type { AccountFeed } from './paper-trading';
 import {
   createHttpTradingPlanService,
   createPendingTradingPlanService,
+  POSITION_QUEUE,
 } from './trading-plan';
 import type { PlanInputs } from '../../types/domain';
 import {
@@ -450,6 +452,74 @@ describe('HTTP trading plan adapter', () => {
       'POST /api/v1/plans/' + PLAN.id + '/activate',
       'POST /api/v1/plans/' + PLAN.id + '/activate?confirmDeviation=true',
       'POST /api/v1/plans/' + PLAN.id + '/cancel',
+    ]);
+  });
+
+  it('estimates and closes an open position, and listens to its queue (T-046)', async () => {
+    const estimate = {
+      currentPrice: '103',
+      estimatedExitPrice: '102.9',
+      priceResult: '5.80000000',
+      entryFee: '0.04000000',
+      estimatedExitFee: '0.10290000',
+      fundingSoFar: '-0.01000000',
+      fundingProvisional: true,
+      estimatedNetPnl: '5.64710000',
+      at: '2026-10-25T09:00:00Z',
+    };
+    const { plans, calls } = setup(estimate);
+    await expect(plans.closeEstimate(PLAN.id)).resolves.toEqual(estimate);
+    const closer = setup(PLAN);
+    await closer.plans.closePosition(PLAN.id);
+    expect(
+      [...calls, ...closer.calls].map(
+        (call) => call.method + ' ' + call.url.pathname,
+      ),
+    ).toEqual([
+      'GET /api/v1/plans/' + PLAN.id + '/close-estimate',
+      'POST /api/v1/plans/' + PLAN.id + '/close-position',
+    ]);
+    const subscribed: string[] = [];
+    const feed: AccountFeed = {
+      status: () => 'open',
+      onStatus: () => () => undefined,
+      subscribeTopic: (destination, decode, listener) => {
+        subscribed.push(destination);
+        listener(
+          decode({
+            positionId: 'pos-1',
+            planId: PLAN.id,
+            market: 'SPOT',
+            symbol: 'BTCUSDT',
+            status: 'CLOSED',
+            closeReason: 'TAKE_PROFIT',
+            exitPrice: '110',
+            exitTime: '2026-10-25T10:00:00Z',
+            realizedPnl: '20.00000000',
+            feeAmount: '0.30000000',
+            netPnl: '19.70000000',
+            provisional: false,
+          }),
+        );
+        return () => undefined;
+      },
+    };
+    const http = createHttpClient({
+      baseUrl: 'https://api.example.test/api/v1',
+    });
+    const received: unknown[] = [];
+    createHttpTradingPlanService(http, feed).subscribePositions((update) =>
+      received.push(update),
+    );
+    expect(subscribed).toEqual([POSITION_QUEUE]);
+    expect(received).toEqual([
+      {
+        planId: PLAN.id,
+        status: 'CLOSED',
+        closeReason: 'TAKE_PROFIT',
+        netPnl: '19.70000000',
+        provisional: false,
+      },
     ]);
   });
 

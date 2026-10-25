@@ -24,6 +24,7 @@ import {
   PLAN_PAGE_SIZE,
   useActivePlanCount,
   usePlanList,
+  usePositionUpdates,
 } from '../../features/trading-plan/hooks/use-plans';
 import type { MarketType, PlanTab } from '../../types/domain';
 
@@ -93,6 +94,8 @@ export function PlansPage() {
   }, [spotPairs, futuresPairs]);
   const period = periodOf(params.get('period'));
   const page = Math.max(1, Number(params.get('page')) || 1);
+  // A position closed by the engine updates the Executed tab (T-048b).
+  usePositionUpdates();
   const list = usePlanList({
     tab,
     page,

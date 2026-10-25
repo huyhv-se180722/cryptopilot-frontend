@@ -204,6 +204,9 @@ function fakePlans(overrides: Partial<TradingPlanService> = {}) {
     })),
     update: vi.fn(async () => PLAN),
     changeLevels: vi.fn(async () => PLAN),
+    closeEstimate: vi.fn(),
+    closePosition: vi.fn(async () => PLAN),
+    subscribePositions: vi.fn(() => () => undefined),
     ...overrides,
   };
   return service;
@@ -1871,5 +1874,167 @@ describe('T-113 a MARKET entry moved since the save (TP-C, BR-69)', () => {
     expect(calls).toHaveLength(2);
     expect(calls[1]?.[1]).toEqual(calls[0]?.[1]);
     expect(calls[1]?.slice(2)).toEqual([true, true]);
+  });
+});
+
+describe('SCR-19 close an open position (T-047, UC-21)', () => {
+  const position: NonNullable<TradingPlan['position']> = {
+    status: 'OPEN',
+    fillPrice: '62010.000000000000',
+    quantity: '0.010000000000',
+    entryTime: '2026-10-08T03:00:00Z',
+    entryFee: '0.31000000',
+    liquidationPrice: '74100.000000000000',
+    currentPrice: '61500.00',
+    unrealizedPnl: '5.10000000',
+    exitPrice: null,
+    exitTime: null,
+    closeReason: null,
+    realizedPnl: null,
+    feeAmount: null,
+    fundingFeeAmount: null,
+    netPnl: null,
+    provisional: false,
+    stopLoss: '63000.000000000000',
+    takeProfit: '59000.000000000000',
+    originalStopLoss: '63000.000000000000',
+    originalTakeProfit: '59000.000000000000',
+    stopWidened: false,
+    levelChangeCount: 0,
+    levelChanges: [],
+    breakevenPrice: '61940.00',
+    breakevenProvisional: false,
+    levelWarnings: [],
+    levelsEffectiveFrom: null,
+  };
+  const executed: TradingPlan = {
+    ...PLAN,
+    status: 'EXECUTED',
+    editable: false,
+    position,
+  };
+  const estimate = {
+    currentPrice: '61500.00',
+    estimatedExitPrice: '61561.50',
+    priceResult: '4.48500000',
+    entryFee: '0.31000000',
+    estimatedExitFee: '0.30780750',
+    fundingSoFar: '-0.02000000',
+    fundingProvisional: true,
+    estimatedNetPnl: '3.84719250',
+    at: '2026-10-08T06:00:00Z',
+  };
+  const closed: TradingPlan = {
+    ...executed,
+    position: {
+      ...position,
+      status: 'CLOSED',
+      currentPrice: null,
+      unrealizedPnl: null,
+      exitPrice: '61561.50',
+      exitTime: '2026-10-08T06:00:05Z',
+      closeReason: 'MANUAL',
+      realizedPnl: '4.48500000',
+      feeAmount: '0.61780750',
+      fundingFeeAmount: '-0.02000000',
+      netPnl: '3.84719250',
+    },
+  };
+
+  it('shows MSG21 with the estimate and closes at market', async () => {
+    const service = fakePlans({
+      get: vi.fn(async () => executed),
+      closeEstimate: vi.fn(async () => estimate),
+      closePosition: vi.fn(async () => closed),
+    });
+    await open('/plans/' + PLAN.id, service);
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole('button', { name: 'Close position' }),
+    );
+    const dialog = within(screen.getByRole('dialog'));
+    expect(
+      await dialog.findByText(
+        'Close this position at about 61,561.50? Estimated P/L: +3.85 USDT.',
+      ),
+    ).toBeTruthy();
+    expect(
+      dialog.getByText('Funding so far (USDT)').nextSibling?.textContent,
+    ).toBe('-0.02provisional');
+    await user.click(dialog.getByRole('button', { name: 'Close at market' }));
+    expect(service.closePosition).toHaveBeenCalledWith(PLAN.id);
+    expect(
+      await screen.findByText('Position closed. Net P/L: +3.85 USDT.'),
+    ).toBeTruthy();
+    const panel = within(screen.getByRole('region', { name: 'Position' }));
+    expect(panel.getByText('Closed by').nextSibling?.textContent).toBe(
+      'Manual close',
+    );
+  });
+
+  it('says when the engine closed it first, and when there is no price', async () => {
+    const conflict = new ServiceError('gone', 'HTTP_ERROR', 409, {
+      status: 409,
+      code: 'POSITION_NOT_OPEN',
+      messageCode: 'MSG43',
+      messageArgs: [],
+      fieldErrors: {},
+    });
+    const noPrice = new ServiceError('no price', 'HTTP_ERROR', 503, {
+      status: 503,
+      code: 'MARKET_PRICE_UNAVAILABLE',
+      messageCode: 'MSG43',
+      messageArgs: [],
+      fieldErrors: {},
+    });
+    const service = fakePlans({
+      get: vi.fn(async () => executed),
+      closeEstimate: vi
+        .fn()
+        .mockResolvedValueOnce(estimate)
+        .mockRejectedValue(noPrice),
+      closePosition: vi.fn().mockRejectedValueOnce(conflict),
+    });
+    await open('/plans/' + PLAN.id, service);
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole('button', { name: 'Close position' }),
+    );
+    const dialog = within(screen.getByRole('dialog'));
+    await dialog.findByText(/Close this position at about/);
+    await user.click(dialog.getByRole('button', { name: 'Close at market' }));
+    expect(
+      await dialog.findByText(
+        'This position is no longer open. The plan has been refreshed.',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('reads the plan again when its position is pushed as closed (T-048b)', async () => {
+    let push: ((update: { planId: string }) => void) | undefined;
+    let current: TradingPlan = executed;
+    const get = vi.fn(async () => current);
+    const service = fakePlans({
+      get,
+      subscribePositions: vi.fn((listener) => {
+        push = listener as typeof push;
+        return () => undefined;
+      }),
+    });
+    await open('/plans/' + PLAN.id, service);
+    await screen.findByRole('button', { name: 'Close position' });
+    current = {
+      ...closed,
+      position: { ...closed.position!, closeReason: 'TAKE_PROFIT' as const },
+    };
+    push?.({ planId: PLAN.id });
+    const panel = within(
+      await screen.findByRole('region', { name: 'Position' }),
+    );
+    await waitFor(() =>
+      expect(panel.getByText('Closed by').nextSibling?.textContent).toBe(
+        'Take profit',
+      ),
+    );
   });
 });

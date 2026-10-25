@@ -50,6 +50,7 @@ export const en = {
     MSG18: 'This plan has blocking warnings and cannot be activated.',
     MSG19: 'Trading plan activated.',
     MSG20: 'Cancel this trading plan? This action cannot be undone.',
+    MSG21: 'Close this position at about {price}? Estimated P/L: {pnl}.',
     MSG25: '{pair} added to watchlist.',
     MSG26: 'Removing {pair} will also delete {n} alerts. Continue?',
     MSG27:
@@ -577,6 +578,22 @@ export const en = {
       'The price has reached your take profit since the plan was saved. The plan was not activated.',
     deviationEditHint:
       'Edit the plan to save it at the current price, or cancel it.',
+    closeOpen: 'Close position',
+    closeTitle: 'Close position',
+    closeKeep: 'Keep open',
+    closeConfirm: 'Close at market',
+    closeCurrent: 'Current price',
+    closeExit: 'Estimated exit price',
+    closePriceResult: 'Price result (USDT)',
+    closeExitFee: 'Exit fee (USDT)',
+    closeFunding: 'Funding so far (USDT)',
+    closeNet: 'Estimated net P/L (USDT)',
+    closeEstimateAt:
+      'Estimated at {time}. The close executes at the price of its own moment.',
+    closeDone: 'Position closed. Net P/L: {pnl} USDT.',
+    closeDoneShort: 'Position closed.',
+    closeAlready:
+      'This position is no longer open. The plan has been refreshed.',
     levelsEdit: 'Edit SL/TP',
     levelsTitle: 'Edit stop loss and take profit',
     levelsHint:

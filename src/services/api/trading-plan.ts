@@ -1,8 +1,11 @@
 import type { TradingPlanService } from './contracts';
 import { integrationPending } from './errors';
 import type { HttpClient } from './http-client';
+import type { AccountFeed } from './paper-trading';
 import {
   decodeCalculation,
+  decodeCloseEstimate,
+  decodePositionUpdate,
   decodePlan,
   decodePlanPage,
   encodePlanInputs,
@@ -19,8 +22,14 @@ export function createPendingTradingPlanService(): TradingPlanService {
     calculate: async () => integrationPending(),
     update: async () => integrationPending(),
     changeLevels: async () => integrationPending(),
+    closeEstimate: async () => integrationPending(),
+    closePosition: async () => integrationPending(),
+    subscribePositions: () => () => undefined,
   };
 }
+
+/** The queue a closed position is pushed on (T-048b, T-046). */
+export const POSITION_QUEUE = '/user/queue/positions';
 
 const withSignal = (signal?: AbortSignal) => (signal ? { signal } : {});
 const planPath = (id: string) => 'plans/' + encodeURIComponent(id);
@@ -31,6 +40,7 @@ const planPath = (id: string) => 'plans/' + encodeURIComponent(id);
  */
 export function createHttpTradingPlanService(
   http: HttpClient,
+  feed: AccountFeed | null = null,
 ): TradingPlanService {
   return {
     list: ({ tab, pairId, market, from, page, pageSize }, signal) => {
@@ -113,5 +123,21 @@ export function createHttpTradingPlanService(
         },
         decode: decodePlan,
       }),
+    closeEstimate: (id, signal) =>
+      http.request({
+        path: planPath(id) + '/close-estimate',
+        decode: decodeCloseEstimate,
+        ...withSignal(signal),
+      }),
+    closePosition: (id) =>
+      http.request({
+        path: planPath(id) + '/close-position',
+        method: 'POST',
+        decode: decodePlan,
+      }),
+    subscribePositions: (listener) =>
+      feed
+        ? feed.subscribeTopic(POSITION_QUEUE, decodePositionUpdate, listener)
+        : () => undefined,
   };
 }

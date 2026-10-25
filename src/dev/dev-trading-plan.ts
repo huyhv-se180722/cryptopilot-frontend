@@ -1,8 +1,10 @@
 import type { TradingPlanService } from '../services/api/contracts';
 import { ServiceError } from '../services/api/errors';
 import type {
+  CloseEstimate,
   PlanCalculation,
   PlanInputs,
+  PlanPosition,
   PlanStatus,
   PlanTab,
   Session,
@@ -123,6 +125,25 @@ const TABS: Record<PlanTab, readonly PlanStatus[]> = {
   CANCELLED_EXPIRED: ['CANCELLED', 'EXPIRED', 'INVALIDATED'],
 };
 
+/**
+ * Scripted SCR-19 figures, not a formula: the open position's own price
+ * and unrealized result, its entry fee again as the exit fee, and a net
+ * written by hand for the seeded position (display only).
+ */
+function estimate(plan: TradingPlan, position: PlanPosition): CloseEstimate {
+  return {
+    currentPrice: position.currentPrice ?? position.fillPrice,
+    estimatedExitPrice: position.currentPrice ?? position.fillPrice,
+    priceResult: position.unrealizedPnl ?? '0.00000000',
+    entryFee: position.entryFee,
+    estimatedExitFee: position.entryFee,
+    fundingSoFar: plan.market === 'futures' ? '0.00000000' : null,
+    fundingProvisional: false,
+    estimatedNetPnl: '4.27000000',
+    at: new Date().toISOString(),
+  };
+}
+
 function summaryOf(plan: TradingPlan): TradingPlanSummary {
   const created = plan.statusHistory[0]?.at ?? new Date(0).toISOString();
   const at = (status: PlanStatus) =>
@@ -168,6 +189,13 @@ export function createDevelopmentTradingPlan(
   );
   const find = (id: string) =>
     plans.get(id) ?? refuse(404, 'RESOURCE_NOT_FOUND', 'MSG41');
+  const openPosition = (id: string) => {
+    const plan = find(id);
+    const position = plan.position;
+    if (!position || position.status !== 'OPEN')
+      refuse(409, 'POSITION_NOT_OPEN', 'MSG43');
+    return { plan, position };
+  };
   const move = (plan: TradingPlan, status: PlanStatus): TradingPlan => {
     const next: TradingPlan = {
       ...plan,
@@ -426,5 +454,37 @@ export function createDevelopmentTradingPlan(
       plans.set(id, next);
       return next;
     },
+    // T-046 with scripted figures: the close takes the estimate as its exit.
+    async closeEstimate(id) {
+      await pause();
+      const { plan, position } = openPosition(id);
+      return estimate(plan, position);
+    },
+    async closePosition(id) {
+      await pause();
+      const { plan, position } = openPosition(id);
+      const e = estimate(plan, position);
+      const closed: TradingPlan = {
+        ...plan,
+        position: {
+          ...position,
+          status: 'CLOSED',
+          currentPrice: null,
+          unrealizedPnl: null,
+          exitPrice: e.estimatedExitPrice,
+          exitTime: new Date(now()).toISOString(),
+          closeReason: 'MANUAL',
+          realizedPnl: e.priceResult,
+          feeAmount: '1.23000000',
+          fundingFeeAmount: plan.market === 'futures' ? '0.00000000' : null,
+          netPnl: e.estimatedNetPnl,
+          provisional: false,
+          breakevenPrice: null,
+        },
+      };
+      plans.set(id, closed);
+      return closed;
+    },
+    subscribePositions: () => () => undefined,
   };
 }

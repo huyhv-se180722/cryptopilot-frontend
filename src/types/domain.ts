@@ -409,6 +409,34 @@ export type EntryDeviation =
       takeProfitReached: boolean;
     };
 
+/**
+ * SCR-19: what closing the position now would give (UC-21, T-046), by the
+ * current last price moved by the slippage; not stored, not reserved.
+ */
+export interface CloseEstimate {
+  currentPrice: Decimal;
+  estimatedExitPrice: Decimal;
+  /** The price result, no fees, no funding. */
+  priceResult: Decimal;
+  entryFee: Decimal;
+  /** At the taker rate. */
+  estimatedExitFee: Decimal;
+  /** Futures: + received / − paid so far; null on Spot. */
+  fundingSoFar: Decimal | null;
+  fundingProvisional: boolean;
+  estimatedNetPnl: Decimal;
+  at: ISODateTime;
+}
+
+/** `/user/queue/positions`: a position of the Trader changed (it closed). */
+export interface PositionUpdate {
+  planId: string;
+  status: PositionStatus;
+  closeReason: PositionCloseReason | null;
+  netPnl: Decimal | null;
+  provisional: boolean;
+}
+
 /** New levels of an OPEN position (D-124); null keeps the current one. */
 export interface PositionLevels {
   stopLoss: Decimal | null;

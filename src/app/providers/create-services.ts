@@ -119,7 +119,7 @@ export async function createServices(env: Environment): Promise<Services> {
       ? createHttpAnalysisService(http)
       : createPendingAnalysisService(),
     tradingPlan: connected
-      ? createHttpTradingPlanService(http)
+      ? createHttpTradingPlanService(http, accountFeed)
       : createPendingTradingPlanService(),
     journal: createJournalService(),
     watchlist: connected

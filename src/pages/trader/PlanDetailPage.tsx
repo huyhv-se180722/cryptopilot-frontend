@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ChevronLeft, SlidersHorizontal } from 'lucide-react';
+import { ChevronLeft, LogOut, SlidersHorizontal } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { ErrorState } from '../../components/feedback/States';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -21,9 +21,13 @@ import {
 } from '../../features/trading-plan/components/PlanDetailPanels';
 import { PlanPositionPanel } from '../../features/trading-plan/components/PlanPosition';
 import { PositionLevelsDialog } from '../../features/trading-plan/components/PositionLevelsDialog';
+import { ClosePositionDialog } from '../../features/trading-plan/components/ClosePositionDialog';
 import { shortPlanId } from '../../features/trading-plan/components/plan-format';
 import { planLines } from '../../features/trading-plan/components/plan-lines';
-import { usePlan } from '../../features/trading-plan/hooks/use-plans';
+import {
+  usePlan,
+  usePositionUpdates,
+} from '../../features/trading-plan/hooks/use-plans';
 import { pairLabel } from '../../utils/pair-label';
 import { PlanChart } from './plan-chart';
 
@@ -47,6 +51,9 @@ export function PlanDetailPage() {
   const pairOf = usePairLookup();
   const pair = plan ? pairOf(plan.pairId, plan.market) : undefined;
   const [editingLevels, setEditingLevels] = useState(false);
+  const [closing, setClosing] = useState(false);
+  // An exit by the engine shows here without a reload (T-048b).
+  usePositionUpdates();
   // The chart reads the candles of the plan's own market.
   const charted = pair && plan && pair.market === plan.market ? pair : null;
 
@@ -126,6 +133,16 @@ export function PlanDetailPage() {
                       {p.levelsEdit}
                     </Button>
                   }
+                  closeAction={
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => setClosing(true)}
+                    >
+                      <LogOut size={13} aria-hidden="true" />
+                      {p.closeOpen}
+                    </Button>
+                  }
                 />
               )}
             </div>
@@ -142,6 +159,11 @@ export function PlanDetailPage() {
             plan={plan}
             open={editingLevels}
             onClose={() => setEditingLevels(false)}
+          />
+          <ClosePositionDialog
+            plan={plan}
+            open={closing}
+            onClose={() => setClosing(false)}
           />
         </>
       )}
