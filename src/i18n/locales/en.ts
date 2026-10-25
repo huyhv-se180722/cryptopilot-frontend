@@ -1269,6 +1269,7 @@ export const en = {
     subtitle:
       'Crypto theory explained simply, from your first coin to managing risk.',
     lessonsTitle: 'Lessons',
+    photoCredit: 'Photo: {credit}',
     readProgress: 'You have read {done} of {total} lessons',
     readProgressLabel: 'Lessons read',
     topicLabel: 'Topic',

@@ -14,6 +14,7 @@ export const vi: PartialCopy = {
     subtitle:
       'Kiến thức crypto giải thích dễ hiểu, từ đồng coin đầu tiên đến quản lý rủi ro.',
     lessonsTitle: 'Bài học',
+    photoCredit: 'Ảnh: {credit}',
     readProgress: 'Bạn đã đọc {done}/{total} bài',
     readProgressLabel: 'Số bài đã đọc',
     topicLabel: 'Chủ đề',

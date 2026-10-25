@@ -47,8 +47,9 @@ export function ArticleCard({
     >
       <LessonCover
         topicSlug={article.topicSlug}
+        imageUrl={article.coverImageUrl}
         iconSize={44}
-        className="h-32 transition-transform duration-300 group-hover:scale-[1.02]"
+        className="aspect-[16/9] transition-transform duration-300 group-hover:scale-[1.02]"
       />
       <div className="flex flex-1 flex-col p-4">
         <span className="text-[11px] font-semibold tracking-wider text-muted-x uppercase">

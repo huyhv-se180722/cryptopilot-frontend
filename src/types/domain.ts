@@ -1083,6 +1083,8 @@ export interface AcademyArticleSummary {
   topicName: string;
   /** Place on the beginner path, or null when the lesson is not on it. */
   pathOrder: number | null;
+  /** The cover photo, or null for a lesson that has none yet. */
+  coverImageUrl: string | null;
 }
 export interface AcademyArticlePage {
   items: readonly AcademyArticleSummary[];
@@ -1111,6 +1113,8 @@ export interface AcademyArticle extends AcademyArticleSummary {
   previous: AcademyArticleLink | null;
   next: AcademyArticleLink | null;
   related: readonly AcademyArticleSummary[];
+  /** Who took the cover photo, e.g. "Jane Doe / Unsplash". */
+  coverCredit: string | null;
 }
 export interface AcademyTerm {
   slug: string;

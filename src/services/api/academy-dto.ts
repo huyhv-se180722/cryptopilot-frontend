@@ -52,6 +52,7 @@ function decodeSummary(item: unknown): AcademyArticleSummary {
     topicSlug: text(value.topicSlug, 'topicSlug'),
     topicName: text(value.topicName, 'topicName'),
     pathOrder: nullableInteger(value.pathOrder, 'pathOrder'),
+    coverImageUrl: nullableText(value.coverImageUrl, 'coverImageUrl'),
   };
 }
 
@@ -88,6 +89,7 @@ export function decodeAcademyArticle(body: unknown): AcademyArticle {
     previous: decodeLink(value.previous, 'previous'),
     next: decodeLink(value.next, 'next'),
     related: list(value.related, 'related').map(decodeSummary),
+    coverCredit: nullableText(value.coverCredit, 'coverCredit'),
   };
 }
 

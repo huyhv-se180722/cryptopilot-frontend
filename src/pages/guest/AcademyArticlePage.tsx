@@ -100,10 +100,11 @@ function Lesson({ article }: { article: AcademyArticle }) {
     <article>
       <LessonCover
         topicSlug={article.topicSlug}
+        imageUrl={article.coverImageUrl}
         iconSize={96}
         className="mb-8 rounded-3xl shadow-lg"
       >
-        <header className="flex min-h-56 flex-col justify-end p-6 text-white sm:p-8">
+        <header className="flex min-h-72 flex-col justify-end p-6 text-white sm:p-8">
           <Link
             to={'/academy?topic=' + encodeURIComponent(article.topicSlug)}
             className="w-fit rounded-full bg-white/20 px-3 py-1 text-[11px] font-semibold tracking-wider text-white uppercase no-underline backdrop-blur hover:bg-white/30"
@@ -131,6 +132,11 @@ function Lesson({ article }: { article: AcademyArticle }) {
               })}
             </time>
           </div>
+          {article.coverCredit && (
+            <p className="mt-4 text-[11px] text-white/60">
+              {formatCopy(a.photoCredit, { credit: article.coverCredit })}
+            </p>
+          )}
         </header>
       </LessonCover>
 

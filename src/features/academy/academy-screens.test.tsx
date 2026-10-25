@@ -22,6 +22,8 @@ const LESSON: AcademyArticleSummary = {
   topicSlug: 'nhap-mon-crypto',
   topicName: 'Nhập môn crypto',
   pathOrder: 1,
+  coverImageUrl:
+    'https://res.cloudinary.com/demo/image/upload/cryptopilot/academy/a.jpg',
 };
 const ARTICLE: AcademyArticle = {
   ...LESSON,
@@ -43,6 +45,7 @@ const ARTICLE: AcademyArticle = {
     title: 'Bitcoin, Ethereum và altcoin',
   },
   related: [],
+  coverCredit: 'Jane Doe / Unsplash',
 };
 
 function academy(overrides: Partial<AcademyService>): AcademyService {
@@ -143,6 +146,10 @@ describe('Academy screens', () => {
       screen.getByRole('heading', { level: 2, name: 'Một định nghĩa ngắn' }).id,
     ).toBe('mot-dinh-nghia-ngan');
     expect(screen.getByText('tài sản số').tagName).toBe('STRONG');
+    expect(screen.getByText('Ảnh: Jane Doe / Unsplash')).toBeTruthy();
+    expect(
+      document.querySelector('img[src*="res.cloudinary.com"]'),
+    ).toBeTruthy();
     const contents = screen.getByRole('navigation', { name: 'Mục lục' });
     expect(
       contents.querySelector('a[href="#bat-dau-tu-dau"]')?.textContent,
