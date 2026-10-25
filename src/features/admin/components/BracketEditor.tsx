@@ -165,7 +165,7 @@ export function BracketEditor({
       {rows.length === 0 && <Banner tone="warning" title={b.empty} />}
       {rows.length > 0 && (
         <div
-          className="overflow-x-auto rounded-xl border border-line"
+          className="relative overflow-x-auto rounded-xl border border-line"
           role="region"
           aria-label={formatCopy(b.tableCaption, { pair: label })}
           tabIndex={0}
