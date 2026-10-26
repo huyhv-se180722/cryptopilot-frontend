@@ -31,13 +31,23 @@ export function TokenRail({
   trader,
   collapsed,
   onCollapse,
+  title,
+  label,
+  side = 'left',
 }: {
   selected: string;
   onSelect: (coin: string) => void;
   trader: boolean;
   collapsed: boolean;
   onCollapse: (collapsed: boolean) => void;
+  /** The heading and the accessible name; the community's when absent. */
+  title?: string;
+  label?: string;
+  /** The page side the rail stands on; the collapse arrows point to it. */
+  side?: 'left' | 'right';
 }) {
+  const Collapse = side === 'left' ? ChevronsLeft : ChevronsRight;
+  const Expand = side === 'left' ? ChevronsRight : ChevronsLeft;
   const c = useCopy().community;
   const [tab, setTab] = useState<RailTab>('trending');
   const { quotes } = useCoinPrices();
@@ -79,7 +89,7 @@ export function TokenRail({
         title={c.railExpand}
         className="sticky top-16 hidden size-9 items-center justify-center rounded-lg border border-line bg-surface text-muted-x hover:text-fg-2 xl:inline-flex"
       >
-        <ChevronsRight size={15} aria-hidden="true" />
+        <Expand size={15} aria-hidden="true" />
       </button>
     );
 
@@ -95,11 +105,13 @@ export function TokenRail({
 
   return (
     <section
-      aria-label={c.railLabel}
+      aria-label={label ?? c.railLabel}
       className="sticky top-16 hidden max-h-[calc(100dvh-5rem)] flex-col overflow-hidden rounded-2xl border border-line bg-surface xl:flex"
     >
       <div className="flex items-center justify-between px-3 pt-3">
-        <h2 className="text-sm font-semibold text-fg">{c.railTitle}</h2>
+        <h2 className="text-sm font-semibold text-fg">
+          {title ?? c.railTitle}
+        </h2>
         <button
           type="button"
           onClick={() => onCollapse(true)}
@@ -107,7 +119,7 @@ export function TokenRail({
           title={c.railCollapse}
           className="inline-flex size-7 items-center justify-center rounded-md text-muted-x hover:bg-raised hover:text-fg-2"
         >
-          <ChevronsLeft size={14} aria-hidden="true" />
+          <Collapse size={14} aria-hidden="true" />
         </button>
       </div>
       <div role="tablist" className="flex gap-1 px-3 pt-2 pb-2.5">

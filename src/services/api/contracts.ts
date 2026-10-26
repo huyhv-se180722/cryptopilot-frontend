@@ -48,7 +48,7 @@ import type {
   ModerationQueuePage,
   ModerationResult,
   NotificationPage,
-  JournalEntry,
+  JournalPage,
   Candle,
   CandleTimeframe,
   FuturesMetrics,
@@ -84,6 +84,7 @@ import type {
   CloseEstimate,
   PlanListQuery,
   PlanPage,
+  PositionStatus,
   NewsArticleDetail,
   NewsPage,
   NewsQuery,
@@ -377,7 +378,17 @@ export interface PaperTradingService {
   accountFeedStatus(): FeedStatus;
   onAccountFeedStatus(listener: () => void): () => void;
 }
-export type JournalService = ReadService<JournalEntry>;
+/** Filters of `GET /journal` (SCR-20); every one optional but the page. */
+export interface JournalListRequest {
+  status?: PositionStatus;
+  pairId?: string;
+  page: number;
+  pageSize: number;
+}
+/** The Trader's journal (`/journal`, Trader only). */
+export interface JournalService {
+  list(request: JournalListRequest, signal?: AbortSignal): Promise<JournalPage>;
+}
 /** What a reaction is on: a post (like, save) or a comment (like only). */
 export type ReactionTarget =
   | { kind: 'post'; id: string; action: 'like' | 'save' }
