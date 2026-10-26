@@ -25,11 +25,7 @@ function setup(initial: FeedStatus) {
   let push: ((event: PaperAccountEvent) => void) | null = null;
   const openOrders = vi.fn(async () => []);
   const paperTrading = {
-    openAccount: vi.fn(async () => ({
-      accountId: 'a-1',
-      positionMode: 'one-way',
-      openedAt: '2026-10-21T00:00:00Z',
-    })),
+    openAccount: vi.fn(async () => ({ openedAt: '2026-10-21T00:00:00Z' })),
     openOrders,
     subscribeAccount: (listener: (event: PaperAccountEvent) => void) => {
       push = listener;

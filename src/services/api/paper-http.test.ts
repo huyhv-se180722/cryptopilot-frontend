@@ -203,6 +203,44 @@ describe('HTTP demo trading adapter (D-104)', () => {
     });
   });
 
+  it('reads the account and the grant of a server before and after D-117', async () => {
+    const grant = (refType: string) => ({
+      entryId: 'e-1',
+      wallet: 'SPOT',
+      asset: 'USDT',
+      type: 'INITIAL_GRANT',
+      amount: '10000',
+      balanceAfter: '10000',
+      refType,
+      refId: 'u-1',
+      createdAt: '2026-10-13T09:00:00Z',
+    });
+    for (const [account, refType] of [
+      [{ openedAt: '2026-10-13T09:00:00Z' }, 'USER'],
+      [
+        {
+          accountId: 'a-1',
+          positionMode: 'ONE_WAY',
+          openedAt: '2026-10-13T09:00:00Z',
+        },
+        'ACCOUNT',
+      ],
+    ] as const) {
+      const { http } = setup((url) =>
+        url.pathname.endsWith('/ledger')
+          ? json(200, page([grant(refType)]))
+          : json(200, account),
+      );
+      const paper = createHttpPaperTradingService(http);
+      expect(await paper.openAccount()).toEqual({
+        openedAt: '2026-10-13T09:00:00Z',
+      });
+      expect(
+        (await paper.ledger({ page: 1, pageSize: 20 })).items[0]?.refType,
+      ).toBe('USER');
+    }
+  });
+
   it('keeps the backend refusal for the form (insufficient balance)', async () => {
     const { http } = setup(() =>
       json(400, {
