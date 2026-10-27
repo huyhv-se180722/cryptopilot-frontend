@@ -558,12 +558,40 @@ export interface PlanPage {
   pageSize: number;
   total: number;
 }
-export interface JournalEntry {
+/**
+ * One trade of the journal (SCR-20, UC-22): the record a filled plan opened
+ * (SIMULATED) or a manual one. The exit and its amounts are set once CLOSED;
+ * `netPnl` is the one the plan detail shows (BR-38).
+ */
+export interface JournalTrade {
   id: string;
-  planId: string;
-  actualPnl: Decimal;
-  notes: string;
-  closedAt: ISODateTime;
+  /** The plan the trade carried out; null for a manual trade. */
+  planId: string | null;
+  pairId: string;
+  market: MarketType;
+  direction: PlanDirection;
+  source: 'SIMULATED' | 'MANUAL';
+  status: PositionStatus;
+  leverage: number | null;
+  entryPrice: Decimal;
+  quantity: Decimal;
+  entryTime: ISODateTime;
+  exitPrice: Decimal | null;
+  exitTime: ISODateTime | null;
+  closeReason: PositionCloseReason | null;
+  realizedPnl: Decimal | null;
+  feeAmount: Decimal | null;
+  fundingFeeAmount: Decimal | null;
+  netPnl: Decimal | null;
+  /** A funding settlement may still be missing from `netPnl`. */
+  provisional: boolean;
+}
+/** `GET /journal`: a page of trades, the latest entry first. */
+export interface JournalPage {
+  items: readonly JournalTrade[];
+  page: number;
+  pageSize: number;
+  total: number;
 }
 /** A watched pair (SCR-12, SRS 3.4.1); prices and scores are not in the row (M-08). */
 export interface WatchlistItem {

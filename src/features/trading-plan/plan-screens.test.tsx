@@ -8,12 +8,15 @@ import { PlanEditPage } from '../../pages/trader/PlanEditPage';
 import { PlansPage } from '../../pages/trader/PlansPage';
 import { devProfile, devRiskParams } from '../../dev/fixtures/profile';
 import type {
+  JournalService,
   MarketService,
   ProfileService,
   TradingPlanService,
 } from '../../services/api/contracts';
 import { ServiceError } from '../../services/api/errors';
+import type { Services } from '../../services/api/services';
 import type {
+  JournalTrade,
   MarketPair,
   MarketType,
   PlanEntitlements,
@@ -260,6 +263,7 @@ async function open(
   tier: 'FREE' | 'PRO' = 'FREE',
   market = fakeMarket(),
   profile?: ProfileService,
+  extra: Partial<Omit<Services, 'auth'>> = {},
 ) {
   const session: Session = { ...testTrader, entitlements: plan(tier) };
   await renderRoutes(
@@ -271,7 +275,7 @@ async function open(
     ],
     path,
     fakeAuth({ restoreSession: async () => session }),
-    { tradingPlan: service, market, ...(profile ? { profile } : {}) },
+    { tradingPlan: service, market, ...(profile ? { profile } : {}), ...extra },
   );
   return service;
 }
@@ -364,7 +368,7 @@ describe('SCR-16 plan list (T-041)', () => {
     const service = await open('/plans');
     await screen.findByText('Short');
     expect(lastList(service)).toMatchObject({ tab: 'DRAFT', page: 1 });
-    await userEvent.click(screen.getByRole('tab', { name: 'Active' }));
+    await userEvent.click(screen.getByRole('tab', { name: /^Active/ }));
     await waitFor(() => expect(lastList(service)?.tab).toBe('ACTIVE'));
     await userEvent.selectOptions(screen.getByLabelText('Market'), 'futures');
     await waitFor(() => expect(lastList(service)?.market).toBe('futures'));
@@ -392,8 +396,10 @@ describe('SCR-16 plan list (T-041)', () => {
     const service = await open('/plans', fakePlans(), 'PRO');
     await screen.findByText('Short');
     expect(screen.queryByText(/active plans on the/)).toBeNull();
+    // The slot count (BR-62) reads the Executed tab whole, 100 rows a page;
+    // the tab counts read one row a page and run on every plan.
     expect(
-      vi.mocked(service.list).mock.calls.some(([q]) => q.pageSize === 1),
+      vi.mocked(service.list).mock.calls.some(([q]) => q.pageSize === 100),
     ).toBe(false);
   });
 
@@ -2036,5 +2042,141 @@ describe('SCR-19 close an open position (T-047, UC-21)', () => {
         'Take profit',
       ),
     );
+  });
+});
+
+const TRADE: JournalTrade = {
+  id: 'j-1',
+  planId: ROW.id,
+  pairId: ROW.pairId,
+  market: 'futures',
+  direction: 'SHORT',
+  source: 'SIMULATED',
+  status: 'CLOSED',
+  leverage: 5,
+  entryPrice: '62000.000000000000',
+  quantity: '0.100000000000',
+  entryTime: '2026-10-20T08:00:00Z',
+  exitPrice: '59000.000000000000',
+  exitTime: '2026-10-21T08:00:00Z',
+  closeReason: 'TAKE_PROFIT',
+  realizedPnl: '300.00000000',
+  feeAmount: '6.10000000',
+  fundingFeeAmount: '-1.50000000',
+  netPnl: '292.40000000',
+  provisional: true,
+};
+
+const fakeJournal = (
+  items: readonly JournalTrade[] = [TRADE],
+): JournalService => ({
+  list: vi.fn(async (request) => ({
+    items,
+    page: request.page,
+    pageSize: request.pageSize,
+    total: items.length,
+  })),
+});
+
+describe('SCR-16 journal and coin columns (SCR-20 folded in)', () => {
+  it('lists the trades with their net P/L and opens the plan of a trade', async () => {
+    const journal = fakeJournal();
+    await open('/plans', fakePlans(), 'FREE', fakeMarket(), undefined, {
+      journal,
+    });
+    const column = within(
+      await screen.findByRole('region', { name: 'Trades your plans filled' }),
+    );
+    expect(await column.findByText('BTC/USDT')).toBeTruthy();
+    expect(column.getByText('Take profit')).toBeTruthy();
+    expect(column.getByText('Entry 62,000.00')).toBeTruthy();
+    expect(column.getByText('Exit 59,000.00')).toBeTruthy();
+    expect(column.getByText('+292.40*')).toBeTruthy();
+    expect(
+      column
+        .getByRole('link', { name: 'Open the plan of this BTC/USDT trade' })
+        .getAttribute('href'),
+    ).toBe('/plans/' + ROW.id);
+    expect(vi.mocked(journal.list).mock.calls.at(-1)?.[0]).toEqual({
+      page: 1,
+      pageSize: 10,
+    });
+
+    await userEvent.click(column.getByRole('tab', { name: 'Closed' }));
+    await waitFor(() =>
+      expect(vi.mocked(journal.list).mock.calls.at(-1)?.[0]).toEqual({
+        page: 1,
+        pageSize: 10,
+        status: 'CLOSED',
+      }),
+    );
+  });
+
+  it('says so when no trade is recorded yet, and keeps a manual trade unlinked', async () => {
+    await open('/plans', fakePlans(), 'FREE', fakeMarket(), undefined, {
+      journal: fakeJournal([]),
+    });
+    expect(
+      await screen.findByText(
+        /No trades yet\. A plan shows here once its entry fills/,
+      ),
+    ).toBeTruthy();
+  });
+
+  it('shows an open manual trade without a link and without a net P/L', async () => {
+    const open_: JournalTrade = {
+      ...TRADE,
+      id: 'j-2',
+      planId: null,
+      source: 'MANUAL',
+      status: 'OPEN',
+      exitPrice: null,
+      exitTime: null,
+      closeReason: null,
+      realizedPnl: null,
+      feeAmount: null,
+      fundingFeeAmount: null,
+      netPnl: null,
+      provisional: false,
+    };
+    await open('/plans', fakePlans(), 'FREE', fakeMarket(), undefined, {
+      journal: fakeJournal([open_]),
+    });
+    const column = within(
+      await screen.findByRole('region', { name: 'Trades your plans filled' }),
+    );
+    expect(await column.findByText('Manual')).toBeTruthy();
+    expect(column.getByText('Open', { selector: 'span' })).toBeTruthy();
+    expect(column.queryByRole('link')).toBeNull();
+    expect(column.queryByText(/Exit /)).toBeNull();
+  });
+
+  it('filters the journal by the chosen pair and offers a plan on it', async () => {
+    const journal = fakeJournal();
+    await open(
+      '/plans?pair=' + ROW.pairId,
+      fakePlans(),
+      'FREE',
+      fakeMarket(),
+      undefined,
+      {
+        journal,
+      },
+    );
+    await waitFor(() =>
+      expect(vi.mocked(journal.list).mock.calls.at(-1)?.[0]).toEqual({
+        page: 1,
+        pageSize: 10,
+        pairId: ROW.pairId,
+      }),
+    );
+    const link = await screen.findByRole('link', { name: 'New BTC plan' });
+    expect(link.getAttribute('href')).toBe('/plans/new?symbol=BTCUSDT');
+  });
+
+  it('counts the plans of every tab', async () => {
+    await open('/plans');
+    expect(await screen.findByRole('tab', { name: 'Draft (1)' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Executed (1)' })).toBeTruthy();
   });
 });

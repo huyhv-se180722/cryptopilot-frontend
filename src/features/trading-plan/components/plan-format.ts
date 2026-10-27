@@ -19,6 +19,12 @@ export const planQuantity = (value: string) => trimDecimal(value, 0);
 export const planAmount = (value: string) =>
   groupThousands(toFixedDecimal(value, 2));
 export const planRatio = (value: string) => toFixedDecimal(value, 2);
+/** Whether a P/L is a gain, a loss or neither, for its colour. */
+export type PnlTone = 'positive' | 'negative' | 'neutral';
+export const pnlTone = (value: string): PnlTone => {
+  const sign = compareDecimal(value, '0');
+  return sign > 0 ? 'positive' : sign < 0 ? 'negative' : 'neutral';
+};
 /** A fraction of the risk ("0.19950000") as a percent, 2 decimals. */
 export const planShare = (value: string) => fractionToPercent(value, 2);
 

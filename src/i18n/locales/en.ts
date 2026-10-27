@@ -715,6 +715,23 @@ export const en = {
       'take profit < entry price < stop loss, with neither level already reached by the current price',
     directionNameLONG: 'long',
     directionNameSHORT: 'short',
+    // The journal column and the coin column of SCR-16 (SCR-20 folded in).
+    journalTitle: 'Journal',
+    journalLabel: 'Trades your plans filled',
+    journalAll: 'All',
+    journalEmpty:
+      'No trades yet. A plan shows here once its entry fills, and stays here after it closes.',
+    journalEmptyFiltered: 'No trades match the filters.',
+    journalNet: 'Net P/L',
+    journalProvisional:
+      'Provisional: a funding settlement may still be missing.',
+    journalManual: 'Manual',
+    journalEntryAt: 'Entry {price}',
+    journalExitAt: 'Exit {price}',
+    journalOpenTrade: 'Open the plan of this {symbol} trade',
+    coinsTitle: 'Coins',
+    coinsLabel: 'Coins to filter the plans and the journal by',
+    newPlanFor: 'New {coin} plan',
   },
   watchlist: {
     title: 'Watchlist',

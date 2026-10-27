@@ -33,7 +33,10 @@ import {
   createHttpTradingPlanService,
   createPendingTradingPlanService,
 } from '../../services/api/trading-plan';
-import { createJournalService } from '../../services/api/journal';
+import {
+  createHttpJournalService,
+  createJournalService,
+} from '../../services/api/journal';
 import {
   createHttpAlertsService,
   createPendingAlertsService,
@@ -137,7 +140,9 @@ export async function createServices(env: Environment): Promise<Services> {
     tradingPlan: connected
       ? createHttpTradingPlanService(http, accountFeed)
       : createPendingTradingPlanService(),
-    journal: createJournalService(),
+    journal: connected
+      ? createHttpJournalService(http)
+      : createJournalService(),
     watchlist: connected
       ? createHttpWatchlistService(http)
       : createPendingWatchlistService(),
