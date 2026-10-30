@@ -46,7 +46,7 @@ import {
   type FavoritePairs,
 } from '../../features/paper-trading/components/PairSelector';
 import { PaperNav } from '../../features/paper-trading/components/PaperNav';
-import type { PickedPrice } from '../../features/paper-trading/components/SpotOrderForm';
+import type { PickedPrice } from '../../features/paper-trading/model/spot-order';
 import { TradePanel } from '../../features/paper-trading/components/TradePanel';
 import { usePaperAccount } from '../../features/paper-trading/hooks/use-paper-account';
 import { usePaperPush } from '../../features/paper-trading/hooks/use-paper-orders';

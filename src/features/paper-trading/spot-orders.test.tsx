@@ -268,6 +268,34 @@ describe('Spot demo orders (TR-F3)', () => {
     expect(maxRow()).toMatch(/Max sell.*USDT/);
   });
 
+  it('shows the Buy and the Sell forms side by side on a wide screen, under one order type', async () => {
+    vi.stubGlobal('matchMedia', (media: string) => ({
+      matches: true,
+      media,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    }));
+    try {
+      const { form, user } = await open();
+      expect(within(form).queryByRole('radio', { name: 'Sell' })).toBeNull();
+      const buying = within(form).getByRole('form', { name: 'Buy' });
+      const selling = within(form).getByRole('form', { name: 'Sell' });
+      await user.click(within(form).getByRole('radio', { name: 'Stop' }));
+      expect(field(buying, /^Stop \(/)).toBeTruthy();
+      expect(field(selling, /^Stop \(/)).toBeTruthy();
+      await user.click(within(form).getByRole('radio', { name: 'Limit' }));
+      await user.type(field(selling, /^Price/), '70000');
+      await user.type(field(selling, /Amount/), '0.05');
+      expect((field(buying, /Amount/) as HTMLInputElement).value).toBe('');
+      await user.click(
+        within(selling).getByRole('button', { name: 'Sell BTC' }),
+      );
+      expect(await screen.findByText('Sell order open.')).toBeTruthy();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('cancels an open order', async () => {
     const { form, user } = await open();
     await user.click(within(form).getByRole('radio', { name: 'Sell' }));

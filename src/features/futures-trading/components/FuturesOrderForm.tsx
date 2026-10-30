@@ -29,7 +29,7 @@ import {
 } from '../../../utils/decimal-format';
 import { percentOf, toStep } from '../../../utils/decimal-math';
 import { ShareSlider } from '../../paper-trading/components/ShareSlider';
-import type { PickedPrice } from '../../paper-trading/components/SpotOrderForm';
+import type { PickedPrice } from '../../paper-trading/model/spot-order';
 import { useFuturesActions } from '../hooks/use-futures';
 import { futuresErrorText } from '../model/futures-errors';
 import {

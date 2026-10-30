@@ -22,10 +22,8 @@ import {
   type FavoritePairs,
 } from '../../features/paper-trading/components/PairSelector';
 import { OrdersPanel } from '../../features/paper-trading/components/OrdersPanel';
-import {
-  SpotOrderForm,
-  type PickedPrice,
-} from '../../features/paper-trading/components/SpotOrderForm';
+import { SpotOrderTicket } from '../../features/paper-trading/components/SpotOrderTicket';
+import type { PickedPrice } from '../../features/paper-trading/model/spot-order';
 import { TradePanel } from '../../features/paper-trading/components/TradePanel';
 import { TradeTickerStrip } from '../../features/paper-trading/components/TradeTickerStrip';
 import { useChartOrders } from '../../features/paper-trading/hooks/use-chart-orders';
@@ -180,7 +178,7 @@ function TradeSpot({
           title={p.orderForm}
           className="md:col-span-2 xl:col-span-1 xl:col-start-2 xl:row-start-2"
         >
-          <SpotOrderForm
+          <SpotOrderTicket
             key={pair.symbol}
             pair={pair}
             lastPrice={ticker?.lastPrice ?? null}

@@ -24,6 +24,12 @@ import {
 export type SpotFormType =
   'LIMIT' | 'MARKET' | 'STOP_LIMIT' | 'STOP_MARKET' | 'TRAILING' | 'OCO';
 
+/** A price picked in the order book or trades; `at` makes a repeat count. */
+export interface PickedPrice {
+  price: Decimal;
+  at: number;
+}
+
 /** What the Trader typed; strings as in the inputs. */
 export interface SpotOrderDraft {
   side: OrderSide;
