@@ -314,10 +314,14 @@ describe('Spot demo orders (TR-F3)', () => {
 
   it('refuses a post-only (LIMIT_MAKER) order that would fill at once, and keeps one that waits', async () => {
     const { form, user } = await open();
-    await user.click(within(form).getByRole('checkbox', { name: 'Post only' }));
+    // Post only is a time in force choice, not a box of its own.
     expect(
-      within(form).queryByRole('combobox', { name: /Time in force/ }),
+      within(form).queryByRole('checkbox', { name: 'Post only' }),
     ).toBeNull();
+    await user.selectOptions(
+      within(form).getByRole('combobox', { name: 'Time in force' }),
+      'Post only',
+    );
     // Above the last price 60,000: a buy would take liquidity.
     await user.type(field(form, /^Price/), '61000');
     await user.type(field(form, /Amount/), '0.01');

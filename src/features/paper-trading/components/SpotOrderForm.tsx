@@ -376,57 +376,57 @@ export function SpotOrderForm({
       )}
 
       {(type === 'LIMIT' || type === 'STOP_LIMIT') && (
-        // Post only, TP/SL and the time in force share one row.
+        // TP/SL and the time in force share one row.
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           {type === 'LIMIT' && (
-            <>
-              <Checkbox
-                label={p.postOnly}
-                checked={draft.postOnly}
-                onChange={(event) => update({ postOnly: event.target.checked })}
-              />
-              <Checkbox
-                label={p.tpsl}
-                checked={draft.tpsl}
-                onChange={(event) => update({ tpsl: event.target.checked })}
-              />
-            </>
+            <Checkbox
+              label={p.tpsl}
+              checked={draft.tpsl}
+              onChange={(event) => update({ tpsl: event.target.checked })}
+            />
           )}
-          {!(type === 'LIMIT' && draft.postOnly) && (
-            // Compact on the row of the checkboxes, as the exchange's "TIF GTC";
-            // each choice keeps its full name as a tooltip.
-            <label className="relative ml-auto inline-flex items-center gap-1 text-[11px] text-muted">
-              <abbr title={p.tifLabel} className="no-underline">
-                TIF
-              </abbr>
-              <select
-                aria-label={p.tifLabel}
-                value={draft.timeInForce}
-                onChange={(event) =>
-                  update({
-                    timeInForce: event.target
-                      .value as SpotOrderDraft['timeInForce'],
-                  })
-                }
-                className="cursor-pointer appearance-none bg-transparent pr-3.5 text-[11px] font-medium text-fg-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-              >
-                <option value="GTC" title={p.tifGTC}>
-                  GTC
-                </option>
-                <option value="IOC" title={p.tifIOC}>
-                  IOC
-                </option>
-                <option value="FOK" title={p.tifFOK}>
-                  FOK
-                </option>
-              </select>
-              <ChevronDown
-                size={11}
-                aria-hidden="true"
-                className="pointer-events-none absolute right-0"
-              />
-            </label>
-          )}
+          {/* Compact on the row of the checkbox, as the exchange's "TIF GTC",
+              each choice with its full name as a tooltip; Post only (a
+              LIMIT_MAKER) is one of a Limit's choices, as on its Futures panel. */}
+          <label className="relative ml-auto inline-flex items-center gap-1 text-[11px] text-muted">
+            <abbr title={p.tifLabel} className="no-underline">
+              TIF
+            </abbr>
+            <select
+              aria-label={p.tifLabel}
+              value={
+                type === 'LIMIT' && draft.postOnly ? 'POST' : draft.timeInForce
+              }
+              onChange={(event) => {
+                const value = event.target.value;
+                update(
+                  value === 'POST'
+                    ? { postOnly: true }
+                    : {
+                        postOnly: false,
+                        timeInForce: value as SpotOrderDraft['timeInForce'],
+                      },
+                );
+              }}
+              className="cursor-pointer appearance-none bg-transparent pr-3.5 text-[11px] font-medium text-fg-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+            >
+              <option value="GTC" title={p.tifGTC}>
+                GTC
+              </option>
+              <option value="IOC" title={p.tifIOC}>
+                IOC
+              </option>
+              <option value="FOK" title={p.tifFOK}>
+                FOK
+              </option>
+              {type === 'LIMIT' && <option value="POST">{p.postOnly}</option>}
+            </select>
+            <ChevronDown
+              size={11}
+              aria-hidden="true"
+              className="pointer-events-none absolute right-0"
+            />
+          </label>
         </div>
       )}
       {type === 'LIMIT' && draft.tpsl && (
