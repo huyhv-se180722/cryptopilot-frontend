@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type CSSProperties } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Lock } from 'lucide-react';
 import { ErrorState } from '../../components/feedback/States';
@@ -17,6 +17,12 @@ import { FuturesBottomPanel } from '../../features/futures-trading/components/Fu
 import { FuturesOrderForm } from '../../features/futures-trading/components/FuturesOrderForm';
 import { FuturesSettingsBar } from '../../features/futures-trading/components/FuturesSettingsBar';
 import { FuturesTickerStrip } from '../../features/futures-trading/components/FuturesTickerStrip';
+import { PanelSplitter } from '../../features/futures-trading/components/PanelSplitter';
+import {
+  readSplit,
+  saveSplit,
+  type SplitLayout,
+} from '../../features/futures-trading/model/split-layout';
 import {
   useFuturesAccount,
   useFuturesBrackets,
@@ -85,6 +91,11 @@ function TradeFutures({
   const [timeframe, setTimeframe] = useTradeTimeframe();
   const [region, setRegion] = useState<PhoneRegion>('chart');
   const [picked, setPicked] = useState<PickedPrice | null>(null);
+  const [split, setSplit] = useState<SplitLayout>(readSplit);
+  const resize = (layout: SplitLayout) => {
+    setSplit(layout);
+    saveSplit(layout);
+  };
   const pick = (price: Decimal) => setPicked({ price, at: Date.now() });
   rememberPair(pair.symbol);
 
@@ -166,7 +177,10 @@ function TradeFutures({
       {/* As the exchange's Futures screen: the chart, then the order book
           over the trades, then the order form and the account down the
           right; the positions and orders under the chart and the book. */}
-      <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_280px_320px]">
+      <div
+        style={{ '--futures-chart': split.chart + 'px' } as CSSProperties}
+        className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_280px_320px]"
+      >
         <div
           className={classNames(
             shown('chart'),
@@ -181,7 +195,7 @@ function TradeFutures({
             onTimeframeChange={setTimeframe}
             priceLines={chart.lines}
             extendable
-            height="h-[420px] xl:h-[500px]"
+            height="h-[420px] xl:h-[var(--futures-chart)]"
           />
         </div>
         <div className="grid grid-cols-1 gap-2 md:col-span-2 md:grid-cols-2 xl:col-span-1 xl:col-start-2 xl:row-start-1 xl:flex xl:flex-col">
@@ -241,7 +255,13 @@ function TradeFutures({
           </div>
         </TradePanel>
         <div className="min-w-0 md:col-span-2 xl:col-start-1 xl:row-start-2">
+          <PanelSplitter
+            layout={split}
+            onChange={resize}
+            label={f.resizePanel}
+          />
           <FuturesBottomPanel
+            height={split.panel}
             pair={pair}
             positions={positions.data}
             ticks={ticks}

@@ -45,72 +45,6 @@ type Tab =
 const link =
   'text-xs font-medium text-primary hover:underline disabled:opacity-50';
 
-/** The height of a tab's box: by default, and the bounds of a drag. */
-const HEIGHT = { initial: 340, min: 160, max: 760 } as const;
-const HEIGHT_KEY = 'cryptopilot.trade.futures.panelHeight';
-
-function readHeight(): number {
-  try {
-    const stored = Number(localStorage.getItem(HEIGHT_KEY));
-    return stored >= HEIGHT.min && stored <= HEIGHT.max
-      ? stored
-      : HEIGHT.initial;
-  } catch {
-    return HEIGHT.initial;
-  }
-}
-
-/**
- * The bar above the panel, as the exchange's splitter: dragged up the panel
- * grows, dragged down it shrinks; the height is remembered on the device.
- * The arrow keys move it too.
- */
-function ResizeBar({
-  height,
-  onChange,
-  label,
-}: {
-  height: number;
-  onChange: (height: number) => void;
-  label: string;
-}) {
-  const clamp = (value: number) =>
-    Math.round(Math.min(HEIGHT.max, Math.max(HEIGHT.min, value)));
-  return (
-    <div
-      role="separator"
-      aria-orientation="horizontal"
-      aria-label={label}
-      aria-valuemin={HEIGHT.min}
-      aria-valuemax={HEIGHT.max}
-      aria-valuenow={height}
-      tabIndex={0}
-      onKeyDown={(event) => {
-        if (event.key === 'ArrowUp') onChange(clamp(height + 20));
-        if (event.key === 'ArrowDown') onChange(clamp(height - 20));
-      }}
-      onPointerDown={(event) => {
-        event.preventDefault();
-        const startY = event.clientY;
-        const start = height;
-        const move = (moved: PointerEvent) =>
-          onChange(clamp(start + startY - moved.clientY));
-        const stop = () => {
-          window.removeEventListener('pointermove', move);
-          window.removeEventListener('pointerup', stop);
-          document.body.style.removeProperty('user-select');
-        };
-        document.body.style.userSelect = 'none';
-        window.addEventListener('pointermove', move);
-        window.addEventListener('pointerup', stop);
-      }}
-      className="group flex h-3 cursor-row-resize items-center justify-center focus:outline-none"
-    >
-      <span className="h-1 w-12 rounded-full bg-line transition-colors group-hover:bg-primary group-focus-visible:bg-primary" />
-    </div>
-  );
-}
-
 /**
  * The bottom panel of the Futures screen, as the exchange's (plan 12.2):
  * positions with their close, margin and TP/SL actions; the orders waiting,
@@ -123,27 +57,21 @@ export function FuturesBottomPanel({
   positions,
   ticks,
   account,
+  height,
 }: {
   pair: MarketPair;
   positions: readonly FuturesPosition[] | undefined;
   /** Tick sizes by symbol, for prices of other pairs. */
   ticks: ReadonlyMap<string, string | null>;
   account: FuturesAccount | undefined;
+  /** The height of a tab's box, px: set by the split above the panel. */
+  height: number;
 }) {
   const copy = useCopy();
   const f = copy.futures;
   const none = copy.market.noValue;
   const { futuresTrading } = useServices();
   const [tab, setTab] = useState<Tab>('positions');
-  const [height, setHeight] = useState(readHeight);
-  const resize = (next: number) => {
-    setHeight(next);
-    try {
-      localStorage.setItem(HEIGHT_KEY, String(next));
-    } catch {
-      // A private window keeps no height; the default returns next time.
-    }
-  };
   // Each tab's content scrolls in a box of the panel's height, the tabs in
   // view, as the exchange's bottom panel.
   const scroll = (content: ReactNode) => (
@@ -607,244 +535,241 @@ export function FuturesBottomPanel({
 
   const openRows = open.data ?? [];
   return (
-    <div>
-      <ResizeBar height={height} onChange={resize} label={f.resizePanel} />
-      <TradePanel
-        title={f.bottomTitle}
-        actions={
-          <Checkbox
-            label={copy.paper.thisPairOnly}
-            checked={onlyThis}
-            onChange={(event) => setOnlyThis(event.target.checked)}
-          />
-        }
-      >
-        {notice && <FormNotice tone="error">{notice}</FormNotice>}
-        <Tabs
-          label={f.bottomTitle}
-          value={tab}
-          onChange={(id) => {
-            setTab(id as Tab);
-            setNotice(null);
-          }}
-          items={[
-            {
-              id: 'positions',
-              label: f.tabPositions,
-              count: shownPositions.length,
-              panel: scroll(
-                <>
-                  {shownPositions.length > 0 && (
-                    <div className="mb-2 flex justify-end">
-                      <button
-                        type="button"
-                        className={link}
-                        disabled={close.pending}
-                        onClick={() =>
-                          void Promise.all(
-                            shownPositions.map((p) =>
-                              close.run({
-                                symbol: p.symbol,
-                                positionSide: p.positionSide,
-                                type: 'MARKET',
-                              }),
-                            ),
-                          ).then((results) => {
-                            const error = results.find(
-                              (r) => r.status === 'error',
-                            );
-                            if (error && error.status === 'error')
-                              failed(error.error);
-                          })
-                        }
-                      >
-                        {f.closeAll}
-                      </button>
-                    </div>
-                  )}
-                  <Table
-                    caption={f.tabPositions}
-                    columns={positionColumns}
-                    rows={shownPositions}
-                    rowKey={(p) => p.symbol + p.positionSide}
-                    emptyMessage={f.noPositions}
-                  />
-                </>,
-              ),
-            },
-            {
-              id: 'open',
-              label: f.tabOpenOrders,
-              ...(open.data && algo.data
-                ? { count: openRows.length + algo.data.length }
-                : {}),
-              panel: scroll(
-                <>
-                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                    <SegmentedControl
-                      label={f.tabOpenOrders}
-                      value={waiting}
-                      onChange={setWaiting}
-                      options={[
-                        {
-                          value: 'ordinary',
-                          label:
-                            f.waitingOrdinary +
-                            (open.data ? ' (' + openRows.length + ')' : ''),
-                        },
-                        {
-                          value: 'conditional',
-                          label:
-                            f.tabAlgo +
-                            (algo.data ? ' (' + algo.data.length + ')' : ''),
-                        },
-                      ]}
-                    />
-                    {waiting === 'ordinary' && openRows.length > 0 && (
-                      <button
-                        type="button"
-                        className={link}
-                        disabled={cancelAll.pending}
-                        onClick={() =>
-                          void cancelAll.run(pair.symbol).then((r) => {
-                            if (r.status === 'error') failed(r.error);
-                          })
-                        }
-                      >
-                        {formatCopy(f.cancelAllOf, { symbol: pair.symbol })}
-                      </button>
-                    )}
-                  </div>
-                  {waiting === 'ordinary' ? (
-                    <PaperQueryState query={open}>
-                      {() => (
-                        <Table
-                          caption={f.waitingOrdinary}
-                          columns={[...orderColumns, cancelColumn]}
-                          rows={openRows}
-                          rowKey={(o) => o.orderId}
-                          emptyMessage={f.noOrders}
-                        />
-                      )}
-                    </PaperQueryState>
-                  ) : (
-                    <PaperQueryState query={algo}>
-                      {() => (
-                        <Table
-                          caption={f.tabAlgo}
-                          columns={algoColumns}
-                          rows={algo.data ?? []}
-                          rowKey={(o) => o.algoId}
-                          emptyMessage={f.noOrders}
-                        />
-                      )}
-                    </PaperQueryState>
-                  )}
-                </>,
-              ),
-            },
-            {
-              id: 'orders',
-              label: f.tabOrderHistory,
-              panel: scroll(
-                <PaperQueryState query={orders}>
-                  {() => (
-                    <Table
-                      caption={f.tabOrderHistory}
-                      columns={[...orderColumns, statusColumn]}
-                      rows={[...(orders.data ?? [])].reverse()}
-                      rowKey={(o) => o.orderId}
-                      emptyMessage={formatCopy(f.noHistoryOf, {
-                        symbol: pair.symbol,
-                      })}
-                    />
-                  )}
-                </PaperQueryState>,
-              ),
-            },
-            {
-              id: 'trades',
-              label: f.tabTradeHistory,
-              panel: scroll(
-                <PaperQueryState query={trades}>
-                  {() => (
-                    <Table
-                      caption={f.tabTradeHistory}
-                      columns={tradeColumns}
-                      rows={[...(trades.data ?? [])].reverse()}
-                      rowKey={(t) => t.id}
-                      emptyMessage={formatCopy(f.noHistoryOf, {
-                        symbol: pair.symbol,
-                      })}
-                    />
-                  )}
-                </PaperQueryState>,
-              ),
-            },
-            {
-              id: 'income',
-              label: f.tabTransactions,
-              panel: scroll(
-                <PaperQueryState query={income}>
-                  {() => (
-                    <Table
-                      caption={f.tabTransactions}
-                      columns={incomeColumns}
-                      rows={income.data ?? []}
-                      rowKey={(i) => i.tranId + i.incomeType}
-                      emptyMessage={f.noRows}
-                    />
-                  )}
-                </PaperQueryState>,
-              ),
-            },
-            {
-              id: 'closed',
-              label: f.tabPositionHistory,
-              panel: scroll(
-                <PaperQueryState query={closed}>
-                  {() => (
-                    <Table
-                      caption={f.tabPositionHistory}
-                      columns={closedColumns}
-                      rows={closed.data ?? []}
-                      rowKey={(c) => c.positionId}
-                      emptyMessage={f.noRows}
-                    />
-                  )}
-                </PaperQueryState>,
-              ),
-            },
-            {
-              id: 'assets',
-              label: f.tabAssets,
-              panel: scroll(<FuturesAssets account={account} />),
-            },
-          ]}
+    <TradePanel
+      title={f.bottomTitle}
+      actions={
+        <Checkbox
+          label={copy.paper.thisPairOnly}
+          checked={onlyThis}
+          onChange={(event) => setOnlyThis(event.target.checked)}
         />
-        {closing && (
-          <ClosePositionDialog
-            position={closing.position}
-            type={closing.type}
-            tickSize={tickOf(closing.position.symbol)}
-            onClose={() => setClosing(null)}
-          />
-        )}
-        {adjusting && (
-          <AdjustMarginDialog
-            position={adjusting}
-            onClose={() => setAdjusting(null)}
-          />
-        )}
-        {tpsl && (
-          <PositionTpSlDialog
-            position={tpsl}
-            tickSize={tickOf(tpsl.symbol)}
-            onClose={() => setTpsl(null)}
-          />
-        )}
-      </TradePanel>
-    </div>
+      }
+    >
+      {notice && <FormNotice tone="error">{notice}</FormNotice>}
+      <Tabs
+        label={f.bottomTitle}
+        value={tab}
+        onChange={(id) => {
+          setTab(id as Tab);
+          setNotice(null);
+        }}
+        items={[
+          {
+            id: 'positions',
+            label: f.tabPositions,
+            count: shownPositions.length,
+            panel: scroll(
+              <>
+                {shownPositions.length > 0 && (
+                  <div className="mb-2 flex justify-end">
+                    <button
+                      type="button"
+                      className={link}
+                      disabled={close.pending}
+                      onClick={() =>
+                        void Promise.all(
+                          shownPositions.map((p) =>
+                            close.run({
+                              symbol: p.symbol,
+                              positionSide: p.positionSide,
+                              type: 'MARKET',
+                            }),
+                          ),
+                        ).then((results) => {
+                          const error = results.find(
+                            (r) => r.status === 'error',
+                          );
+                          if (error && error.status === 'error')
+                            failed(error.error);
+                        })
+                      }
+                    >
+                      {f.closeAll}
+                    </button>
+                  </div>
+                )}
+                <Table
+                  caption={f.tabPositions}
+                  columns={positionColumns}
+                  rows={shownPositions}
+                  rowKey={(p) => p.symbol + p.positionSide}
+                  emptyMessage={f.noPositions}
+                />
+              </>,
+            ),
+          },
+          {
+            id: 'open',
+            label: f.tabOpenOrders,
+            ...(open.data && algo.data
+              ? { count: openRows.length + algo.data.length }
+              : {}),
+            panel: scroll(
+              <>
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <SegmentedControl
+                    label={f.tabOpenOrders}
+                    value={waiting}
+                    onChange={setWaiting}
+                    options={[
+                      {
+                        value: 'ordinary',
+                        label:
+                          f.waitingOrdinary +
+                          (open.data ? ' (' + openRows.length + ')' : ''),
+                      },
+                      {
+                        value: 'conditional',
+                        label:
+                          f.tabAlgo +
+                          (algo.data ? ' (' + algo.data.length + ')' : ''),
+                      },
+                    ]}
+                  />
+                  {waiting === 'ordinary' && openRows.length > 0 && (
+                    <button
+                      type="button"
+                      className={link}
+                      disabled={cancelAll.pending}
+                      onClick={() =>
+                        void cancelAll.run(pair.symbol).then((r) => {
+                          if (r.status === 'error') failed(r.error);
+                        })
+                      }
+                    >
+                      {formatCopy(f.cancelAllOf, { symbol: pair.symbol })}
+                    </button>
+                  )}
+                </div>
+                {waiting === 'ordinary' ? (
+                  <PaperQueryState query={open}>
+                    {() => (
+                      <Table
+                        caption={f.waitingOrdinary}
+                        columns={[...orderColumns, cancelColumn]}
+                        rows={openRows}
+                        rowKey={(o) => o.orderId}
+                        emptyMessage={f.noOrders}
+                      />
+                    )}
+                  </PaperQueryState>
+                ) : (
+                  <PaperQueryState query={algo}>
+                    {() => (
+                      <Table
+                        caption={f.tabAlgo}
+                        columns={algoColumns}
+                        rows={algo.data ?? []}
+                        rowKey={(o) => o.algoId}
+                        emptyMessage={f.noOrders}
+                      />
+                    )}
+                  </PaperQueryState>
+                )}
+              </>,
+            ),
+          },
+          {
+            id: 'orders',
+            label: f.tabOrderHistory,
+            panel: scroll(
+              <PaperQueryState query={orders}>
+                {() => (
+                  <Table
+                    caption={f.tabOrderHistory}
+                    columns={[...orderColumns, statusColumn]}
+                    rows={[...(orders.data ?? [])].reverse()}
+                    rowKey={(o) => o.orderId}
+                    emptyMessage={formatCopy(f.noHistoryOf, {
+                      symbol: pair.symbol,
+                    })}
+                  />
+                )}
+              </PaperQueryState>,
+            ),
+          },
+          {
+            id: 'trades',
+            label: f.tabTradeHistory,
+            panel: scroll(
+              <PaperQueryState query={trades}>
+                {() => (
+                  <Table
+                    caption={f.tabTradeHistory}
+                    columns={tradeColumns}
+                    rows={[...(trades.data ?? [])].reverse()}
+                    rowKey={(t) => t.id}
+                    emptyMessage={formatCopy(f.noHistoryOf, {
+                      symbol: pair.symbol,
+                    })}
+                  />
+                )}
+              </PaperQueryState>,
+            ),
+          },
+          {
+            id: 'income',
+            label: f.tabTransactions,
+            panel: scroll(
+              <PaperQueryState query={income}>
+                {() => (
+                  <Table
+                    caption={f.tabTransactions}
+                    columns={incomeColumns}
+                    rows={income.data ?? []}
+                    rowKey={(i) => i.tranId + i.incomeType}
+                    emptyMessage={f.noRows}
+                  />
+                )}
+              </PaperQueryState>,
+            ),
+          },
+          {
+            id: 'closed',
+            label: f.tabPositionHistory,
+            panel: scroll(
+              <PaperQueryState query={closed}>
+                {() => (
+                  <Table
+                    caption={f.tabPositionHistory}
+                    columns={closedColumns}
+                    rows={closed.data ?? []}
+                    rowKey={(c) => c.positionId}
+                    emptyMessage={f.noRows}
+                  />
+                )}
+              </PaperQueryState>,
+            ),
+          },
+          {
+            id: 'assets',
+            label: f.tabAssets,
+            panel: scroll(<FuturesAssets account={account} />),
+          },
+        ]}
+      />
+      {closing && (
+        <ClosePositionDialog
+          position={closing.position}
+          type={closing.type}
+          tickSize={tickOf(closing.position.symbol)}
+          onClose={() => setClosing(null)}
+        />
+      )}
+      {adjusting && (
+        <AdjustMarginDialog
+          position={adjusting}
+          onClose={() => setAdjusting(null)}
+        />
+      )}
+      {tpsl && (
+        <PositionTpSlDialog
+          position={tpsl}
+          tickSize={tickOf(tpsl.symbol)}
+          onClose={() => setTpsl(null)}
+        />
+      )}
+    </TradePanel>
   );
 }
 
