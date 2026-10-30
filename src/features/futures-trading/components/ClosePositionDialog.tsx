@@ -7,7 +7,11 @@ import { useCopy } from '../../../hooks/use-copy';
 import { useToast } from '../../../hooks/use-toast';
 import { formatCopy } from '../../../i18n/copy';
 import type { FuturesPosition } from '../../../types/futures';
-import { formatPrice, groupThousands } from '../../../utils/decimal-format';
+import {
+  decimalPlaces,
+  groupThousands,
+  toFixedDecimal,
+} from '../../../utils/decimal-format';
 import { isPlainDecimal, isPositive } from '../../../utils/decimal-math';
 import { ShareSlider } from '../../paper-trading/components/ShareSlider';
 import { useFuturesActions } from '../hooks/use-futures';
@@ -35,7 +39,9 @@ export function ClosePositionDialog({
   const { close } = useFuturesActions();
   const [percent, setPercent] = useState(100);
   const [price, setPrice] = useState(
-    type === 'LIMIT' ? formatPrice(position.markPrice, tickSize) : '',
+    type === 'LIMIT'
+      ? toFixedDecimal(position.markPrice, decimalPlaces(tickSize))
+      : '',
   );
   const [notice, setNotice] = useState<string | null>(null);
   const size = position.positionAmt.replace('-', '');

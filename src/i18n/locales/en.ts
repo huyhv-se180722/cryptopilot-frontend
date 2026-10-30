@@ -958,6 +958,8 @@ export const en = {
     reduceOnly: 'Reduce-only',
     reduceOnlyShort: 'reduce-only',
     tif: 'Time in force',
+    orderFormTitle: 'Futures order',
+    resizePanel: 'Resize the positions and orders panel',
     postOnly: 'Post only (GTX)',
     takeProfit: 'Take profit trigger ({asset})',
     stopLoss: 'Stop loss trigger ({asset})',

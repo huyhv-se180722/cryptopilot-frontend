@@ -214,7 +214,7 @@ function TradeFutures({
           </div>
         </div>
         <TradePanel
-          title={p.orderForm}
+          title={f.orderFormTitle}
           className="md:col-span-2 xl:col-span-1 xl:col-start-3 xl:row-span-2 xl:row-start-1"
         >
           <FuturesSettingsBar

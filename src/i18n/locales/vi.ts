@@ -78,6 +78,8 @@ export const vi: PartialCopy = {
     reduceOnly: 'Lệnh chỉ giảm',
     reduceOnlyShort: 'chỉ giảm',
     tif: 'Hiệu lực lệnh',
+    orderFormTitle: 'Đặt lệnh Futures',
+    resizePanel: 'Kéo để đổi chiều cao khung vị thế và lệnh',
     postOnly: 'Chỉ maker (GTX)',
     takeProfit: 'Giá kích hoạt chốt lời ({asset})',
     stopLoss: 'Giá kích hoạt cắt lỗ ({asset})',

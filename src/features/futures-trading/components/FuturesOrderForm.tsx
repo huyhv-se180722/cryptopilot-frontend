@@ -22,6 +22,7 @@ import type {
 } from '../../../types/futures';
 import { classNames } from '../../../utils/class-names';
 import {
+  decimalPlaces,
   formatPrice,
   groupThousands,
   toFixedDecimal,
@@ -124,6 +125,21 @@ export function FuturesOrderForm({
     setDraft((current) => ({ ...current, ...change }));
     setNotice(null);
   };
+
+  // The limit price starts at the last price, as on the exchange, once it is known.
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (prefilled.current || !lastPrice) return;
+    prefilled.current = true;
+    setDraft((current) =>
+      current.price === ''
+        ? {
+            ...current,
+            price: toFixedDecimal(lastPrice, decimalPlaces(pair.tickSize)),
+          }
+        : current,
+    );
+  }, [lastPrice, pair.tickSize]);
 
   // A price picked in the book or the trades fills the limit price.
   const lastPick = useRef<number | null>(null);
@@ -432,22 +448,28 @@ export function FuturesOrderForm({
             }}
           />
         </div>
-        <Select
-          inline
-          label={f.sizeUnit}
-          value={draft.sizeUnit}
-          className="w-24"
-          onChange={(event) => {
-            setShare(0);
-            update({
-              sizeUnit: event.target.value as FuturesDraft['sizeUnit'],
-              size: '',
-            });
-          }}
-        >
-          <option value="BASE">{base}</option>
-          <option value="QUOTE">{quote}</option>
-        </Select>
+        <label className="relative inline-flex h-9 shrink-0 items-center rounded-lg border border-line bg-raised pr-6 pl-2.5 text-xs font-medium text-fg-2 focus-within:ring-1 focus-within:ring-primary">
+          <select
+            aria-label={f.sizeUnit}
+            value={draft.sizeUnit}
+            onChange={(event) => {
+              setShare(0);
+              update({
+                sizeUnit: event.target.value as FuturesDraft['sizeUnit'],
+                size: '',
+              });
+            }}
+            className="cursor-pointer appearance-none bg-transparent focus:outline-none"
+          >
+            <option value="BASE">{base}</option>
+            <option value="QUOTE">{quote}</option>
+          </select>
+          <ChevronDown
+            size={12}
+            aria-hidden="true"
+            className="pointer-events-none absolute right-2"
+          />
+        </label>
       </div>
       {draft.sizeUnit === 'QUOTE' && quantity && (
         <p className="-mt-1 text-[10px] text-muted-dim">
@@ -460,7 +482,7 @@ export function FuturesOrderForm({
         onChange={setShareOf}
       />
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         {!closeTab && !conditional && (
           <Checkbox
             label={f.tpsl}
@@ -480,24 +502,33 @@ export function FuturesOrderForm({
           />
         )}
         {(draft.type === 'LIMIT' || draft.type === 'STOP_LIMIT') && (
-          <Select
-            inline
-            label={f.tif}
-            value={draft.timeInForce}
-            className="ml-auto min-w-28 flex-1 sm:flex-none"
-            onChange={(event) =>
-              update({
-                timeInForce: event.target.value as FuturesDraft['timeInForce'],
-              })
-            }
-          >
-            <option value="GTC">GTC</option>
-            <option value="IOC">IOC</option>
-            <option value="FOK">FOK</option>
-            {draft.type === 'LIMIT' && (
-              <option value="GTX">{f.postOnly}</option>
-            )}
-          </Select>
+          // Compact on the row of the checkboxes, as the exchange's "TIF GTC".
+          <label className="relative ml-auto inline-flex items-center gap-1 text-[11px] text-muted">
+            <abbr title={f.tif} className="no-underline">
+              TIF
+            </abbr>
+            <select
+              aria-label={f.tif}
+              value={draft.timeInForce}
+              onChange={(event) =>
+                update({
+                  timeInForce: event.target
+                    .value as FuturesDraft['timeInForce'],
+                })
+              }
+              className="cursor-pointer appearance-none bg-transparent pr-3.5 text-[11px] font-medium text-fg-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+            >
+              <option value="GTC">GTC</option>
+              <option value="IOC">IOC</option>
+              <option value="FOK">FOK</option>
+              {draft.type === 'LIMIT' && <option value="GTX">GTX</option>}
+            </select>
+            <ChevronDown
+              size={11}
+              aria-hidden="true"
+              className="pointer-events-none absolute right-0"
+            />
+          </label>
         )}
       </div>
       {draft.tpsl && !closeTab && !conditional && !draft.reduceOnly && (
