@@ -12,7 +12,11 @@ import type {
   PaperWallet,
   PaperWalletType,
 } from '../../../types/domain';
-import { groupThousands, toFixedDecimal } from '../../../utils/decimal-format';
+import {
+  groupThousands,
+  toFixedDecimal,
+  trimDecimal,
+} from '../../../utils/decimal-format';
 import { compare } from '../../../utils/decimal-math';
 import { timeCell } from '../hooks/use-paper-columns';
 import {
@@ -33,6 +37,9 @@ const LEDGER_TYPES: readonly PaperLedgerType[] = [
   'FUNDING_FEE',
   'LIQUIDATION_FEE',
 ];
+
+/** An amount as stored ("5000.00000000") without the zeros its scale adds: "5,000.00". */
+const amountText = (value: string) => groupThousands(trimDecimal(value, 2));
 
 /**
  * The coins of one wallet (B Spot / Futures wallet): search by coin,
@@ -76,19 +83,19 @@ export function BalancesTable({ wallet }: { wallet: PaperWallet }) {
             id: 'total',
             header: p.fundsTotal,
             numeric: true,
-            render: (row) => <NumericText value={groupThousands(row.total)} />,
+            render: (row) => <NumericText value={amountText(row.total)} />,
           },
           {
             id: 'free',
             header: p.fundsFree,
             numeric: true,
-            render: (row) => <NumericText value={groupThousands(row.free)} />,
+            render: (row) => <NumericText value={amountText(row.free)} />,
           },
           {
             id: 'locked',
             header: p.fundsLocked,
             numeric: true,
-            render: (row) => <NumericText value={groupThousands(row.locked)} />,
+            render: (row) => <NumericText value={amountText(row.locked)} />,
           },
           {
             id: 'value',
@@ -225,7 +232,7 @@ export function LedgerHistory() {
                   header: p.colChange,
                   numeric: true,
                   render: (row) => (
-                    <NumericText signed value={groupThousands(row.amount)} />
+                    <NumericText signed value={amountText(row.amount)} />
                   ),
                 },
                 {
@@ -233,7 +240,7 @@ export function LedgerHistory() {
                   header: p.colBalanceAfter,
                   numeric: true,
                   render: (row) => (
-                    <NumericText value={groupThousands(row.balanceAfter)} />
+                    <NumericText value={amountText(row.balanceAfter)} />
                   ),
                 },
               ]}
@@ -284,9 +291,7 @@ export function TransferHistory() {
                 id: 'amount',
                 header: p.colAmountPlain,
                 numeric: true,
-                render: (row) => (
-                  <NumericText value={groupThousands(row.amount)} />
-                ),
+                render: (row) => <NumericText value={amountText(row.amount)} />,
               },
             ]}
             rows={query.data?.items ?? []}
