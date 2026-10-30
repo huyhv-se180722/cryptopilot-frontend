@@ -163,11 +163,14 @@ function TradeFutures({
           ]}
         />
       </div>
-      <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-[260px_minmax(0,1fr)_300px]">
+      {/* As the exchange's Futures screen: the chart, then the order book
+          over the trades, then the order form and the account down the
+          right; the positions and orders under the chart and the book. */}
+      <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_280px_320px]">
         <div
           className={classNames(
             shown('chart'),
-            'min-w-0 flex-col md:col-span-2 xl:col-span-1 xl:col-start-2 xl:row-start-1',
+            'min-w-0 flex-col md:col-span-2 xl:col-span-1 xl:col-start-1 xl:row-start-1',
           )}
         >
           <AnalysisChart
@@ -178,71 +181,74 @@ function TradeFutures({
             onTimeframeChange={setTimeframe}
             priceLines={chart.lines}
             extendable
-            height="h-[420px] xl:h-[480px]"
+            height="h-[420px] xl:h-[500px]"
           />
         </div>
-        <div
-          className={classNames(
-            shown('book'),
-            'relative h-[560px] flex-col xl:col-start-1 xl:row-span-2 xl:row-start-1 xl:h-auto',
-          )}
-        >
-          <OrderBookPanel
-            pair={pair}
-            stream={book}
-            lastPrice={ticker?.lastPrice ?? null}
-            onPickPrice={pick}
-            className="absolute inset-0"
-          />
-        </div>
-        <div
-          className={classNames(
-            shown('trades'),
-            'relative h-[560px] flex-col xl:col-start-3 xl:row-span-2 xl:row-start-1 xl:h-auto',
-          )}
-        >
-          <MarketTradesPanel
-            pair={pair}
-            stream={trades}
-            onPickPrice={pick}
-            className="absolute inset-0"
-          />
+        <div className="grid grid-cols-1 gap-2 md:col-span-2 md:grid-cols-2 xl:col-span-1 xl:col-start-2 xl:row-start-1 xl:flex xl:flex-col">
+          <div
+            className={classNames(
+              shown('book'),
+              'relative h-[560px] flex-col xl:h-auto xl:flex-[3]',
+            )}
+          >
+            <OrderBookPanel
+              pair={pair}
+              stream={book}
+              lastPrice={ticker?.lastPrice ?? null}
+              onPickPrice={pick}
+              className="absolute inset-0"
+            />
+          </div>
+          <div
+            className={classNames(
+              shown('trades'),
+              'relative h-[560px] flex-col xl:h-auto xl:flex-[2]',
+            )}
+          >
+            <MarketTradesPanel
+              pair={pair}
+              stream={trades}
+              onPickPrice={pick}
+              className="absolute inset-0"
+            />
+          </div>
         </div>
         <TradePanel
           title={p.orderForm}
-          className="md:col-span-2 xl:col-span-1 xl:col-start-2 xl:row-start-2"
+          className="md:col-span-2 xl:col-span-1 xl:col-start-3 xl:row-span-2 xl:row-start-1"
         >
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px]">
-            <div>
-              <FuturesSettingsBar
-                symbol={pair.symbol}
-                config={config.data}
-                brackets={brackets.data}
-                dualSide={mode.data}
-              />
-              <FuturesOrderForm
-                key={pair.symbol}
-                pair={pair}
-                lastPrice={ticker?.lastPrice ?? null}
-                markPrice={ticker?.markPrice ?? null}
-                picked={picked}
-                config={config.data}
-                account={futuresAccount.data}
-                positions={positions.data}
-                brackets={brackets.data}
-                hedge={mode.data === true}
-                unavailable={unavailable}
-              />
-            </div>
+          <FuturesSettingsBar
+            symbol={pair.symbol}
+            config={config.data}
+            brackets={brackets.data}
+            dualSide={mode.data}
+          />
+          <FuturesOrderForm
+            key={pair.symbol}
+            pair={pair}
+            lastPrice={ticker?.lastPrice ?? null}
+            markPrice={ticker?.markPrice ?? null}
+            picked={picked}
+            config={config.data}
+            account={futuresAccount.data}
+            positions={positions.data}
+            brackets={brackets.data}
+            hedge={mode.data === true}
+            unavailable={unavailable}
+          />
+          <div className="mt-4 border-t border-line pt-3">
             <AccountMarginPanel account={futuresAccount.data} />
           </div>
         </TradePanel>
+        <div className="min-w-0 md:col-span-2 xl:col-start-1 xl:row-start-2">
+          <FuturesBottomPanel
+            pair={pair}
+            positions={positions.data}
+            ticks={ticks}
+            account={futuresAccount.data}
+          />
+        </div>
       </div>
-      <FuturesBottomPanel
-        pair={pair}
-        positions={positions.data}
-        ticks={ticks}
-      />
     </>
   );
 }

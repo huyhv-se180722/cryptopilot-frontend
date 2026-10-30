@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FormNotice } from '../../../components/feedback/FormNotice';
 import { Checkbox } from '../../../components/ui/Checkbox';
+import { SegmentedControl } from '../../../components/ui/SegmentedControl';
 import { NumericText } from '../../../components/ui/NumericText';
 import { Table, type Column } from '../../../components/ui/Table';
 import { Tabs } from '../../../components/ui/Tabs';
@@ -9,6 +10,7 @@ import { useServices } from '../../../hooks/use-services';
 import { formatCopy } from '../../../i18n/copy';
 import type { MarketPair } from '../../../types/domain';
 import type {
+  FuturesAccount,
   FuturesAlgoOrder,
   FuturesClosedPosition,
   FuturesIncome,
@@ -38,26 +40,29 @@ import { AdjustMarginDialog } from './AdjustMarginDialog';
 import { PositionTpSlDialog } from './PositionTpSlDialog';
 
 type Tab =
-  'positions' | 'open' | 'algo' | 'orders' | 'trades' | 'income' | 'closed';
+  'positions' | 'open' | 'orders' | 'trades' | 'income' | 'closed' | 'assets';
 
 const link =
   'text-xs font-medium text-primary hover:underline disabled:opacity-50';
 
 /**
- * The bottom panel of the Futures screen (plan 12.2): positions with their
- * close, margin and TP/SL actions; open orders and conditional orders with
- * cancel; the order, trade, transaction and position histories. "This pair
- * only" narrows the lists to the pair on screen.
+ * The bottom panel of the Futures screen, as the exchange's (plan 12.2):
+ * positions with their close, margin and TP/SL actions; the orders waiting,
+ * ordinary and conditional, with cancel; the order, trade, balance change
+ * and position histories; the Futures assets. "This pair only" narrows the
+ * lists to the pair on screen.
  */
 export function FuturesBottomPanel({
   pair,
   positions,
   ticks,
+  account,
 }: {
   pair: MarketPair;
   positions: readonly FuturesPosition[] | undefined;
   /** Tick sizes by symbol, for prices of other pairs. */
   ticks: ReadonlyMap<string, string | null>;
+  account: FuturesAccount | undefined;
 }) {
   const copy = useCopy();
   const f = copy.futures;
@@ -65,6 +70,9 @@ export function FuturesBottomPanel({
   const { futuresTrading } = useServices();
   const [tab, setTab] = useState<Tab>('positions');
   const [onlyThis, setOnlyThis] = useState(false);
+  const [waiting, setWaiting] = useState<'ordinary' | 'conditional'>(
+    'ordinary',
+  );
   const [notice, setNotice] = useState<string | null>(null);
   const [closing, setClosing] = useState<{
     position: FuturesPosition;
@@ -147,11 +155,20 @@ export function FuturesBottomPanel({
       numeric: true,
       render: (p) => (
         <span
-          className={
-            p.positionAmt.startsWith('-') ? 'text-negative' : 'text-positive'
-          }
+          className={classNames(
+            'flex flex-col items-end',
+            p.positionAmt.startsWith('-') ? 'text-negative' : 'text-positive',
+          )}
         >
           <NumericText value={groupThousands(p.positionAmt)} />
+          <span className="text-[10px] text-muted">
+            <NumericText
+              value={groupThousands(
+                toFixedDecimal(p.notional.replace('-', ''), 2),
+              )}
+              suffix=" USDT"
+            />
+          </span>
         </span>
       ),
     },
@@ -203,14 +220,22 @@ export function FuturesBottomPanel({
       numeric: true,
       render: (p) => (
         <span className="inline-flex items-center gap-1">
-          <NumericText
-            value={toFixedDecimal(
-              p.marginType === 'ISOLATED'
-                ? p.isolatedMargin
-                : p.positionInitialMargin,
-              2,
-            )}
-          />
+          <span className="flex flex-col items-end">
+            <NumericText
+              value={groupThousands(
+                toFixedDecimal(
+                  p.marginType === 'ISOLATED'
+                    ? p.isolatedMargin
+                    : p.positionInitialMargin,
+                  2,
+                ),
+              )}
+              suffix=" USDT"
+            />
+            <span className="text-[10px] text-muted">
+              {p.marginType === 'ISOLATED' ? f.isolatedMargin : f.crossMargin}
+            </span>
+          </span>
           {p.marginType === 'ISOLATED' && (
             <button
               type="button"
@@ -502,7 +527,6 @@ export function FuturesBottomPanel({
   return (
     <TradePanel
       title={f.bottomTitle}
-      className="mt-2"
       actions={
         <Checkbox
           label={copy.paper.thisPairOnly}
@@ -567,55 +591,72 @@ export function FuturesBottomPanel({
           {
             id: 'open',
             label: f.tabOpenOrders,
-            ...(open.data ? { count: openRows.length } : {}),
+            ...(open.data && algo.data
+              ? { count: openRows.length + algo.data.length }
+              : {}),
             panel: (
-              <PaperQueryState query={open}>
-                {() => (
-                  <>
-                    {openRows.length > 0 && (
-                      <div className="mb-2 flex justify-end">
-                        <button
-                          type="button"
-                          className={link}
-                          disabled={cancelAll.pending}
-                          onClick={() =>
-                            void cancelAll.run(pair.symbol).then((r) => {
-                              if (r.status === 'error') failed(r.error);
-                            })
-                          }
-                        >
-                          {formatCopy(f.cancelAllOf, { symbol: pair.symbol })}
-                        </button>
-                      </div>
-                    )}
-                    <Table
-                      caption={f.tabOpenOrders}
-                      columns={[...orderColumns, cancelColumn]}
-                      rows={openRows}
-                      rowKey={(o) => o.orderId}
-                      emptyMessage={f.noOrders}
-                    />
-                  </>
-                )}
-              </PaperQueryState>
-            ),
-          },
-          {
-            id: 'algo',
-            label: f.tabAlgo,
-            ...(algo.data ? { count: algo.data.length } : {}),
-            panel: (
-              <PaperQueryState query={algo}>
-                {() => (
-                  <Table
-                    caption={f.tabAlgo}
-                    columns={algoColumns}
-                    rows={algo.data ?? []}
-                    rowKey={(o) => o.algoId}
-                    emptyMessage={f.noOrders}
+              <>
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <SegmentedControl
+                    label={f.tabOpenOrders}
+                    value={waiting}
+                    onChange={setWaiting}
+                    options={[
+                      {
+                        value: 'ordinary',
+                        label:
+                          f.waitingOrdinary +
+                          (open.data ? ' (' + openRows.length + ')' : ''),
+                      },
+                      {
+                        value: 'conditional',
+                        label:
+                          f.tabAlgo +
+                          (algo.data ? ' (' + algo.data.length + ')' : ''),
+                      },
+                    ]}
                   />
+                  {waiting === 'ordinary' && openRows.length > 0 && (
+                    <button
+                      type="button"
+                      className={link}
+                      disabled={cancelAll.pending}
+                      onClick={() =>
+                        void cancelAll.run(pair.symbol).then((r) => {
+                          if (r.status === 'error') failed(r.error);
+                        })
+                      }
+                    >
+                      {formatCopy(f.cancelAllOf, { symbol: pair.symbol })}
+                    </button>
+                  )}
+                </div>
+                {waiting === 'ordinary' ? (
+                  <PaperQueryState query={open}>
+                    {() => (
+                      <Table
+                        caption={f.waitingOrdinary}
+                        columns={[...orderColumns, cancelColumn]}
+                        rows={openRows}
+                        rowKey={(o) => o.orderId}
+                        emptyMessage={f.noOrders}
+                      />
+                    )}
+                  </PaperQueryState>
+                ) : (
+                  <PaperQueryState query={algo}>
+                    {() => (
+                      <Table
+                        caption={f.tabAlgo}
+                        columns={algoColumns}
+                        rows={algo.data ?? []}
+                        rowKey={(o) => o.algoId}
+                        emptyMessage={f.noOrders}
+                      />
+                    )}
+                  </PaperQueryState>
                 )}
-              </PaperQueryState>
+              </>
             ),
           },
           {
@@ -690,6 +731,11 @@ export function FuturesBottomPanel({
               </PaperQueryState>
             ),
           },
+          {
+            id: 'assets',
+            label: f.tabAssets,
+            panel: <FuturesAssets account={account} />,
+          },
         ]}
       />
       {closing && (
@@ -741,4 +787,40 @@ function closeReasonLabel(f: FuturesCopy, reason: string): string {
     SYSTEM: f.reasonSystem,
   };
   return labels[reason] ?? reason;
+}
+
+/** The Futures wallet in USDT, as the exchange's Assets tab. */
+function FuturesAssets({ account }: { account: FuturesAccount | undefined }) {
+  const copy = useCopy();
+  const f = copy.futures;
+  if (!account)
+    return <p className="text-xs text-muted">{copy.common.loading}</p>;
+  const rows: [string, string, boolean][] = [
+    [f.walletBalance, account.totalWalletBalance, false],
+    [f.unrealized, account.totalUnrealizedProfit, true],
+    [f.marginBalance, account.totalMarginBalance, false],
+    [f.positionMarginTotal, account.totalPositionInitialMargin, false],
+    [f.orderMarginTotal, account.totalOpenOrderInitialMargin, false],
+    [f.available, account.availableBalance, false],
+    [f.maxTransfer, account.maxWithdrawAmount, false],
+  ];
+  return (
+    <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs sm:grid-cols-4">
+      <div className="col-span-full text-[11px] font-semibold text-fg">
+        USDT
+      </div>
+      {rows.map(([label, value, signed]) => (
+        <div key={label} className="flex flex-col gap-0.5">
+          <dt className="text-[10px] text-muted-dim">{label}</dt>
+          <dd className="text-fg-2">
+            <NumericText
+              signed={signed}
+              value={groupThousands(toFixedDecimal(value, 2))}
+              suffix=" USDT"
+            />
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
 }

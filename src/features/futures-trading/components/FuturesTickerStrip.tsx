@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp } from 'lucide-react';
 import { Badge } from '../../../components/ui/Badge';
 import { NumericText } from '../../../components/ui/NumericText';
 import { useCopy } from '../../../hooks/use-copy';
+import { formatCopy } from '../../../i18n/copy';
 import type { MarketPair, MarketTicker } from '../../../types/domain';
 import { classNames } from '../../../utils/class-names';
 import { formatCountdown } from '../../../utils/countdown';
@@ -103,7 +104,7 @@ export function FuturesTickerStrip({
         </span>
       </div>
       <div className="flex w-full items-center gap-x-6 xl:w-auto xl:min-w-0 xl:flex-1">
-        <dl className="grid flex-1 grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4 md:grid-cols-7 xl:flex xl:flex-none xl:items-center xl:gap-x-6">
+        <dl className="grid flex-1 grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4 md:grid-cols-8 xl:flex xl:flex-none xl:items-center xl:gap-x-6">
           <Stat label={f.mark}>{price(ticker?.markPrice)}</Stat>
           <Stat label={f.index}>{price(ticker?.indexPrice)}</Stat>
           <Stat label={f.fundingCountdown}>
@@ -143,6 +144,15 @@ export function FuturesTickerStrip({
           </Stat>
           <Stat label={m.colHigh}>{price(ticker?.high24h)}</Stat>
           <Stat label={m.colLow}>{price(ticker?.low24h)}</Stat>
+          <Stat
+            label={formatCopy(f.volumeBase24h, { asset: pair.baseAsset ?? '' })}
+          >
+            {ticker?.baseVolume24h ? (
+              <NumericText value={compactDecimal(ticker.baseVolume24h)} />
+            ) : (
+              m.noValue
+            )}
+          </Stat>
           <Stat label={f.volume24h}>
             {ticker?.quoteVolume24h ? (
               <NumericText
