@@ -3,7 +3,7 @@ import { ArrowLeftRight } from 'lucide-react';
 import { FormNotice } from '../../../components/feedback/FormNotice';
 import { Dialog } from '../../../components/ui/Dialog';
 import { IconButton } from '../../../components/ui/IconButton';
-import { Input } from '../../../components/ui/Input';
+import { DecimalInput } from '../../../components/ui/DecimalInput';
 import { buttonClassName } from '../../../components/ui/button-styles';
 import { useCopy } from '../../../hooks/use-copy';
 import { useToast } from '../../../hooks/use-toast';
@@ -135,23 +135,23 @@ export function TransferDialog({
           </div>
         </div>
         <div className="flex items-end gap-2">
-          <Input
+          <DecimalInput
             className="flex-1"
             label={p.transferAmount}
-            inputMode="decimal"
             autoComplete="off"
             value={amount}
-            hint={`${p.available}: ${groupThousands(free)} USDT`}
+            // Two digits, rounded down: never more than is free.
+            hint={`${p.available}: ${groupThousands(toStep(free, '0.01', 'down'))} USDT`}
             error={shown && problem ? problem : undefined}
-            onChange={(event) => {
-              setAmount(event.target.value);
+            onValueChange={(value) => {
+              setAmount(value);
               setNotice(null);
             }}
           />
           <button
             type="button"
             className={buttonClassName('secondary', 'md', 'mb-5')}
-            onClick={() => setAmount(free)}
+            onClick={() => setAmount(trimDecimal(free, 0))}
           >
             {p.transferMax}
           </button>

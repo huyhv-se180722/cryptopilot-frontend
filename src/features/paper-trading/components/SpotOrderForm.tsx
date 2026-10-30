@@ -1,17 +1,15 @@
-import { useId, useRef, useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { FormNotice } from '../../../components/feedback/FormNotice';
 import { Checkbox } from '../../../components/ui/Checkbox';
 import { DecimalInput } from '../../../components/ui/DecimalInput';
 import { Input } from '../../../components/ui/Input';
 import { NumericText } from '../../../components/ui/NumericText';
-import { SegmentedControl } from '../../../components/ui/SegmentedControl';
-import { Select } from '../../../components/ui/Select';
 import { useCopy } from '../../../hooks/use-copy';
 import { useToast } from '../../../hooks/use-toast';
 import { formatCopy } from '../../../i18n/copy';
 import { errorText } from '../../../i18n/messages';
 import { problemOf } from '../../../services/api/errors';
-import type { Decimal, MarketPair } from '../../../types/domain';
+import type { Decimal, MarketPair, OrderSide } from '../../../types/domain';
 import { classNames } from '../../../utils/class-names';
 import { groupThousands } from '../../../utils/decimal-format';
 import { toStep } from '../../../utils/decimal-math';
@@ -21,7 +19,6 @@ import {
   amountOf,
   checkSpotOrder,
   EMPTY_DRAFT,
-  hasLimitPrice,
   maxOrder,
   pickedPrice,
   shareInUse,
@@ -31,49 +28,44 @@ import {
   type SpotFormType,
   type SpotOrderDraft,
   type SpotOrderField,
+  type PickedPrice,
   type SpotOrderProblem,
 } from '../model/spot-order';
 import { ShareSlider } from './ShareSlider';
 
-const STOP_FORMS = ['STOP_LIMIT', 'STOP_MARKET', 'TRAILING', 'OCO'] as const;
-type StopForm = (typeof STOP_FORMS)[number];
-const isStopForm = (type: SpotFormType): type is StopForm =>
-  (STOP_FORMS as readonly string[]).includes(type);
-
-/** A price picked in the order book or trades; `at` makes a repeat count. */
-export interface PickedPrice {
-  price: Decimal;
-  at: number;
-}
-
 const newClientOrderId = () => 'web-' + crypto.randomUUID();
 
 /**
- * Spot order form of the demo exchange, as the exchange's Spot order panel
- * has it: Buy / Sell; Limit (time in force, Post only for a LIMIT_MAKER,
- * TP/SL for an OTOCO), Market (by amount or by total, on both sides), and
- * under Stop the Stop Limit, Stop Market, Trailing Stop and OCO forms. A
- * stop is sent as a stop loss or a take profit by where it lies against
- * the last price, as the exchange's panel does. It checks tick, step,
- * minimum value and balance before sending (exact decimals, D-102), keeps
- * the idempotency key when the same order is sent again, and says why it
- * cannot trade while the demo account is not available. Demo funds only:
- * nothing reaches an exchange.
+ * One side of the Spot order panel of the demo exchange, for the order type
+ * the panel picked: Limit (time in force, Post only for a LIMIT_MAKER, TP/SL
+ * for an OTOCO), Market (by amount or by total, on both sides), and the Stop
+ * Limit, Stop Market, Trailing Stop and OCO forms. A stop is sent as a stop
+ * loss or a take profit by where it lies against the last price, as the
+ * exchange's panel does. It checks tick, step, minimum value and balance
+ * before sending (exact decimals, D-102) and keeps the idempotency key when
+ * the same order is sent again. Demo funds only: nothing reaches an exchange.
  */
 export function SpotOrderForm({
   pair,
+  side,
+  type,
   lastPrice,
   picked,
   funds,
   unavailable,
+  reasonId,
 }: {
   pair: MarketPair;
+  side: OrderSide;
+  type: SpotFormType;
   lastPrice: Decimal | null;
   picked: PickedPrice | null;
   /** Free balances, or null while the wallet is not known. */
   funds: Funds | null;
   /** Why the demo account cannot trade now (e.g. not connected), or null. */
   unavailable: string | null;
+  /** The element that says it, for the button's description. */
+  reasonId: string;
 }) {
   const copy = useCopy();
   const p = copy.paper;
@@ -82,8 +74,9 @@ export function SpotOrderForm({
   const pairId = pair.pairId;
   const base = pair.baseAsset ?? pair.symbol;
   const quote = pair.quoteAsset ?? '';
-  const [draft, setDraft] = useState<SpotOrderDraft>(EMPTY_DRAFT);
-  const [stopForm, setStopForm] = useState<StopForm>('STOP_LIMIT');
+  // Side and type come from the panel; the form keeps what was typed.
+  const [entry, setDraft] = useState<SpotOrderDraft>(EMPTY_DRAFT);
+  const draft: SpotOrderDraft = { ...entry, side, type };
   const [shown, setShown] = useState(false);
   // The backend's refusal of a field, in words.
   const [serverErrors, setServerErrors] = useState<
@@ -94,33 +87,45 @@ export function SpotOrderForm({
   // coarse step does not pull the thumb off where it was put.
   const [sharePicked, setSharePicked] = useState<number | null>(null);
   const sent = useRef<{ key: string; id: string } | null>(null);
-  const reasonId = useId();
 
-  // A price picked in the book becomes the limit price (once per pick).
+  // Another side (one form on a phone) or type starts without the old checks.
+  const [seen, setSeen] = useState({ side, type });
+  if (seen.side !== side || seen.type !== type) {
+    setSeen({ side, type });
+    setSharePicked(null);
+    setServerErrors({});
+    setNotice(null);
+    if (seen.type !== type)
+      setDraft((current) => ({
+        ...current,
+        total:
+          type === 'MARKET'
+            ? ''
+            : totalOf({ ...current, type }, current.amount, lastPrice),
+      }));
+  }
+
+  // A price picked in the book becomes the limit price (once per pick); the
+  // panel has turned a Market or Stop Market into a Limit for it.
   const [seenPick, setSeenPick] = useState(picked?.at ?? 0);
   if (picked && picked.at !== seenPick) {
     setSeenPick(picked.at);
     setSharePicked(null);
     const price = pickedPrice(picked.price, pair.tickSize);
-    setDraft((current) => {
-      const type = hasLimitPrice(current.type) ? current.type : 'LIMIT';
-      return {
-        ...current,
-        type,
-        price,
-        total: totalOf(
-          { type, price, stop: current.stop },
-          current.amount,
-          lastPrice,
-        ),
-      };
-    });
+    setDraft((current) => ({
+      ...current,
+      price,
+      total: totalOf(
+        { type, price, stop: current.stop },
+        current.amount,
+        lastPrice,
+      ),
+    }));
   }
 
   const available = funds ?? { quote: '0', base: '0' };
   const check = checkSpotOrder(draft, pair, available, lastPrice);
-  const buy = draft.side === 'BUY';
-  const type = draft.type;
+  const buy = side === 'BUY';
   const market = type === 'MARKET';
   const byTotal = market && draft.byTotal;
   const pending = place.pending || placeList.pending;
@@ -133,15 +138,6 @@ export function SpotOrderForm({
     setServerErrors({});
     setNotice(null);
   };
-  const changeType = (next: SpotFormType) =>
-    update({
-      type: next,
-      total:
-        next === 'MARKET'
-          ? ''
-          : totalOf({ ...draft, type: next }, draft.amount, lastPrice),
-    });
-
   const problemText = (problem: SpotOrderProblem | undefined) => {
     switch (problem) {
       case 'required':
@@ -286,90 +282,10 @@ export function SpotOrderForm({
   return (
     <form
       noValidate
+      aria-label={buy ? p.sideBUY : p.sideSELL}
       onSubmit={(event) => void submit(event)}
       className="flex flex-col gap-2.5"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <SegmentedControl
-          label={p.sideLabel}
-          value={draft.side}
-          onChange={(side) => update({ side })}
-          options={[
-            { value: 'BUY', label: p.sideBUY },
-            { value: 'SELL', label: p.sideSELL },
-          ]}
-        />
-        <SegmentedControl
-          label={p.orderTypeLabel}
-          value={isStopForm(type) ? 'STOP' : type}
-          onChange={(next) => changeType(next === 'STOP' ? stopForm : next)}
-          options={[
-            { value: 'LIMIT', label: p.typeLIMIT },
-            { value: 'MARKET', label: p.typeMARKET },
-            { value: 'STOP', label: p.formSTOP },
-          ]}
-        />
-      </div>
-
-      {isStopForm(type) && (
-        <Select
-          inline
-          label={p.stopFormLabel}
-          value={type}
-          onChange={(event) => {
-            const next = event.target.value as StopForm;
-            setStopForm(next);
-            changeType(next);
-          }}
-        >
-          {STOP_FORMS.map((form) => (
-            <option key={form} value={form}>
-              {p[`form${form}`]}
-            </option>
-          ))}
-        </Select>
-      )}
-
-      <div className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
-        <p className="flex items-baseline justify-between gap-2 text-[11px] text-muted-dim">
-          {p.available}
-          <span className="text-fg-2">
-            {funds ? (
-              <NumericText
-                value={
-                  buy
-                    ? // Two digits, rounded down: never more than is free.
-                      groupThousands(toStep(funds.quote, '0.01', 'down'))
-                    : groupThousands(
-                        toStep(
-                          funds.base,
-                          pair.stepSize ?? '0.00000001',
-                          'down',
-                        ),
-                      )
-                }
-                suffix={' ' + (buy ? quote : base)}
-              />
-            ) : (
-              copy.market.noValue
-            )}
-          </span>
-        </p>
-        <p className="flex items-baseline justify-between gap-2 text-[11px] text-muted-dim">
-          {buy ? p.maxBuy : p.maxSell}
-          <span className="text-fg-2">
-            {max ? (
-              <NumericText
-                value={groupThousands(max)}
-                suffix={' ' + (buy ? base : quote)}
-              />
-            ) : (
-              copy.market.noValue
-            )}
-          </span>
-        </p>
-      </div>
-
       {(type === 'STOP_LIMIT' || type === 'STOP_MARKET') &&
         priceInput('stop', formatCopy(p.fieldStop, { asset: quote }))}
       {type === 'TRAILING' && (
@@ -458,42 +374,15 @@ export function SpotOrderForm({
         />
       )}
 
-      {(type === 'LIMIT' || type === 'STOP_LIMIT') && (
-        // Post only, TP/SL and the time in force share one row.
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          {type === 'LIMIT' && (
-            <>
-              <Checkbox
-                label={p.postOnly}
-                checked={draft.postOnly}
-                onChange={(event) => update({ postOnly: event.target.checked })}
-              />
-              <Checkbox
-                label={p.tpsl}
-                checked={draft.tpsl}
-                onChange={(event) => update({ tpsl: event.target.checked })}
-              />
-            </>
-          )}
-          {!(type === 'LIMIT' && draft.postOnly) && (
-            <Select
-              inline
-              label={p.tifLabel}
-              value={draft.timeInForce}
-              className="ml-auto min-w-56 flex-1 sm:flex-none"
-              onChange={(event) =>
-                update({
-                  timeInForce: event.target
-                    .value as SpotOrderDraft['timeInForce'],
-                })
-              }
-            >
-              <option value="GTC">{p.tifGTC}</option>
-              <option value="IOC">{p.tifIOC}</option>
-              <option value="FOK">{p.tifFOK}</option>
-            </Select>
-          )}
-        </div>
+      {/* As on the exchange's Spot panel a Limit has TP/SL and no time in
+          force: every order is sent GTC (the draft and the request still
+          carry IOC, FOK and Post only, which the backend takes). */}
+      {type === 'LIMIT' && (
+        <Checkbox
+          label={p.tpsl}
+          checked={draft.tpsl}
+          onChange={(event) => update({ tpsl: event.target.checked })}
+        />
       )}
       {type === 'LIMIT' && draft.tpsl && (
         <>
@@ -518,11 +407,46 @@ export function SpotOrderForm({
       )}
 
       {notice && <FormNotice tone="error">{notice}</FormNotice>}
-      {unavailable && (
-        <p id={reasonId} className="text-[11px] text-warning">
-          {unavailable}
+
+      <div className="flex flex-col gap-1">
+        <p className="flex items-baseline justify-between gap-2 text-[11px] text-muted-dim">
+          {p.available}
+          <span className="text-fg-2">
+            {funds ? (
+              <NumericText
+                value={
+                  buy
+                    ? // Two digits, rounded down: never more than is free.
+                      groupThousands(toStep(funds.quote, '0.01', 'down'))
+                    : groupThousands(
+                        toStep(
+                          funds.base,
+                          pair.stepSize ?? '0.00000001',
+                          'down',
+                        ),
+                      )
+                }
+                suffix={' ' + (buy ? quote : base)}
+              />
+            ) : (
+              copy.market.noValue
+            )}
+          </span>
         </p>
-      )}
+        <p className="flex items-baseline justify-between gap-2 text-[11px] text-muted-dim">
+          {buy ? p.maxBuy : p.maxSell}
+          <span className="text-fg-2">
+            {max ? (
+              <NumericText
+                value={groupThousands(max)}
+                suffix={' ' + (buy ? base : quote)}
+              />
+            ) : (
+              copy.market.noValue
+            )}
+          </span>
+        </p>
+      </div>
 
       <button
         type="submit"
@@ -537,14 +461,6 @@ export function SpotOrderForm({
           ? p.placing
           : formatCopy(buy ? p.submitBUY : p.submitSELL, { asset: base })}
       </button>
-      <p className="text-[10px] text-muted-dim">
-        {type === 'STOP_LIMIT' || type === 'STOP_MARKET'
-          ? p.stopNote + ' '
-          : ''}
-        {type === 'TRAILING' ? p.trailingNote + ' ' : ''}
-        {market || type === 'STOP_MARKET' ? p.estimateNote + ' ' : ''}
-        {p.feeNote}
-      </p>
     </form>
   );
 }

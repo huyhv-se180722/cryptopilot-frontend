@@ -107,10 +107,12 @@ describe('route definitions', () => {
     for (const route of all) expect(en.screens[route.titleKey]).toBeTruthy();
   });
 
-  it('traces demo trading to D-86 under /trade with one Trade entry', () => {
+  it('traces demo trading to D-86 (Futures to D-127) under /trade with one Trade entry', () => {
     expect(paperRoutes.map((route) => [route.path, route.screen])).toEqual([
       ['/trade/spot', 'D-86'],
       ['/trade/spot/:symbol', 'D-86'],
+      ['/trade/futures', 'D-127'],
+      ['/trade/futures/:symbol', 'D-127'],
       ['/trade/wallet', 'D-86'],
       ['/trade/orders', 'D-86'],
       ['/trade/pnl', 'D-86'],

@@ -1,3 +1,7 @@
+import {
+  createHttpFuturesTradingService,
+  createPendingFuturesTradingService,
+} from '../../services/api/futures';
 import type { Environment } from '../config/env';
 import { createHttpClient } from '../../services/api/http-client';
 import type { Services } from '../../services/api/services';
@@ -152,6 +156,9 @@ export async function createServices(env: Environment): Promise<Services> {
     paperTrading: connected
       ? createHttpPaperTradingService(http, accountFeed)
       : createPendingPaperTradingService(),
+    futuresTrading: connected
+      ? createHttpFuturesTradingService(http, accountFeed)
+      : createPendingFuturesTradingService(),
     community: connected
       ? createHttpCommunityService(http)
       : createPendingCommunityService(),
