@@ -25,6 +25,7 @@ import type {
   TradingPlanService,
   WatchlistService,
 } from './contracts';
+import type { FuturesTradingService } from './futures';
 import type { HttpClient } from './http-client';
 
 export interface Services {
@@ -41,6 +42,7 @@ export interface Services {
   watchlist: WatchlistService;
   alerts: AlertsService;
   paperTrading: PaperTradingService;
+  futuresTrading: FuturesTradingService;
   community: CommunityService;
   news: NewsService;
   academy: AcademyService;
