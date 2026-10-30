@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import {
+  Link,
+  NavLink,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import {
   Command,
   CreditCard,
@@ -23,6 +29,8 @@ import { traderAccountNav, traderDock, traderNav } from './navigation';
 const paletteItems = [...traderNav, ...traderAccountNav];
 const dockPaths = new Set(traderDock.map((item) => item.to));
 const moreItems = paletteItems.filter((item) => !dockPaths.has(item.to));
+// The trading screens use the whole width, as an exchange's do.
+const FULL_WIDTH = /^\/trade\/(spot|futures)(\/|$)/;
 
 /** Figma trader TopNav (52px, horizontal) with mobile dock below md. */
 export function TraderShell() {
@@ -31,6 +39,7 @@ export function TraderShell() {
   const navigate = useNavigate();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const user = auth.session?.user;
+  const fullWidth = FULL_WIDTH.test(useLocation().pathname);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -202,7 +211,13 @@ export function TraderShell() {
         tabIndex={-1}
         className="flex-1 pb-24 outline-none lg:pb-0"
       >
-        <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6">
+        <div
+          className={
+            fullWidth
+              ? 'w-full px-1 py-1'
+              : 'mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6'
+          }
+        >
           <Outlet />
         </div>
       </main>
