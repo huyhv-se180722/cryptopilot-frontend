@@ -312,29 +312,19 @@ describe('Spot demo orders (TR-F3)', () => {
     );
   });
 
-  it('refuses a post-only (LIMIT_MAKER) order that would fill at once, and keeps one that waits', async () => {
+  it('has no time in force or post only on the form, as on the exchange Spot panel', async () => {
     const { form, user } = await open();
-    // Post only is a time in force choice, not a box of its own.
+    expect(within(form).getByRole('checkbox', { name: 'TP/SL' })).toBeTruthy();
+    expect(
+      within(form).queryByRole('combobox', { name: 'Time in force' }),
+    ).toBeNull();
     expect(
       within(form).queryByRole('checkbox', { name: 'Post only' }),
     ).toBeNull();
-    await user.selectOptions(
-      within(form).getByRole('combobox', { name: 'Time in force' }),
-      'Post only',
-    );
-    // Above the last price 60,000: a buy would take liquidity.
-    await user.type(field(form, /^Price/), '61000');
-    await user.type(field(form, /Amount/), '0.01');
-    await user.click(within(form).getByRole('button', { name: 'Buy BTC' }));
+    await user.click(within(form).getByRole('radio', { name: 'Stop' }));
     expect(
-      await within(form).findByText(
-        'Post-only order refused: at this price it would fill at once as a taker.',
-      ),
-    ).toBeTruthy();
-    await user.clear(field(form, /^Price/));
-    await user.type(field(form, /^Price/), '59000');
-    await user.click(within(form).getByRole('button', { name: 'Buy BTC' }));
-    expect(await screen.findByText('Buy order open.')).toBeTruthy();
+      within(form).queryByRole('combobox', { name: 'Time in force' }),
+    ).toBeNull();
   });
 
   it('shows a symbol filter refusal under its field and an open-order limit as a notice', async () => {
@@ -515,13 +505,20 @@ describe('Spot demo orders (TR-F3)', () => {
       await within(panel).findByRole('button', { name: 'Transfer' }),
     );
     const dialog = await screen.findByRole('dialog', { name: 'Transfer USDT' });
-    await user.type(
-      within(dialog).getByRole('textbox', { name: 'Amount (USDT)' }),
-      '250',
-    );
+    const amount = within(dialog).getByRole('textbox', {
+      name: 'Amount (USDT)',
+    }) as HTMLInputElement;
+    // The free balance with two digits, grouped, without the stored zeros.
+    expect(dialog.textContent).toContain('Available: 10,000.00 USDT');
+    await user.click(within(dialog).getByRole('button', { name: 'Max' }));
+    expect(amount.value).toBe('10,000');
+    await user.clear(amount);
+    // Typed with a grouping comma, the amount is read as 1,250.
+    await user.type(amount, '1,250');
+    expect(amount.value).toBe('1,250');
     await user.click(within(dialog).getByRole('button', { name: 'Transfer' }));
     expect(
-      await screen.findByText('250 USDT moved to the futures wallet.'),
+      await screen.findByText('1,250 USDT moved to the futures wallet.'),
     ).toBeTruthy();
   });
 });
