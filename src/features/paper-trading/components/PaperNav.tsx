@@ -4,13 +4,14 @@ import { classNames } from '../../../utils/class-names';
 
 /**
  * Sub-navigation of the demo trading area (like the exchange's trade,
- * wallet and orders menus): Spot trade, Wallet, Orders.
+ * wallet and orders menus): Spot trade, Futures trade, Wallet, Orders.
  */
 export function PaperNav() {
   const copy = useCopy();
   const p = copy.paper;
   const items = [
     { to: '/trade/spot', label: p.navSpot },
+    { to: '/trade/futures', label: p.navFutures },
     { to: '/trade/wallet', label: p.navWallet },
     { to: '/trade/orders', label: p.navOrders },
     { to: '/trade/pnl', label: p.navPnl },

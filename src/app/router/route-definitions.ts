@@ -9,7 +9,7 @@ import type { Copy } from '../../i18n/locales/en';
  * Dialog screens (SCR-14, SCR-19, SCR-27) have no route of their own.
  */
 export type ScreenId =
-  `SCR-${string}` | 'D-86' | 'D-99' | 'D-124' | 'UC-44' | 'T-114';
+  `SCR-${string}` | 'D-86' | 'D-99' | 'D-124' | 'D-127' | 'UC-44' | 'T-114';
 export type ScreenTitleKey = keyof Copy['screens'];
 
 export interface RouteDefinition {
@@ -111,6 +111,12 @@ export const traderRoutes = [
 export const paperRoutes = [
   { path: '/trade/spot', screen: 'D-86', titleKey: 'tradeSpot' },
   { path: '/trade/spot/:symbol', screen: 'D-86', titleKey: 'tradeSpot' },
+  { path: '/trade/futures', screen: 'D-127', titleKey: 'tradeFutures' },
+  {
+    path: '/trade/futures/:symbol',
+    screen: 'D-127',
+    titleKey: 'tradeFutures',
+  },
   { path: '/trade/wallet', screen: 'D-86', titleKey: 'tradeWallet' },
   { path: '/trade/orders', screen: 'D-86', titleKey: 'tradeOrders' },
   { path: '/trade/pnl', screen: 'D-86', titleKey: 'tradePnl' },
