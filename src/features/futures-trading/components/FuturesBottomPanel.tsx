@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { FormNotice } from '../../../components/feedback/FormNotice';
 import { Checkbox } from '../../../components/ui/Checkbox';
 import { SegmentedControl } from '../../../components/ui/SegmentedControl';
@@ -44,6 +44,15 @@ type Tab =
 
 const link =
   'text-xs font-medium text-primary hover:underline disabled:opacity-50';
+
+/**
+ * A tab's content in a box of its own height that scrolls, as the exchange's
+ * bottom panel: a long history scrolls inside it, the tabs stay in view and
+ * the screen keeps its height.
+ */
+const scroll = (content: ReactNode) => (
+  <div className="h-[340px] overflow-auto overscroll-contain">{content}</div>
+);
 
 /**
  * The bottom panel of the Futures screen, as the exchange's (plan 12.2):
@@ -548,7 +557,7 @@ export function FuturesBottomPanel({
             id: 'positions',
             label: f.tabPositions,
             count: shownPositions.length,
-            panel: (
+            panel: scroll(
               <>
                 {shownPositions.length > 0 && (
                   <div className="mb-2 flex justify-end">
@@ -585,7 +594,7 @@ export function FuturesBottomPanel({
                   rowKey={(p) => p.symbol + p.positionSide}
                   emptyMessage={f.noPositions}
                 />
-              </>
+              </>,
             ),
           },
           {
@@ -594,7 +603,7 @@ export function FuturesBottomPanel({
             ...(open.data && algo.data
               ? { count: openRows.length + algo.data.length }
               : {}),
-            panel: (
+            panel: scroll(
               <>
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <SegmentedControl
@@ -656,13 +665,13 @@ export function FuturesBottomPanel({
                     )}
                   </PaperQueryState>
                 )}
-              </>
+              </>,
             ),
           },
           {
             id: 'orders',
             label: f.tabOrderHistory,
-            panel: (
+            panel: scroll(
               <PaperQueryState query={orders}>
                 {() => (
                   <Table
@@ -675,13 +684,13 @@ export function FuturesBottomPanel({
                     })}
                   />
                 )}
-              </PaperQueryState>
+              </PaperQueryState>,
             ),
           },
           {
             id: 'trades',
             label: f.tabTradeHistory,
-            panel: (
+            panel: scroll(
               <PaperQueryState query={trades}>
                 {() => (
                   <Table
@@ -694,13 +703,13 @@ export function FuturesBottomPanel({
                     })}
                   />
                 )}
-              </PaperQueryState>
+              </PaperQueryState>,
             ),
           },
           {
             id: 'income',
             label: f.tabTransactions,
-            panel: (
+            panel: scroll(
               <PaperQueryState query={income}>
                 {() => (
                   <Table
@@ -711,13 +720,13 @@ export function FuturesBottomPanel({
                     emptyMessage={f.noRows}
                   />
                 )}
-              </PaperQueryState>
+              </PaperQueryState>,
             ),
           },
           {
             id: 'closed',
             label: f.tabPositionHistory,
-            panel: (
+            panel: scroll(
               <PaperQueryState query={closed}>
                 {() => (
                   <Table
@@ -728,13 +737,13 @@ export function FuturesBottomPanel({
                     emptyMessage={f.noRows}
                   />
                 )}
-              </PaperQueryState>
+              </PaperQueryState>,
             ),
           },
           {
             id: 'assets',
             label: f.tabAssets,
-            panel: <FuturesAssets account={account} />,
+            panel: scroll(<FuturesAssets account={account} />),
           },
         ]}
       />
