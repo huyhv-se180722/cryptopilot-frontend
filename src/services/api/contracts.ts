@@ -25,7 +25,15 @@ import type {
   SystemEventQuery,
   SystemHealth,
   AdminUserQuery,
+  AiAnswerPush,
+  AiAskResult,
+  AiConfiguration,
+  AiConfigurationDraft,
   AiConversation,
+  AiConversationPage,
+  AiMessagePage,
+  AiQuestion,
+  AiQuota,
   Alert,
   AlertListQuery,
   AlertPage,
@@ -702,7 +710,42 @@ export interface NotificationService {
   feedStatus(): FeedStatus;
   onFeedStatus(listener: () => void): () => void;
 }
-export type AiService = ReadService<AiConversation>;
+/**
+ * The AI Assistant of SCR-29 (UC-35, UC-36): conversations, their messages,
+ * asking a question (answered later, pushed on `/user/queue/ai`) and the
+ * daily quota (BR-50).
+ */
+export interface AiService {
+  conversations(
+    page: number,
+    pageSize: number,
+    signal?: AbortSignal,
+  ): Promise<AiConversationPage>;
+  start(pairId: string | null): Promise<AiConversation>;
+  rename(id: string, title: string): Promise<AiConversation>;
+  remove(id: string): Promise<void>;
+  /** The newest first. */
+  messages(
+    id: string,
+    page: number,
+    pageSize: number,
+    signal?: AbortSignal,
+  ): Promise<AiMessagePage>;
+  /** Stores the question as PENDING; the answer comes later (MSG30 when the quota is used up). */
+  ask(id: string, question: AiQuestion): Promise<AiAskResult>;
+  quota(signal?: AbortSignal): Promise<AiQuota>;
+  /** Answers as they are written; nothing without the signed-in connection. */
+  subscribeAnswers(listener: (push: AiAnswerPush) => void): () => void;
+}
+
+/** The AI configuration versions of SCR-42 (UC-50), Admin only. */
+export interface AiAdminService {
+  list(signal?: AbortSignal): Promise<readonly AiConfiguration[]>;
+  /** Saved inactive. */
+  create(draft: AiConfigurationDraft): Promise<AiConfiguration>;
+  /** Deactivates the previous active version. */
+  activate(id: string): Promise<AiConfiguration>;
+}
 export type SubscriptionService = ReadService<SubscriptionPackage>;
 export type AdminService = ReadService<AdminLog>;
 

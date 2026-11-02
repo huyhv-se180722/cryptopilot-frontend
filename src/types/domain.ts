@@ -1166,10 +1166,90 @@ export interface NewsPage {
   pageSize: number;
   total: number;
 }
+/** SCR-29 (UC-35, UC-36). */
+export type AiSenderRole = 'USER' | 'ASSISTANT';
+/** A question waits as PENDING until its answer is COMPLETED or FAILED (60 s at most). */
+export type AiMessageStatus = 'PENDING' | 'COMPLETED' | 'FAILED';
 export interface AiConversation {
   id: string;
   title: string;
+  /** The pair it started from, when started from an analysis screen. */
+  pairId: string | null;
+  createdAt: ISODateTime;
   updatedAt: ISODateTime;
+}
+export interface AiConversationPage {
+  items: readonly AiConversation[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+export interface AiMessage {
+  id: string;
+  conversationId: string;
+  role: AiSenderRole;
+  /** The answer already ends with the disclaimer (BR-51). */
+  content: string;
+  status: AiMessageStatus;
+  createdAt: ISODateTime;
+}
+export interface AiMessagePage {
+  /** The newest first. */
+  items: readonly AiMessage[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+/** The daily question quota (BR-50); `limit` null is unlimited, 0 is a plan without the assistant. */
+export interface AiQuota {
+  limit: number | null;
+  used: number;
+  remaining: number | null;
+  resetsAt: ISODateTime;
+  canAsk: boolean;
+  /** PREMIUM: the Trader's performance may be sent with a question. */
+  performanceContext: boolean;
+}
+/** What a question is asked about (the context selector of SCR-29). */
+export interface AiQuestion {
+  question: string;
+  pairId?: string;
+  market?: MarketType;
+  timeframe?: PlanTimeframe;
+  planId?: string;
+  includePerformance?: boolean;
+}
+export interface AiAskResult {
+  question: AiMessage;
+  quota: AiQuota;
+}
+/** `/user/queue/ai`: the outcome of one question. */
+export interface AiAnswerPush {
+  conversationId: string;
+  questionId: string;
+  status: AiMessageStatus;
+  answer: AiMessage | null;
+}
+/** One version of the AI configuration (SCR-42, UC-50). */
+export interface AiConfiguration {
+  id: string;
+  modelName: string;
+  systemPrompt: string;
+  temperature: Decimal;
+  maxOutputTokens: number;
+  disclaimer: string;
+  active: boolean;
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
+  updatedBy: string | null;
+}
+export interface AiConfigurationDraft {
+  modelName: string;
+  systemPrompt: string;
+  /** From 0 to 1, as entered. */
+  temperature: Decimal;
+  maxOutputTokens: number;
+  disclaimer: string;
 }
 export interface SubscriptionPackage {
   id: string;

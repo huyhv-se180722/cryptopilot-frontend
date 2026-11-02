@@ -126,6 +126,10 @@ export const screenPages: Readonly<Record<string, PageModule>> = {
   '/community/members/:memberId': async () => ({
     Component: (await import('../../pages/trader/MemberPage')).MemberPage,
   }),
+  '/ai': async () => ({
+    Component: (await import('../../pages/trader/AiAssistantPage'))
+      .AiAssistantPage,
+  }),
   '/news': async () => ({
     Component: (await import('../../pages/trader/NewsPage')).NewsPage,
   }),
@@ -189,6 +193,10 @@ export const screenPages: Readonly<Record<string, PageModule>> = {
   '/admin/announcements/:postId': async () => ({
     Component: (await import('../../pages/admin/AdminAnnouncementEditorPage'))
       .AdminAnnouncementEditorPage,
+  }),
+  '/admin/ai-config': async () => ({
+    Component: (await import('../../pages/admin/AdminAiConfigPage'))
+      .AdminAiConfigPage,
   }),
   '/admin/news-sources': async () => ({
     Component: (await import('../../pages/admin/AdminNewsSourcesPage'))
