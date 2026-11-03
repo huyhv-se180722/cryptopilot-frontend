@@ -914,7 +914,6 @@ export const en = {
     index: 'Index',
     fundingCountdown: 'Funding / Countdown',
     volume24h: '24h volume (USDT)',
-    lockedTitle: 'Futures demo trading is part of PRO',
     cross: 'Cross',
     isolated: 'Isolated',
     crossPositions: 'Your cross positions',

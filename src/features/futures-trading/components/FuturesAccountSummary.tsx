@@ -1,9 +1,8 @@
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { StatCard } from '../../../components/layout/StatCard';
 import { NumericText } from '../../../components/ui/NumericText';
 import { Table, type Column } from '../../../components/ui/Table';
 import { useCopy } from '../../../hooks/use-copy';
-import { useFeature } from '../../../hooks/use-entitlement';
 import { useServices } from '../../../hooks/use-services';
 import { formatCopy } from '../../../i18n/copy';
 import type { FuturesClosedPosition } from '../../../types/futures';
@@ -22,21 +21,8 @@ const HISTORY_LIMIT = 1000;
 /** The closed positions the PnL section lists. */
 const CLOSED_SHOWN = 20;
 
-/** Renders its children only with the Futures feature, so no read is refused. */
-function WithFutures({ children }: { children: ReactNode }) {
-  return useFeature('FUTURES_ANALYSIS') === 'locked' ? null : <>{children}</>;
-}
-
 /** The Futures wallet's margin figures, above its coins on the wallet page. */
 export function FuturesWalletSummary() {
-  return (
-    <WithFutures>
-      <WalletSummary />
-    </WithFutures>
-  );
-}
-
-function WalletSummary() {
   const account = useFuturesAccount();
   if (!account.data) return null;
   return (
@@ -52,14 +38,6 @@ function WalletSummary() {
  * and paid in fees, from the balance changes, and the positions it closed.
  */
 export function FuturesPnlSection({ days }: { days: number }) {
-  return (
-    <WithFutures>
-      <FuturesPnl days={days} />
-    </WithFutures>
-  );
-}
-
-function FuturesPnl({ days }: { days: number }) {
   const copy = useCopy();
   const f = copy.futures;
   const none = copy.market.noValue;
