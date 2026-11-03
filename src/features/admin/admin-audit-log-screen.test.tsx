@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeAll, describe, expect, it } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createDevelopmentAdminAudit } from '../../dev/dev-admin-audit';
 import { AdminAuditLogPage } from '../../pages/admin/AdminAuditLogPage';
@@ -77,7 +77,7 @@ describe('SCR-44 audit log (UC-46)', () => {
     await waitFor(() => expect(tableRows()).toHaveLength(4));
   });
 
-  it('filters by action, actor and who recorded it, and clears', async () => {
+  it('filters by action and by who recorded it, and clears', async () => {
     await open();
     const user = userEvent.setup();
     await screen.findByText('44 entries');
@@ -89,10 +89,16 @@ describe('SCR-44 audit log (UC-46)', () => {
     expect(
       tableRows().every((row) => within(row).queryByText('System') !== null),
     ).toBe(true);
-    await user.click(screen.getByRole('radio', { name: 'Anyone' }));
-    await user.type(screen.getByLabelText('Actor'), 'khoa');
+  });
+
+  it('filters by part of the actor name, nothing matching said so', async () => {
+    await open();
+    await screen.findByText('44 entries');
+    // Pasted rather than typed key by key: the search is the same, the test lighter.
+    const actor = screen.getByLabelText('Actor');
+    fireEvent.change(actor, { target: { value: 'khoa' } });
     expect(await screen.findByText('13 entries')).toBeTruthy();
-    await user.type(screen.getByLabelText('Actor'), ' nobody');
+    fireEvent.change(actor, { target: { value: 'khoa nobody' } });
     expect(
       await screen.findByText('No entry matches these filters.'),
     ).toBeTruthy();
