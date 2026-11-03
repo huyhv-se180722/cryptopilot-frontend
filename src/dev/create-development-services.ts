@@ -1,4 +1,5 @@
 import type { Services } from '../services/api/services';
+import { createDevelopmentAdminAudit } from './dev-admin-audit';
 import { createDevelopmentAdminPairs } from './dev-admin-pairs';
 import { createDevelopmentAdminSettings } from './dev-admin-settings';
 import { createDevelopmentAdminDashboard } from './dev-admin-dashboard';
@@ -34,5 +35,6 @@ export function createDevelopmentServices(base: Services): Services {
     adminSettings: createDevelopmentAdminSettings(),
     adminUsers: createDevelopmentAdminUsers(() => auth.restoreSession()),
     adminDashboard: createDevelopmentAdminDashboard(),
+    adminAudit: createDevelopmentAdminAudit(),
   };
 }

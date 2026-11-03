@@ -17,6 +17,11 @@ import type {
   AdminUserDetail,
   ReportGrouping,
   AdminUserPage,
+  AuditLogPage,
+  AuditLogQuery,
+  SystemEventPage,
+  SystemEventQuery,
+  SystemHealth,
   AdminUserQuery,
   AiConversation,
   Alert,
@@ -619,6 +624,18 @@ export interface AdminDashboardService {
   ): Promise<AdminReport>;
   /** The same report as CSV text (UTF-8, a header line then one per group). */
   exportReport(period: AdminPeriod, groupBy: ReportGrouping): Promise<string>;
+}
+
+/** SCR-44 (UC-46): the audit log, the system log and the health panel. */
+export interface AdminAuditService {
+  auditLog(query: AuditLogQuery, signal?: AbortSignal): Promise<AuditLogPage>;
+  /** The same search as CSV text, at most 10,000 entries. */
+  exportAuditLog(query: Omit<AuditLogQuery, 'page'>): Promise<string>;
+  systemEvents(
+    query: SystemEventQuery,
+    signal?: AbortSignal,
+  ): Promise<SystemEventPage>;
+  health(signal?: AbortSignal): Promise<SystemHealth>;
 }
 
 export interface AdminUserService {
