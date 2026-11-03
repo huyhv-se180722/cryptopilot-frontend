@@ -32,7 +32,7 @@ export function PlanEditPage() {
   const profile = useProfileData().state;
 
   return (
-    <div className="mx-auto w-full max-w-7xl">
+    <div className="w-full">
       <Link
         to={`/plans/${planId}`}
         className="mb-3 inline-flex items-center gap-1 text-xs text-muted no-underline hover:text-fg-2"

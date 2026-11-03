@@ -103,7 +103,7 @@ function AcademyHome() {
   const lessonTotal = topics.data?.reduce((sum, t) => sum + t.articles, 0);
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
+    <div className="w-full">
       <AcademyHero
         text={text}
         onText={setText}

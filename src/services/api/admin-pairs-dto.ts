@@ -1,5 +1,6 @@
 import type {
   AdminPair,
+  BracketTemplate,
   ExchangeMarketInfo,
   ExchangeStatus,
   ExchangeSymbol,
@@ -107,6 +108,17 @@ function bracket(item: unknown): LeverageBracket {
     ),
     maintenanceAmount: decimal(value.maintenanceAmount, 'maintenanceAmount'),
   };
+}
+
+export function decodeBracketTemplates(body: unknown): BracketTemplate[] {
+  return list(body, 'templates').map((item) => {
+    const value = record(item, 'template');
+    return {
+      id: oneOf(['MAJOR', 'ALTCOIN', 'SMALL_CAP'] as const, value.id, 'id'),
+      firstLeverage: integer(value.firstLeverage, 'firstLeverage'),
+      brackets: list(value.brackets, 'brackets').map(bracket),
+    };
+  });
 }
 
 export function decodePairBrackets(body: unknown): PairBrackets {

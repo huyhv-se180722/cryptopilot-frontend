@@ -53,7 +53,7 @@ export function TradeWalletPage() {
       : null;
 
   return (
-    <div className="mx-auto w-full max-w-7xl">
+    <div className="w-full">
       <DemoTradingBanner />
       <PaperNav />
       <PageHeader

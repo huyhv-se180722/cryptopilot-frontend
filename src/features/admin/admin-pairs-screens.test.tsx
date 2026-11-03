@@ -90,6 +90,30 @@ describe('SCR-37 pairs (UC-45)', () => {
     expect(await screen.findByText('50x')).toBeTruthy();
   });
 
+  it('turns both markets off when the pair is made inactive, and keeps them off', async () => {
+    await open();
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole('button', { name: 'Edit BTC/USDT' }),
+    );
+    const dialog = within(
+      screen.getByRole('dialog', { name: 'Edit BTC/USDT' }),
+    );
+    const spot = dialog.getByRole('switch', { name: /Spot market/ });
+    const futures = dialog.getByRole('switch', { name: /Futures market/ });
+    expect((spot as HTMLInputElement).checked).toBe(true);
+
+    await user.selectOptions(dialog.getByLabelText('Status'), 'INACTIVE');
+
+    expect((spot as HTMLInputElement).checked).toBe(false);
+    expect((futures as HTMLInputElement).checked).toBe(false);
+    expect((spot as HTMLInputElement).disabled).toBe(true);
+    expect(dialog.getAllByText('Off while the pair is inactive.')).toHaveLength(
+      2,
+    );
+    expect(dialog.queryByLabelText('Max leverage')).toBe(null);
+  });
+
   it('says when the ceiling is above the first bracket (BR-26)', async () => {
     await open();
     const user = userEvent.setup();

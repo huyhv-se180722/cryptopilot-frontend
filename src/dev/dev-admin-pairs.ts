@@ -67,6 +67,68 @@ const EXCHANGE: readonly ExchangeSymbol[] = [
   },
 ];
 
+/** The backend's templates (`BracketTemplate`): cap, leverage, rate. */
+const TEMPLATES: readonly {
+  id: 'MAJOR' | 'ALTCOIN' | 'SMALL_CAP';
+  rows: readonly (readonly [string, number, string])[];
+}[] = [
+  {
+    id: 'MAJOR',
+    rows: [
+      ['50000', 125, '0.004'],
+      ['600000', 100, '0.005'],
+      ['3000000', 75, '0.0065'],
+      ['12000000', 50, '0.01'],
+      ['70000000', 25, '0.02'],
+      ['100000000', 20, '0.025'],
+      ['230000000', 10, '0.05'],
+      ['480000000', 5, '0.1'],
+      ['600000000', 4, '0.125'],
+      ['800000000', 3, '0.15'],
+      ['1200000000', 2, '0.25'],
+      ['1800000000', 1, '0.5'],
+    ],
+  },
+  {
+    id: 'ALTCOIN',
+    rows: [
+      ['5000', 75, '0.005'],
+      ['25000', 50, '0.01'],
+      ['100000', 25, '0.02'],
+      ['250000', 20, '0.025'],
+      ['1000000', 10, '0.05'],
+      ['3000000', 5, '0.1'],
+      ['5000000', 4, '0.125'],
+      ['10000000', 3, '0.15'],
+      ['20000000', 2, '0.25'],
+      ['30000000', 1, '0.5'],
+    ],
+  },
+  {
+    id: 'SMALL_CAP',
+    rows: [
+      ['5000', 50, '0.01'],
+      ['25000', 20, '0.025'],
+      ['100000', 10, '0.05'],
+      ['250000', 5, '0.1'],
+      ['1000000', 4, '0.125'],
+      ['2000000', 3, '0.15'],
+      ['3000000', 2, '0.25'],
+      ['5000000', 1, '0.5'],
+    ],
+  },
+];
+
+const templateInputs = (
+  rows: readonly (readonly [string, number, string])[],
+): LeverageBracketInput[] =>
+  rows.map(([cap, maxLeverage, maintenanceMarginRate], index) => ({
+    notionalFloor: index === 0 ? '0' : (rows[index - 1]?.[0] ?? '0'),
+    notionalCap: cap,
+    maxLeverage,
+    maintenanceMarginRate,
+  }));
+
 const HAS_OPEN_FUTURES = new Set(['ETHUSDT']);
 
 /** Each bracket starts at the cap before it (BR-26), Binance's amounts (BR-27). */
@@ -259,12 +321,18 @@ export function createDevelopmentAdminPairs(
         HAS_OPEN_FUTURES.has(pair.symbol)
       )
         refuse(409, 'PAIR_HAS_OPEN_POSITIONS', 'MSG40');
+      // An inactive pair has both markets off, as the backend stores it.
       const next: AdminPair = {
         ...pair,
         ...settings,
-        maxLeverage: settings.futuresEnabled
-          ? settings.maxLeverage
-          : pair.maxLeverage,
+        spotEnabled: active && settings.spotEnabled,
+        futuresEnabled: active && settings.futuresEnabled,
+        maxLeverage:
+          active && settings.futuresEnabled
+            ? settings.maxLeverage
+            : active
+              ? pair.maxLeverage
+              : null,
         updatedAt: at(),
       };
       pairs.set(pairId, next);
@@ -278,6 +346,15 @@ export function createDevelopmentAdminPairs(
         symbol: pair.symbol,
         brackets: brackets.get(pairId) ?? [],
       };
+    },
+    async bracketTemplates() {
+      return TEMPLATES.map((template) => ({
+        id: template.id,
+        firstLeverage: template.rows[0]?.[1] ?? 1,
+        brackets: bracketsOf(
+          templateInputs(template.rows),
+        ) as LeverageBracket[],
+      }));
     },
     async replaceBrackets(pairId, rows) {
       await pause();

@@ -66,7 +66,7 @@ export function PublicHomePage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-7xl">
+    <div className="w-full">
       <section className="relative isolate mb-5 grid grid-cols-1 items-center gap-10 pt-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)] lg:gap-12 lg:pt-2">
         <div aria-hidden="true" className="hero-ambient" />
         <div className="flex flex-col">

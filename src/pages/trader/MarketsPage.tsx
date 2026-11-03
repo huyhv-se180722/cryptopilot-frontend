@@ -17,7 +17,7 @@ export function MarketsPage() {
     params.get('market') === 'futures' ? 'futures' : 'spot';
   const board = useMarketBoard(market);
   return (
-    <div className="mx-auto w-full max-w-7xl">
+    <div className="w-full">
       <PageHeader
         title={copy.screens.markets}
         description={copy.market.marketsSubtitle}

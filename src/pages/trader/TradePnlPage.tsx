@@ -60,7 +60,7 @@ export function TradePnlPage() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-7xl">
+    <div className="w-full">
       <DemoTradingBanner />
       <PaperNav />
       <PageHeader title={p.pnlTitle} description={p.pnlSubtitle} />

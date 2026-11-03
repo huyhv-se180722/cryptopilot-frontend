@@ -4,6 +4,7 @@ import type { HttpClient } from './http-client';
 import {
   decodeAdminPair,
   decodeAdminPairs,
+  decodeBracketTemplates,
   decodeExchangeSymbols,
   decodePairBrackets,
   encodeBrackets,
@@ -19,6 +20,7 @@ export function createPendingAdminPairService(): AdminPairService {
     update: async () => integrationPending(),
     brackets: async () => integrationPending(),
     replaceBrackets: async () => integrationPending(),
+    bracketTemplates: async () => integrationPending(),
   };
 }
 
@@ -79,6 +81,12 @@ export function createHttpAdminPairService(http: HttpClient): AdminPairService {
         method: 'PUT',
         body: encodeBrackets(brackets),
         decode: decodePairBrackets,
+      }),
+    bracketTemplates: (signal) =>
+      http.request({
+        path: 'admin/pairs/bracket-templates',
+        decode: decodeBracketTemplates,
+        ...withSignal(signal),
       }),
   };
 }

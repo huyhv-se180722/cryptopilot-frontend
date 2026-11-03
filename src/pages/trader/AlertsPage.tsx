@@ -156,7 +156,7 @@ export function AlertsPage() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-7xl">
+    <div className="w-full">
       <header className="mb-4 flex flex-wrap items-center gap-3">
         <div className="mr-auto">
           <h1 className="text-lg font-semibold text-fg">{a.title}</h1>

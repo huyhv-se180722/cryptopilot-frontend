@@ -179,7 +179,7 @@ export function SpotAnalysisPage() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-7xl">
+    <div className="w-full">
       <Link
         to="/markets"
         className="mb-3 inline-flex items-center gap-1 text-xs text-muted no-underline hover:text-fg-2"

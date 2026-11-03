@@ -74,6 +74,23 @@ describe('SCR-33 admin overview (UC-40, UC-41)', () => {
     expect(table.getByRole('columnheader', { name: 'PRO_MONTHLY (VND)' }));
   });
 
+  it('pages the daily report 10 rows at a time, from the first page again on a new grouping', async () => {
+    await open(createDevelopmentAdminDashboard());
+    const user = userEvent.setup();
+    const table = await screen.findByRole('table', {
+      name: 'Management report of the period',
+    });
+    const rows = () => within(table).getAllByRole('row').slice(1);
+    await waitFor(() => expect(rows()).toHaveLength(10));
+    expect(screen.getByText('Rows 1–10 of 30')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Page 3' }));
+    expect(await screen.findByText('Rows 21–30 of 30')).toBeTruthy();
+
+    await user.click(screen.getByRole('radio', { name: 'Week' }));
+    await waitFor(() => expect(screen.queryByText(/^Rows /)).toBe(null));
+  });
+
   it('saves the report as a CSV file', async () => {
     const created = vi.fn(() => 'blob:report');
     Object.assign(URL, {

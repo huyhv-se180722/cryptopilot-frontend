@@ -1618,6 +1618,14 @@ export interface LeverageBracket {
   maintenanceAmount: Decimal;
 }
 
+/** Ready-made brackets SCR-38 offers to start from (UC-46). */
+export interface BracketTemplate {
+  id: 'MAJOR' | 'ALTCOIN' | 'SMALL_CAP';
+  /** The template's highest leverage; a ceiling above it cannot use it (BR-26). */
+  firstLeverage: number;
+  brackets: readonly LeverageBracket[];
+}
+
 /** A bracket as entered; the server works out the maintenance amount. */
 export type LeverageBracketInput = Omit<
   LeverageBracket,
@@ -1758,4 +1766,133 @@ export interface AdminReport {
     coveredTo: string;
     values: Readonly<Record<string, Decimal>>;
   }[];
+}
+
+/** SCR-44 (UC-46): who recorded an audit entry. */
+export type AuditActorType = 'USER' | 'SYSTEM';
+
+/** The account behind an audit entry; only the id when it no longer exists. */
+export interface AuditActor {
+  id: string;
+  email: string | null;
+  displayName: string | null;
+  /** TRADER or ADMIN, null when the account is gone. */
+  role: 'TRADER' | 'ADMIN' | null;
+}
+
+/** A JSON value as the audit trail stored it (secrets already redacted). */
+export type AuditValue =
+  | string
+  | number
+  | boolean
+  | null
+  | readonly AuditValue[]
+  | { readonly [key: string]: AuditValue };
+
+/** One entry of the audit log (SRS 3.11.9, BR-57). */
+export interface AuditLogEntry {
+  id: string;
+  recordedAt: ISODateTime;
+  /** Null when the system acted. */
+  actor: AuditActor | null;
+  /** An AuditAction name, kept as sent so a new action still shows. */
+  action: string;
+  entityType: string | null;
+  entityId: string | null;
+  ipAddress: string | null;
+  oldValue: AuditValue | null;
+  newValue: AuditValue | null;
+}
+
+/** The filters of the audit log; every field absent is no restriction. */
+export interface AuditLogQuery {
+  page: number;
+  actor?: string;
+  actorId?: string;
+  actorType?: AuditActorType;
+  actions?: readonly string[];
+  entityType?: string;
+  entityId?: string;
+  /** Business days, UTC+7, both included, e.g. 2026-11-01. */
+  from?: string;
+  to?: string;
+}
+
+export interface AuditLogPage {
+  items: readonly AuditLogEntry[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+export type SystemEventCategory = 'SYSTEM_ERROR' | 'EXTERNAL_API_FAILURE';
+
+export type SystemEventSource =
+  | 'APPLICATION'
+  | 'SCHEDULED_JOB'
+  | 'BINANCE_REST'
+  | 'AI_SERVICE'
+  | 'MEDIA_STORAGE'
+  | 'NEWS_SOURCE'
+  | 'MAIL';
+
+/** One row of the system log: a failure and how often it repeated (UC-46). */
+export interface SystemEvent {
+  id: string;
+  category: SystemEventCategory;
+  source: SystemEventSource;
+  operation: string;
+  errorType: string;
+  message: string | null;
+  /** The reference a caller was answered with, for an error of a request. */
+  reference: string | null;
+  occurrences: number;
+  firstSeenAt: ISODateTime;
+  lastSeenAt: ISODateTime;
+}
+
+export interface SystemEventQuery {
+  page: number;
+  category?: SystemEventCategory;
+  source?: SystemEventSource;
+  from?: string;
+  to?: string;
+}
+
+export interface SystemEventPage {
+  items: readonly SystemEvent[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+export type ServiceStatus = 'UP' | 'DEGRADED' | 'DOWN' | 'UNKNOWN';
+
+/** One external service on the health panel. */
+export interface ServiceHealth {
+  source: SystemEventSource;
+  status: ServiceStatus;
+  lastSuccessAt: ISODateTime | null;
+  lastFailureAt: ISODateTime | null;
+  failures24h: number;
+  lastError: string | null;
+  /** Binance only: when its IP ban of the server ends. */
+  bannedUntil: ISODateTime | null;
+}
+
+/** The market data feed of one market. */
+export interface FeedHealth {
+  market: 'SPOT' | 'FUTURES';
+  latestCandleAt: ISODateTime | null;
+  lagSeconds: number | null;
+  stale: boolean;
+}
+
+/** The health panel of SCR-44 (UC-46). */
+export interface SystemHealth {
+  checkedAt: ISODateTime;
+  recentWindowMinutes: number;
+  staleAfterMinutes: number;
+  services: readonly ServiceHealth[];
+  feeds: readonly FeedHealth[];
 }

@@ -288,7 +288,7 @@ export function PlansPage() {
 
   return (
     <CoinPricesProvider>
-      <div className="mx-auto w-full max-w-[1600px]">
+      <div className="w-full">
         <header className="mb-4 flex flex-wrap items-center gap-3">
           <h1 className="mr-auto text-lg font-semibold text-fg">
             {p.listTitle}
