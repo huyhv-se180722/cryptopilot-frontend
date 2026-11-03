@@ -7,7 +7,7 @@ import { useCopy } from '../../../hooks/use-copy';
 import { useToast } from '../../../hooks/use-toast';
 import { formatCopy } from '../../../i18n/copy';
 import type { FuturesOrder } from '../../../types/futures';
-import { groupThousands } from '../../../utils/decimal-format';
+import { groupThousands, trimDecimal } from '../../../utils/decimal-format';
 import {
   compare,
   isPlainDecimal,
@@ -33,8 +33,8 @@ export function AmendOrderDialog({
   const f = copy.futures;
   const toast = useToast();
   const { amend } = useFuturesActions();
-  const [price, setPrice] = useState(order.price);
-  const [quantity, setQuantity] = useState(order.origQty);
+  const [price, setPrice] = useState(trimDecimal(order.price, 0));
+  const [quantity, setQuantity] = useState(trimDecimal(order.origQty, 0));
   const [errors, setErrors] = useState<{ price?: string; quantity?: string }>(
     {},
   );
@@ -55,7 +55,7 @@ export function AmendOrderDialog({
     if (quantityError) found.quantity = quantityError;
     else if (filled && compare(quantity, order.executedQty) <= 0)
       found.quantity = formatCopy(f.amendBelowFilled, {
-        filled: groupThousands(order.executedQty),
+        filled: groupThousands(trimDecimal(order.executedQty, 0)),
       });
     setErrors(found);
     if (found.price || found.quantity) return;
@@ -100,8 +100,8 @@ export function AmendOrderDialog({
       <p className="mb-3 text-xs text-muted">
         {formatCopy(f.amendSummary, {
           side: order.side === 'BUY' ? f.buy : f.sell,
-          filled: groupThousands(order.executedQty),
-          amount: groupThousands(order.origQty),
+          filled: groupThousands(trimDecimal(order.executedQty, 0)),
+          amount: groupThousands(trimDecimal(order.origQty, 0)),
         })}
       </p>
       <DecimalInput

@@ -23,6 +23,7 @@ import {
   formatPrice,
   groupThousands,
   toFixedDecimal,
+  trimDecimal,
 } from '../../../utils/decimal-format';
 import { formatInstantLocal } from '../../../utils/instant-format';
 import { PaperQueryState } from '../../paper-trading/components/paper-tables';
@@ -337,7 +338,9 @@ export function FuturesBottomPanel({
       render: (o) => (
         <NumericText
           value={
-            groupThousands(o.executedQty) + ' / ' + groupThousands(o.origQty)
+            groupThousands(trimDecimal(o.executedQty, 0)) +
+            ' / ' +
+            groupThousands(trimDecimal(o.origQty, 0))
           }
         />
       ),
