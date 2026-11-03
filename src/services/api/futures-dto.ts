@@ -264,7 +264,8 @@ export function decodePositionMode(body: unknown): boolean {
 export function decodeFuturesIncome(body: unknown): FuturesIncome {
   const v = record(body);
   return {
-    symbol: nullableText(v.symbol, 'symbol'),
+    // A transfer belongs to no pair: the exchange, and the backend, send "".
+    symbol: v.symbol === '' ? null : nullableText(v.symbol, 'symbol'),
     incomeType: text(v.incomeType, 'incomeType'),
     income: decimal(v.income, 'income'),
     asset: text(v.asset, 'asset'),
