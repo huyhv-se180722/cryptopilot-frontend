@@ -1974,6 +1974,12 @@ export const en = {
       'Below the pair ceiling; raise it or lower the ceiling first.',
     errAmount: 'Does not follow from the rates.',
     notTrading: 'The exchange has never listed this pair on Futures.',
+    templateLabel: 'Start from a template',
+    templateMAJOR: 'BTC, ETH: {n} brackets, up to {lev}x',
+    templateALTCOIN: 'Large altcoin: {n} brackets, up to {lev}x',
+    templateSMALL_CAP: 'Small cap: {n} brackets, up to {lev}x',
+    templateTooLow: 'below the pair ceiling',
+    useTemplate: 'Use template',
   },
   adminSettings: {
     title: 'System settings',

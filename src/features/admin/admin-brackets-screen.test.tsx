@@ -100,4 +100,37 @@ describe('SCR-38 leverage brackets (UC-46)', () => {
       ),
     ).toBeTruthy();
   });
+
+  it('fills the table from a template, the ones below the ceiling not offered, saved only on Save', async () => {
+    await open('/admin/leverage-brackets?pair=ETHUSDT');
+    const user = userEvent.setup();
+    const table = within(
+      await screen.findByRole('region', {
+        name: 'Leverage brackets of ETH/USDT',
+      }),
+    );
+    const picker = (await screen.findByLabelText(
+      'Start from a template',
+    )) as HTMLSelectElement;
+    const option = (id: string) =>
+      picker.querySelector(`option[value="${id}"]`) as HTMLOptionElement;
+    // ETH's ceiling is 100x: only the 125x template allows it.
+    expect(option('MAJOR').disabled).toBe(false);
+    expect(option('ALTCOIN').disabled).toBe(true);
+    expect(option('SMALL_CAP').textContent).toContain('below the pair ceiling');
+
+    await user.selectOptions(picker, 'MAJOR');
+    await user.click(screen.getByRole('button', { name: 'Use template' }));
+    expect(
+      (table.getByLabelText('To (USDT) of bracket 12') as HTMLInputElement)
+        .value,
+    ).toBe('1800000000');
+    expect(
+      (table.getByLabelText('Max leverage of bracket 1') as HTMLInputElement)
+        .value,
+    ).toBe('125');
+    expect(
+      screen.getByRole('button', { name: 'Discard changes' }),
+    ).toBeTruthy();
+  });
 });

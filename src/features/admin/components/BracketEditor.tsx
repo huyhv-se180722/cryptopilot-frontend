@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { LayoutTemplate, Plus, Trash2 } from 'lucide-react';
 import { Alert as Banner } from '../../../components/feedback/States';
 import { Button } from '../../../components/ui/Button';
 import { NumericText } from '../../../components/ui/NumericText';
@@ -9,11 +9,18 @@ import { formatCopy } from '../../../i18n/copy';
 import type { Copy } from '../../../i18n/locales/en';
 import { errorText } from '../../../i18n/messages';
 import { problemOf } from '../../../services/api/errors';
-import type { AdminPair, PairBrackets } from '../../../types/domain';
+import type {
+  AdminPair,
+  BracketTemplate,
+  PairBrackets,
+} from '../../../types/domain';
 import { classNames } from '../../../utils/class-names';
 import { groupThousands, toFixedDecimal } from '../../../utils/decimal-format';
 import { pairLabel } from '../../../utils/pair-label';
-import { useReplaceBrackets } from '../hooks/use-admin-pairs';
+import {
+  useBracketTemplates,
+  useReplaceBrackets,
+} from '../hooks/use-admin-pairs';
 import {
   BRACKETS_MAX,
   bracketInputs,
@@ -304,6 +311,10 @@ export function BracketEditor({
           <Plus size={13} aria-hidden="true" />
           {b.addBracket}
         </Button>
+        <TemplatePicker
+          ceiling={pair.maxLeverage}
+          onUse={(template) => edit(rowsOf(template.brackets))}
+        />
         <span className="flex-1" />
         {dirty && (
           <Button
@@ -328,5 +339,63 @@ export function BracketEditor({
         </Button>
       </div>
     </form>
+  );
+}
+
+/**
+ * Fills the table from a ready-made template (UC-46); nothing is saved until
+ * Save. A template whose first bracket is below the pair's ceiling is shown
+ * but cannot be used (BR-26).
+ */
+function TemplatePicker({
+  ceiling,
+  onUse,
+}: {
+  ceiling: number | null;
+  onUse: (template: BracketTemplate) => void;
+}) {
+  const b = useCopy().adminBrackets;
+  const templates = useBracketTemplates();
+  const [chosen, setChosen] = useState('');
+  if (!templates.data?.length) return null;
+  const usable = (template: BracketTemplate) =>
+    ceiling === null || template.firstLeverage >= ceiling;
+  const picked = templates.data.find((template) => template.id === chosen);
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <label htmlFor="bracket-template" className="sr-only">
+        {b.templateLabel}
+      </label>
+      <select
+        id="bracket-template"
+        value={chosen}
+        onChange={(event) => setChosen(event.target.value)}
+        className="h-8 rounded-lg border border-line-strong bg-raised px-2 text-[11px] text-fg-2"
+      >
+        <option value="">{b.templateLabel}</option>
+        {templates.data.map((template) => (
+          <option
+            key={template.id}
+            value={template.id}
+            disabled={!usable(template)}
+          >
+            {formatCopy(b[`template${template.id}`], {
+              n: template.brackets.length,
+              lev: template.firstLeverage,
+            })}
+            {usable(template) ? '' : ' — ' + b.templateTooLow}
+          </option>
+        ))}
+      </select>
+      <Button
+        variant="secondary"
+        size="sm"
+        disabled={!picked || !usable(picked)}
+        onClick={() => picked && onUse(picked)}
+      >
+        <LayoutTemplate size={13} aria-hidden="true" />
+        {b.useTemplate}
+      </Button>
+    </span>
   );
 }

@@ -18,6 +18,7 @@ import type {
   ReportGrouping,
   AdminUserPage,
   AuditLogPage,
+  BracketTemplate,
   AuditLogQuery,
   SystemEventPage,
   SystemEventQuery,
@@ -591,6 +592,8 @@ export interface AdminPairService {
     pairId: string,
     brackets: readonly LeverageBracketInput[],
   ): Promise<PairBrackets>;
+  /** The ready-made brackets to start from, amounts worked out (BR-27). */
+  bracketTemplates(signal?: AbortSignal): Promise<BracketTemplate[]>;
 }
 
 /**

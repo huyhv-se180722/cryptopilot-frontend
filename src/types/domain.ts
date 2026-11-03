@@ -1618,6 +1618,14 @@ export interface LeverageBracket {
   maintenanceAmount: Decimal;
 }
 
+/** Ready-made brackets SCR-38 offers to start from (UC-46). */
+export interface BracketTemplate {
+  id: 'MAJOR' | 'ALTCOIN' | 'SMALL_CAP';
+  /** The template's highest leverage; a ceiling above it cannot use it (BR-26). */
+  firstLeverage: number;
+  brackets: readonly LeverageBracket[];
+}
+
 /** A bracket as entered; the server works out the maintenance amount. */
 export type LeverageBracketInput = Omit<
   LeverageBracket,

@@ -53,6 +53,16 @@ export function usePairBrackets(pairId: string | null) {
   });
 }
 
+/** The ready-made brackets to start from; they never change while open. */
+export function useBracketTemplates() {
+  const { adminPairs } = useServices();
+  return useQuery({
+    queryKey: [...BRACKETS_KEY, 'templates'],
+    queryFn: ({ signal }) => adminPairs.bracketTemplates(signal),
+    staleTime: Infinity,
+  });
+}
+
 async function refresh(client: ReturnType<typeof useQueryClient>) {
   await Promise.all([
     client.invalidateQueries({ queryKey: ADMIN_PAIRS_KEY }),
