@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Calculator } from 'lucide-react';
 import { FormNotice } from '../../../components/feedback/FormNotice';
 import { Button } from '../../../components/ui/Button';
 import { Dialog } from '../../../components/ui/Dialog';
@@ -16,6 +17,7 @@ import { groupThousands } from '../../../utils/decimal-format';
 import { useFuturesActions } from '../hooks/use-futures';
 import { futuresErrorText } from '../model/futures-errors';
 import { maxNotionalAtLeverage, toBrackets } from '../model/futures-form';
+import { FuturesCalculatorDialog } from './FuturesCalculatorDialog';
 
 /** The leverage above which the dialog warns (plan 12.3, the risk profiles' ceiling). */
 const HIGH_LEVERAGE = 10;
@@ -35,14 +37,23 @@ export function FuturesSettingsBar({
   config,
   brackets,
   dualSide,
+  tickSize = null,
+  lastPrice = null,
+  walletBalance = null,
 }: {
   symbol: string;
   config: FuturesSymbolConfig | undefined;
   brackets: readonly FuturesLeverageBracket[] | undefined;
   dualSide: boolean | undefined;
+  tickSize?: string | null;
+  lastPrice?: string | null;
+  /** The available balance, the calculator's default wallet. */
+  walletBalance?: string | null;
 }) {
   const f = useCopy().futures;
-  const [open, setOpen] = useState<'margin' | 'leverage' | 'mode' | null>(null);
+  const [open, setOpen] = useState<
+    'margin' | 'leverage' | 'mode' | 'calculator' | null
+  >(null);
   const close = () => setOpen(null);
   return (
     <div className="mb-2 flex flex-wrap gap-1.5">
@@ -74,6 +85,15 @@ export function FuturesSettingsBar({
       >
         {dualSide === undefined ? '…' : dualSide ? f.hedge : f.oneWay}
       </button>
+      <button
+        type="button"
+        className={chip + ' ml-auto gap-1'}
+        disabled={!config || !brackets}
+        onClick={() => setOpen('calculator')}
+      >
+        <Calculator size={13} aria-hidden="true" />
+        {f.calculator}
+      </button>
       {config && open === 'margin' && (
         <MarginModeDialog symbol={symbol} config={config} onClose={close} />
       )}
@@ -82,6 +102,17 @@ export function FuturesSettingsBar({
           symbol={symbol}
           config={config}
           brackets={brackets}
+          onClose={close}
+        />
+      )}
+      {config && brackets && open === 'calculator' && (
+        <FuturesCalculatorDialog
+          symbol={symbol}
+          tickSize={tickSize}
+          leverage={config.leverage}
+          maxLeverage={Math.max(1, ...brackets.map((b) => b.initialLeverage))}
+          walletBalance={walletBalance}
+          lastPrice={lastPrice}
           onClose={close}
         />
       )}

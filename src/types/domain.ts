@@ -1823,6 +1823,22 @@ export interface AuditLogPage {
   page: number;
   pageSize: number;
   total: number;
+  /**
+   * The actor text matched more than 500 accounts and only the newest 500
+   * were searched (`X-Result-Truncated: actor`).
+   */
+  actorsTruncated: boolean;
+}
+
+/** An audit export (CSV text) and what the server said it left out. */
+export interface AuditLogExport {
+  csv: string;
+  /** The actor text was cut to the newest 500 accounts. */
+  actorsTruncated: boolean;
+  /** More entries matched than an export holds (10,000). */
+  truncated: boolean;
+  /** How many entries matched, when the export was cut (`X-Total-Count`). */
+  matched: number | null;
 }
 
 export type SystemEventCategory = 'SYSTEM_ERROR' | 'EXTERNAL_API_FAILURE';

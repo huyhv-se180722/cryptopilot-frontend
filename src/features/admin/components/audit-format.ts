@@ -34,6 +34,7 @@ export const AUDIT_ACTION_GROUPS = {
     'CONFIGURATION_CHANGED',
     'CONFIGURATION_DELETED',
   ],
+  audit: ['AUDIT_LOG_EXPORTED'],
 } as const;
 
 export type AuditActionGroup = keyof typeof AUDIT_ACTION_GROUPS;
@@ -63,6 +64,7 @@ export const AUDITED_ENTITIES = [
   'ACADEMY_ARTICLE',
   'ACADEMY_TERM',
   'ACADEMY_TOPIC',
+  'AUDIT_LOG',
 ] as const;
 
 export type AuditedEntity = (typeof AUDITED_ENTITIES)[number];

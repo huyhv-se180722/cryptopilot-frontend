@@ -17,6 +17,7 @@ import type {
   AdminUserDetail,
   ReportGrouping,
   AdminUserPage,
+  AuditLogExport,
   AuditLogPage,
   BracketTemplate,
   AuditLogQuery,
@@ -633,7 +634,7 @@ export interface AdminDashboardService {
 export interface AdminAuditService {
   auditLog(query: AuditLogQuery, signal?: AbortSignal): Promise<AuditLogPage>;
   /** The same search as CSV text, at most 10,000 entries. */
-  exportAuditLog(query: Omit<AuditLogQuery, 'page'>): Promise<string>;
+  exportAuditLog(query: Omit<AuditLogQuery, 'page'>): Promise<AuditLogExport>;
   systemEvents(
     query: SystemEventQuery,
     signal?: AbortSignal,

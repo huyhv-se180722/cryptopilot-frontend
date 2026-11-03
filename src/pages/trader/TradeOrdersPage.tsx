@@ -1,11 +1,14 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { FormNotice } from '../../components/feedback/FormNotice';
 import { PageHeader } from '../../components/layout/PageHeader';
+import { SegmentedControl } from '../../components/ui/SegmentedControl';
 import { Table } from '../../components/ui/Table';
 import { Tabs } from '../../components/ui/Tabs';
 import { buttonClassName } from '../../components/ui/button-styles';
 import { useCopy } from '../../hooks/use-copy';
 import { formatCopy } from '../../i18n/copy';
+import { FuturesOrdersView } from '../../features/futures-trading/components/FuturesOrdersView';
 import { useMarketPairs } from '../../features/market/hooks/use-market-data';
 import { DemoTradingBanner } from '../../features/paper-trading/components/DemoTradingBanner';
 import { PaperNav } from '../../features/paper-trading/components/PaperNav';
@@ -39,13 +42,45 @@ const STATUSES: readonly PaperOrderStatus[] = [
 
 /**
  * Demo orders (D-86, plan section 16, TR-07; designed after the
- * exchange's Order History without a Figma frame): open orders with
- * cancel and cancel all, the order history and the trade history of
- * every pair, filtered by pair, status and period, 20 rows a page. The
- * pair filter lists every Spot pair of the market list.
+ * exchange's Order History without a Figma frame), for Spot or Futures
+ * (`?market=futures`). Spot: open orders with cancel and cancel all, the
+ * order history and the trade history of every pair, filtered by pair,
+ * status and period, 20 rows a page; the pair filter lists every Spot pair
+ * of the market list. Futures: the Futures screen's positions and orders
+ * panel for a pair.
  */
 export function TradeOrdersPage() {
   usePaperPush();
+  const copy = useCopy();
+  const p = copy.paper;
+  const [params, setParams] = useSearchParams();
+  const market = params.get('market') === 'futures' ? 'futures' : 'spot';
+  return (
+    <div className="w-full">
+      <DemoTradingBanner />
+      <PaperNav />
+      <PageHeader title={p.ordersTitle} description={p.ordersSubtitle} />
+      <div className="mb-3">
+        <SegmentedControl
+          label={p.marketLabel}
+          value={market}
+          onChange={(value) =>
+            setParams(value === 'futures' ? { market: value } : {}, {
+              replace: true,
+            })
+          }
+          options={[
+            { value: 'spot', label: p.tabSpot },
+            { value: 'futures', label: p.tabFutures },
+          ]}
+        />
+      </div>
+      {market === 'futures' ? <FuturesOrdersView /> : <SpotOrders />}
+    </div>
+  );
+}
+
+function SpotOrders() {
   const copy = useCopy();
   const p = copy.paper;
   const [tab, setTab] = useState('open');
@@ -97,10 +132,7 @@ export function TradeOrdersPage() {
   );
 
   return (
-    <div className="w-full">
-      <DemoTradingBanner />
-      <PaperNav />
-      <PageHeader title={p.ordersTitle} description={p.ordersSubtitle} />
+    <>
       <div
         role="group"
         aria-label={p.filtersLabel}
@@ -252,6 +284,6 @@ export function TradeOrdersPage() {
           },
         ]}
       />
-    </div>
+    </>
   );
 }

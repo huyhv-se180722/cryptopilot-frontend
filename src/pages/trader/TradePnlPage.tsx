@@ -9,6 +9,7 @@ import {
   MetricChart,
   type MetricLine,
 } from '../../features/chart/components/MetricChart';
+import { FuturesPnlSection } from '../../features/futures-trading/components/FuturesAccountSummary';
 import { DemoTradingBanner } from '../../features/paper-trading/components/DemoTradingBanner';
 import { PaperNav } from '../../features/paper-trading/components/PaperNav';
 import { SpotPnlTable } from '../../features/paper-trading/components/SpotPnlTable';
@@ -27,8 +28,9 @@ type Period = (typeof PERIODS)[number];
  * Demo PnL analysis (D-86, TR-13; after the exchange's Spot PnL analysis,
  * no Figma frame): the account's worth now with today's PnL, its worth at
  * the start of each UTC day over 7, 30 or 90 days, and the Spot coins at
- * their average cost with their unrealised PnL. Every number is the
- * backend's; virtual funds only.
+ * their average cost with their unrealised PnL; with the Futures feature,
+ * the Futures PnL of the same period and its closed positions. Every
+ * number is the backend's; virtual funds only.
  */
 export function TradePnlPage() {
   usePaperPush();
@@ -162,6 +164,8 @@ export function TradePnlPage() {
       <PaperQueryState query={pnl}>
         {() => pnl.data && <SpotPnlTable pnl={pnl.data} />}
       </PaperQueryState>
+
+      <FuturesPnlSection days={days} />
     </div>
   );
 }

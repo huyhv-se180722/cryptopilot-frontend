@@ -346,6 +346,7 @@ export function createDevelopmentAdminAudit(
         page: query.page,
         pageSize: AUDIT_PAGE_SIZE,
         total: found.length,
+        actorsTruncated: false,
       };
     },
     async exportAuditLog(query) {
@@ -367,12 +368,12 @@ export function createDevelopmentAdminAudit(
             .map(csvCell)
             .join(','),
         );
-      return (
+      const csv =
         [
           'recordedAt,actorEmail,actorId,action,entityType,entityId,ipAddress,oldValue,newValue',
           ...lines,
-        ].join('\r\n') + '\r\n'
-      );
+        ].join('\r\n') + '\r\n';
+      return { csv, actorsTruncated: false, truncated: false, matched: null };
     },
     async systemEvents(query: SystemEventQuery) {
       refuseBackwards(query.from, query.to);

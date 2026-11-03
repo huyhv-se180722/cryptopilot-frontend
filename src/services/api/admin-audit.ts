@@ -1,5 +1,6 @@
 import type {
   AuditActor,
+  AuditLogExport,
   AuditLogEntry,
   AuditLogPage,
   AuditLogQuery,
@@ -107,13 +108,45 @@ export function decodeAuditLogEntry(item: unknown): AuditLogEntry {
   };
 }
 
-export function decodeAuditLogPage(body: unknown): AuditLogPage {
+/** What `X-Result-Truncated` names as cut: `actor`, `export`, or both. */
+export function resultCuts(headers?: Headers): ReadonlySet<string> {
+  const value = headers?.get('X-Result-Truncated');
+  return new Set(
+    (value ?? '')
+      .split(',')
+      .map((part) => part.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
+export function decodeAuditLogPage(
+  body: unknown,
+  headers?: Headers,
+): AuditLogPage {
   const value = record(body);
   return {
     items: list(value.items, 'items').map(decodeAuditLogEntry),
     page: count(value.page, 'page'),
     pageSize: count(value.pageSize, 'pageSize'),
     total: count(value.total, 'total'),
+    actorsTruncated: resultCuts(headers).has('actor'),
+  };
+}
+
+/** The CSV of an export, with what its headers say was left out. */
+export function decodeAuditLogExport(
+  body: unknown,
+  headers?: Headers,
+): AuditLogExport {
+  if (typeof body !== 'string') throw new Error('CSV must be text');
+  const cuts = resultCuts(headers);
+  const total = headers?.get('X-Total-Count');
+  const matched = total ? Number(total) : NaN;
+  return {
+    csv: body,
+    actorsTruncated: cuts.has('actor'),
+    truncated: cuts.has('export'),
+    matched: Number.isSafeInteger(matched) && matched >= 0 ? matched : null,
   };
 }
 
@@ -233,10 +266,7 @@ export function createHttpAdminAuditService(
         path: 'admin/audit-log/export' + (params ? '?' + params : ''),
         headers: { Accept: 'text/csv' },
         responseType: 'text',
-        decode: (body) => {
-          if (typeof body !== 'string') throw new Error('CSV must be text');
-          return body;
-        },
+        decode: decodeAuditLogExport,
       });
     },
     systemEvents: (query, signal) => {
