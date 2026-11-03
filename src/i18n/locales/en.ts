@@ -2047,6 +2047,7 @@ export const en = {
     reportTitle: 'Management report',
     reportCaption: 'Management report of the period',
     reportEmpty: 'No rows in this period.',
+    reportRange: 'Rows {from}–{to} of {total}',
     groupLabel: 'Group by',
     groupDAY: 'Day',
     groupWEEK: 'Week',

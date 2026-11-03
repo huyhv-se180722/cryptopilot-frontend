@@ -6,6 +6,7 @@ import { PageHeader } from '../../components/layout/PageHeader';
 import { StatCard } from '../../components/layout/StatCard';
 import { Button } from '../../components/ui/Button';
 import { NumericText } from '../../components/ui/NumericText';
+import { Pagination } from '../../components/ui/Pagination';
 import { SectionTitle } from '../../components/ui/SectionTitle';
 import { SegmentedControl } from '../../components/ui/SegmentedControl';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -123,7 +124,11 @@ export function AdminOverviewPage() {
             onRetry={() => void report.refetch()}
           />
         ) : (
-          <ReportTable report={report.data} />
+          // A new period or grouping starts again from the first page.
+          <ReportTable
+            key={`${report.data.from}-${report.data.to}-${report.data.groupBy}`}
+            report={report.data}
+          />
         )}
       </section>
     </div>
@@ -239,9 +244,16 @@ function Indicators({ data }: { data: AdminDashboard }) {
 
 type ReportRow = AdminReport['rows'][number];
 
+/** Rows of the management report a page shows; the report is read whole. */
+const REPORT_PAGE_SIZE = 10;
+
 function ReportTable({ report }: { report: AdminReport }) {
   const copy = useCopy();
   const t = copy.adminOverview;
+  const [page, setPage] = useState(1);
+  const total = report.rows.length;
+  const first = (page - 1) * REPORT_PAGE_SIZE;
+  const rows = report.rows.slice(first, first + REPORT_PAGE_SIZE);
   const columns: Column<ReportRow>[] = [
     {
       id: 'period',
@@ -274,13 +286,32 @@ function ReportTable({ report }: { report: AdminReport }) {
     })),
   ];
   return (
-    <Table
-      caption={t.reportCaption}
-      columns={columns}
-      rows={report.rows}
-      rowKey={(row) => row.period}
-      emptyMessage={t.reportEmpty}
-    />
+    <>
+      <Table
+        caption={t.reportCaption}
+        columns={columns}
+        rows={rows}
+        rowKey={(row) => row.period}
+        emptyMessage={t.reportEmpty}
+      />
+      {total > REPORT_PAGE_SIZE && (
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <span className="text-[11px] text-muted-dim">
+            {formatCopy(t.reportRange, {
+              from: first + 1,
+              to: first + rows.length,
+              total,
+            })}
+          </span>
+          <Pagination
+            page={page}
+            total={total}
+            pageSize={REPORT_PAGE_SIZE}
+            onChange={setPage}
+          />
+        </div>
+      )}
+    </>
   );
 }
 
