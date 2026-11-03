@@ -64,10 +64,17 @@ export const vi: PartialCopy = {
     exportCsv: 'Xuất CSV',
     exportDone: 'Đã xuất nhật ký kiểm toán.',
     exportLimit: 'Mỗi lần xuất gồm tối đa 10.000 mục mới nhất khớp bộ lọc.',
+    exportCut:
+      'Đã xuất 10.000 mục mới nhất trong {n} mục khớp bộ lọc. Thu hẹp khoảng thời gian để lấy phần còn lại.',
+    exportCutUnknown:
+      'Đã xuất 10.000 mục mới nhất; còn nhiều mục khớp hơn. Thu hẹp khoảng thời gian để lấy phần còn lại.',
+    actorsCut:
+      'Từ khoá người thực hiện khớp hơn 500 tài khoản nên chỉ tìm trong 500 tài khoản mới nhất. Hãy gõ thêm email hoặc tên.',
     groupaccounts: 'Tài khoản',
     groupmoderation: 'Kiểm duyệt',
     groupnews: 'Tin tức',
     groupconfiguration: 'Cấu hình',
+    groupaudit: 'Nhật ký kiểm toán',
     actionACCOUNT_LOCKED: 'Khoá tài khoản',
     actionACCOUNT_UNLOCKED: 'Mở khoá tài khoản',
     actionACCOUNT_BANNED: 'Cấm tài khoản',
@@ -85,6 +92,7 @@ export const vi: PartialCopy = {
     actionCONFIGURATION_CREATED: 'Thêm cấu hình',
     actionCONFIGURATION_CHANGED: 'Sửa cấu hình',
     actionCONFIGURATION_DELETED: 'Xoá cấu hình',
+    actionAUDIT_LOG_EXPORTED: 'Xuất nhật ký kiểm toán',
     entityUSER_ACCOUNT: 'Tài khoản',
     entityFORUM_POST: 'Bài viết',
     entityFORUM_COMMENT: 'Bình luận',
@@ -99,6 +107,7 @@ export const vi: PartialCopy = {
     entityACADEMY_ARTICLE: 'Bài học Academy',
     entityACADEMY_TERM: 'Thuật ngữ',
     entityACADEMY_TOPIC: 'Chủ đề Academy',
+    entityAUDIT_LOG: 'Nhật ký kiểm toán',
     total: '{n} mục',
     totalOne: '1 mục',
     colTime: 'Thời gian',

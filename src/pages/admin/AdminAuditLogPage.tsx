@@ -32,7 +32,7 @@ import {
   useSystemHealth,
 } from '../../features/admin/hooks/use-admin-audit';
 import { useAuth } from '../../hooks/use-auth';
-import { useCopy } from '../../hooks/use-copy';
+import { useCopy, useLocale } from '../../hooks/use-copy';
 import { useToast } from '../../hooks/use-toast';
 import { formatCopy } from '../../i18n/copy';
 import { errorText } from '../../i18n/messages';
@@ -297,6 +297,14 @@ function AuditTrail() {
           </div>
         </div>
       </div>
+      {log.data?.actorsTruncated && (
+        <p
+          role="status"
+          className="rounded-md border border-warning-line bg-warning-soft px-3 py-2 text-xs text-warning"
+        >
+          {t.actorsCut}
+        </p>
+      )}
       {log.isPending ? (
         <div className="grid gap-2">
           {[0, 1, 2, 3, 4, 5].map((k) => (
@@ -386,6 +394,7 @@ function ExportButton({
 }) {
   const copy = useCopy();
   const t = copy.adminAuditLog;
+  const locale = useLocale();
   const { show } = useToast();
   const exporting = useExportAuditLog();
 
@@ -404,14 +413,27 @@ function ExportButton({
       '.csv';
     // A byte order mark, so a spreadsheet reads the Vietnamese names as UTF-8.
     const url = URL.createObjectURL(
-      new Blob(['﻿' + result.data], { type: 'text/csv;charset=utf-8' }),
+      new Blob(['﻿' + result.data.csv], { type: 'text/csv;charset=utf-8' }),
     );
     const link = document.createElement('a');
     link.href = url;
     link.download = name;
     link.click();
     URL.revokeObjectURL(url);
-    show({ tone: 'success', message: t.exportDone });
+    const { truncated, matched } = result.data;
+    show(
+      truncated
+        ? {
+            tone: 'info',
+            message:
+              matched === null
+                ? t.exportCutUnknown
+                : formatCopy(t.exportCut, {
+                    n: matched.toLocaleString(locale),
+                  }),
+          }
+        : { tone: 'success', message: t.exportDone },
+    );
   }
 
   return (

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createDevelopmentAdminAudit } from '../../dev/dev-admin-audit';
@@ -91,6 +91,47 @@ describe('SCR-44 audit log (UC-46)', () => {
     expect(
       tableRows().every((row) => within(row).queryByText('System') !== null),
     ).toBe(true);
+  });
+
+  it('says when the actor text matched too many accounts', async () => {
+    const dev = createDevelopmentAdminAudit();
+    await open('/admin/audit-log', {
+      ...dev,
+      auditLog: async (query, signal) => ({
+        ...(await dev.auditLog(query, signal)),
+        actorsTruncated: Boolean(query.actor),
+      }),
+    });
+    await screen.findByText('44 entries');
+    expect(screen.queryByText(/only the 500 newest/)).toBeNull();
+    fireEvent.change(screen.getByLabelText('Actor'), {
+      target: { value: 'a' },
+    });
+    expect(await screen.findByText(/only the 500 newest/)).toBeTruthy();
+  });
+
+  it('tells how many entries matched when an export was cut', async () => {
+    const dev = createDevelopmentAdminAudit();
+    URL.createObjectURL = () => 'blob:audit';
+    URL.revokeObjectURL = () => undefined;
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined);
+    await open('/admin/audit-log', {
+      ...dev,
+      exportAuditLog: async (query) => ({
+        ...(await dev.exportAuditLog(query)),
+        truncated: true,
+        matched: 12345,
+      }),
+    });
+    await screen.findByText('44 entries');
+    await userEvent.click(screen.getByRole('button', { name: /Export CSV/ }));
+    expect(
+      await screen.findByText(/newest 10,000 of 12,345 matching entries/),
+    ).toBeTruthy();
+    expect(click).toHaveBeenCalled();
+    click.mockRestore();
   });
 
   it('filters by part of the actor name, nothing matching said so', async () => {

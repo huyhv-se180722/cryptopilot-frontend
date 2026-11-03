@@ -61,7 +61,11 @@ const HEALTH = {
   ],
 };
 
-function setup(answer: (url: URL) => unknown, text = false) {
+function setup(
+  answer: (url: URL) => unknown,
+  text = false,
+  headers: Record<string, string> = {},
+) {
   const calls: URL[] = [];
   const http = createHttpClient({
     baseUrl: 'https://api.example.test/api/v1',
@@ -71,6 +75,7 @@ function setup(answer: (url: URL) => unknown, text = false) {
       const body = answer(url);
       return new Response(text ? String(body) : JSON.stringify(body), {
         status: 200,
+        headers,
       });
     }),
     session: { accessToken: () => 'token-1', refresh: async () => 'renewed' },
@@ -153,11 +158,48 @@ describe('audit log over HTTP', () => {
 
   it('exports the same search as text, without paging', async () => {
     const { audit, calls } = setup(() => 'recordedAt,actorEmail\r\n', true);
-    expect(await audit.exportAuditLog({ actorId: 'a1' })).toBe(
-      'recordedAt,actorEmail\r\n',
-    );
+    expect(await audit.exportAuditLog({ actorId: 'a1' })).toEqual({
+      csv: 'recordedAt,actorEmail\r\n',
+      actorsTruncated: false,
+      truncated: false,
+      matched: null,
+    });
     expect(calls[0]?.pathname).toBe('/api/v1/admin/audit-log/export');
     expect(calls[0]?.search).toBe('?actorId=a1');
+  });
+
+  it('says when an export was cut and how many entries matched', async () => {
+    const { audit } = setup(() => 'recordedAt\r\n', true, {
+      'X-Result-Truncated': 'actor, export',
+      'X-Total-Count': '12345',
+    });
+    expect(await audit.exportAuditLog({ actor: 'an' })).toMatchObject({
+      actorsTruncated: true,
+      truncated: true,
+      matched: 12345,
+    });
+  });
+
+  it('ignores a total that is not a count', async () => {
+    const { audit } = setup(() => 'recordedAt\r\n', true, {
+      'X-Result-Truncated': 'export',
+      'X-Total-Count': 'many',
+    });
+    expect(await audit.exportAuditLog({})).toMatchObject({
+      truncated: true,
+      matched: null,
+    });
+  });
+
+  it('says when the actor text was cut to the newest 500 accounts', async () => {
+    const page = { items: [], page: 1, pageSize: 20, total: 0 };
+    const cut = setup(() => page, false, { 'X-Result-Truncated': 'actor' });
+    const searched = await cut.audit.auditLog({ page: 1, actor: 'a' });
+    expect(searched.actorsTruncated).toBe(true);
+    const whole = setup(() => page);
+    expect((await whole.audit.auditLog({ page: 1 })).actorsTruncated).toBe(
+      false,
+    );
   });
 
   it('reads the system log by category and source, and the health', async () => {

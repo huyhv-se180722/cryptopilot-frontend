@@ -2223,10 +2223,17 @@ export const en = {
     exportCsv: 'Export CSV',
     exportDone: 'The audit log was exported.',
     exportLimit: 'An export holds the newest 10,000 matching entries.',
+    exportCut:
+      'Exported the newest 10,000 of {n} matching entries. Narrow the period to get the rest.',
+    exportCutUnknown:
+      'Exported the newest 10,000 matching entries; more matched. Narrow the period to get the rest.',
+    actorsCut:
+      'The actor text matches more than 500 accounts, so only the 500 newest were searched. Type more of the email or name.',
     groupaccounts: 'Accounts',
     groupmoderation: 'Moderation',
     groupnews: 'News',
     groupconfiguration: 'Configuration',
+    groupaudit: 'Audit log',
     actionACCOUNT_LOCKED: 'Account locked',
     actionACCOUNT_UNLOCKED: 'Account unlocked',
     actionACCOUNT_BANNED: 'Account banned',
@@ -2244,6 +2251,7 @@ export const en = {
     actionCONFIGURATION_CREATED: 'Configuration added',
     actionCONFIGURATION_CHANGED: 'Configuration changed',
     actionCONFIGURATION_DELETED: 'Configuration deleted',
+    actionAUDIT_LOG_EXPORTED: 'Audit log exported',
     entityUSER_ACCOUNT: 'Account',
     entityFORUM_POST: 'Forum post',
     entityFORUM_COMMENT: 'Forum comment',
@@ -2258,6 +2266,7 @@ export const en = {
     entityACADEMY_ARTICLE: 'Academy lesson',
     entityACADEMY_TERM: 'Glossary term',
     entityACADEMY_TOPIC: 'Academy topic',
+    entityAUDIT_LOG: 'Audit log',
     total: '{n} entries',
     totalOne: '1 entry',
     colTime: 'Time',

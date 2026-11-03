@@ -3,7 +3,8 @@ import { decodeProblem, type ApiProblem } from './problem';
 
 export interface RequestOptions<T> {
   path: string;
-  decode: (body: unknown) => T;
+  /** `headers` are the answer's, for the few calls that report in them. */
+  decode: (body: unknown, headers: Headers) => T;
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   signal?: AbortSignal;
@@ -113,7 +114,7 @@ export function createHttpClient(options: {
             ? await response.text()
             : await response.json();
       try {
-        return request.decode(body);
+        return request.decode(body, response.headers);
       } catch {
         throw new ServiceError(
           'The server returned an unexpected response.',
