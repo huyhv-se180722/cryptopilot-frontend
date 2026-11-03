@@ -1906,7 +1906,8 @@ export const en = {
     empty: 'No pair matches.',
     editTitle: 'Edit {pair}',
     editDescription:
-      'A market is offered when the pair is active and its switch is on. Turning a market off is refused while simulated positions are open on it.',
+      'A market is offered when the pair is active and its switch is on. An inactive pair has both markets off. Turning a market off is refused while simulated positions are open on it.',
+    inactiveOff: 'Off while the pair is inactive.',
     statusField: 'Status',
     spotField: 'Spot market',
     futuresField: 'Futures market',

@@ -321,12 +321,18 @@ export function createDevelopmentAdminPairs(
         HAS_OPEN_FUTURES.has(pair.symbol)
       )
         refuse(409, 'PAIR_HAS_OPEN_POSITIONS', 'MSG40');
+      // An inactive pair has both markets off, as the backend stores it.
       const next: AdminPair = {
         ...pair,
         ...settings,
-        maxLeverage: settings.futuresEnabled
-          ? settings.maxLeverage
-          : pair.maxLeverage,
+        spotEnabled: active && settings.spotEnabled,
+        futuresEnabled: active && settings.futuresEnabled,
+        maxLeverage:
+          active && settings.futuresEnabled
+            ? settings.maxLeverage
+            : active
+              ? pair.maxLeverage
+              : null,
         updatedAt: at(),
       };
       pairs.set(pairId, next);

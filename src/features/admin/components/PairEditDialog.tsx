@@ -150,6 +150,7 @@ function PairForm({
     displayOrder: String(pair.displayOrder),
   }));
   const [shown, setShown] = useState<Errors>({});
+  const inactive = draft.status === 'INACTIVE';
   const change = (patch: Partial<Draft>) => {
     setDraft((current) => ({ ...current, ...patch }));
     setShown({});
@@ -206,7 +207,16 @@ function PairForm({
         label={t.statusField}
         value={draft.status}
         onChange={(event) =>
-          change({ status: event.target.value as PairStatus })
+          change(
+            // An inactive pair is offered on no market: both switches go off.
+            event.target.value === 'INACTIVE'
+              ? {
+                  status: 'INACTIVE',
+                  spotEnabled: false,
+                  futuresEnabled: false,
+                }
+              : { status: event.target.value as PairStatus },
+          )
         }
       >
         <option value="ACTIVE">{t.statusACTIVE}</option>
@@ -216,17 +226,27 @@ function PairForm({
         <Switch
           label={t.spotField}
           checked={draft.spotEnabled}
-          disabled={!pair.spot.exchangeStatus && !draft.spotEnabled}
-          {...(pair.spot.exchangeStatus ? {} : { description: t.notListedOn })}
+          disabled={
+            inactive || (!pair.spot.exchangeStatus && !draft.spotEnabled)
+          }
+          {...(inactive
+            ? { description: t.inactiveOff }
+            : pair.spot.exchangeStatus
+              ? {}
+              : { description: t.notListedOn })}
           onChange={(event) => change({ spotEnabled: event.target.checked })}
         />
         <Switch
           label={t.futuresField}
           checked={draft.futuresEnabled}
-          disabled={!pair.futures.exchangeStatus && !draft.futuresEnabled}
-          {...(pair.futures.exchangeStatus
-            ? {}
-            : { description: t.notListedOn })}
+          disabled={
+            inactive || (!pair.futures.exchangeStatus && !draft.futuresEnabled)
+          }
+          {...(inactive
+            ? { description: t.inactiveOff }
+            : pair.futures.exchangeStatus
+              ? {}
+              : { description: t.notListedOn })}
           onChange={(event) => change({ futuresEnabled: event.target.checked })}
         />
       </div>
