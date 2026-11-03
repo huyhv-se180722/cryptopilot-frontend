@@ -8,6 +8,8 @@ import {
   createPendingFuturesTradingService,
   type FuturesTradingService,
 } from '../../services/api/futures';
+import type { MarketService } from '../../services/api/contracts';
+import type { MarketPair } from '../../types/domain';
 import type { FuturesCalculation, FuturesOrder } from '../../types/futures';
 import { fakeAuth, page, renderRoutes, testTrader } from '../../test/render';
 import { AmendOrderDialog } from './components/AmendOrderDialog';
@@ -240,7 +242,26 @@ describe('Futures calculator (TR-44)', () => {
 });
 
 describe('demo orders page, Futures side', () => {
-  it('says Futures needs PRO for a plan without it', async () => {
+  it('opens for a Trader on any plan, Free included', async () => {
+    const BTC: MarketPair = {
+      pairId: 'p-btc',
+      symbol: 'BTCUSDT',
+      market: 'futures',
+      baseAsset: 'BTC',
+      quoteAsset: 'USDT',
+      baseAssetName: 'Bitcoin',
+      logoUrl: null,
+      tickSize: '0.1',
+      stepSize: '0.001',
+      minNotional: '5',
+      displayOrder: 1,
+    };
+    const market = {
+      listPairs: vi.fn(async () => [BTC]),
+      getCandles: vi.fn(async () => []),
+      getFuturesMetrics: vi.fn(),
+      getTicker: vi.fn(async () => null),
+    } as unknown as MarketService;
     await renderRoutes(
       [page('/trade/orders', <TradeOrdersPage />)],
       '/trade/orders?market=futures',
@@ -250,12 +271,13 @@ describe('demo orders page, Futures side', () => {
           entitlements: { tier: 'FREE', features: [], limits: {} },
         }),
       }),
+      { market, futuresTrading: futures({}) },
     );
     expect(
-      await screen.findByRole('heading', {
-        name: 'Futures demo trading is part of PRO',
-      }),
-    ).toBeTruthy();
+      await screen.findByRole('combobox', { name: 'Pair' }),
+    ).toHaveProperty('value', 'BTCUSDT');
+    expect(screen.getByText('Positions and orders')).toBeTruthy();
+    expect(screen.queryByText(/part of PRO/)).toBeNull();
     expect(
       screen
         .getByRole('radio', { name: 'Futures' })

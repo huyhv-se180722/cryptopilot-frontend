@@ -52,8 +52,8 @@ export interface FuturesHistoryQuery {
 
 /**
  * Paper Futures USDⓈ-M (D-127): the backend's `/paper/futures/**`, named
- * after the exchange's `/fapi`. Each call needs the Futures feature of the
- * Trader's plan.
+ * after the exchange's `/fapi`. Every Trader can use it, whatever the plan;
+ * only the Futures analysis (open interest, long/short) needs PRO.
  */
 export interface FuturesTradingService {
   // Settings

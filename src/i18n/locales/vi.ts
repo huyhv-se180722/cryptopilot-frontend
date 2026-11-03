@@ -206,7 +206,6 @@ export const vi: PartialCopy = {
     index: 'Chỉ số',
     fundingCountdown: 'Funding / Đếm ngược',
     volume24h: 'Khối lượng 24h (USDT)',
-    lockedTitle: 'Giao dịch Futures demo thuộc gói PRO',
     cross: 'Cross',
     isolated: 'Isolated',
     crossPositions: 'Các vị thế cross của bạn',

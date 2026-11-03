@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { ErrorState } from '../../../components/feedback/States';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { useCopy } from '../../../hooks/use-copy';
-import { useFeature } from '../../../hooks/use-entitlement';
 import { errorText } from '../../../i18n/messages';
 import { useMarketPairs } from '../../market/hooks/use-market-data';
 import {
@@ -11,7 +10,6 @@ import {
   useFuturesPush,
 } from '../hooks/use-futures';
 import { FuturesBottomPanel } from './FuturesBottomPanel';
-import { FuturesLocked } from './FuturesLocked';
 
 /** The height of a tab's box on the orders page, px. */
 const PANEL_HEIGHT = 480;
@@ -20,19 +18,9 @@ const PANEL_HEIGHT = 480;
  * The Futures side of the demo orders page (TR-07 for Futures): the same
  * panel as under the Futures chart, positions, open orders (with edit and
  * cancel), the order, trade, balance change and position histories, for
- * the pair chosen here. Without the Futures feature it says so (MSG29).
+ * the pair chosen here. Every Trader has it, whatever the plan.
  */
 export function FuturesOrdersView() {
-  const access = useFeature('FUTURES_ANALYSIS');
-  // The Futures reads start only with the feature, as on the trading screen.
-  return access === 'locked' ? (
-    <FuturesLocked headingLevel={2} />
-  ) : (
-    <FuturesOrders />
-  );
-}
-
-function FuturesOrders() {
   const copy = useCopy();
   const p = copy.paper;
   const pairs = useMarketPairs('futures');

@@ -4,7 +4,6 @@ import { ErrorState } from '../../components/feedback/States';
 import { SegmentedControl } from '../../components/ui/SegmentedControl';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useCopy } from '../../hooks/use-copy';
-import { useFeature } from '../../hooks/use-entitlement';
 import { useToast } from '../../hooks/use-toast';
 import { formatCopy } from '../../i18n/copy';
 import { errorText } from '../../i18n/messages';
@@ -12,7 +11,6 @@ import { useLiveTicker } from '../../features/analysis/hooks/use-live-ticker';
 import { AnalysisChart } from '../../features/chart/components/AnalysisChart';
 import { AccountMarginPanel } from '../../features/futures-trading/components/AccountMarginPanel';
 import { FuturesBottomPanel } from '../../features/futures-trading/components/FuturesBottomPanel';
-import { FuturesLocked } from '../../features/futures-trading/components/FuturesLocked';
 import { FuturesOrderForm } from '../../features/futures-trading/components/FuturesOrderForm';
 import { FuturesSettingsBar } from '../../features/futures-trading/components/FuturesSettingsBar';
 import { FuturesTickerStrip } from '../../features/futures-trading/components/FuturesTickerStrip';
@@ -285,7 +283,6 @@ function TradeFutures({
  */
 export function TradeFuturesPage() {
   const copy = useCopy();
-  const access = useFeature('FUTURES_ANALYSIS');
   const { symbol = '' } = useParams();
   const pairs = useMarketPairs('futures');
   const pair = pairs.data?.find(
@@ -293,7 +290,7 @@ export function TradeFuturesPage() {
   );
   const first = pairs.data?.[0];
 
-  if (access !== 'locked' && symbol === '' && first) {
+  if (symbol === '' && first) {
     const last = readLastPair();
     const reopen =
       pairs.data?.find((candidate) => candidate.symbol === last) ?? first;
@@ -303,9 +300,7 @@ export function TradeFuturesPage() {
     <div className="w-full">
       <DemoTradingBanner />
       <PaperNav />
-      {access === 'locked' ? (
-        <FuturesLocked />
-      ) : pairs.isPending ? (
+      {pairs.isPending ? (
         <Skeleton className="h-[560px] w-full" />
       ) : pairs.isError ? (
         <ErrorState
