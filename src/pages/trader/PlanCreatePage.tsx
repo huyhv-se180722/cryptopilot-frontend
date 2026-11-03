@@ -34,7 +34,7 @@ export function PlanCreatePage() {
   const profile = useProfileData().state;
 
   return (
-    <div className="mx-auto w-full max-w-7xl">
+    <div className="w-full">
       <Link
         to="/plans"
         className="mb-3 inline-flex items-center gap-1 text-xs text-muted no-underline hover:text-fg-2"

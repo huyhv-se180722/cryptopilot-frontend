@@ -78,7 +78,7 @@ export function CommunityFrame({
 
   return (
     <CoinPricesProvider>
-      <div className="mx-auto w-full max-w-[1600px]">
+      <div className="w-full">
         <CommunityNav trader={trader} />
         <div
           className={classNames(

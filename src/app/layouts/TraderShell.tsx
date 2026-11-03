@@ -213,9 +213,7 @@ export function TraderShell() {
       >
         <div
           className={
-            fullWidth
-              ? 'w-full px-1 py-1'
-              : 'mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6'
+            fullWidth ? 'w-full px-1 py-1' : 'w-full px-4 py-6 sm:px-6'
           }
         >
           <Outlet />

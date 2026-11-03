@@ -186,7 +186,7 @@ export function GuestShell() {
       </div>
 
       <main id="main-content" tabIndex={-1} className="flex-1 outline-none">
-        <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6">
+        <div className="w-full px-4 py-6 sm:px-6">
           <Outlet />
         </div>
       </main>

@@ -16,7 +16,7 @@ export function AdminSettingsPage() {
   const t = copy.adminSettings;
   const settings = useAdminSettings();
   return (
-    <div className="w-full max-w-5xl">
+    <div className="w-full">
       <PageHeader size="sm" title={t.title} description={t.subtitle} />
       {settings.isPending ? (
         <div className="grid gap-4">

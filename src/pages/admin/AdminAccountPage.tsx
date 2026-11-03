@@ -6,7 +6,7 @@ import { ChangePasswordForm } from '../../features/auth/components/ChangePasswor
 export function AdminAccountPage() {
   const copy = useCopy();
   return (
-    <div className="w-full max-w-4xl">
+    <div className="w-full">
       <PageHeader size="sm" title={copy.screens.adminAccount} />
       <ChangePasswordForm />
     </div>

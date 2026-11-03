@@ -44,7 +44,7 @@ export function ProfilePage() {
     );
 
   return (
-    <div className="mx-auto w-full max-w-5xl">
+    <div className="w-full">
       <PageHeader title={copy.screens.profile} description={p.subtitle} />
       <Tabs
         orientation="vertical"

@@ -140,7 +140,7 @@ function NewsFeed() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
+    <div className="w-full">
       <PageHeader title={n.title} description={n.subtitle} />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0">

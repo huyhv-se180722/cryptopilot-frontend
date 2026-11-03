@@ -97,7 +97,7 @@ export function TradeOrdersPage() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-7xl">
+    <div className="w-full">
       <DemoTradingBanner />
       <PaperNav />
       <PageHeader title={p.ordersTitle} description={p.ordersSubtitle} />

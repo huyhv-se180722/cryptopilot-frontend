@@ -93,7 +93,7 @@ export function MemberPage() {
   const canRelate = !profile.me && actions.role !== 'other';
   return (
     <CoinPricesProvider>
-      <div className="mx-auto w-full max-w-5xl">
+      <div className="w-full">
         <CommunityNav trader={actions.trader} />
         {back}
         <section className="mb-6 flex flex-wrap items-center gap-4 rounded-2xl border border-line bg-surface p-5">
