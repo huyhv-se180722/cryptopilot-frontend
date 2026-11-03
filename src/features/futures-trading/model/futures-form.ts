@@ -3,6 +3,7 @@ import type {
   FuturesAccount,
   FuturesAlgoType,
   FuturesLeverageBracket,
+  FuturesOrder,
   FuturesPosition,
   FuturesSymbolConfig,
   PlaceFuturesAlgoOrder,
@@ -389,3 +390,8 @@ export function algoOrderOf(
   }
   return order;
 }
+
+/** A LIMIT order still waiting can have its price and quantity changed (TR-17). */
+export const isAmendable = (order: FuturesOrder) =>
+  order.type === 'LIMIT' &&
+  (order.status === 'NEW' || order.status === 'PARTIALLY_FILLED');

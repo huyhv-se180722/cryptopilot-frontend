@@ -1,19 +1,18 @@
 import { useCallback, useMemo, useState, type CSSProperties } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { Lock } from 'lucide-react';
 import { ErrorState } from '../../components/feedback/States';
-import { buttonClassName } from '../../components/ui/button-styles';
 import { SegmentedControl } from '../../components/ui/SegmentedControl';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useCopy } from '../../hooks/use-copy';
 import { useFeature } from '../../hooks/use-entitlement';
 import { useToast } from '../../hooks/use-toast';
 import { formatCopy } from '../../i18n/copy';
-import { errorText, messageText } from '../../i18n/messages';
+import { errorText } from '../../i18n/messages';
 import { useLiveTicker } from '../../features/analysis/hooks/use-live-ticker';
 import { AnalysisChart } from '../../features/chart/components/AnalysisChart';
 import { AccountMarginPanel } from '../../features/futures-trading/components/AccountMarginPanel';
 import { FuturesBottomPanel } from '../../features/futures-trading/components/FuturesBottomPanel';
+import { FuturesLocked } from '../../features/futures-trading/components/FuturesLocked';
 import { FuturesOrderForm } from '../../features/futures-trading/components/FuturesOrderForm';
 import { FuturesSettingsBar } from '../../features/futures-trading/components/FuturesSettingsBar';
 import { FuturesTickerStrip } from '../../features/futures-trading/components/FuturesTickerStrip';
@@ -236,6 +235,9 @@ function TradeFutures({
             config={config.data}
             brackets={brackets.data}
             dualSide={mode.data}
+            tickSize={pair.tickSize}
+            lastPrice={ticker?.lastPrice ?? null}
+            walletBalance={futuresAccount.data?.availableBalance ?? null}
           />
           <FuturesOrderForm
             key={pair.symbol}
@@ -270,34 +272,6 @@ function TradeFutures({
         </div>
       </div>
     </>
-  );
-}
-
-/** Without the Futures feature the screen shows MSG29 (Q-T10). */
-function FuturesLocked() {
-  const copy = useCopy();
-  return (
-    <section
-      aria-labelledby="futures-trade-locked"
-      className="mx-auto mt-6 max-w-md rounded-xl border border-line bg-surface p-6 text-center"
-    >
-      <Lock size={20} aria-hidden="true" className="mx-auto mb-3 text-muted" />
-      <h1
-        id="futures-trade-locked"
-        className="mb-2 text-base font-semibold text-fg"
-      >
-        {copy.futures.lockedTitle}
-      </h1>
-      <p className="mb-4 text-sm text-muted">
-        {messageText(copy, 'MSG29', [], { plan: 'PRO' })}
-      </p>
-      <Link
-        to="/subscription"
-        className={buttonClassName('primary', 'md', 'no-underline')}
-      >
-        {copy.analysis.viewPlans}
-      </Link>
-    </section>
   );
 }
 

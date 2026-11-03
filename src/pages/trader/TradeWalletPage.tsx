@@ -8,6 +8,7 @@ import { Tabs } from '../../components/ui/Tabs';
 import { buttonClassName } from '../../components/ui/button-styles';
 import { useCopy } from '../../hooks/use-copy';
 import { formatCopy } from '../../i18n/copy';
+import { FuturesWalletSummary } from '../../features/futures-trading/components/FuturesAccountSummary';
 import { DemoTradingBanner } from '../../features/paper-trading/components/DemoTradingBanner';
 import { PaperNav } from '../../features/paper-trading/components/PaperNav';
 import { TransferDialog } from '../../features/paper-trading/components/TransferDialog';
@@ -120,7 +121,14 @@ export function TradeWalletPage() {
             label: p.tabFutures,
             panel: (
               <PaperQueryState query={futures}>
-                {() => futures.data && <BalancesTable wallet={futures.data} />}
+                {() =>
+                  futures.data && (
+                    <>
+                      <FuturesWalletSummary />
+                      <BalancesTable wallet={futures.data} />
+                    </>
+                  )
+                }
               </PaperQueryState>
             ),
           },

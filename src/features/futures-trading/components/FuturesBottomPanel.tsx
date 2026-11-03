@@ -34,9 +34,12 @@ import {
   useFuturesOpenOrders,
 } from '../hooks/use-futures';
 import { futuresErrorText } from '../model/futures-errors';
+import { closeReasonLabel, incomeLabel } from '../model/futures-labels';
+import { isAmendable } from '../model/futures-form';
 import { roePercent } from '../model/futures-math';
 import { ClosePositionDialog } from './ClosePositionDialog';
 import { AdjustMarginDialog } from './AdjustMarginDialog';
+import { AmendOrderDialog } from './AmendOrderDialog';
 import { PositionTpSlDialog } from './PositionTpSlDialog';
 
 type Tab =
@@ -90,6 +93,7 @@ export function FuturesBottomPanel({
   } | null>(null);
   const [adjusting, setAdjusting] = useState<FuturesPosition | null>(null);
   const [tpsl, setTpsl] = useState<FuturesPosition | null>(null);
+  const [amending, setAmending] = useState<FuturesOrder | null>(null);
   const symbol = onlyThis ? pair.symbol : null;
   const open = useFuturesOpenOrders(symbol);
   const algo = useFuturesOpenAlgoOrders(symbol);
@@ -343,18 +347,30 @@ export function FuturesBottomPanel({
     id: 'cancel',
     header: '',
     render: (o) => (
-      <button
-        type="button"
-        className={link}
-        disabled={cancel.pending}
-        onClick={() =>
-          void cancel.run(o.symbol, o.orderId).then((r) => {
-            if (r.status === 'error') failed(r.error);
-          })
-        }
-      >
-        {f.cancel}
-      </button>
+      <span className="flex justify-end gap-2">
+        {isAmendable(o) && (
+          <button
+            type="button"
+            className={link}
+            aria-label={formatCopy(f.amendTitle, { symbol: o.symbol })}
+            onClick={() => setAmending(o)}
+          >
+            {f.edit}
+          </button>
+        )}
+        <button
+          type="button"
+          className={link}
+          disabled={cancel.pending}
+          onClick={() =>
+            void cancel.run(o.symbol, o.orderId).then((r) => {
+              if (r.status === 'error') failed(r.error);
+            })
+          }
+        >
+          {f.cancel}
+        </button>
+      </span>
     ),
   };
   const statusColumn: Column<FuturesOrder> = {
@@ -762,6 +778,9 @@ export function FuturesBottomPanel({
           onClose={() => setAdjusting(null)}
         />
       )}
+      {amending && (
+        <AmendOrderDialog order={amending} onClose={() => setAmending(null)} />
+      )}
       {tpsl && (
         <PositionTpSlDialog
           position={tpsl}
@@ -773,34 +792,12 @@ export function FuturesBottomPanel({
   );
 }
 
-type FuturesCopy = ReturnType<typeof useCopy>['futures'];
-
-function incomeLabel(f: FuturesCopy, type: string): string {
-  const labels: Record<string, string> = {
-    TRANSFER: f.incomeTransfer,
-    REALIZED_PNL: f.incomeRealized,
-    FUNDING_FEE: f.incomeFunding,
-    COMMISSION: f.incomeCommission,
-    INSURANCE_CLEAR: f.incomeLiquidationFee,
-    INSURANCE_COVER: f.incomeInsurance,
-  };
-  return labels[type] ?? type;
-}
-
-function closeReasonLabel(f: FuturesCopy, reason: string): string {
-  const labels: Record<string, string> = {
-    MANUAL: f.reasonManual,
-    TAKE_PROFIT: f.reasonTakeProfit,
-    STOP_LOSS: f.reasonStopLoss,
-    LIQUIDATION: f.reasonLiquidation,
-    REDUCE: f.reasonReduce,
-    SYSTEM: f.reasonSystem,
-  };
-  return labels[reason] ?? reason;
-}
-
 /** The Futures wallet in USDT, as the exchange's Assets tab. */
-function FuturesAssets({ account }: { account: FuturesAccount | undefined }) {
+export function FuturesAssets({
+  account,
+}: {
+  account: FuturesAccount | undefined;
+}) {
   const copy = useCopy();
   const f = copy.futures;
   if (!account)
