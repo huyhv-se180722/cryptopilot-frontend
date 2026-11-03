@@ -24,6 +24,7 @@ export const vi: PartialCopy = {
     statusDEGRADED: 'Chập chờn',
     statusDOWN: 'Ngừng',
     statusUNKNOWN: 'Chưa có dữ liệu',
+    statusUnknownFailedBefore: 'Chưa gọi lại từ khi khởi động',
     sourceAPPLICATION: 'Ứng dụng',
     sourceSCHEDULED_JOB: 'Tác vụ định kỳ',
     sourceBINANCE_REST: 'Binance API',

@@ -155,6 +155,11 @@ function ServiceCard({
   const tone = serviceTone[service.status];
   const Icon = icons[service.source] ?? Activity;
   const name = t[`source${service.source}`];
+  // Not called since the server started, but failing before it: saying "no data" would hide the failures.
+  const label =
+    service.status === 'UNKNOWN' && service.lastFailureAt
+      ? t.statusUnknownFailedBefore
+      : t[`status${service.status}`];
   const now = Date.parse(checkedAt);
   const ago = (iso: string | null, none: string) =>
     iso ? (
@@ -165,7 +170,14 @@ function ServiceCard({
       <span className="text-muted-x">{none}</span>
     );
   return (
-    <Shell tone={tone} label={name + ': ' + t[`status${service.status}`]}>
+    <Shell
+      tone={
+        service.status === 'UNKNOWN' && service.failures24h > 0
+          ? 'warning'
+          : tone
+      }
+      label={name + ': ' + label}
+    >
       <div className="mb-3 flex items-start justify-between gap-2">
         <span className="flex min-w-0 items-center gap-2.5">
           <span
@@ -179,8 +191,15 @@ function ServiceCard({
           </span>
           <span className="truncate text-xs font-semibold text-fg">{name}</span>
         </span>
-        <Badge tone={tone} withDot>
-          {t[`status${service.status}`]}
+        <Badge
+          tone={
+            service.status === 'UNKNOWN' && service.failures24h > 0
+              ? 'warning'
+              : tone
+          }
+          withDot
+        >
+          {label}
         </Badge>
       </div>
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">

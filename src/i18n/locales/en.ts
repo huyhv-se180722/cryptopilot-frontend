@@ -2182,6 +2182,7 @@ export const en = {
     statusDEGRADED: 'Degraded',
     statusDOWN: 'Down',
     statusUNKNOWN: 'No data yet',
+    statusUnknownFailedBefore: 'Not called since restart',
     sourceAPPLICATION: 'Application',
     sourceSCHEDULED_JOB: 'Scheduled jobs',
     sourceBINANCE_REST: 'Binance API',

@@ -55,7 +55,9 @@ describe('SCR-44 audit log (UC-46)', () => {
       screen.getByRole('listitem', { name: 'News sources (RSS): Degraded' }),
     ).toBeTruthy();
     expect(
-      screen.getByRole('listitem', { name: 'Media storage: No data yet' }),
+      screen.getByRole('listitem', {
+        name: 'Media storage: Not called since restart',
+      }),
     ).toBeTruthy();
     const futures = screen.getByRole('listitem', { name: 'Futures' });
     expect(within(futures).getByText('Stale')).toBeTruthy();
