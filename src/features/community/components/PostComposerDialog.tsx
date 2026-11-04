@@ -1,6 +1,7 @@
 import {
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   type FormEvent,
@@ -126,6 +127,11 @@ function Composer({ onDone }: { onDone: () => void }) {
   const text = useRef<HTMLTextAreaElement>(null);
   const listId = useId();
   const [caret, setCaret] = useState(0);
+  // Where the caret goes once a chosen coin is in the text. It is placed in a
+  // layout effect, before the browser paints and before the next keystroke;
+  // an animation frame ran too late on a slow machine, after the next letter
+  // had already been typed, and pulled the caret back behind that letter.
+  const placeCaret = useRef<number | null>(null);
   const [picked, setPicked] = useState(0);
   const [pickerClosed, setPickerClosed] = useState(false);
   const [title, setTitle] = useState('');
@@ -183,14 +189,20 @@ function Composer({ onDone }: { onDone: () => void }) {
     const next =
       content.slice(0, start) + '$' + coin + ' ' + content.slice(caret);
     const at = start + coin.length + 2;
+    placeCaret.current = at;
     setContent(next);
     setCaret(at);
     setPicked(0);
-    requestAnimationFrame(() => {
-      area.focus();
-      area.setSelectionRange(at, at);
-    });
   }
+
+  useLayoutEffect(() => {
+    const at = placeCaret.current;
+    const area = text.current;
+    if (at === null || !area) return;
+    placeCaret.current = null;
+    area.focus();
+    area.setSelectionRange(at, at);
+  }, [content]);
 
   function onTextKey(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (suggestions.length === 0) return;
