@@ -185,11 +185,11 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
     });
     await openAssistant(ai, '/ai?symbol=BTCUSDT&market=spot');
 
-    const box = await screen.findByPlaceholderText(/Hỏi về cặp coin/);
+    const box = await screen.findByRole('textbox');
     await waitFor(() =>
       expect(
         (screen.getByLabelText('Cặp coin') as HTMLSelectElement).value,
-      ).toBe('spot:p-btc'),
+      ).toBe('p-btc'),
     );
     await user.selectOptions(screen.getByLabelText('Khung thời gian'), '4h');
     await user.type(box, 'Setup score nói gì?');
@@ -259,12 +259,13 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
     await openAssistant(ai);
 
     const box = (await screen.findByPlaceholderText(
-      /Hỏi về cặp coin/,
+      'Hỏi bất kỳ kiến thức trading nào…',
     )) as HTMLTextAreaElement;
     await waitFor(() => expect(box.disabled).toBe(false));
+    expect(screen.queryByLabelText('Cặp coin')).toBeNull();
     expect(
-      (screen.getByLabelText('Khung thời gian') as HTMLSelectElement).disabled,
-    ).toBe(true);
+      screen.getByText('Câu hỏi chung — trợ lý không xem dữ liệu thị trường.'),
+    ).toBeTruthy();
     await user.type(box, 'DCA là gì?');
     await user.click(screen.getByRole('button', { name: /Gửi/ }));
 
@@ -305,7 +306,7 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
     ).toBeTruthy();
   });
 
-  it('lists the pairs of both markets in one list, the market goes with the pair', async () => {
+  it('"analyse a coin" opens the market and pair, shows what goes with the question, and ✕ makes it general again', async () => {
     const user = userEvent.setup();
     const asked: AiQuestion[] = [];
     await openAssistant(
@@ -322,24 +323,18 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
       ),
     );
 
-    const pair = (await screen.findByLabelText(
-      'Cặp coin',
-    )) as HTMLSelectElement;
+    await user.click(
+      await screen.findByRole('radio', { name: /Phân tích một coin/ }),
+    );
+    await user.selectOptions(screen.getByLabelText('Thị trường'), 'futures');
     await waitFor(() =>
       expect(
-        Array.from(pair.querySelectorAll('optgroup')).map(
-          (group) => group.label,
-        ),
-      ).toEqual(['Spot', 'Futures']),
+        (screen.getByLabelText('Cặp coin') as HTMLSelectElement).value,
+      ).toBe('p-btc'),
     );
-    await user.selectOptions(pair, 'futures:p-btc');
-    expect(
-      (screen.getByLabelText('Khung thời gian') as HTMLSelectElement).disabled,
-    ).toBe(false);
-    await user.type(
-      screen.getByPlaceholderText(/Hỏi về cặp coin/),
-      'Funding thế nào?',
-    );
+    expect(screen.getByText('BTCUSDT · Futures · 1h')).toBeTruthy();
+    const box = screen.getByPlaceholderText('Hỏi về BTCUSDT Futures khung 1h…');
+    await user.type(box, 'Funding thế nào?');
     await user.click(screen.getByRole('button', { name: /Gửi/ }));
 
     await waitFor(() =>
@@ -352,6 +347,45 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
         },
       ]),
     );
+
+    await user.click(
+      screen.getByRole('button', { name: 'Bỏ BTCUSDT · Futures · 1h' }),
+    );
+    expect(screen.queryByLabelText('Cặp coin')).toBeNull();
+    expect(
+      screen
+        .getByRole('radio', { name: /Kiến thức chung/ })
+        .getAttribute('aria-checked'),
+    ).toBe('true');
+  });
+
+  it('an example question fills the box and picks its kind of question', async () => {
+    const user = userEvent.setup();
+    await openAssistant(
+      aiService(
+        PRO,
+        { items: [] },
+        {
+          conversations: async () => ({
+            items: [],
+            page: 1,
+            pageSize: 50,
+            total: 0,
+          }),
+        },
+      ),
+    );
+
+    await user.click(
+      await screen.findByRole('button', { name: /BTC khung 4h đang thế nào/ }),
+    );
+
+    await waitFor(() =>
+      expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe(
+        'BTC khung 4h đang thế nào?',
+      ),
+    );
+    expect(await screen.findByText('BTCUSDT · Spot · 4h')).toBeTruthy();
   });
 
   it('shows MSG31 under a question whose answer failed', async () => {
@@ -377,7 +411,7 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
     expect(
       screen.getByRole('link', { name: 'Xem các gói' }).getAttribute('href'),
     ).toBe('/subscription');
-    expect(screen.queryByPlaceholderText(/Hỏi về cặp coin/)).toBeNull();
+    expect(screen.queryByRole('textbox')).toBeNull();
     expect(
       (
         screen.getByRole('button', {

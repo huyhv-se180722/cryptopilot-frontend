@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { Bot, Lock, Send, User } from 'lucide-react';
+import { Bot, Lock, Send, Sparkles, User, X } from 'lucide-react';
 import { EmptyState } from '../../../components/feedback/States';
 import { Button } from '../../../components/ui/Button';
 import { buttonClassName } from '../../../components/ui/button-styles';
@@ -68,25 +68,112 @@ function quotaLine(
   });
 }
 
+/** One thing that goes with the next question, shown above the box. */
+export interface AskAttachment {
+  key: string;
+  label: string;
+  onRemove: () => void;
+}
+
+/** An example question of the empty chat; picking it fills the box. */
+export interface AskSuggestion {
+  key: string;
+  text: string;
+  onPick?: () => void;
+}
+
+function Suggestions({
+  suggestions,
+  onPick,
+}: {
+  suggestions: readonly AskSuggestion[];
+  onPick: (suggestion: AskSuggestion) => void;
+}) {
+  const t = useCopy().aiAssistant;
+  return (
+    <div className="grid justify-items-center gap-3 py-8 text-center">
+      <Bot size={28} aria-hidden="true" className="text-muted-dim" />
+      <p className="m-0 text-sm font-medium text-fg">{t.emptyChat}</p>
+      <div className="grid justify-items-center gap-2">
+        <p className="m-0 text-xs text-muted">{t.suggestionsTitle}</p>
+        <ul className="m-0 flex list-none flex-wrap justify-center gap-2 p-0">
+          {suggestions.map((suggestion) => (
+            <li key={suggestion.key}>
+              <button
+                type="button"
+                onClick={() => onPick(suggestion)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-xs text-fg-2 hover:border-primary hover:text-fg"
+              >
+                <Sparkles size={12} aria-hidden="true" />
+                {suggestion.text}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function Attachments({
+  attachments,
+}: {
+  attachments: readonly AskAttachment[];
+}) {
+  const t = useCopy().aiAssistant;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+      <span className="text-muted">{t.sees}</span>
+      {attachments.length === 0 ? (
+        <span className="text-muted-dim">{t.seesNothing}</span>
+      ) : (
+        attachments.map((attachment) => (
+          <span
+            key={attachment.key}
+            className="inline-flex items-center gap-1 rounded-full bg-primary-soft py-0.5 pr-1 pl-2 font-medium text-fg"
+          >
+            {attachment.label}
+            <button
+              type="button"
+              aria-label={formatCopy(t.remove, { item: attachment.label })}
+              onClick={attachment.onRemove}
+              className="inline-flex size-4 items-center justify-center rounded-full text-muted hover:bg-raised hover:text-fg"
+            >
+              <X size={11} aria-hidden="true" />
+            </button>
+          </span>
+        ))
+      )}
+    </div>
+  );
+}
+
 /**
  * The chat panel of SCR-29: the conversation oldest first, a typing line
  * while a question is pending (MSG31 when it failed), and the question box
  * with today's quota (MSG30 when used up). Without the assistant in the
  * plan (BR-52) the conversation stays readable and the box gives way to the
  * upgrade prompt. The box is open before any conversation exists: the
- * first question starts one.
+ * first question starts one. Above the box: what the assistant will read
+ * with the question; in an empty chat: example questions.
  */
 export function ChatPanel({
   messages,
   loading,
   quota,
   asking,
+  placeholder,
+  attachments,
+  suggestions,
   onAsk,
 }: {
   messages: readonly AiMessage[];
   loading: boolean;
   quota: AiQuota | undefined;
   asking: boolean;
+  placeholder: string;
+  attachments: readonly AskAttachment[];
+  suggestions: readonly AskSuggestion[];
   onAsk: (question: string) => Promise<boolean>;
 }) {
   const t = useCopy().aiAssistant;
@@ -117,12 +204,16 @@ export function ChatPanel({
       </div>
     );
   else if (ordered.length === 0)
-    body = (
-      <EmptyState
-        icon={Bot}
-        title={t.emptyChat}
-        description={t.emptyChatHint}
+    body = canAsk ? (
+      <Suggestions
+        suggestions={suggestions}
+        onPick={(suggestion) => {
+          suggestion.onPick?.();
+          setDraft(suggestion.text);
+        }}
       />
+    ) : (
+      <EmptyState icon={Bot} title={t.emptyChat} />
     );
   else
     body = (
@@ -181,15 +272,16 @@ export function ChatPanel({
           </div>
         ) : (
           <form onSubmit={(event) => void submit(event)} className="grid gap-2">
+            <Attachments attachments={attachments} />
             <label htmlFor="ai-question" className="sr-only">
-              {t.placeholder}
+              {placeholder}
             </label>
             <textarea
               id="ai-question"
               rows={3}
               maxLength={QUESTION_MAX}
               value={draft}
-              placeholder={t.placeholder}
+              placeholder={placeholder}
               disabled={!canAsk}
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={(event) => {

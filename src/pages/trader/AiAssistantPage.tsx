@@ -5,12 +5,18 @@ import { Button } from '../../components/ui/Button';
 import { Dialog } from '../../components/ui/Dialog';
 import { Input } from '../../components/ui/Input';
 import { aiErrorText } from '../../features/ai-assistant/ai-assistant-errors';
-import { ChatPanel } from '../../features/ai-assistant/components/ChatPanel';
-import { ContextSelector } from '../../features/ai-assistant/components/ContextSelector';
 import {
+  askedPair,
   NO_CONTEXT,
+  toQuestion,
   type AiContextValue,
 } from '../../features/ai-assistant/ai-context';
+import { AskContext } from '../../features/ai-assistant/components/AskContext';
+import {
+  ChatPanel,
+  type AskAttachment,
+  type AskSuggestion,
+} from '../../features/ai-assistant/components/ChatPanel';
 import { ConversationList } from '../../features/ai-assistant/components/ConversationList';
 import {
   useAiAnswerPush,
@@ -26,17 +32,22 @@ import {
 import { useMarketPairs } from '../../features/market/hooks/use-market-data';
 import { useCopy } from '../../hooks/use-copy';
 import { useToast } from '../../hooks/use-toast';
+import { formatCopy } from '../../i18n/copy';
 import { I18nProvider } from '../../i18n/I18nProvider';
-import type { AiConversation, AiQuestion } from '../../types/domain';
+import type { AiConversation, MarketPair } from '../../types/domain';
 
 const TITLE_MAX = 100;
+/** The pair "analyse a coin" starts on when none is chosen yet. */
+const DEFAULT_SYMBOL = 'BTCUSDT';
 
 /**
  * SCR-29 AI Assistant (SRS 3.9.1, UC-35, UC-36, T-076): the conversation
- * list, the chat panel and the context selector. An analysis screen opens
- * it with `?symbol=<pair>&market=<spot|futures>` (or `?pair=<id>`) to
- * pre-fill the pair. The
- * answer arrives later (pushed, or read again while pending); every
+ * list beside the chat. Above the chat the Trader picks how to ask: a
+ * general question (no market data) or the analysis of one coin, plus an
+ * optional plan and performance summary; above the box, what goes with
+ * the question. An analysis screen opens it with
+ * `?symbol=<pair>&market=<spot|futures>` (or `?pair=<id>`) on that coin.
+ * The answer arrives later (pushed, or read again while pending); every
  * answer carries the disclaimer (BR-51). On FREE the conversations stay
  * readable with the upgrade prompt (BR-50, BR-52). The screen is in
  * Vietnamese, like the answers.
@@ -50,25 +61,18 @@ export function AiAssistantPage() {
 }
 
 function initialContext(params: URLSearchParams): AiContextValue {
+  const pairId = params.get('pair') ?? '';
   return {
     ...NO_CONTEXT,
+    mode: pairId !== '' || params.has('symbol') ? 'pair' : 'general',
     market:
       params.get('market')?.toLowerCase() === 'futures' ? 'futures' : 'spot',
-    pairId: params.get('pair') ?? '',
+    pairId,
   };
 }
 
-function question(text: string, context: AiContextValue): AiQuestion {
-  const scoped = context.pairId !== '' || context.planId !== '';
-  return {
-    question: text,
-    ...(context.pairId !== ''
-      ? { pairId: context.pairId, market: context.market }
-      : {}),
-    ...(scoped ? { timeframe: context.timeframe } : {}),
-    ...(context.planId !== '' ? { planId: context.planId } : {}),
-    ...(context.includePerformance ? { includePerformance: true } : {}),
-  };
+function marketLabel(market: AiContextValue['market']) {
+  return market === 'futures' ? 'Futures' : 'Spot';
 }
 
 function AiAssistantScreen() {
@@ -80,8 +84,8 @@ function AiAssistantScreen() {
   const [context, setContext] = useState<AiContextValue>(() =>
     initialContext(params),
   );
-  // The analysis screens name the pair by symbol; it is chosen once the
-  // market's pairs are known, until the Trader picks another.
+  // The coin "analyse a coin" falls back to while none is picked: the one
+  // an analysis screen named, else BTCUSDT.
   const [symbolHint, setSymbolHint] = useState(params.get('symbol'));
   const [renaming, setRenaming] = useState<AiConversation | null>(null);
   const [title, setTitle] = useState('');
@@ -95,16 +99,27 @@ function AiAssistantScreen() {
   const spotPairs = useMarketPairs('spot');
   const futuresPairs = useMarketPairs('futures');
   const plans = useAiPlans(onPlan);
-  const hintPairs = context.market === 'futures' ? futuresPairs : spotPairs;
-  const hinted = symbolHint
-    ? hintPairs.data?.find((pair) => pair.symbol === symbolHint)?.pairId
-    : undefined;
-  const chosen: AiContextValue =
-    context.pairId === '' && hinted ? { ...context, pairId: hinted } : context;
+  const marketPairs: readonly MarketPair[] =
+    (context.market === 'futures' ? futuresPairs : spotPairs).data ?? [];
+  const fallback =
+    context.mode === 'pair' && context.pairId === ''
+      ? (marketPairs.find(
+          (pair) => pair.symbol === (symbolHint ?? DEFAULT_SYMBOL),
+        ) ?? marketPairs[0])
+      : undefined;
+  const chosen: AiContextValue = fallback
+    ? { ...context, pairId: fallback.pairId }
+    : context;
   const start = useStartConversation();
   const rename = useRenameConversation();
   const removal = useDeleteConversation();
   const ask = useAskQuestion();
+
+  function symbolOf(pairId: string) {
+    return [...(spotPairs.data ?? []), ...(futuresPairs.data ?? [])].find(
+      (pair) => pair.pairId === pairId,
+    )?.symbol;
+  }
 
   const items = conversations.data?.items ?? [];
   const firstId = items[0]?.id ?? null;
@@ -130,8 +145,13 @@ function AiAssistantScreen() {
     });
   }
 
+  function change(next: AiContextValue) {
+    setSymbolHint(null);
+    setContext(next);
+  }
+
   async function startConversation(): Promise<string | null> {
-    const result = await start.run(chosen.pairId === '' ? null : chosen.pairId);
+    const result = await start.run(askedPair(chosen));
     if (result.status === 'success') {
       select(result.data.id);
       return result.data.id;
@@ -141,17 +161,86 @@ function AiAssistantScreen() {
     return null;
   }
 
+  async function newConversation() {
+    // A new conversation starts as a general question.
+    if ((await startConversation()) !== null) change(NO_CONTEXT);
+  }
+
   async function askQuestion(text: string): Promise<boolean> {
     // The first question of a Trader without a conversation starts one.
     const conversationId = selectedId ?? (await startConversation());
     if (!conversationId) return false;
-    const result = await ask.run(conversationId, question(text, chosen));
+    const result = await ask.run(conversationId, toQuestion(text, chosen));
     if (result.status === 'error') {
       show({ tone: 'error', message: aiErrorText(copy, result.error) });
       return false;
     }
     return result.status === 'success';
   }
+
+  const pairId = askedPair(chosen);
+  const pairSymbol = pairId === null ? undefined : symbolOf(pairId);
+  const plan = plans.data?.find((item) => item.id === chosen.planId);
+  const attachments: AskAttachment[] = [];
+  if (pairId !== null)
+    attachments.push({
+      key: 'pair',
+      label: formatCopy(t.pairChip, {
+        symbol: pairSymbol ?? '…',
+        market: marketLabel(chosen.market),
+        timeframe: chosen.timeframe,
+      }),
+      onRemove: () => change({ ...chosen, mode: 'general' }),
+    });
+  if (plan)
+    attachments.push({
+      key: 'plan',
+      label: formatCopy(t.planChip, {
+        symbol: symbolOf(plan.pairId) ?? '',
+        direction: plan.direction,
+      }),
+      onRemove: () => change({ ...chosen, planId: '' }),
+    });
+  if (chosen.includePerformance)
+    attachments.push({
+      key: 'performance',
+      label: t.performanceChip,
+      onRemove: () => change({ ...chosen, includePerformance: false }),
+    });
+  const placeholder =
+    pairId !== null
+      ? formatCopy(t.placeholderPair, {
+          symbol: pairSymbol ?? '',
+          market: marketLabel(chosen.market),
+          timeframe: chosen.timeframe,
+        })
+      : t.placeholderGeneral;
+  const suggestions: AskSuggestion[] = [
+    {
+      key: 'rsi',
+      text: t.suggestionRsi,
+      onPick: () => change({ ...chosen, mode: 'general' }),
+    },
+    {
+      key: 'stop-loss',
+      text: t.suggestionStopLoss,
+      onPick: () => change({ ...chosen, mode: 'general' }),
+    },
+    {
+      key: 'pair',
+      text: t.suggestionPair,
+      onPick: () => {
+        setContext({
+          ...chosen,
+          mode: 'pair',
+          market: 'spot',
+          pairId: '',
+          timeframe: '4h',
+        });
+        setSymbolHint(DEFAULT_SYMBOL);
+      },
+    },
+  ];
 
   async function confirmRename() {
     if (!renaming) return;
@@ -178,7 +267,7 @@ function AiAssistantScreen() {
   return (
     <div className="w-full">
       <PageHeader title={t.title} description={t.subtitle} />
-      <div className="grid gap-3 lg:grid-cols-[260px_minmax(0,1fr)_260px]">
+      <div className="grid gap-3 lg:grid-cols-[260px_minmax(0,1fr)]">
         <ConversationList
           conversations={items}
           loading={conversations.isPending}
@@ -186,31 +275,35 @@ function AiAssistantScreen() {
           canStart={onPlan}
           starting={start.pending}
           onSelect={select}
-          onStart={() => void startConversation()}
+          onStart={() => void newConversation()}
           onRename={(conversation) => {
             setRenaming(conversation);
             setTitle(conversation.title ?? '');
           }}
           onDelete={setDeleting}
         />
-        <ChatPanel
-          messages={messages.data?.items ?? []}
-          loading={messages.isPending && selectedId !== null}
-          quota={quota.data}
-          asking={ask.pending}
-          onAsk={askQuestion}
-        />
-        <ContextSelector
-          value={chosen}
-          spotPairs={spotPairs.data ?? []}
-          futuresPairs={futuresPairs.data ?? []}
-          plans={plans.data ?? []}
-          performanceAllowed={quota.data?.performanceContext ?? false}
-          onChange={(next) => {
-            setSymbolHint(null);
-            setContext(next);
-          }}
-        />
+        <div className="flex min-w-0 flex-col gap-3">
+          {onPlan && (
+            <AskContext
+              value={chosen}
+              pairs={marketPairs}
+              plans={plans.data ?? []}
+              symbolOf={symbolOf}
+              performanceAllowed={quota.data?.performanceContext ?? false}
+              onChange={change}
+            />
+          )}
+          <ChatPanel
+            messages={messages.data?.items ?? []}
+            loading={messages.isPending && selectedId !== null}
+            quota={quota.data}
+            asking={ask.pending}
+            placeholder={placeholder}
+            attachments={attachments}
+            suggestions={suggestions}
+            onAsk={askQuestion}
+          />
+        </div>
       </div>
       <Dialog
         open={renaming !== null}
