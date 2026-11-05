@@ -45,7 +45,7 @@ export function decodeAiConversation(body: unknown): AiConversation {
   const value = record(body, 'conversation');
   return {
     id: text(value.id, 'id'),
-    title: text(value.title, 'title'),
+    title: nullableText(value.title, 'title'),
     pairId: nullableText(value.pairId, 'pairId'),
     createdAt: instant(value.createdAt, 'createdAt'),
     updatedAt: instant(value.updatedAt, 'updatedAt'),

@@ -1172,7 +1172,8 @@ export type AiSenderRole = 'USER' | 'ASSISTANT';
 export type AiMessageStatus = 'PENDING' | 'COMPLETED' | 'FAILED';
 export interface AiConversation {
   id: string;
-  title: string;
+  /** Null until the first question names it. */
+  title: string | null;
   /** The pair it started from, when started from an analysis screen. */
   pairId: string | null;
   createdAt: ISODateTime;

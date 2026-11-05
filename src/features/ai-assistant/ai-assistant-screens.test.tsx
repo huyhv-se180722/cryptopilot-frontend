@@ -243,7 +243,7 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
           started.push(pairId);
           return {
             id: 'c9',
-            title: 'Mới',
+            title: null,
             pairId,
             createdAt: AT,
             updatedAt: AT,
@@ -272,6 +272,37 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
       expect(asked).toEqual([['c9', { question: 'DCA là gì?' }]]),
     );
     expect(started).toEqual([null]);
+  });
+
+  it('lists a conversation not named yet (no question) as a new conversation', async () => {
+    await openAssistant(
+      aiService(
+        PRO,
+        { items: [] },
+        {
+          conversations: async () => ({
+            items: [
+              {
+                id: 'c1',
+                title: null,
+                pairId: null,
+                createdAt: AT,
+                updatedAt: AT,
+              },
+            ],
+            page: 1,
+            pageSize: 50,
+            total: 1,
+          }),
+        },
+      ),
+    );
+
+    expect(
+      await screen.findByRole('button', {
+        name: /Đổi tên: Cuộc trò chuyện mới/,
+      }),
+    ).toBeTruthy();
   });
 
   it('lists the pairs of both markets in one list, the market goes with the pair', async () => {

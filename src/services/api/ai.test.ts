@@ -119,8 +119,9 @@ describe('AI assistant adapter (UC-35, UC-36, BR-50)', () => {
       createdAt: '2026-11-02T03:00:00Z',
       updatedAt: '2026-11-02T03:00:00Z',
     };
-    const started = setup(conversation);
-    await started.ai.start(null);
+    // A new conversation has no title until its first question names it.
+    const started = setup({ ...conversation, title: null });
+    expect((await started.ai.start(null)).title).toBeNull();
     expect(started.calls[0]?.body).toEqual({});
 
     const renamed = setup(conversation);

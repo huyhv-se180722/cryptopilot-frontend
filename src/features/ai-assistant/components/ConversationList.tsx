@@ -76,19 +76,19 @@ export function ConversationList({
                   )}
                 >
                   <span className="block truncate text-sm">
-                    {conversation.title}
+                    {conversation.title ?? t.untitled}
                   </span>
                   <span className="block text-[11px] text-muted-dim">
                     {formatInstantLocal(conversation.updatedAt)}
                   </span>
                 </button>
                 <IconButton
-                  label={t.rename + ': ' + conversation.title}
+                  label={t.rename + ': ' + (conversation.title ?? t.untitled)}
                   icon={<Pencil size={13} aria-hidden="true" />}
                   onClick={() => onRename(conversation)}
                 />
                 <IconButton
-                  label={t.delete + ': ' + conversation.title}
+                  label={t.delete + ': ' + (conversation.title ?? t.untitled)}
                   icon={<Trash2 size={13} aria-hidden="true" />}
                   onClick={() => onDelete(conversation)}
                 />

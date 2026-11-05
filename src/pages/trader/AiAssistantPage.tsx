@@ -189,7 +189,7 @@ function AiAssistantScreen() {
           onStart={() => void startConversation()}
           onRename={(conversation) => {
             setRenaming(conversation);
-            setTitle(conversation.title);
+            setTitle(conversation.title ?? '');
           }}
           onDelete={setDeleting}
         />
