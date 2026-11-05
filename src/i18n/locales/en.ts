@@ -2815,7 +2815,7 @@ export const en = {
     upgradeAction: 'View plans',
     pair: 'Pair',
     timeframe: 'Timeframe',
-    plan: 'Trading plan',
+    plan: 'One of my plans',
     noPlan: 'No plan',
     performance: 'My trading performance',
     performanceLocked: 'Trading performance: PREMIUM only',
@@ -2829,7 +2829,7 @@ export const en = {
     modePairHint:
       'The assistant reads the current price, indicators and setup score of the coin you pick.',
     market: 'Market',
-    extras: 'Also include',
+    extras: 'Also include (optional)',
     privacy: 'Your email, name and capital are never sent.',
     sees: 'The assistant will read:',
     seesNothing: 'General question — the assistant reads no market data.',
@@ -2843,6 +2843,10 @@ export const en = {
     suggestionRsi: 'What does an RSI above 70 mean?',
     suggestionStopLoss: 'How should I place a stop loss?',
     suggestionPair: 'How is BTC doing on 4h?',
+    planHint:
+      'The assistant reads the entry, stop loss, take profit and risk of the plan.',
+    performanceHint:
+      'Win rate, average R… of your closed trades. No amounts are sent.',
   },
   aiAdmin: {
     title: 'AI configuration',

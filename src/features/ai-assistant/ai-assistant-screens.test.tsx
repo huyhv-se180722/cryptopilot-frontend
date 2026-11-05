@@ -266,6 +266,13 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
     expect(
       screen.getByText('Câu hỏi chung — trợ lý không xem dữ liệu thị trường.'),
     ).toBeTruthy();
+    // The two extras stand apart, each saying what it sends.
+    expect(
+      (screen.getByLabelText('Một plan của tôi') as HTMLSelectElement).value,
+    ).toBe('');
+    expect(
+      screen.getByText(/của các lệnh đã đóng\. Không gửi số tiền/),
+    ).toBeTruthy();
     await user.type(box, 'DCA là gì?');
     await user.click(screen.getByRole('button', { name: /Gửi/ }));
 

@@ -719,7 +719,7 @@ export const vi: PartialCopy = {
     upgradeAction: 'Xem các gói',
     pair: 'Cặp coin',
     timeframe: 'Khung thời gian',
-    plan: 'Kế hoạch giao dịch',
+    plan: 'Một plan của tôi',
     noPlan: 'Không kèm plan',
     performance: 'Hiệu suất giao dịch của tôi',
     performanceLocked: 'Hiệu suất giao dịch: chỉ gói PREMIUM',
@@ -733,7 +733,7 @@ export const vi: PartialCopy = {
     modePairHint:
       'Trợ lý xem giá, chỉ báo và setup score hiện tại của coin bạn chọn.',
     market: 'Thị trường',
-    extras: 'Kèm thêm',
+    extras: 'Kèm thêm (không bắt buộc)',
     privacy: 'Không bao giờ gửi email, tên hay số vốn của bạn.',
     sees: 'Trợ lý sẽ xem:',
     seesNothing: 'Câu hỏi chung — trợ lý không xem dữ liệu thị trường.',
@@ -747,6 +747,9 @@ export const vi: PartialCopy = {
     suggestionRsi: 'RSI trên 70 nghĩa là gì?',
     suggestionStopLoss: 'Nên đặt stop loss như thế nào?',
     suggestionPair: 'BTC khung 4h đang thế nào?',
+    planHint: 'Trợ lý xem entry, stop loss, take profit và rủi ro của plan.',
+    performanceHint:
+      'Win rate, R trung bình… của các lệnh đã đóng. Không gửi số tiền.',
   },
   aiAdmin: {
     title: 'Cấu hình AI',

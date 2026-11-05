@@ -160,34 +160,61 @@ export function AskContext({
           </Select>
         </div>
       )}
-      <div className="grid gap-2 border-t border-line pt-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-        <Select
-          label={t.extras + ' · ' + t.plan}
-          value={value.planId}
-          onChange={(event) =>
-            onChange({ ...value, planId: event.target.value })
-          }
-        >
-          <option value="">{t.noPlan}</option>
-          {plans.map((plan) => (
-            <option key={plan.id} value={plan.id}>
-              {(symbolOf(plan.pairId) ?? plan.market) +
-                ' · ' +
-                plan.direction +
-                ' · ' +
-                plan.entryPrice}
-            </option>
-          ))}
-        </Select>
-        <Checkbox
-          className="sm:pb-2"
-          label={performanceAllowed ? t.performance : t.performanceLocked}
-          checked={performanceAllowed && value.includePerformance}
-          disabled={!performanceAllowed}
-          onChange={(event) =>
-            onChange({ ...value, includePerformance: event.target.checked })
-          }
-        />
+      <div className="grid gap-2 border-t border-line pt-3">
+        <h3 className="m-0 text-xs font-semibold text-fg-2">{t.extras}</h3>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid content-start gap-1.5 rounded-md border border-line p-3">
+            <Select
+              label={t.plan}
+              value={value.planId}
+              aria-describedby="ai-plan-hint"
+              onChange={(event) =>
+                onChange({ ...value, planId: event.target.value })
+              }
+            >
+              <option value="">{t.noPlan}</option>
+              {plans.map((plan) => (
+                <option key={plan.id} value={plan.id}>
+                  {(symbolOf(plan.pairId) ?? plan.market) +
+                    ' · ' +
+                    plan.direction +
+                    ' · ' +
+                    plan.entryPrice}
+                </option>
+              ))}
+            </Select>
+            <p id="ai-plan-hint" className="m-0 text-[11px] text-muted">
+              {t.planHint}
+            </p>
+          </div>
+          <div
+            className={classNames(
+              'rounded-md border border-line p-3',
+              !performanceAllowed && 'opacity-60',
+            )}
+          >
+            <Checkbox
+              label={
+                <span>
+                  <span className="block text-sm font-medium text-fg">
+                    {performanceAllowed ? t.performance : t.performanceLocked}
+                  </span>
+                  <span className="mt-0.5 block text-[11px] text-muted">
+                    {t.performanceHint}
+                  </span>
+                </span>
+              }
+              checked={performanceAllowed && value.includePerformance}
+              disabled={!performanceAllowed}
+              onChange={(event) =>
+                onChange({
+                  ...value,
+                  includePerformance: event.target.checked,
+                })
+              }
+            />
+          </div>
+        </div>
       </div>
       <p className="m-0 text-[11px] text-muted-dim">{t.privacy}</p>
     </section>
