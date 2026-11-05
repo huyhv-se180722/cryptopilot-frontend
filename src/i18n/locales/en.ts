@@ -2801,7 +2801,6 @@ export const en = {
     emptyChat: 'Ask a question to start.',
     emptyChatHint:
       'For example: "Explain the setup score of BTCUSDT on 4h" or "What are the risks of my plan?"',
-    pickConversation: 'Choose a conversation or start a new one.',
     you: 'You',
     assistant: 'Assistant',
     thinking: 'The assistant is writing…',
@@ -2820,9 +2819,8 @@ export const en = {
     context: 'Context',
     contextHint:
       'What is sent with your question. No email, name or capital is ever included.',
-    market: 'Market',
     pair: 'Pair',
-    noPair: 'No pair',
+    noPair: 'No pair (general question)',
     timeframe: 'Timeframe',
     plan: 'Trading plan',
     noPlan: 'No plan',

@@ -9,27 +9,41 @@ import type {
   TradingPlanSummary,
 } from '../../../types/domain';
 
+/** The value of a pair option: the market and the pair, one pair id per symbol (FEQ-01). */
+function pairKey(market: MarketType, pairId: string) {
+  return pairId === '' ? '' : market + ':' + pairId;
+}
+
 /**
- * The context selector of SCR-29: pair, market and timeframe, optionally
- * one of the Trader's plans, and on PREMIUM the performance summary
- * (BR-62). Only what is chosen here goes with the question, never personal
- * data (BR-51).
+ * The context selector of SCR-29: one pair list grouped by market (or no
+ * pair, for a general question), the timeframe of a chosen pair or plan,
+ * optionally one of the Trader's plans, and on PREMIUM the performance
+ * summary (BR-62). Only what is chosen here goes with the question, never
+ * personal data (BR-51).
  */
 export function ContextSelector({
   value,
-  pairs,
+  spotPairs,
+  futuresPairs,
   plans,
   performanceAllowed,
   onChange,
 }: {
   value: AiContextValue;
-  pairs: readonly MarketPair[];
+  spotPairs: readonly MarketPair[];
+  futuresPairs: readonly MarketPair[];
   plans: readonly TradingPlanSummary[];
   performanceAllowed: boolean;
   onChange: (next: AiContextValue) => void;
 }) {
   const t = useCopy().aiAssistant;
-  const symbols = new Map(pairs.map((pair) => [pair.pairId, pair.symbol]));
+  const symbols = new Map(
+    [...futuresPairs, ...spotPairs].map((pair) => [pair.pairId, pair.symbol]),
+  );
+  const groups: readonly [MarketType, string, readonly MarketPair[]][] = [
+    ['spot', 'Spot', spotPairs],
+    ['futures', 'Futures', futuresPairs],
+  ];
   return (
     <aside
       aria-label={t.context}
@@ -40,34 +54,38 @@ export function ContextSelector({
         <p className="m-0 mt-1 text-[11px] text-muted-dim">{t.contextHint}</p>
       </div>
       <Select
-        label={t.market}
-        value={value.market}
-        onChange={(event) =>
-          onChange({
-            ...value,
-            market: event.target.value as MarketType,
-            pairId: '',
-          })
-        }
-      >
-        <option value="spot">Spot</option>
-        <option value="futures">Futures</option>
-      </Select>
-      <Select
         label={t.pair}
-        value={value.pairId}
-        onChange={(event) => onChange({ ...value, pairId: event.target.value })}
+        value={pairKey(value.market, value.pairId)}
+        onChange={(event) => {
+          const [market, pairId] = event.target.value.split(':');
+          onChange(
+            pairId
+              ? { ...value, market: market as MarketType, pairId }
+              : { ...value, pairId: '' },
+          );
+        }}
       >
         <option value="">{t.noPair}</option>
-        {pairs.map((pair) => (
-          <option key={pair.pairId} value={pair.pairId}>
-            {pair.symbol}
-          </option>
-        ))}
+        {groups.map(
+          ([market, label, pairs]) =>
+            pairs.length > 0 && (
+              <optgroup key={market} label={label}>
+                {pairs.map((pair) => (
+                  <option
+                    key={pair.pairId}
+                    value={pairKey(market, pair.pairId)}
+                  >
+                    {pair.symbol + ' · ' + label}
+                  </option>
+                ))}
+              </optgroup>
+            ),
+        )}
       </Select>
       <Select
         label={t.timeframe}
         value={value.timeframe}
+        disabled={value.pairId === '' && value.planId === ''}
         onChange={(event) =>
           onChange({ ...value, timeframe: event.target.value as PlanTimeframe })
         }

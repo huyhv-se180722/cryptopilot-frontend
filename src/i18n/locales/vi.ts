@@ -706,7 +706,6 @@ export const vi: PartialCopy = {
     emptyChat: 'Đặt một câu hỏi để bắt đầu.',
     emptyChatHint:
       'Ví dụ: "Giải thích setup score của BTCUSDT khung 4h" hoặc "Kế hoạch của tôi có rủi ro gì?"',
-    pickConversation: 'Chọn một cuộc trò chuyện hoặc tạo mới.',
     you: 'Bạn',
     assistant: 'Trợ lý',
     thinking: 'Trợ lý đang trả lời…',
@@ -724,9 +723,8 @@ export const vi: PartialCopy = {
     context: 'Ngữ cảnh',
     contextHint:
       'Dữ liệu gửi kèm câu hỏi. Không bao giờ gửi email, tên hay số vốn của bạn.',
-    market: 'Thị trường',
     pair: 'Cặp coin',
-    noPair: 'Không chọn',
+    noPair: 'Không chọn (câu hỏi chung)',
     timeframe: 'Khung thời gian',
     plan: 'Kế hoạch giao dịch',
     noPlan: 'Không chọn',

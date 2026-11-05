@@ -189,7 +189,7 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
     await waitFor(() =>
       expect(
         (screen.getByLabelText('Cặp coin') as HTMLSelectElement).value,
-      ).toBe('p-btc'),
+      ).toBe('spot:p-btc'),
     );
     await user.selectOptions(screen.getByLabelText('Khung thời gian'), '4h');
     await user.type(box, 'Setup score nói gì?');
@@ -222,6 +222,104 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
     ).toBeTruthy();
     await waitFor(() =>
       expect(screen.queryByText('Trợ lý đang trả lời…')).toBeNull(),
+    );
+  });
+
+  it('without a conversation the box is open and the first question starts one', async () => {
+    const user = userEvent.setup();
+    const started: (string | null)[] = [];
+    const asked: [string, AiQuestion][] = [];
+    const ai = aiService(
+      PRO,
+      { items: [] },
+      {
+        conversations: async () => ({
+          items: [],
+          page: 1,
+          pageSize: 50,
+          total: 0,
+        }),
+        start: async (pairId) => {
+          started.push(pairId);
+          return {
+            id: 'c9',
+            title: 'Mới',
+            pairId,
+            createdAt: AT,
+            updatedAt: AT,
+          };
+        },
+        ask: async (id, question) => {
+          asked.push([id, question]);
+          const pending = message('q1', 'USER', question.question, 'PENDING');
+          return { question: pending, quota: PRO };
+        },
+      },
+    );
+    await openAssistant(ai);
+
+    const box = (await screen.findByPlaceholderText(
+      /Hỏi về cặp coin/,
+    )) as HTMLTextAreaElement;
+    await waitFor(() => expect(box.disabled).toBe(false));
+    expect(
+      (screen.getByLabelText('Khung thời gian') as HTMLSelectElement).disabled,
+    ).toBe(true);
+    await user.type(box, 'DCA là gì?');
+    await user.click(screen.getByRole('button', { name: /Gửi/ }));
+
+    await waitFor(() =>
+      expect(asked).toEqual([['c9', { question: 'DCA là gì?' }]]),
+    );
+    expect(started).toEqual([null]);
+  });
+
+  it('lists the pairs of both markets in one list, the market goes with the pair', async () => {
+    const user = userEvent.setup();
+    const asked: AiQuestion[] = [];
+    await openAssistant(
+      aiService(
+        PRO,
+        { items: [] },
+        {
+          ask: async (_id, question) => {
+            asked.push(question);
+            const pending = message('q1', 'USER', question.question, 'PENDING');
+            return { question: pending, quota: PRO };
+          },
+        },
+      ),
+    );
+
+    const pair = (await screen.findByLabelText(
+      'Cặp coin',
+    )) as HTMLSelectElement;
+    await waitFor(() =>
+      expect(
+        Array.from(pair.querySelectorAll('optgroup')).map(
+          (group) => group.label,
+        ),
+      ).toEqual(['Spot', 'Futures']),
+    );
+    await user.selectOptions(pair, 'futures:p-btc');
+    expect(
+      (screen.getByLabelText('Khung thời gian') as HTMLSelectElement).disabled,
+    ).toBe(false);
+    await user.type(
+      screen.getByPlaceholderText(/Hỏi về cặp coin/),
+      'Funding thế nào?',
+    );
+    await user.click(screen.getByRole('button', { name: /Gửi/ }));
+
+    await waitFor(() =>
+      expect(asked).toEqual([
+        {
+          question: 'Funding thế nào?',
+          pairId: 'p-btc',
+          market: 'futures',
+          timeframe: '1h',
+        },
+      ]),
     );
   });
 

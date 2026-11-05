@@ -73,17 +73,16 @@ function quotaLine(
  * while a question is pending (MSG31 when it failed), and the question box
  * with today's quota (MSG30 when used up). Without the assistant in the
  * plan (BR-52) the conversation stays readable and the box gives way to the
- * upgrade prompt.
+ * upgrade prompt. The box is open before any conversation exists: the
+ * first question starts one.
  */
 export function ChatPanel({
-  conversationId,
   messages,
   loading,
   quota,
   asking,
   onAsk,
 }: {
-  conversationId: string | null;
   messages: readonly AiMessage[];
   loading: boolean;
   quota: AiQuota | undefined;
@@ -105,15 +104,12 @@ export function ChatPanel({
   async function submit(event: FormEvent) {
     event.preventDefault();
     const question = draft.trim();
-    if (!conversationId || question === '' || question.length > QUESTION_MAX)
-      return;
+    if (question === '' || question.length > QUESTION_MAX) return;
     if (await onAsk(question)) setDraft('');
   }
 
   let body;
-  if (!conversationId)
-    body = <EmptyState icon={Bot} title={t.pickConversation} />;
-  else if (loading)
+  if (loading)
     body = (
       <div className="grid gap-3 p-2">
         <Skeleton className="h-12 w-2/3" />
@@ -194,7 +190,7 @@ export function ChatPanel({
               maxLength={QUESTION_MAX}
               value={draft}
               placeholder={t.placeholder}
-              disabled={!conversationId || !canAsk}
+              disabled={!canAsk}
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' && !event.shiftKey) {
@@ -219,13 +215,7 @@ export function ChatPanel({
               <Button
                 type="submit"
                 size="sm"
-                disabled={
-                  !conversationId ||
-                  !canAsk ||
-                  asking ||
-                  pending ||
-                  draft.trim() === ''
-                }
+                disabled={!canAsk || asking || pending || draft.trim() === ''}
               >
                 <Send size={14} aria-hidden="true" />
                 {t.send}

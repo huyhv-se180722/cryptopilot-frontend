@@ -92,10 +92,12 @@ function AiAssistantScreen() {
   const quota = useAiQuota();
   const messages = useAiMessages(selectedId);
   const onPlan = quota.data !== undefined && quota.data.limit !== 0;
-  const pairs = useMarketPairs(context.market);
+  const spotPairs = useMarketPairs('spot');
+  const futuresPairs = useMarketPairs('futures');
   const plans = useAiPlans(onPlan);
+  const hintPairs = context.market === 'futures' ? futuresPairs : spotPairs;
   const hinted = symbolHint
-    ? pairs.data?.find((pair) => pair.symbol === symbolHint)?.pairId
+    ? hintPairs.data?.find((pair) => pair.symbol === symbolHint)?.pairId
     : undefined;
   const chosen: AiContextValue =
     context.pairId === '' && hinted ? { ...context, pairId: hinted } : context;
@@ -128,16 +130,22 @@ function AiAssistantScreen() {
     });
   }
 
-  async function startConversation() {
+  async function startConversation(): Promise<string | null> {
     const result = await start.run(chosen.pairId === '' ? null : chosen.pairId);
-    if (result.status === 'success') select(result.data.id);
-    else if (result.status === 'error')
+    if (result.status === 'success') {
+      select(result.data.id);
+      return result.data.id;
+    }
+    if (result.status === 'error')
       show({ tone: 'error', message: aiErrorText(copy, result.error) });
+    return null;
   }
 
   async function askQuestion(text: string): Promise<boolean> {
-    if (!selectedId) return false;
-    const result = await ask.run(selectedId, question(text, chosen));
+    // The first question of a Trader without a conversation starts one.
+    const conversationId = selectedId ?? (await startConversation());
+    if (!conversationId) return false;
+    const result = await ask.run(conversationId, question(text, chosen));
     if (result.status === 'error') {
       show({ tone: 'error', message: aiErrorText(copy, result.error) });
       return false;
@@ -186,7 +194,6 @@ function AiAssistantScreen() {
           onDelete={setDeleting}
         />
         <ChatPanel
-          conversationId={selectedId}
           messages={messages.data?.items ?? []}
           loading={messages.isPending && selectedId !== null}
           quota={quota.data}
@@ -195,7 +202,8 @@ function AiAssistantScreen() {
         />
         <ContextSelector
           value={chosen}
-          pairs={pairs.data ?? []}
+          spotPairs={spotPairs.data ?? []}
+          futuresPairs={futuresPairs.data ?? []}
           plans={plans.data ?? []}
           performanceAllowed={quota.data?.performanceContext ?? false}
           onChange={(next) => {
