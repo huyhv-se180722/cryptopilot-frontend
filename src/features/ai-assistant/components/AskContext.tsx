@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ChartCandlestick, MessageCircle } from 'lucide-react';
+import { ChartCandlestick, ClipboardList } from 'lucide-react';
 import { Checkbox } from '../../../components/ui/Checkbox';
 import { Select } from '../../../components/ui/Select';
 import { useCopy } from '../../../hooks/use-copy';
@@ -62,11 +62,10 @@ function ModeCard({
 }
 
 /**
- * The top of SCR-29: how the Trader asks. A general question reads no
- * market data; "analyse a coin" opens the market, pair and timeframe of the
- * analysis that goes with the question. A plan and, on PREMIUM, the
- * performance summary can go with either (BR-62). Never personal data
- * (BR-51).
+ * The top of SCR-29: what the question is about. "Market analysis" sends
+ * the analysis of one pair on one market; "my plan and performance" sends
+ * one of the Trader's plans and/or, on PREMIUM, the performance summary
+ * (BR-62). Each mode sends only its own data, never personal data (BR-51).
  */
 export function AskContext({
   value,
@@ -97,14 +96,6 @@ export function AskContext({
         className="flex flex-col gap-2 sm:flex-row"
       >
         <ModeCard
-          mode="general"
-          selected={value.mode === 'general'}
-          icon={<MessageCircle size={15} />}
-          title={t.modeGeneral}
-          hint={t.modeGeneralHint}
-          onPick={(mode) => onChange({ ...value, mode })}
-        />
-        <ModeCard
           mode="pair"
           selected={value.mode === 'pair'}
           icon={<ChartCandlestick size={15} />}
@@ -112,8 +103,16 @@ export function AskContext({
           hint={t.modePairHint}
           onPick={(mode) => onChange({ ...value, mode })}
         />
+        <ModeCard
+          mode="mine"
+          selected={value.mode === 'mine'}
+          icon={<ClipboardList size={15} />}
+          title={t.modeMine}
+          hint={t.modeMineHint}
+          onPick={(mode) => onChange({ ...value, mode })}
+        />
       </div>
-      {value.mode === 'pair' && (
+      {value.mode === 'pair' ? (
         <div className="grid gap-2 sm:grid-cols-3">
           <Select
             label={t.market}
@@ -159,9 +158,7 @@ export function AskContext({
             ))}
           </Select>
         </div>
-      )}
-      <div className="grid gap-2 border-t border-line pt-3">
-        <h3 className="m-0 text-xs font-semibold text-fg-2">{t.extras}</h3>
+      ) : (
         <div className="grid gap-2 sm:grid-cols-2">
           <div className="grid content-start gap-1.5 rounded-md border border-line p-3">
             <Select
@@ -184,7 +181,7 @@ export function AskContext({
               ))}
             </Select>
             <p id="ai-plan-hint" className="m-0 text-[11px] text-muted">
-              {t.planHint}
+              {plans.length === 0 ? t.noPlans : t.planHint}
             </p>
           </div>
           <div
@@ -215,7 +212,7 @@ export function AskContext({
             />
           </div>
         </div>
-      </div>
+      )}
       <p className="m-0 text-[11px] text-muted-dim">{t.privacy}</p>
     </section>
   );

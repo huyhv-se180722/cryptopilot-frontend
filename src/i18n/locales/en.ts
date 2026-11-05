@@ -2782,7 +2782,7 @@ export const en = {
   aiAssistant: {
     title: 'AI assistant',
     subtitle:
-      'Ask about trading knowledge or have the assistant analyse a coin. It only explains, never advises to buy or sell.',
+      'Have the assistant analyse a coin, or review your plan and trading performance. It only explains, never advises to buy or sell.',
     conversations: 'Conversations',
     newConversation: 'New conversation',
     noConversations: 'No conversations yet.',
@@ -2822,10 +2822,7 @@ export const en = {
     disclaimer:
       'Answers are for reference and education only and are not investment advice.',
     askTitle: 'What do you want to ask?',
-    modeGeneral: 'General knowledge',
-    modeGeneralHint:
-      'RSI, DCA, money management… The assistant reads no market data.',
-    modePair: 'Analyse a coin',
+    modePair: 'Market analysis',
     modePairHint:
       'The assistant reads the current price, indicators and setup score of the coin you pick.',
     market: 'Market',
@@ -2847,6 +2844,23 @@ export const en = {
       'The assistant reads the entry, stop loss, take profit and risk of the plan.',
     performanceHint:
       'Win rate, average R… of your closed trades. No amounts are sent.',
+    modeMine: 'My plan & performance',
+    modeMineHint:
+      'The assistant reads your plan (with the state of its coin) and your trading statistics.',
+    noPlans: 'You have no plan to ask about yet.',
+    placeholderMine: 'Ask about your plan or your trading performance…',
+    pairNeedsChoice: 'Pick a coin for the assistant to analyse.',
+    mineNeedsChoice: 'Pick a plan or tick the performance to ask.',
+    suggestionSetup: 'What does the current setup score say?',
+    suggestionPerformance: 'What should I improve from my trading performance?',
+    suggestionDca: 'What is DCA?',
+    generalTip: 'A general question (RSI, DCA, money management…)?',
+    generalTipAction: 'Open quick ask',
+    bubbleOpen: 'Quick ask the AI assistant',
+    bubbleTitle: 'Quick ask',
+    bubbleSubtitle: 'General trading knowledge · reads no market data',
+    bubbleNew: 'New question',
+    bubbleClose: 'Close',
   },
   aiAdmin: {
     title: 'AI configuration',

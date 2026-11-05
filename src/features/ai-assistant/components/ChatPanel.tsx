@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Bot, Lock, Send, Sparkles, User, X } from 'lucide-react';
 import { EmptyState } from '../../../components/feedback/States';
@@ -72,7 +72,8 @@ function quotaLine(
 export interface AskAttachment {
   key: string;
   label: string;
-  onRemove: () => void;
+  /** Absent when the chosen kind of question cannot go without it. */
+  onRemove?: () => void;
 }
 
 /** An example question of the empty chat; picking it fills the box. */
@@ -117,30 +118,37 @@ function Suggestions({
 
 function Attachments({
   attachments,
+  emptyText,
 }: {
   attachments: readonly AskAttachment[];
+  emptyText: string;
 }) {
   const t = useCopy().aiAssistant;
   return (
     <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
       <span className="text-muted">{t.sees}</span>
       {attachments.length === 0 ? (
-        <span className="text-muted-dim">{t.seesNothing}</span>
+        <span className="text-muted-dim">{emptyText}</span>
       ) : (
         attachments.map((attachment) => (
           <span
             key={attachment.key}
-            className="inline-flex items-center gap-1 rounded-full bg-primary-soft py-0.5 pr-1 pl-2 font-medium text-fg"
+            className={classNames(
+              'inline-flex items-center gap-1 rounded-full bg-primary-soft py-0.5 pl-2 font-medium text-fg',
+              attachment.onRemove ? 'pr-1' : 'pr-2',
+            )}
           >
             {attachment.label}
-            <button
-              type="button"
-              aria-label={formatCopy(t.remove, { item: attachment.label })}
-              onClick={attachment.onRemove}
-              className="inline-flex size-4 items-center justify-center rounded-full text-muted hover:bg-raised hover:text-fg"
-            >
-              <X size={11} aria-hidden="true" />
-            </button>
+            {attachment.onRemove && (
+              <button
+                type="button"
+                aria-label={formatCopy(t.remove, { item: attachment.label })}
+                onClick={attachment.onRemove}
+                className="inline-flex size-4 items-center justify-center rounded-full text-muted hover:bg-raised hover:text-fg"
+              >
+                <X size={11} aria-hidden="true" />
+              </button>
+            )}
           </span>
         ))
       )}
@@ -155,7 +163,8 @@ function Attachments({
  * plan (BR-52) the conversation stays readable and the box gives way to the
  * upgrade prompt. The box is open before any conversation exists: the
  * first question starts one. Above the box: what the assistant will read
- * with the question; in an empty chat: example questions.
+ * with the question; in an empty chat: example questions. `compact` is the
+ * floating chat's form: no frame, no line of what goes with the question.
  */
 export function ChatPanel({
   messages,
@@ -164,6 +173,9 @@ export function ChatPanel({
   asking,
   placeholder,
   attachments,
+  emptyAttachmentText,
+  canSend = true,
+  compact = false,
   suggestions,
   onAsk,
 }: {
@@ -173,10 +185,16 @@ export function ChatPanel({
   asking: boolean;
   placeholder: string;
   attachments: readonly AskAttachment[];
+  /** What the line above the box says when nothing goes with the question. */
+  emptyAttachmentText?: string;
+  /** False while the chosen kind of question still lacks what it sends. */
+  canSend?: boolean;
+  compact?: boolean;
   suggestions: readonly AskSuggestion[];
   onAsk: (question: string) => Promise<boolean>;
 }) {
   const t = useCopy().aiAssistant;
+  const boxId = useId();
   const [draft, setDraft] = useState('');
   const end = useRef<HTMLDivElement>(null);
   const ordered = [...messages].reverse();
@@ -191,7 +209,7 @@ export function ChatPanel({
   async function submit(event: FormEvent) {
     event.preventDefault();
     const question = draft.trim();
-    if (question === '' || question.length > QUESTION_MAX) return;
+    if (!canSend || question === '' || question.length > QUESTION_MAX) return;
     if (await onAsk(question)) setDraft('');
   }
 
@@ -241,7 +259,12 @@ export function ChatPanel({
   return (
     <section
       aria-label={t.title}
-      className="flex min-h-[420px] min-w-0 flex-col rounded-lg border border-line bg-surface"
+      className={classNames(
+        'flex min-w-0 flex-col',
+        compact
+          ? 'min-h-0 flex-1'
+          : 'min-h-[420px] rounded-lg border border-line bg-surface',
+      )}
     >
       <div className="min-h-0 flex-1 overflow-y-auto p-3">
         {body}
@@ -272,13 +295,18 @@ export function ChatPanel({
           </div>
         ) : (
           <form onSubmit={(event) => void submit(event)} className="grid gap-2">
-            <Attachments attachments={attachments} />
-            <label htmlFor="ai-question" className="sr-only">
+            {!compact && (
+              <Attachments
+                attachments={attachments}
+                emptyText={emptyAttachmentText ?? t.seesNothing}
+              />
+            )}
+            <label htmlFor={boxId} className="sr-only">
               {placeholder}
             </label>
             <textarea
-              id="ai-question"
-              rows={3}
+              id={boxId}
+              rows={compact ? 2 : 3}
               maxLength={QUESTION_MAX}
               value={draft}
               placeholder={placeholder}
@@ -307,7 +335,13 @@ export function ChatPanel({
               <Button
                 type="submit"
                 size="sm"
-                disabled={!canAsk || asking || pending || draft.trim() === ''}
+                disabled={
+                  !canAsk ||
+                  !canSend ||
+                  asking ||
+                  pending ||
+                  draft.trim() === ''
+                }
               >
                 <Send size={14} aria-hidden="true" />
                 {t.send}

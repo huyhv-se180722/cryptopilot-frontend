@@ -5,12 +5,17 @@ import { Button } from '../../components/ui/Button';
 import { Dialog } from '../../components/ui/Dialog';
 import { Input } from '../../components/ui/Input';
 import { aiErrorText } from '../../features/ai-assistant/ai-assistant-errors';
+import { MessageCircle } from 'lucide-react';
 import {
   askedPair,
+  askedPlan,
+  asksPerformance,
+  isReady,
   NO_CONTEXT,
   toQuestion,
   type AiContextValue,
 } from '../../features/ai-assistant/ai-context';
+import { OPEN_AI_BUBBLE_EVENT } from '../../features/ai-assistant/components/AiChatBubble';
 import { AskContext } from '../../features/ai-assistant/components/AskContext';
 import {
   ChatPanel,
@@ -42,10 +47,10 @@ const DEFAULT_SYMBOL = 'BTCUSDT';
 
 /**
  * SCR-29 AI Assistant (SRS 3.9.1, UC-35, UC-36, T-076): the conversation
- * list beside the chat. Above the chat the Trader picks how to ask: a
- * general question (no market data) or the analysis of one coin, plus an
- * optional plan and performance summary; above the box, what goes with
- * the question. An analysis screen opens it with
+ * list beside the chat. Above the chat the Trader picks what the question
+ * is about: the analysis of one coin, or their own plan and performance
+ * summary; above the box, what goes with the question. General questions
+ * (no data) are asked from the floating chat, which a tip here opens. An analysis screen opens it with
  * `?symbol=<pair>&market=<spot|futures>` (or `?pair=<id>`) on that coin.
  * The answer arrives later (pushed, or read again while pending); every
  * answer carries the disclaimer (BR-51). On FREE the conversations stay
@@ -64,7 +69,7 @@ function initialContext(params: URLSearchParams): AiContextValue {
   const pairId = params.get('pair') ?? '';
   return {
     ...NO_CONTEXT,
-    mode: pairId !== '' || params.has('symbol') ? 'pair' : 'general',
+    mode: 'pair',
     market:
       params.get('market')?.toLowerCase() === 'futures' ? 'futures' : 'spot',
     pairId,
@@ -162,7 +167,7 @@ function AiAssistantScreen() {
   }
 
   async function newConversation() {
-    // A new conversation starts as a general question.
+    // A new conversation starts on the market analysis of the default coin.
     if ((await startConversation()) !== null) change(NO_CONTEXT);
   }
 
@@ -180,7 +185,8 @@ function AiAssistantScreen() {
 
   const pairId = askedPair(chosen);
   const pairSymbol = pairId === null ? undefined : symbolOf(pairId);
-  const plan = plans.data?.find((item) => item.id === chosen.planId);
+  const planId = askedPlan(chosen);
+  const plan = plans.data?.find((item) => item.id === planId);
   const attachments: AskAttachment[] = [];
   if (pairId !== null)
     attachments.push({
@@ -190,7 +196,6 @@ function AiAssistantScreen() {
         market: marketLabel(chosen.market),
         timeframe: chosen.timeframe,
       }),
-      onRemove: () => change({ ...chosen, mode: 'general' }),
     });
   if (plan)
     attachments.push({
@@ -201,31 +206,22 @@ function AiAssistantScreen() {
       }),
       onRemove: () => change({ ...chosen, planId: '' }),
     });
-  if (chosen.includePerformance)
+  if (asksPerformance(chosen))
     attachments.push({
       key: 'performance',
       label: t.performanceChip,
       onRemove: () => change({ ...chosen, includePerformance: false }),
     });
-  const placeholder =
-    pairId !== null
-      ? formatCopy(t.placeholderPair, {
-          symbol: pairSymbol ?? '',
-          market: marketLabel(chosen.market),
-          timeframe: chosen.timeframe,
-        })
-      : t.placeholderGeneral;
+  const ready = isReady(chosen);
+  let placeholder: string;
+  if (chosen.mode === 'mine') placeholder = t.placeholderMine;
+  else
+    placeholder = formatCopy(t.placeholderPair, {
+      symbol: pairSymbol ?? '',
+      market: marketLabel(chosen.market),
+      timeframe: chosen.timeframe,
+    });
   const suggestions: AskSuggestion[] = [
-    {
-      key: 'rsi',
-      text: t.suggestionRsi,
-      onPick: () => change({ ...chosen, mode: 'general' }),
-    },
-    {
-      key: 'stop-loss',
-      text: t.suggestionStopLoss,
-      onPick: () => change({ ...chosen, mode: 'general' }),
-    },
     {
       key: 'pair',
       text: t.suggestionPair,
@@ -239,6 +235,16 @@ function AiAssistantScreen() {
         });
         setSymbolHint(DEFAULT_SYMBOL);
       },
+    },
+    {
+      key: 'setup',
+      text: t.suggestionSetup,
+      onPick: () => change({ ...chosen, mode: 'pair' }),
+    },
+    {
+      key: 'performance',
+      text: t.suggestionPerformance,
+      onPick: () => change({ ...chosen, mode: 'mine' }),
     },
   ];
 
@@ -267,6 +273,17 @@ function AiAssistantScreen() {
   return (
     <div className="w-full">
       <PageHeader title={t.title} description={t.subtitle} />
+      <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-line bg-raised px-3 py-2 text-xs text-fg-2">
+        <MessageCircle size={14} aria-hidden="true" className="text-primary" />
+        <span>{t.generalTip}</span>
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new Event(OPEN_AI_BUBBLE_EVENT))}
+          className="font-semibold text-primary hover:underline"
+        >
+          {t.generalTipAction}
+        </button>
+      </div>
       <div className="grid gap-3 lg:grid-cols-[260px_minmax(0,1fr)]">
         <ConversationList
           conversations={items}
@@ -300,6 +317,10 @@ function AiAssistantScreen() {
             asking={ask.pending}
             placeholder={placeholder}
             attachments={attachments}
+            emptyAttachmentText={
+              chosen.mode === 'mine' ? t.mineNeedsChoice : t.pairNeedsChoice
+            }
+            canSend={ready}
             suggestions={suggestions}
             onAsk={askQuestion}
           />

@@ -15,6 +15,7 @@ import {
   User,
 } from 'lucide-react';
 import { CryptoPilotLogo } from '../../components/brand/CryptoPilotLogo';
+import { AiChatBubble } from '../../features/ai-assistant/components/AiChatBubble';
 import { NotificationBell } from '../../features/notifications/components/NotificationBell';
 import { DisclaimerFooter } from '../../components/layout/DisclaimerFooter';
 import { ThemeToggle } from '../../components/layout/ThemeToggle';
@@ -224,6 +225,7 @@ export function TraderShell() {
       </div>
 
       <MobileDock items={traderDock} more={moreItems} />
+      <AiChatBubble />
       <CommandPalette
         open={paletteOpen}
         onOpenChange={setPaletteOpen}

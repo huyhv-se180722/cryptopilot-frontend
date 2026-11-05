@@ -687,7 +687,7 @@ export const vi: PartialCopy = {
   aiAssistant: {
     title: 'Trợ lý AI',
     subtitle:
-      'Hỏi kiến thức trading hoặc nhờ trợ lý phân tích một coin. Trợ lý chỉ giải thích, không bao giờ khuyên mua hay bán.',
+      'Nhờ trợ lý phân tích một coin, hoặc xem lại plan và hiệu suất giao dịch của bạn. Trợ lý chỉ giải thích, không bao giờ khuyên mua hay bán.',
     conversations: 'Cuộc trò chuyện',
     newConversation: 'Cuộc trò chuyện mới',
     noConversations: 'Chưa có cuộc trò chuyện nào.',
@@ -726,10 +726,7 @@ export const vi: PartialCopy = {
     disclaimer:
       'Câu trả lời chỉ mang tính tham khảo, giáo dục, không phải lời khuyên đầu tư.',
     askTitle: 'Bạn muốn hỏi gì?',
-    modeGeneral: 'Kiến thức chung',
-    modeGeneralHint:
-      'RSI, DCA, quản lý vốn… Trợ lý không xem dữ liệu thị trường.',
-    modePair: 'Phân tích một coin',
+    modePair: 'Phân tích thị trường',
     modePairHint:
       'Trợ lý xem giá, chỉ báo và setup score hiện tại của coin bạn chọn.',
     market: 'Thị trường',
@@ -750,6 +747,23 @@ export const vi: PartialCopy = {
     planHint: 'Trợ lý xem entry, stop loss, take profit và rủi ro của plan.',
     performanceHint:
       'Win rate, R trung bình… của các lệnh đã đóng. Không gửi số tiền.',
+    modeMine: 'Plan & hiệu suất của tôi',
+    modeMineHint:
+      'Trợ lý xem plan của bạn (kèm tình hình coin của plan) và thống kê giao dịch.',
+    noPlans: 'Bạn chưa có plan nào để hỏi.',
+    placeholderMine: 'Hỏi về plan hoặc hiệu suất giao dịch của bạn…',
+    pairNeedsChoice: 'Chọn một coin để trợ lý phân tích.',
+    mineNeedsChoice: 'Chọn một plan hoặc tick hiệu suất để hỏi.',
+    suggestionSetup: 'Setup score hiện tại nói gì?',
+    suggestionPerformance: 'Tôi nên cải thiện gì từ hiệu suất giao dịch?',
+    suggestionDca: 'DCA là gì?',
+    generalTip: 'Hỏi kiến thức chung (RSI, DCA, quản lý vốn…)?',
+    generalTipAction: 'Mở hỏi nhanh',
+    bubbleOpen: 'Hỏi nhanh trợ lý AI',
+    bubbleTitle: 'Hỏi nhanh',
+    bubbleSubtitle: 'Kiến thức trading chung · không xem dữ liệu thị trường',
+    bubbleNew: 'Câu hỏi mới',
+    bubbleClose: 'Đóng',
   },
   aiAdmin: {
     title: 'Cấu hình AI',
