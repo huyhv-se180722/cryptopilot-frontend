@@ -55,7 +55,12 @@ import type {
   ModerationQueuePage,
   ModerationResult,
   NotificationPage,
+  EquityPoint,
   JournalPage,
+  PerformanceBreakdownKind,
+  PerformanceBreakdownRow,
+  PerformanceFilter,
+  PerformanceSummary,
   Candle,
   CandleTimeframe,
   FuturesMetrics,
@@ -389,12 +394,31 @@ export interface PaperTradingService {
 export interface JournalListRequest {
   status?: PositionStatus;
   pairId?: string;
+  market?: MarketType;
   page: number;
   pageSize: number;
 }
 /** The Trader's journal (`/journal`, Trader only). */
 export interface JournalService {
   list(request: JournalListRequest, signal?: AbortSignal): Promise<JournalPage>;
+}
+/** `/journal/performance/*` (SCR-23, Trader only). */
+export interface PerformanceService {
+  summary(
+    filter: PerformanceFilter,
+    signal?: AbortSignal,
+  ): Promise<PerformanceSummary>;
+  /** PRO and PREMIUM; FREE gets 403 MSG29. */
+  breakdown(
+    kind: PerformanceBreakdownKind,
+    filter: PerformanceFilter,
+    signal?: AbortSignal,
+  ): Promise<readonly PerformanceBreakdownRow[]>;
+  /** PRO and PREMIUM; FREE gets 403 MSG29. */
+  equityCurve(
+    filter: PerformanceFilter,
+    signal?: AbortSignal,
+  ): Promise<readonly EquityPoint[]>;
 }
 /** What a reaction is on: a post (like, save) or a comment (like only). */
 export type ReactionTarget =

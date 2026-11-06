@@ -1,5 +1,6 @@
 import {
   BarChart2,
+  BookOpen,
   Bell,
   BellRing,
   CandlestickChart,
@@ -56,6 +57,7 @@ export const traderNav: readonly NavItem[] = [
   { to: '/watchlist', labelKey: 'watchlist', icon: Star },
   { to: '/alerts', labelKey: 'alerts', icon: Bell },
   { to: '/plans', labelKey: 'plans', icon: FileText },
+  { to: '/journal', labelKey: 'journal', icon: BookOpen },
   { to: '/performance', labelKey: 'performance', icon: BarChart2 },
   { to: '/ai', labelKey: 'ai', icon: Bot },
   { to: '/news', labelKey: 'news', icon: Newspaper },

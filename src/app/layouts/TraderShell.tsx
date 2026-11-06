@@ -88,7 +88,7 @@ export function TraderShell() {
                 title={copy.nav[item.labelKey]}
                 className={({ isActive }) =>
                   classNames(
-                    // Eleven entries with the demo Trade one: from 1400px the
+                    // Twelve entries with the demo Trade one: from 1400px the
                     // labels fit only with tighter padding (and the search
                     // trigger without its text) until 2xl gives room again.
                     'relative flex h-[52px] shrink-0 items-center gap-1.5 px-2.5 text-[12px] font-medium whitespace-nowrap no-underline min-[1400px]:px-2 2xl:px-3',

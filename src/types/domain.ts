@@ -576,6 +576,11 @@ export interface JournalTrade {
   entryPrice: Decimal;
   quantity: Decimal;
   entryTime: ISODateTime;
+  /** Null when unknown (a manual trade). */
+  entryFee: Decimal | null;
+  /** The current levels; the last ones once CLOSED. */
+  stopLoss: Decimal | null;
+  takeProfit: Decimal | null;
   exitPrice: Decimal | null;
   exitTime: ISODateTime | null;
   closeReason: PositionCloseReason | null;
@@ -592,6 +597,75 @@ export interface JournalPage {
   page: number;
   pageSize: number;
   total: number;
+}
+export type PerformanceSource = 'SIMULATED' | 'MANUAL' | 'ALL';
+/** The filters of every `/journal/performance/*` read (SCR-23, UC-25). */
+export interface PerformanceFilter {
+  /** First day counted, `yyyy-MM-dd` in UTC+7; absent from the first trade. */
+  from?: string;
+  /** First day no longer counted; absent up to and including today. */
+  to?: string;
+  /** Absent for both markets. */
+  market?: MarketType;
+  source: PerformanceSource;
+  pairId?: string;
+  strategyId?: string;
+}
+/** The metrics of PRO and PREMIUM (BR-42); null when nothing to compute. */
+export interface PerformanceAdvanced {
+  averageWin: Decimal | null;
+  averageLoss: Decimal | null;
+  profitFactor: Decimal | null;
+  averagePlannedRiskReward: Decimal | null;
+  averageRealizedR: Decimal | null;
+  tradesWithR: number;
+  largestWin: Decimal | null;
+  largestLoss: Decimal | null;
+  maxConsecutiveLosses: number;
+  /** A positive amount. */
+  maxDrawdown: Decimal | null;
+  averageEntryDeviationR: Decimal | null;
+  costOfLateEntryR: Decimal | null;
+  averageMaeR: Decimal | null;
+  averageMfeR: Decimal | null;
+}
+/** `GET /journal/performance/summary`; `advanced` is null on FREE. */
+export interface PerformanceSummary {
+  from: string | null;
+  to: string | null;
+  trades: number;
+  wins: number;
+  losses: number;
+  breakeven: number;
+  /** 0 to 1. */
+  winRate: Decimal | null;
+  totalNetPnl: Decimal | null;
+  provisionalTrades: number;
+  totalFees: Decimal | null;
+  /** Signed: + received. */
+  totalFunding: Decimal | null;
+  advanced: PerformanceAdvanced | null;
+}
+export type PerformanceBreakdownKind = 'coin' | 'strategy' | 'market';
+/** One row of a breakdown; `key` is null on the Unassigned strategy row. */
+export interface PerformanceBreakdownRow {
+  key: string | null;
+  label: string;
+  trades: number;
+  wins: number;
+  losses: number;
+  breakeven: number;
+  winRate: Decimal | null;
+  netPnl: Decimal | null;
+  profitFactor: Decimal | null;
+  averageRealizedR: Decimal | null;
+}
+/** One day with an exit of `GET /journal/performance/equity-curve`. */
+export interface EquityPoint {
+  day: string;
+  trades: number;
+  netPnl: Decimal;
+  cumulativeNetPnl: Decimal;
 }
 /** A watched pair (SCR-12, SRS 3.4.1); prices and scores are not in the row (M-08). */
 export interface WatchlistItem {

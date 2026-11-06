@@ -15,6 +15,7 @@ import type {
   NotificationService,
   ModerationService,
   JournalService,
+  PerformanceService,
   MarketFeed,
   MarketService,
   NewsAdminService,
@@ -40,6 +41,7 @@ export interface Services {
   analysis: AnalysisService;
   tradingPlan: TradingPlanService;
   journal: JournalService;
+  performance: PerformanceService;
   watchlist: WatchlistService;
   alerts: AlertsService;
   paperTrading: PaperTradingService;
