@@ -24,9 +24,7 @@ describe('development services', () => {
   it('stay behind the same contracts and never touch the network', async () => {
     const { services, request } = await devServices();
     expect(services.mode).toBe('development-fixtures');
-    await expect(
-      services.journal.list({ page: 1, pageSize: 10 }),
-    ).rejects.toMatchObject({
+    await expect(services.ai.list({})).rejects.toMatchObject({
       code: 'NOT_CONFIGURED',
     });
     expect(request).not.toHaveBeenCalled();

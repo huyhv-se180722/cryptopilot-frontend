@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useServices } from '../../../hooks/use-services';
-import type { PositionStatus } from '../../../types/domain';
+import type { MarketType, PositionStatus } from '../../../types/domain';
 
 /** CR-04: the journal column shows 10 trades a page. */
 export const JOURNAL_PAGE_SIZE = 10;
@@ -15,6 +15,7 @@ export const JOURNAL_REFRESH_MS = 30_000;
 export interface JournalFilter {
   status?: PositionStatus;
   pairId?: string;
+  market?: MarketType;
   page: number;
 }
 
@@ -23,10 +24,10 @@ export interface JournalFilter {
  * list's, so every save, activation or close of a plan, which invalidates
  * `['plans', 'list']`, reads the journal again too.
  */
-export function useJournal({ status, pairId, page }: JournalFilter) {
+export function useJournal({ status, pairId, market, page }: JournalFilter) {
   const { journal } = useServices();
   return useQuery({
-    queryKey: ['plans', 'list', 'journal', { status, pairId, page }],
+    queryKey: ['plans', 'list', 'journal', { status, pairId, market, page }],
     queryFn: ({ signal }) =>
       journal.list(
         {
@@ -34,6 +35,7 @@ export function useJournal({ status, pairId, page }: JournalFilter) {
           pageSize: JOURNAL_PAGE_SIZE,
           ...(status ? { status } : {}),
           ...(pairId ? { pairId } : {}),
+          ...(market ? { market } : {}),
         },
         signal,
       ),

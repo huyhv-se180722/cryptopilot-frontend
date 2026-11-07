@@ -10,7 +10,8 @@
 | market        | list                                      | MarketQuote                              |
 | coin-analysis | get by symbol/market/timeframe            | CoinAnalysis                             |
 | trading-plan  | list                                      | TradingPlan                              |
-| journal       | list                                      | JournalEntry                             |
+| journal       | list                                      | JournalTrade                             |
+| performance   | summary, breakdown, equityCurve (T-052)   | PerformanceSummary, EquityPoint          |
 | alerts        | list                                      | PriceAlert                               |
 | community     | list                                      | CommunityPost                            |
 | news          | feed, article (HTTP, T-080, D-125, D-126) | NewsArticle, NewsArticleDetail, NewsPage |

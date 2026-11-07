@@ -53,6 +53,9 @@ function trade(item: unknown, index: number): JournalTrade {
     entryPrice: decimal(value.entryPrice, 'entryPrice'),
     quantity: decimal(value.quantity, 'quantity'),
     entryTime: instant(value.entryTime, 'entryTime'),
+    entryFee: nullableDecimal(value.entryFee, 'entryFee'),
+    stopLoss: nullableDecimal(value.stopLoss, 'stopLoss'),
+    takeProfit: nullableDecimal(value.takeProfit, 'takeProfit'),
     exitPrice: nullableDecimal(value.exitPrice, 'exitPrice'),
     exitTime: nullableInstant(value.exitTime, 'exitTime'),
     closeReason:

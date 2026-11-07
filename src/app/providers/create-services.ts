@@ -42,6 +42,10 @@ import {
   createJournalService,
 } from '../../services/api/journal';
 import {
+  createHttpPerformanceService,
+  createPendingPerformanceService,
+} from '../../services/api/performance';
+import {
   createHttpAlertsService,
   createPendingAlertsService,
 } from '../../services/api/alerts';
@@ -151,6 +155,9 @@ export async function createServices(env: Environment): Promise<Services> {
     journal: connected
       ? createHttpJournalService(http)
       : createJournalService(),
+    performance: connected
+      ? createHttpPerformanceService(http)
+      : createPendingPerformanceService(),
     watchlist: connected
       ? createHttpWatchlistService(http)
       : createPendingWatchlistService(),

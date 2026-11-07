@@ -11,13 +11,14 @@ export function createJournalService(): JournalService {
 /** `/journal` with the bearer token (Trader only). */
 export function createHttpJournalService(http: HttpClient): JournalService {
   return {
-    list: ({ status, pairId, page, pageSize }, signal) => {
+    list: ({ status, pairId, market, page, pageSize }, signal) => {
       const params = new URLSearchParams({
         page: String(page),
         pageSize: String(pageSize),
       });
       if (status) params.set('status', status);
       if (pairId) params.set('pairId', pairId);
+      if (market) params.set('market', market.toUpperCase());
       return http.request({
         path: 'journal?' + params.toString(),
         decode: decodeJournalPage,
