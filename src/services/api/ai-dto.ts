@@ -3,6 +3,7 @@ import type {
   AiAskResult,
   AiConfiguration,
   AiConversation,
+  AiConversationTopic,
   AiConversationPage,
   AiMessage,
   AiMessagePage,
@@ -41,11 +42,18 @@ function nullableCount(value: unknown, name: string): number | null {
   return value === null || value === undefined ? null : count(value, name);
 }
 
+const AI_TOPICS: readonly AiConversationTopic[] = [
+  'GENERAL',
+  'MARKET',
+  'MY_TRADING',
+];
+
 export function decodeAiConversation(body: unknown): AiConversation {
   const value = record(body, 'conversation');
   return {
     id: text(value.id, 'id'),
     title: nullableText(value.title, 'title'),
+    topic: oneOf(AI_TOPICS, value.topic, 'topic'),
     pairId: nullableText(value.pairId, 'pairId'),
     createdAt: instant(value.createdAt, 'createdAt'),
     updatedAt: instant(value.updatedAt, 'updatedAt'),

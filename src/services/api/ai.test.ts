@@ -115,14 +115,19 @@ describe('AI assistant adapter (UC-35, UC-36, BR-50)', () => {
     const conversation = {
       id: 'c1',
       title: 'BTC',
+      topic: 'MARKET',
       pairId: null,
       createdAt: '2026-11-02T03:00:00Z',
       updatedAt: '2026-11-02T03:00:00Z',
     };
     // A new conversation has no title until its first question names it.
     const started = setup({ ...conversation, title: null });
-    expect((await started.ai.start(null)).title).toBeNull();
-    expect(started.calls[0]?.body).toEqual({});
+    expect((await started.ai.start('MARKET', null)).title).toBeNull();
+    expect(started.calls[0]?.body).toEqual({ topic: 'MARKET' });
+
+    const onPair = setup(conversation);
+    await onPair.ai.start('MARKET', 'p-btc');
+    expect(onPair.calls[0]?.body).toEqual({ topic: 'MARKET', pairId: 'p-btc' });
 
     const renamed = setup(conversation);
     await renamed.ai.rename('c1', 'Mới');

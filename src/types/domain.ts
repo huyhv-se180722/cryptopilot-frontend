@@ -1170,10 +1170,16 @@ export interface NewsPage {
 export type AiSenderRole = 'USER' | 'ASSISTANT';
 /** A question waits as PENDING until its answer is COMPLETED or FAILED (60 s at most). */
 export type AiMessageStatus = 'PENDING' | 'COMPLETED' | 'FAILED';
+/**
+ * What a conversation is about; it never changes. SCR-29 keeps MARKET and
+ * MY_TRADING in two tabs, the floating chat keeps the GENERAL ones.
+ */
+export type AiConversationTopic = 'GENERAL' | 'MARKET' | 'MY_TRADING';
 export interface AiConversation {
   id: string;
   /** Null until the first question names it. */
   title: string | null;
+  topic: AiConversationTopic;
   /** The pair it started from, when started from an analysis screen. */
   pairId: string | null;
   createdAt: ISODateTime;

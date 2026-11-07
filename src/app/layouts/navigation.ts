@@ -5,6 +5,7 @@ import {
   BellRing,
   CandlestickChart,
   Bot,
+  ClipboardList,
   Coins,
   CreditCard,
   FileText,
@@ -34,6 +35,13 @@ export interface NavItem {
   icon: LucideIcon;
   /** Match only the exact path (for index-like destinations). */
   end?: boolean;
+  /** A dropdown of these instead of one link (the AI topics). */
+  children?: readonly NavItem[];
+}
+
+/** Every destination, a dropdown replaced by its entries (search, "More"). */
+export function flatNav(items: readonly NavItem[]): NavItem[] {
+  return items.flatMap((item) => item.children ?? [item]);
 }
 
 export interface AdminNavItem {
@@ -59,7 +67,16 @@ export const traderNav: readonly NavItem[] = [
   { to: '/plans', labelKey: 'plans', icon: FileText },
   { to: '/journal', labelKey: 'journal', icon: BookOpen },
   { to: '/performance', labelKey: 'performance', icon: BarChart2 },
-  { to: '/ai', labelKey: 'ai', icon: Bot },
+  // SCR-29 keeps its two topics apart, each with its own conversations.
+  {
+    to: '/ai',
+    labelKey: 'ai',
+    icon: Bot,
+    children: [
+      { to: '/ai/market', labelKey: 'aiMarket', icon: CandlestickChart },
+      { to: '/ai/my-trading', labelKey: 'aiMine', icon: ClipboardList },
+    ],
+  },
   { to: '/news', labelKey: 'news', icon: Newspaper },
   { to: '/community', labelKey: 'community', icon: Users },
   // The Academy (T-114).

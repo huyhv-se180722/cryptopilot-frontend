@@ -45,23 +45,24 @@ export function createHttpAiService(
   feed: AccountFeed | null = null,
 ): AiService {
   return {
-    conversations: (page, pageSize, signal) =>
+    conversations: (page, pageSize, topic, signal) =>
       http.request({
         path:
           CONVERSATIONS +
           '?' +
           new URLSearchParams({
+            ...(topic ? { topic } : {}),
             page: String(page),
             pageSize: String(pageSize),
           }).toString(),
         decode: decodeAiConversationPage,
         ...withSignal(signal),
       }),
-    start: (pairId) =>
+    start: (topic, pairId) =>
       http.request({
         path: CONVERSATIONS,
         method: 'POST',
-        body: pairId ? { pairId } : {},
+        body: pairId ? { topic, pairId } : { topic },
         decode: decodeAiConversation,
       }),
     rename: (conversationId, title) =>

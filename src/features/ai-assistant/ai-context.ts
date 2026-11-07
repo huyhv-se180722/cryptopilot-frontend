@@ -78,3 +78,8 @@ export function toQuestion(text: string, context: AiContextValue): AiQuestion {
     ...(asksPerformance(context) ? { includePerformance: true } : {}),
   };
 }
+
+/** The base of a pair, e.g. BTC of BTCUSDT. */
+export function baseOf(symbol: string) {
+  return symbol.replace(/(USDT|USDC|BUSD|USD)$/, '') || symbol;
+}

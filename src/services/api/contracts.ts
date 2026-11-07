@@ -30,6 +30,7 @@ import type {
   AiConfiguration,
   AiConfigurationDraft,
   AiConversation,
+  AiConversationTopic,
   AiConversationPage,
   AiMessagePage,
   AiQuestion,
@@ -716,12 +717,18 @@ export interface NotificationService {
  * daily quota (BR-50).
  */
 export interface AiService {
+  /** Of one topic, or of every topic when null. */
   conversations(
     page: number,
     pageSize: number,
+    topic: AiConversationTopic | null,
     signal?: AbortSignal,
   ): Promise<AiConversationPage>;
-  start(pairId: string | null): Promise<AiConversation>;
+  /** A MY_TRADING conversation has no pair: its plan names one. */
+  start(
+    topic: AiConversationTopic,
+    pairId: string | null,
+  ): Promise<AiConversation>;
   rename(id: string, title: string): Promise<AiConversation>;
   remove(id: string): Promise<void>;
   /** The newest first. */

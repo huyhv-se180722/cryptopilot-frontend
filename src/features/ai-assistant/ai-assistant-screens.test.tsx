@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AdminAiConfigPage } from '../../pages/admin/AdminAiConfigPage';
-import { AiAssistantPage } from '../../pages/trader/AiAssistantPage';
+import {
+  AiMarketPage,
+  AiMyTradingPage,
+} from '../../pages/trader/AiAssistantPage';
 import { AiChatBubble, OPEN_AI_BUBBLE_EVENT } from './components/AiChatBubble';
 import type {
   AiAdminService,
@@ -91,6 +94,7 @@ function aiService(
         {
           id: 'c1',
           title: 'RSI của BTC',
+          topic: 'MARKET',
           pairId: null,
           createdAt: AT,
           updatedAt: AT,
@@ -128,17 +132,33 @@ function aiService(
   };
 }
 
-const market = { listPairs: async () => [BTC] } as unknown as MarketService;
+const market = {
+  listPairs: async () => [BTC],
+  getTicker: async () => null,
+} as unknown as MarketService;
 const tradingPlan = {
   list: async () => ({ items: [], page: 1, pageSize: 50, total: 0 }),
 } as unknown as TradingPlanService;
 
-async function openAssistant(ai: AiService, path = '/ai') {
-  return renderRoutes([page('/ai', <AiAssistantPage />)], path, trader, {
-    ai,
-    market,
-    tradingPlan,
-  });
+async function openAssistant(
+  ai: AiService,
+  path = '/ai',
+  plans: TradingPlanService = tradingPlan,
+) {
+  return renderRoutes(
+    [
+      page('/ai', <AiMarketPage />),
+      page('/ai/market', <AiMarketPage />),
+      page('/ai/my-trading', <AiMyTradingPage />),
+    ],
+    path,
+    trader,
+    {
+      ai,
+      market,
+      tradingPlan: plans,
+    },
+  );
 }
 
 describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
@@ -164,7 +184,7 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
     ).toBeTruthy();
     expect(screen.getByText('Động lượng mạnh').tagName).toBe('LI');
     expect(screen.getByText('Thông tin chỉ mang tính tham khảo.')).toBeTruthy();
-    expect(screen.getByText(/Còn 28\/30 câu hỏi hôm nay/)).toBeTruthy();
+    expect(screen.getByTitle(/Còn 28\/30 câu hỏi hôm nay/)).toBeTruthy();
   });
 
   it('asks about the chosen pair, shows the typing line, then the pushed answer', async () => {
@@ -192,7 +212,12 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
         (screen.getByLabelText('Cặp coin') as HTMLSelectElement).value,
       ).toBe('p-btc'),
     );
-    await user.selectOptions(screen.getByLabelText('Khung thời gian'), '4h');
+    await user.click(
+      within(screen.getByRole('group', { name: 'Khung thời gian' })).getByRole(
+        'button',
+        { name: '4h' },
+      ),
+    );
     await user.type(box, 'Setup score nói gì?');
     await user.click(screen.getByRole('button', { name: /Gửi/ }));
 
@@ -205,7 +230,7 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
       },
     ]);
     expect(await screen.findByText('Trợ lý đang trả lời…')).toBeTruthy();
-    expect(screen.getByText(/Còn 27\/30/)).toBeTruthy();
+    expect(screen.getByTitle(/Còn 27\/30/)).toBeTruthy();
 
     thread.items = [
       message('a1', 'ASSISTANT', 'Điểm 72 cho thấy xu hướng tốt.'),
@@ -228,7 +253,7 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
 
   it('without a conversation the box is open and the first question starts one on the default coin', async () => {
     const user = userEvent.setup();
-    const started: (string | null)[] = [];
+    const started: [string, string | null][] = [];
     const asked: [string, AiQuestion][] = [];
     const ai = aiService(
       PRO,
@@ -240,11 +265,12 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
           pageSize: 50,
           total: 0,
         }),
-        start: async (pairId) => {
-          started.push(pairId);
+        start: async (topic, pairId) => {
+          started.push([topic, pairId]);
           return {
             id: 'c9',
             title: null,
+            topic,
             pairId,
             createdAt: AT,
             updatedAt: AT,
@@ -264,10 +290,8 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
     )) as HTMLTextAreaElement;
     await waitFor(() => expect(box.disabled).toBe(false));
     expect(
-      screen
-        .getByRole('radio', { name: /Phân tích thị trường/ })
-        .getAttribute('aria-checked'),
-    ).toBe('true');
+      screen.getByRole('heading', { level: 1, name: 'Phân tích thị trường' }),
+    ).toBeTruthy();
     expect(screen.getByText('BTCUSDT · Spot · 1h')).toBeTruthy();
     await user.type(box, 'Xu hướng thế nào?');
     await user.click(screen.getByRole('button', { name: /Gửi/ }));
@@ -285,7 +309,7 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
         ],
       ]),
     );
-    expect(started).toEqual(['p-btc']);
+    expect(started).toEqual([['MARKET', 'p-btc']]);
   });
 
   it('points general questions to the floating chat', async () => {
@@ -314,6 +338,7 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
               {
                 id: 'c1',
                 title: null,
+                topic: 'MARKET',
                 pairId: null,
                 createdAt: AT,
                 updatedAt: AT,
@@ -351,9 +376,10 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
       ),
     );
 
-    await user.selectOptions(
-      await screen.findByLabelText('Thị trường'),
-      'futures',
+    await user.click(
+      within(
+        await screen.findByRole('group', { name: 'Thị trường' }),
+      ).getByRole('button', { name: 'Futures' }),
     );
     await waitFor(() =>
       expect(
@@ -396,13 +422,13 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
           },
         },
       ),
+      '/ai/my-trading',
     );
 
-    await user.click(
-      await screen.findByRole('radio', { name: /Plan & hiệu suất của tôi/ }),
-    );
+    expect(
+      await screen.findByText('Bạn chưa có plan nào để hỏi.'),
+    ).toBeTruthy();
     expect(screen.queryByLabelText('Cặp coin')).toBeNull();
-    expect(screen.getByText('Bạn chưa có plan nào để hỏi.')).toBeTruthy();
     expect(
       screen.getByText('Chọn một plan hoặc tick hiệu suất để hỏi.'),
     ).toBeTruthy();
@@ -432,6 +458,135 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
     expect(
       screen.getByText('Chọn một plan hoặc tick hiệu suất để hỏi.'),
     ).toBeTruthy();
+  });
+
+  it('keeps the two pages apart: each lists and starts only its own topic', async () => {
+    const user = userEvent.setup();
+    const listed: (string | null)[] = [];
+    const started: [string, string | null][] = [];
+    const ai = aiService(
+      { ...PRO, performanceContext: true },
+      { items: [] },
+      {
+        conversations: async (_page, _size, topic) => {
+          listed.push(topic);
+          return { items: [], page: 1, pageSize: 50, total: 0 };
+        },
+        start: async (topic, pairId) => {
+          started.push([topic, pairId]);
+          return {
+            id: 'c5',
+            title: null,
+            topic,
+            pairId,
+            createdAt: AT,
+            updatedAt: AT,
+          };
+        },
+      },
+    );
+    const market = await openAssistant(ai, '/ai/market');
+
+    expect(
+      await screen.findByRole('complementary', { name: 'Hội thoại phân tích' }),
+    ).toBeTruthy();
+    expect(screen.queryByText('Bạn chưa có plan nào để hỏi.')).toBeNull();
+    await waitFor(() => expect(listed).toContain('MARKET'));
+    market.unmount();
+
+    await openAssistant(ai, '/ai/my-trading');
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'Plan & hiệu suất của tôi',
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('complementary', {
+        name: 'Hội thoại về plan & hiệu suất',
+      }),
+    ).toBeTruthy();
+    expect(screen.queryByLabelText('Cặp coin')).toBeNull();
+    // An example question of the other page is not offered here.
+    expect(
+      screen.queryByRole('button', { name: /BTC khung 4h đang thế nào/ }),
+    ).toBeNull();
+    await user.click(
+      screen.getByRole('button', { name: /Cuộc trò chuyện mới/ }),
+    );
+
+    await waitFor(() => expect(started).toEqual([['MY_TRADING', null]]));
+    expect(new Set(listed)).toEqual(new Set(['MARKET', 'MY_TRADING']));
+  });
+
+  it('a plan goes with the state of its own coin on its market and timeframe', async () => {
+    const user = userEvent.setup();
+    const asked: AiQuestion[] = [];
+    const withPlan = {
+      list: async ({ tab }: { tab: string }) => ({
+        items:
+          tab === 'ACTIVE'
+            ? [
+                {
+                  id: 'plan-1',
+                  pairId: 'p-btc',
+                  market: 'spot',
+                  direction: 'LONG',
+                  entryPrice: '75000',
+                  stopLoss: '73800',
+                  takeProfit: '78600',
+                  riskRewardRatio: '3.00',
+                  status: 'ACTIVE',
+                },
+              ]
+            : [],
+        page: 1,
+        pageSize: 50,
+        total: tab === 'ACTIVE' ? 1 : 0,
+      }),
+      get: async () => ({ id: 'plan-1', analysisTimeframe: '4h' }),
+    } as unknown as TradingPlanService;
+    await openAssistant(
+      aiService(
+        PRO,
+        { items: [] },
+        {
+          ask: async (_id, question) => {
+            asked.push(question);
+            const pending = message('q1', 'USER', question.question, 'PENDING');
+            return { question: pending, quota: PRO };
+          },
+        },
+      ),
+      '/ai/my-trading',
+      withPlan,
+    );
+
+    await screen.findByRole('option', { name: /BTCUSDT · LONG/ });
+    await user.selectOptions(
+      screen.getByLabelText('Một plan của tôi'),
+      'plan-1',
+    );
+
+    expect(await screen.findByText('Plan BTCUSDT LONG')).toBeTruthy();
+    expect(
+      await screen.findByText('Tình hình BTCUSDT · Spot · 4h'),
+    ).toBeTruthy();
+    // The coin's state goes with the plan; only the plan can be dropped.
+    expect(screen.queryByRole('button', { name: /^Bỏ Tình hình/ })).toBeNull();
+    await user.type(
+      screen.getByPlaceholderText(
+        'Hỏi về plan hoặc hiệu suất giao dịch của bạn…',
+      ),
+      'Plan này có rủi ro gì?',
+    );
+    await user.click(screen.getByRole('button', { name: /Gửi/ }));
+
+    await waitFor(() =>
+      expect(asked).toEqual([
+        { question: 'Plan này có rủi ro gì?', planId: 'plan-1' },
+      ]),
+    );
   });
 
   it('an example question fills the box and picks its kind of question', async () => {
@@ -529,18 +684,19 @@ describe('floating chat for general questions', () => {
 
   it('asks a general question with no data, starts one conversation and keeps it', async () => {
     const user = userEvent.setup();
-    const started: (string | null)[] = [];
+    const started: string[] = [];
     const asked: [string, AiQuestion][] = [];
     await openBubble(
       aiService(
         PRO,
         { items: [] },
         {
-          start: async (pairId) => {
-            started.push(pairId);
+          start: async (topic, pairId) => {
+            started.push(topic);
             return {
               id: 'c7',
               title: null,
+              topic,
               pairId,
               createdAt: AT,
               updatedAt: AT,
@@ -558,14 +714,16 @@ describe('floating chat for general questions', () => {
     await user.click(
       await screen.findByRole('button', { name: 'Hỏi nhanh trợ lý AI' }),
     );
-    expect(screen.getByRole('dialog', { name: 'Hỏi nhanh' })).toBeTruthy();
+    expect(
+      screen.getByRole('dialog', { name: 'Hỏi nhanh CryptoPilot AI' }),
+    ).toBeTruthy();
     await user.click(await screen.findByRole('button', { name: /DCA là gì/ }));
     await user.click(screen.getByRole('button', { name: /Gửi/ }));
 
     await waitFor(() =>
       expect(asked).toEqual([['c7', { question: 'DCA là gì?' }]]),
     );
-    expect(started).toEqual([null]);
+    expect(started).toEqual(['GENERAL']);
     expect(
       window.localStorage.getItem('cryptopilot.aiBubble.conversation'),
     ).toBe('c7');
@@ -580,7 +738,7 @@ describe('floating chat for general questions', () => {
       window.dispatchEvent(new Event(OPEN_AI_BUBBLE_EVENT));
     });
     expect(
-      await screen.findByRole('dialog', { name: 'Hỏi nhanh' }),
+      await screen.findByRole('dialog', { name: 'Hỏi nhanh CryptoPilot AI' }),
     ).toBeTruthy();
 
     await user.keyboard('{Escape}');

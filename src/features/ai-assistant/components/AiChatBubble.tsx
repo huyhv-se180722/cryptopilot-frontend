@@ -7,8 +7,8 @@ import {
   type CSSProperties,
   type PointerEvent,
 } from 'react';
-import { Bot, MessageCircle, SquarePen, X } from 'lucide-react';
-import { IconButton } from '../../../components/ui/IconButton';
+import { useNavigate } from 'react-router-dom';
+import { Maximize2, SquarePen, X } from 'lucide-react';
 import { useCopy } from '../../../hooks/use-copy';
 import { useToast } from '../../../hooks/use-toast';
 import { I18nProvider } from '../../../i18n/I18nProvider';
@@ -21,17 +21,18 @@ import {
   useAskQuestion,
   useStartConversation,
 } from '../hooks/use-ai-assistant';
-import { ChatPanel, type AskSuggestion } from './ChatPanel';
+import { AiBotIcon } from './AiBotIcon';
+import { ChatPanel, SuggestionTag, type AskSuggestion } from './ChatPanel';
 
 /** Fired by SCR-29 to open the floating chat for a general question. */
 export const OPEN_AI_BUBBLE_EVENT = 'cryptopilot:open-ai-bubble';
 
 const POSITION_KEY = 'cryptopilot.aiBubble.position';
 const CONVERSATION_KEY = 'cryptopilot.aiBubble.conversation';
-const LAUNCHER = 52;
+const LAUNCHER = 56;
 const MARGIN = 8;
-const PANEL_WIDTH = 380;
-const PANEL_HEIGHT = 560;
+const PANEL_WIDTH = 400;
+const PANEL_HEIGHT = 600;
 /** A press that moves less than this is a click, not a drag. */
 const DRAG_THRESHOLD = 5;
 const SMALL_SCREEN = '(max-width: 639px)';
@@ -222,7 +223,7 @@ function FloatingChat() {
           aria-label={t.bubbleTitle}
           style={small ? undefined : (panel ?? undefined)}
           className={classNames(
-            'fixed z-40 flex flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-2xl',
+            'fixed z-40 flex flex-col overflow-hidden rounded-[20px] border border-line-strong bg-surface shadow-2xl',
             small && 'inset-x-2 top-16 bottom-24',
           )}
         >
@@ -241,17 +242,13 @@ function FloatingChat() {
         onClick={onClick}
         style={position ?? undefined}
         className={classNames(
-          'fixed z-40 inline-flex touch-none items-center justify-center rounded-full bg-primary text-white shadow-lg transition-transform select-none hover:scale-105 active:cursor-grabbing',
-          'size-[52px] cursor-grab',
+          'fixed z-40 inline-flex touch-none items-center justify-center rounded-full bg-primary text-white shadow-[0_0_0_6px_rgba(37,99,235,0.18),0_10px_24px_rgba(37,99,235,0.35)] transition-transform select-none hover:scale-105 active:cursor-grabbing',
+          'size-14 cursor-grab',
           !position && 'right-4 bottom-24 lg:right-6 lg:bottom-6',
           open && small && 'hidden',
         )}
       >
-        {open ? (
-          <X size={22} aria-hidden="true" />
-        ) : (
-          <MessageCircle size={22} aria-hidden="true" />
-        )}
+        {open ? <X size={24} aria-hidden="true" /> : <AiBotIcon size={36} />}
       </button>
     </>
   );
@@ -261,6 +258,7 @@ function ChatBody({ onClose }: { onClose: () => void }) {
   const copy = useCopy();
   const t = copy.aiAssistant;
   const { show } = useToast();
+  const navigate = useNavigate();
   const [conversationId, setConversationId] = useState(() =>
     readStored(CONVERSATION_KEY),
   );
@@ -282,7 +280,7 @@ function ChatBody({ onClose }: { onClose: () => void }) {
   async function askQuestion(text: string): Promise<boolean> {
     let id = current;
     if (id === null) {
-      const started = await start.run(null);
+      const started = await start.run('GENERAL');
       if (started.status === 'error')
         show({ tone: 'error', message: aiErrorText(copy, started.error) });
       if (started.status !== 'success') return false;
@@ -299,36 +297,79 @@ function ChatBody({ onClose }: { onClose: () => void }) {
   }
 
   const suggestions: AskSuggestion[] = [
-    { key: 'rsi', text: t.suggestionRsi },
-    { key: 'dca', text: t.suggestionDca },
-    { key: 'stop-loss', text: t.suggestionStopLoss },
+    {
+      key: 'rsi',
+      text: t.suggestionRsi,
+      icon: (
+        <SuggestionTag label="RSI" className="bg-primary-soft text-primary" />
+      ),
+    },
+    {
+      key: 'dca',
+      text: t.suggestionDca,
+      icon: (
+        <SuggestionTag label="DCA" className="bg-accent-soft text-accent" />
+      ),
+    },
+    {
+      key: 'stop-loss',
+      text: t.suggestionStopLoss,
+      icon: (
+        <SuggestionTag label="SL" className="bg-negative-soft text-negative" />
+      ),
+    },
   ];
+  const headerButton =
+    'inline-flex size-8 items-center justify-center rounded-[9px] text-[#d9e0ea] hover:bg-white/10 hover:text-white pointer-coarse:size-11';
 
   return (
     <>
-      <header className="flex items-start gap-2 border-b border-line px-3 py-2.5">
+      <header className="flex items-center gap-2.5 bg-[#17212f] py-3 pr-2.5 pl-3.5 text-white">
         <span
           aria-hidden="true"
-          className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary"
+          className="relative inline-flex size-9 shrink-0 items-center justify-center rounded-[11px] bg-primary"
         >
-          <Bot size={15} />
+          <AiBotIcon size={26} />
+          <span className="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full border-2 border-[#17212f] bg-[#10b981]" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="m-0 text-sm font-semibold text-fg">{t.bubbleTitle}</p>
-          <p className="m-0 text-[11px] text-muted">{t.bubbleSubtitle}</p>
+          <p className="m-0 text-sm font-semibold">{t.bubbleTitle}</p>
+          <p className="m-0 text-[11px] leading-snug text-[#b8c4d4]">
+            {t.bubbleSubtitle}
+          </p>
         </div>
-        <IconButton
-          label={t.bubbleNew}
-          icon={<SquarePen size={14} aria-hidden="true" />}
+        <button
+          type="button"
+          aria-label={t.bubbleNew}
+          title={t.bubbleNew}
           onClick={() => remember(null)}
-        />
-        <IconButton
-          label={t.bubbleClose}
-          icon={<X size={15} aria-hidden="true" />}
+          className={headerButton}
+        >
+          <SquarePen size={15} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          aria-label={t.bubbleExpand}
+          title={t.bubbleExpand}
+          onClick={() => {
+            onClose();
+            void navigate('/ai/market');
+          }}
+          className={headerButton}
+        >
+          <Maximize2 size={15} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          aria-label={t.bubbleClose}
+          title={t.bubbleClose}
           onClick={onClose}
-        />
+          className={headerButton}
+        >
+          <X size={16} aria-hidden="true" />
+        </button>
       </header>
-      <div className="flex min-h-0 flex-1 flex-col px-1">
+      <div className="flex min-h-0 flex-1 flex-col">
         <ChatPanel
           compact
           messages={current === null ? [] : (messages.data?.items ?? [])}
@@ -337,6 +378,10 @@ function ChatBody({ onClose }: { onClose: () => void }) {
           asking={ask.pending || start.pending}
           placeholder={t.placeholderGeneral}
           attachments={[]}
+          welcome={{
+            title: t.welcomeGeneralTitle,
+            body: t.welcomeGeneralBody,
+          }}
           suggestions={suggestions}
           onAsk={askQuestion}
         />

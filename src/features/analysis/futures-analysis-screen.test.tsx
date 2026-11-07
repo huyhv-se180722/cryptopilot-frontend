@@ -292,7 +292,7 @@ describe('SCR-11 Futures analysis (T-034)', () => {
       (await screen.findByRole('link', { name: 'Ask AI' })).getAttribute(
         'href',
       ),
-    ).toBe('/ai?symbol=BTCUSDT&market=futures');
+    ).toBe('/ai/market?symbol=BTCUSDT&market=futures');
     // SRS 3.3.3: SCR-17 pre-filled with the pair and market FUTURES.
     expect(
       screen

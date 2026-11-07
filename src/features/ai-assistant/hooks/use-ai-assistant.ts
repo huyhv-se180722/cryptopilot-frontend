@@ -6,7 +6,12 @@ import {
 } from '@tanstack/react-query';
 import { useMutation } from '../../../hooks/use-mutation';
 import { useServices } from '../../../hooks/use-services';
-import type { AiMessagePage, AiQuestion, PlanTab } from '../../../types/domain';
+import type {
+  AiConversationTopic,
+  AiMessagePage,
+  AiQuestion,
+  PlanTab,
+} from '../../../types/domain';
 
 export const AI_KEY = ['ai'] as const;
 const CONVERSATIONS_KEY = [...AI_KEY, 'conversations'] as const;
@@ -19,13 +24,13 @@ export const PENDING_POLL_MS = 3_000;
 /** The plans a question may be asked about: those not finished yet, and executed ones. */
 const PLAN_TABS: readonly PlanTab[] = ['DRAFT', 'ACTIVE', 'EXECUTED'];
 
-/** The Trader's conversations, the latest first (SCR-29). */
-export function useAiConversations() {
+/** The Trader's conversations of one topic, the latest first (SCR-29). */
+export function useAiConversations(topic: AiConversationTopic) {
   const { ai } = useServices();
   return useQuery({
-    queryKey: CONVERSATIONS_KEY,
+    queryKey: [...CONVERSATIONS_KEY, topic],
     queryFn: ({ signal }) =>
-      ai.conversations(1, CONVERSATIONS_PAGE_SIZE, signal),
+      ai.conversations(1, CONVERSATIONS_PAGE_SIZE, topic, signal),
   });
 }
 
@@ -75,6 +80,19 @@ export function useAiPlans(enabled: boolean) {
   });
 }
 
+/**
+ * One plan in full, for the timeframe the backend analyses its pair on with
+ * the question (the list rows do not carry it).
+ */
+export function useAiPlan(planId: string | null) {
+  const { tradingPlan } = useServices();
+  return useQuery({
+    queryKey: [...AI_KEY, 'plan', planId],
+    enabled: planId !== null,
+    queryFn: ({ signal }) => tradingPlan.get(planId ?? '', signal),
+  });
+}
+
 async function refresh(client: QueryClient, conversationId?: string) {
   await Promise.all([
     client.invalidateQueries({ queryKey: CONVERSATIONS_KEY }),
@@ -108,8 +126,8 @@ export function useStartConversation() {
   const client = useQueryClient();
   return useMutation(
     useCallback(
-      async (pairId: string | null) => {
-        const conversation = await ai.start(pairId);
+      async (topic: AiConversationTopic, pairId: string | null = null) => {
+        const conversation = await ai.start(topic, pairId);
         await client.invalidateQueries({ queryKey: CONVERSATIONS_KEY });
         return conversation;
       },
