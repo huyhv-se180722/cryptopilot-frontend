@@ -98,6 +98,24 @@ describe('performance decoders', () => {
     expect(row).toMatchObject({ key: null, label: 'Unassigned' });
   });
 
+  it('names a pair by its id when by-coin has no label for it', () => {
+    const [row] = decodePerformanceBreakdown([
+      {
+        key: 'pair-gone',
+        label: null,
+        trades: 1,
+        wins: 1,
+        losses: 0,
+        breakeven: 0,
+        winRate: '1.00000000',
+        netPnl: '1.00000000',
+        profitFactor: null,
+        averageRealizedR: null,
+      },
+    ]);
+    expect(row).toMatchObject({ key: 'pair-gone', label: 'pair-gone' });
+  });
+
   it('reads the points of the curve', () => {
     expect(
       decodeEquityCurve([

@@ -131,6 +131,17 @@ describe('SCR-23 performance dashboard', () => {
     expect(performance.equityCurve).not.toHaveBeenCalled();
   });
 
+  it('names the market rows from the copy, not the API', async () => {
+    const performance = service({
+      summary: vi.fn(async () => ({ ...SUMMARY, advanced: ADVANCED })),
+      breakdown: vi.fn(async () => [{ ...ROW, key: 'SPOT', label: 'SPOT' }]),
+    });
+    await open(performance, PRO);
+    const markets = await screen.findByRole('region', { name: 'By market' });
+    expect(await within(markets).findByText('Spot')).toBeTruthy();
+    expect(within(markets).queryByText('SPOT')).toBeNull();
+  });
+
   it('shows PRO the metrics, curve and breakdowns, a dash for each null', async () => {
     const performance = service({
       summary: vi.fn(async () => ({ ...SUMMARY, advanced: ADVANCED })),

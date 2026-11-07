@@ -31,6 +31,7 @@ export const vi: PartialCopy = {
     pairAll: 'Mọi cặp',
     strategy: 'Chiến lược',
     strategyAll: 'Mọi chiến lược',
+    unassigned: 'Chưa gán chiến lược',
     provisional: 'Gồm {count} lệnh tạm tính',
     provisionalHint:
       'Funding của các lệnh này có thể chưa về đủ nên tổng số còn có thể đổi.',

@@ -1478,6 +1478,7 @@ export const en = {
     pairAll: 'All pairs',
     strategy: 'Strategy',
     strategyAll: 'All strategies',
+    unassigned: 'Unassigned',
     provisional: 'Includes provisional trades: {count}',
     provisionalHint:
       'Funding of these trades may still arrive, so the totals can change.',

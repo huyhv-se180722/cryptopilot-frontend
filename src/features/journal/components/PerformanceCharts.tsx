@@ -120,6 +120,19 @@ export function EquityCurveCard({
   );
 }
 
+/** The API's names are English: the ones the app has copy for use it. */
+function rowName(
+  copy: ReturnType<typeof useCopy>,
+  kind: PerformanceBreakdownKind,
+  row: PerformanceBreakdownRow,
+): string {
+  const p = copy.performance;
+  if (row.key === null) return p.unassigned;
+  if (kind !== 'market') return row.label;
+  if (row.key === 'SPOT') return p.marketspot;
+  return row.key === 'FUTURES' ? p.marketfutures : row.label;
+}
+
 function BreakdownTable({
   kind,
   filter,
@@ -137,7 +150,9 @@ function BreakdownTable({
         id: 'name',
         header: p.columnName,
         render: (row) => (
-          <span className="font-semibold text-fg">{row.label}</span>
+          <span className="font-semibold text-fg">
+            {rowName(copy, kind, row)}
+          </span>
         ),
       },
       {
@@ -177,7 +192,7 @@ function BreakdownTable({
         render: (row) => <RatioValue value={row.averageRealizedR} />,
       },
     ],
-    [p],
+    [copy, kind, p],
   );
 
   const tier = rows.isError ? lockedTier(rows.error) : undefined;

@@ -78,7 +78,8 @@ function breakdownRow(item: unknown, index: number): PerformanceBreakdownRow {
   const value = record(item, 'rows[' + index + ']');
   return {
     key: nullableText(value.key, 'key'),
-    label: text(value.label, 'label'),
+    // by-coin has no label for a pair it no longer finds: its id stands in.
+    label: text(value.label ?? value.key, 'label'),
     trades: integer(value.trades, 'trades'),
     wins: integer(value.wins, 'wins'),
     losses: integer(value.losses, 'losses'),
