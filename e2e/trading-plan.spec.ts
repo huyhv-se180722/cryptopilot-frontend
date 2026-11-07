@@ -36,7 +36,9 @@ test.describe('Trading plan: analyse, plan, activate', () => {
       await test.step('enter entry, stop and take profit; the risk panel answers', async () => {
         await fillSpotPlan(page, GOOD);
         const panel = page.getByRole('region', { name: 'Risk calculation' });
-        await expect(panel.getByText('Reward / risk')).toBeVisible();
+        await expect(
+          panel.getByText('Reward / risk', { exact: true }),
+        ).toBeVisible();
       });
       await test.step('save and activate: MSG19, plan ACTIVE (DRAFT → ACTIVE)', async () => {
         await page.getByRole('button', { name: 'Save and activate' }).click();
