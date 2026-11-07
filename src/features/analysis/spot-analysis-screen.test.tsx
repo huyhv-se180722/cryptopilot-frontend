@@ -305,7 +305,7 @@ describe('SCR-10 Spot analysis (T-033)', () => {
     ).toBe('/plans/new?symbol=BTCUSDT');
     expect(
       screen.getByRole('link', { name: 'Ask AI' }).getAttribute('href'),
-    ).toBe('/ai?symbol=BTCUSDT&market=spot');
+    ).toBe('/ai/market?symbol=BTCUSDT&market=spot');
   });
 
   it('says why the watchlist refused the pair', async () => {

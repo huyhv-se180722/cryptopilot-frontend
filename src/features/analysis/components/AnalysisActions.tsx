@@ -99,7 +99,7 @@ export function AnalysisActions({
           </Button>
         ) : (
           <Link
-            to={`/ai?symbol=${encodeURIComponent(symbol)}&market=${market}`}
+            to={`/ai/market?symbol=${encodeURIComponent(symbol)}&market=${market}`}
             className={buttonClassName(
               'secondary',
               'md',

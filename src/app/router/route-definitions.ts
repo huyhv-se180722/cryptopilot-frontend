@@ -93,6 +93,8 @@ export const traderRoutes = [
   { path: '/news', screen: 'SCR-28', titleKey: 'news' },
   { path: '/news/:articleId', screen: 'SCR-28', titleKey: 'newsArticle' },
   { path: '/ai', screen: 'SCR-29', titleKey: 'ai' },
+  { path: '/ai/market', screen: 'SCR-29', titleKey: 'aiMarket' },
+  { path: '/ai/my-trading', screen: 'SCR-29', titleKey: 'aiMine' },
   { path: '/subscription', screen: 'SCR-30', titleKey: 'subscription' },
   {
     path: '/subscription/payment-result',

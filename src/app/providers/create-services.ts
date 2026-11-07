@@ -85,7 +85,12 @@ import {
   createHttpAnnouncementService,
   createPendingAnnouncementService,
 } from '../../services/api/announcements';
-import { createAiService } from '../../services/api/ai';
+import {
+  createHttpAiAdminService,
+  createHttpAiService,
+  createPendingAiAdminService,
+  createPendingAiService,
+} from '../../services/api/ai';
 import { createSubscriptionService } from '../../services/api/subscription';
 import { createAdminService } from '../../services/api/admin';
 import {
@@ -192,7 +197,14 @@ export async function createServices(env: Environment): Promise<Services> {
     announcements: connected
       ? createHttpAnnouncementService(http)
       : createPendingAnnouncementService(),
-    ai: createAiService(),
+    // Answers arrive on the signed-in connection (`/user/queue/ai`); the
+    // screen reads the conversation again while one is pending.
+    ai: connected
+      ? createHttpAiService(http, accountFeed)
+      : createPendingAiService(),
+    aiAdmin: connected
+      ? createHttpAiAdminService(http)
+      : createPendingAiAdminService(),
     subscription: createSubscriptionService(),
     admin: createAdminService(),
     adminPairs: connected

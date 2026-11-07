@@ -15,6 +15,7 @@ import {
   User,
 } from 'lucide-react';
 import { CryptoPilotLogo } from '../../components/brand/CryptoPilotLogo';
+import { AiChatBubble } from '../../features/ai-assistant/components/AiChatBubble';
 import { NotificationBell } from '../../features/notifications/components/NotificationBell';
 import { DisclaimerFooter } from '../../components/layout/DisclaimerFooter';
 import { ThemeToggle } from '../../components/layout/ThemeToggle';
@@ -24,9 +25,10 @@ import { useCopy } from '../../hooks/use-copy';
 import { classNames } from '../../utils/class-names';
 import { CommandPalette } from './CommandPalette';
 import { MobileDock } from './MobileDock';
-import { traderAccountNav, traderDock, traderNav } from './navigation';
+import { NavDropdown } from './NavDropdown';
+import { flatNav, traderAccountNav, traderDock, traderNav } from './navigation';
 
-const paletteItems = [...traderNav, ...traderAccountNav];
+const paletteItems = [...flatNav(traderNav), ...traderAccountNav];
 const dockPaths = new Set(traderDock.map((item) => item.to));
 const moreItems = paletteItems.filter((item) => !dockPaths.has(item.to));
 // The trading screens use the whole width, as an exchange's do.
@@ -80,6 +82,7 @@ export function TraderShell() {
           className="hidden min-w-0 flex-1 items-center overflow-x-auto lg:flex"
         >
           {traderNav.map((item) => {
+            if (item.children) return <NavDropdown key={item.to} item={item} />;
             const Icon = item.icon;
             return (
               <NavLink
@@ -224,6 +227,7 @@ export function TraderShell() {
       </div>
 
       <MobileDock items={traderDock} more={moreItems} />
+      <AiChatBubble />
       <CommandPalette
         open={paletteOpen}
         onOpenChange={setPaletteOpen}

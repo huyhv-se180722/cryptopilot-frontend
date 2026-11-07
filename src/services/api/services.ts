@@ -7,6 +7,7 @@ import type {
   AdminAuditService,
   AdminDashboardService,
   AdminUserService,
+  AiAdminService,
   AiService,
   AlertsService,
   AnalysisService,
@@ -54,6 +55,7 @@ export interface Services {
   moderation: ModerationService;
   announcements: AnnouncementService;
   ai: AiService;
+  aiAdmin: AiAdminService;
   subscription: SubscriptionService;
   admin: AdminService;
   adminPairs: AdminPairService;
