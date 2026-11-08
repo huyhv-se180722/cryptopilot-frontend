@@ -47,7 +47,6 @@ export const vi: PartialCopy = {
     featureIndicatorAlert: 'Cảnh báo theo chỉ báo',
     featureExternalAlertChannels: 'Cảnh báo qua email và push',
     featureAdvancedPerformance: 'Hiệu suất nâng cao',
-    featureNewsAiInsight: 'AI tóm tắt tin tức',
     featureAiPerformanceContext: 'AI đọc hiệu suất của bạn',
     featureVideoPost: 'Đăng bài có video',
     quoteTitle: 'Xác nhận {plan}',

@@ -2986,7 +2986,6 @@ export const en = {
     featureIndicatorAlert: 'Indicator alerts',
     featureExternalAlertChannels: 'Alerts by email and push',
     featureAdvancedPerformance: 'Advanced performance',
-    featureNewsAiInsight: 'AI news insight',
     featureAiPerformanceContext: 'AI reads your performance',
     featureVideoPost: 'Video posts',
     quoteTitle: 'Confirm {plan}',

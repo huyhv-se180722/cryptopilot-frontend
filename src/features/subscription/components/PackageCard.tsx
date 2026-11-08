@@ -30,7 +30,7 @@ export function PackageCard({
     [b.featureIndicatorAlert, pkg.indicatorAlert],
     [b.featureExternalAlertChannels, pkg.externalAlertChannels],
     [b.featureAdvancedPerformance, pkg.advancedPerformance],
-    [b.featureNewsAiInsight, pkg.newsAiInsight],
+    // No row for newsAiInsight: the news summaries are open to every plan.
     [b.featureAiPerformanceContext, pkg.aiPerformanceContext],
     [b.featureVideoPost, pkg.videoPost],
   ];
