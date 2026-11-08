@@ -1,3 +1,4 @@
+import { Lock } from 'lucide-react';
 import { useState } from 'react';
 import { Alert } from '../../../components/feedback/States';
 import { Button } from '../../../components/ui/Button';
@@ -16,9 +17,10 @@ import { goToCheckout, vnd } from './billing-format';
 import { useCreateOrder } from '../hooks/use-billing';
 
 /**
- * SCR-30 confirmation: the quote of the backend (type, amount, value carried
- * over, bonus days), then the gateway; paying creates the order and leaves
- * for the gateway page.
+ * SCR-30 confirmation: an order summary from the backend quote (price,
+ * period, value carried over, bonus days); paying creates the order and
+ * leaves for the gateway page. The gateway itself is the admin's concern,
+ * so a choice of payment method shows only when more than one is on.
  */
 export function CheckoutDialog({
   pkg,
@@ -53,6 +55,9 @@ export function CheckoutDialog({
   // Only an upgrade turns the unused value into days; a renewal keeps them.
   const carried =
     quote.orderType === 'UPGRADE' && Number(quote.carriedValueVnd) > 0;
+  const days = Math.round(
+    (Date.parse(quote.endAt) - Date.parse(quote.startAt)) / 86_400_000,
+  );
   return (
     <Dialog
       open
@@ -74,19 +79,32 @@ export function CheckoutDialog({
         </>
       }
     >
-      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-        <dt className="text-muted">{b.orderType}</dt>
-        <dd className="text-right text-fg">{b[`type${quote.orderType}`]}</dd>
-        <dt className="text-muted">{b.amount}</dt>
-        <dd className="text-right font-mono font-semibold text-fg">
+      <div className="rounded-xl border border-line bg-raised px-4 py-4">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-medium text-fg-2">{pkg.name}</span>
+          {quote.orderType !== 'NEW' && (
+            <span className="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-medium text-primary">
+              {b[`type${quote.orderType}`]}
+            </span>
+          )}
+        </div>
+        <p className="mt-1 font-mono text-3xl font-semibold text-fg">
           {vnd(quote.amount)}
-        </dd>
+        </p>
+      </div>
+
+      <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 text-sm">
         <dt className="text-muted">{b.period}</dt>
-        <dd className="text-right font-mono text-fg">
-          {formatCopy(b.periodValue, {
-            start: formatInstantLocal(quote.startAt),
-            end: formatInstantLocal(quote.endAt),
-          })}
+        <dd className="text-right text-fg">
+          <span className="whitespace-nowrap font-mono">
+            {formatCopy(b.periodValue, {
+              start: day(quote.startAt),
+              end: day(quote.endAt),
+            })}
+          </span>
+          <span className="block text-xs text-muted">
+            {formatCopy(b.periodDays, { days: String(days) })}
+          </span>
         </dd>
         {carried && (
           <>
@@ -106,13 +124,14 @@ export function CheckoutDialog({
         )}
       </dl>
 
-      <fieldset className="mt-5">
-        <legend className="mb-2 text-sm font-medium text-fg">
-          {b.payWith}
-        </legend>
-        {enabled.length === 0 ? (
-          <Alert title={b.noGateway} tone="warning" />
-        ) : (
+      {enabled.length === 0 && (
+        <Alert title={b.noGateway} tone="warning" className="mt-4" />
+      )}
+      {enabled.length > 1 && (
+        <fieldset className="mt-5">
+          <legend className="mb-2 text-sm font-medium text-fg">
+            {b.payWith}
+          </legend>
           <div className="grid gap-2">
             {enabled.map((g) => (
               <label
@@ -131,10 +150,13 @@ export function CheckoutDialog({
               </label>
             ))}
           </div>
-        )}
-      </fieldset>
+        </fieldset>
+      )}
 
-      <p className="mt-4 text-xs text-muted">{b.quoteNote}</p>
+      <p className="mt-4 flex items-start gap-2 border-t border-line pt-4 text-xs text-muted">
+        <Lock size={14} aria-hidden="true" className="mt-px shrink-0" />
+        <span>{b.quoteNote}</span>
+      </p>
       {create.state.status === 'error' && (
         <Alert
           title={billingErrorText(copy, create.state.error)}
@@ -144,4 +166,9 @@ export function CheckoutDialog({
       )}
     </Dialog>
   );
+}
+
+/** The calendar day of an instant on this device, "YYYY-MM-DD". */
+function day(value: string): string {
+  return formatInstantLocal(value).slice(0, 10);
 }

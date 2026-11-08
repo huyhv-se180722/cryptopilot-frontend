@@ -148,13 +148,11 @@ describe('Subscription screens', () => {
     await user.click(within(pro).getByRole('button', { name: 'Choose' }));
 
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText('New subscription')).toBeTruthy();
-    expect(within(dialog).queryByText('MoMo e-wallet')).toBeNull();
-    expect(
-      within(dialog).getByRole('radio', {
-        name: 'SePay (bank transfer, card)',
-      }),
-    ).toHaveProperty('checked', true);
+    // A new order needs no type badge, and one gateway needs no choice.
+    expect(within(dialog).queryByText('New subscription')).toBeNull();
+    expect(within(dialog).queryByRole('radio')).toBeNull();
+    expect(within(dialog).queryByText(/SePay/)).toBeNull();
+    expect(within(dialog).getByText('(30 days)')).toBeTruthy();
     await user.click(within(dialog).getByRole('button', { name: /^Pay / }));
 
     expect(createOrder).toHaveBeenCalledWith('PRO_MONTHLY', 'SEPAY');
@@ -165,6 +163,48 @@ describe('Subscription screens', () => {
     expect(
       (form.elements.namedItem('signature') as HTMLInputElement).value,
     ).toBe('c2ln');
+  });
+
+  it('lets the trader pick a payment method only when two are on', async () => {
+    const user = userEvent.setup();
+    const createOrder = vi.fn<SubscriptionService['createOrder']>(async () => {
+      throw new Error('stop here');
+    });
+    await renderRoutes(
+      [page('/subscription', <SubscriptionPage />)],
+      '/subscription',
+      trader(),
+      {
+        subscription: billing({
+          gateways: async () => [
+            { code: 'MOMO', enabled: true },
+            { code: 'SEPAY', enabled: true },
+          ],
+          quote: async () => ({
+            packageCode: 'PRO_MONTHLY',
+            orderType: 'NEW',
+            amount: '99000',
+            currency: 'VND',
+            carriedValueVnd: '0',
+            bonusDays: 0,
+            startAt: '2026-11-08T00:00:00Z',
+            endAt: '2026-12-08T00:00:00Z',
+          }),
+          createOrder,
+        }),
+      },
+    );
+    const pro = await screen.findByLabelText('PRO_MONTHLY');
+    await user.click(within(pro).getByRole('button', { name: 'Choose' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).getByRole('radio', { name: 'MoMo e-wallet' }),
+    ).toHaveProperty('checked', true);
+    await user.click(
+      within(dialog).getByRole('radio', { name: 'Bank transfer / QR' }),
+    );
+    await user.click(within(dialog).getByRole('button', { name: /^Pay / }));
+    expect(createOrder).toHaveBeenCalledWith('PRO_MONTHLY', 'SEPAY');
   });
 
   it('offers a Premium holder no lower tier and shows the yearly packages', async () => {
