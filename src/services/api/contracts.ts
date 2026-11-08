@@ -124,6 +124,13 @@ import type {
   RiskSuggestion,
   UserProfile,
   SubscriptionPackage,
+  PaymentGateway,
+  PaymentGatewayCode,
+  OrderQuote,
+  CreatedOrder,
+  SubscriptionOrder,
+  SubscriptionOrderPage,
+  CurrentSubscription,
   TradingPlan,
   Watchlist,
   WatchlistItem,
@@ -753,7 +760,26 @@ export interface AiAdminService {
   /** Deactivates the previous active version. */
   activate(id: string): Promise<AiConfiguration>;
 }
-export type SubscriptionService = ReadService<SubscriptionPackage>;
+/**
+ * Packages, orders and the plan held (`/billing/**`, T-066..T-069). A
+ * redirect back from the gateway proves nothing: only the order status the
+ * backend reports after the gateway's IPN does.
+ */
+export interface SubscriptionService {
+  packages(signal?: AbortSignal): Promise<readonly SubscriptionPackage[]>;
+  gateways(signal?: AbortSignal): Promise<readonly PaymentGateway[]>;
+  quote(packageCode: string): Promise<OrderQuote>;
+  createOrder(
+    packageCode: string,
+    gateway: PaymentGatewayCode,
+  ): Promise<CreatedOrder>;
+  orders(
+    request: { page: number; pageSize: number },
+    signal?: AbortSignal,
+  ): Promise<SubscriptionOrderPage>;
+  order(orderCode: string, signal?: AbortSignal): Promise<SubscriptionOrder>;
+  current(signal?: AbortSignal): Promise<CurrentSubscription>;
+}
 export type AdminService = ReadService<AdminLog>;
 
 /** Account settings of the signed-in Trader (`/me/*`; the password is in `AuthService`). */

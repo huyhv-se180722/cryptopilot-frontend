@@ -126,6 +126,18 @@ export const screenPages: Readonly<Record<string, PageModule>> = {
   '/community/members/:memberId': async () => ({
     Component: (await import('../../pages/trader/MemberPage')).MemberPage,
   }),
+  '/subscription': async () => ({
+    Component: (await import('../../pages/trader/SubscriptionPage'))
+      .SubscriptionPage,
+  }),
+  '/subscription/payment-result': async () => ({
+    Component: (await import('../../pages/trader/PaymentResultPage'))
+      .PaymentResultPage,
+  }),
+  '/subscription/payments': async () => ({
+    Component: (await import('../../pages/trader/PaymentHistoryPage'))
+      .PaymentHistoryPage,
+  }),
   // `/ai` stays the market analysis, for the links made before the split.
   '/ai': async () => ({
     Component: (await import('../../pages/trader/AiAssistantPage'))

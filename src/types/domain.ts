@@ -1258,13 +1258,88 @@ export interface AiConfigurationDraft {
   maxOutputTokens: number;
   disclaimer: string;
 }
+/** A package of `GET /billing/packages` with the rights it gives (SCR-30). */
 export interface SubscriptionPackage {
-  id: string;
+  code: string;
   name: string;
+  tier: PlanTier;
   price: Decimal;
   currency: string;
+  /** null for FREE, which never ends. */
   durationDays: number | null;
+  purchasable: boolean;
+  futuresAnalysis: boolean;
+  scoreComponents: boolean;
+  /** null means unlimited. */
+  activePlanMax: number | null;
+  watchlistMax: number | null;
+  activeAlertMax: number | null;
+  indicatorAlert: boolean;
+  externalAlertChannels: boolean;
+  advancedPerformance: boolean;
+  newsAiInsight: boolean;
+  aiDailyQuota: number;
+  aiPerformanceContext: boolean;
+  videoPost: boolean;
+}
+export type PaymentGatewayCode = 'MOMO' | 'SEPAY' | 'VNPAY';
+export interface PaymentGateway {
+  code: PaymentGatewayCode;
+  enabled: boolean;
+}
+/** NEW from FREE, RENEW on the same tier, UPGRADE to a higher one. */
+export type OrderType = 'NEW' | 'RENEW' | 'UPGRADE';
+export type OrderStatus = 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED';
+/** What buying a package would cost and give, before any order exists. */
+export interface OrderQuote {
+  packageCode: string;
+  orderType: OrderType;
+  amount: Decimal;
+  currency: string;
+  /** Unused value of the current plan turned into extra days. */
+  carriedValueVnd: Decimal;
+  bonusDays: number;
+  startAt: ISODateTime;
+  endAt: ISODateTime;
+}
+export interface SubscriptionOrder {
+  orderCode: string;
+  packageCode: string;
+  packageName: string;
+  orderType: OrderType;
+  amount: Decimal;
+  currency: string;
+  gateway: PaymentGatewayCode;
+  status: OrderStatus;
+  createdAt: ISODateTime;
+  expiresAt: ISODateTime;
+  paidAt: ISODateTime | null;
+}
+export interface SubscriptionOrderPage {
+  items: readonly SubscriptionOrder[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+/** How the browser reaches the gateway: a GET link or a form to POST. */
+export interface CheckoutForm {
+  method: 'GET' | 'POST';
+  url: string;
+  fields: Readonly<Record<string, string>>;
+}
+export interface CreatedOrder {
+  order: SubscriptionOrder;
+  checkout: CheckoutForm;
+}
+/** The plan held now; package and dates are null on FREE. */
+export interface CurrentSubscription {
   tier: PlanTier;
+  packageCode: string | null;
+  packageName: string | null;
+  startAt: ISODateTime | null;
+  endAt: ISODateTime | null;
+  carriedValueVnd: Decimal | null;
+  bonusDays: number | null;
 }
 export interface AdminLog {
   id: string;
