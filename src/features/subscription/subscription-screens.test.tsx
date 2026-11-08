@@ -215,6 +215,51 @@ describe('Subscription screens', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
+  it('shows the carried value and bonus days on an upgrade only', async () => {
+    const user = userEvent.setup();
+    const quote: SubscriptionService['quote'] = async (code) => ({
+      packageCode: code,
+      orderType: code === 'PRO_MONTHLY' ? 'RENEW' : 'UPGRADE',
+      amount: code === 'PRO_MONTHLY' ? '99000' : '199000',
+      currency: 'VND',
+      carriedValueVnd: '50000',
+      bonusDays: code === 'PRO_MONTHLY' ? 0 : 7,
+      startAt: '2026-11-08T00:00:00Z',
+      endAt: '2026-12-15T00:00:00Z',
+    });
+    await renderRoutes(
+      [page('/subscription', <SubscriptionPage />)],
+      '/subscription',
+      trader(),
+      {
+        subscription: billing({
+          current: async () => ({
+            ...PREMIUM,
+            tier: 'PRO',
+            packageName: 'Pro Monthly',
+          }),
+          quote,
+        }),
+      },
+    );
+    const pro = await screen.findByLabelText('PRO_MONTHLY');
+    await user.click(within(pro).getByRole('button', { name: 'Renew' }));
+    let dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Renewal')).toBeTruthy();
+    expect(
+      within(dialog).queryByText('Value carried from your current plan'),
+    ).toBeNull();
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+    const premium = screen.getByLabelText('PREMIUM_MONTHLY');
+    await user.click(within(premium).getByRole('button', { name: 'Upgrade' }));
+    dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).getByText('Value carried from your current plan'),
+    ).toBeTruthy();
+    expect(within(dialog).getByText('+7 days')).toBeTruthy();
+  });
+
   it('shows the result the backend reports, not the redirect', async () => {
     await renderRoutes(
       [page('/subscription/payment-result', <PaymentResultPage />)],

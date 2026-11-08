@@ -50,7 +50,9 @@ export function CheckoutDialog({
     }
   }
 
-  const carried = Number(quote.carriedValueVnd) > 0;
+  // Only an upgrade turns the unused value into days; a renewal keeps them.
+  const carried =
+    quote.orderType === 'UPGRADE' && Number(quote.carriedValueVnd) > 0;
   return (
     <Dialog
       open
