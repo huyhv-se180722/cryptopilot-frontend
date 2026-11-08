@@ -3013,6 +3013,8 @@ export const en = {
     errorDowngrade: 'You cannot buy a lower plan while yours is active.',
     errorNotOnSale: 'This package is not on sale any more.',
     errorGatewayOff: 'This payment method is turned off. Choose another one.',
+    errorOrderPending:
+      'A payment of yours is still being processed. Finish it, or try again in a few minutes.',
     errorGatewayDown:
       'The payment gateway cannot be reached. Please try again later.',
     resultTitle: 'Payment result',

@@ -17,6 +17,8 @@ export function billingErrorText(copy: Copy, error: unknown): string {
       return b.errorGatewayOff;
     case 'PAYMENT_GATEWAY_UNAVAILABLE':
       return b.errorGatewayDown;
+    case 'ORDER_ALREADY_PENDING':
+      return b.errorOrderPending;
     default:
       return errorText(copy, error);
   }

@@ -74,6 +74,8 @@ export const vi: PartialCopy = {
     errorDowngrade: 'Không thể mua gói thấp hơn khi gói hiện tại còn hiệu lực.',
     errorNotOnSale: 'Gói này đã ngừng bán.',
     errorGatewayOff: 'Phương thức này đang tắt. Hãy chọn phương thức khác.',
+    errorOrderPending:
+      'Bạn còn một thanh toán đang được xử lý. Hãy hoàn tất nó hoặc thử lại sau vài phút.',
     errorGatewayDown:
       'Không kết nối được cổng thanh toán. Vui lòng thử lại sau.',
     resultTitle: 'Kết quả thanh toán',
