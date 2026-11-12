@@ -91,7 +91,10 @@ import {
   createPendingAiAdminService,
   createPendingAiService,
 } from '../../services/api/ai';
-import { createSubscriptionService } from '../../services/api/subscription';
+import {
+  createHttpSubscriptionService,
+  createPendingSubscriptionService,
+} from '../../services/api/subscription';
 import { createAdminService } from '../../services/api/admin';
 import {
   createHttpAdminPairService,
@@ -205,7 +208,9 @@ export async function createServices(env: Environment): Promise<Services> {
     aiAdmin: connected
       ? createHttpAiAdminService(http)
       : createPendingAiAdminService(),
-    subscription: createSubscriptionService(),
+    subscription: connected
+      ? createHttpSubscriptionService(http)
+      : createPendingSubscriptionService(),
     admin: createAdminService(),
     adminPairs: connected
       ? createHttpAdminPairService(http)
