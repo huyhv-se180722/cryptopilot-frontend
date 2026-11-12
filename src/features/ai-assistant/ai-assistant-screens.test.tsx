@@ -78,8 +78,17 @@ function message(
   role: AiMessage['role'],
   content: string,
   status: AiMessage['status'] = 'COMPLETED',
+  sources: AiMessage['sources'] = [],
 ): AiMessage {
-  return { id, conversationId: 'c1', role, content, status, createdAt: AT };
+  return {
+    id,
+    conversationId: 'c1',
+    role,
+    content,
+    status,
+    createdAt: AT,
+    sources,
+  };
 }
 
 function aiService(

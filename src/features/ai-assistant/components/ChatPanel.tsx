@@ -16,7 +16,7 @@ import { formatCopy } from '../../../i18n/copy';
 import type { AiMessage, AiQuota } from '../../../types/domain';
 import { classNames } from '../../../utils/class-names';
 import { AiBotIcon } from './AiBotIcon';
-import { AnswerText } from './AnswerText';
+import { AnswerText, SourceList } from './AnswerText';
 
 /** SRS 3.9.1: a question is 1 to 1,000 characters. */
 export const QUESTION_MAX = 1000;
@@ -117,7 +117,12 @@ function Message({
         )}
         <div className="rounded-2xl rounded-tl-md bg-surface-alt px-3.5 py-2.5 text-fg">
           <span className="sr-only">{t.assistant}: </span>
-          <AnswerText text={message.content} />
+          <AnswerText text={message.content} sources={message.sources} />
+          <SourceList
+            sources={message.sources}
+            title={t.sources}
+            hint={t.sourcesHint}
+          />
         </div>
         <button
           type="button"

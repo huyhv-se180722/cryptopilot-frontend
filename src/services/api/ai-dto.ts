@@ -7,6 +7,7 @@ import type {
   AiConversationPage,
   AiMessage,
   AiMessagePage,
+  AiMessageSource,
   AiMessageStatus,
   AiQuota,
   AiSenderRole,
@@ -80,7 +81,45 @@ export function decodeAiMessage(body: unknown): AiMessage {
     content: typeof value.content === 'string' ? value.content : '',
     status: oneOf(STATUSES, value.status, 'status'),
     createdAt: instant(value.createdAt, 'createdAt'),
+    sources: decodeAiMessageSources(value.sources),
   };
+}
+
+function optionalText(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() !== '' ? value : null;
+}
+
+/**
+ * The articles an answer cites (T-074). Lenient on purpose: a source that
+ * is not an http(s) link, or not an object, is dropped rather than failing
+ * the whole conversation, so no other scheme ever reaches an `href`.
+ */
+export function decodeAiMessageSources(
+  value: unknown,
+): readonly AiMessageSource[] {
+  if (!Array.isArray(value)) return [];
+  const sources: AiMessageSource[] = [];
+  for (const item of value as unknown[]) {
+    if (item === null || typeof item !== 'object') continue;
+    const source = item as Record<string, unknown>;
+    const url = optionalText(source.url);
+    const ref = source.ref;
+    if (url === null || !/^https?:\/\//i.test(url)) continue;
+    if (typeof ref !== 'number' || !Number.isInteger(ref) || ref < 1) continue;
+    const publishedAt = optionalText(source.publishedAt);
+    sources.push({
+      ref,
+      origin: optionalText(source.origin) ?? 'SYSTEM',
+      headline: optionalText(source.headline),
+      outlet: optionalText(source.outlet),
+      publishedAt:
+        publishedAt !== null && !Number.isNaN(Date.parse(publishedAt))
+          ? publishedAt
+          : null,
+      url,
+    });
+  }
+  return sources;
 }
 
 export function decodeAiMessagePage(body: unknown): AiMessagePage {
