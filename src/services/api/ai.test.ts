@@ -76,6 +76,48 @@ describe('AI assistant adapter (UC-35, UC-36, BR-50)', () => {
     );
   });
 
+  it('decodes the cited sources of an answer, keeping only http(s) links (T-074)', () => {
+    const answer = decodeAiMessage({
+      ...MESSAGE,
+      role: 'ASSISTANT',
+      status: 'COMPLETED',
+      sources: [
+        {
+          ref: 2,
+          origin: 'SYSTEM',
+          headline: 'Sàn bị hack',
+          outlet: 'Cointelegraph',
+          publishedAt: '2026-11-12T08:00:00Z',
+          url: 'https://ct.example/hack',
+        },
+        { ref: 3, headline: 'Script', url: 'javascript:alert(1)' },
+        { ref: 0, url: 'https://zero.example' },
+        { ref: 4, url: 'https://ok.example', publishedAt: 'soon' },
+        null,
+        'text',
+      ],
+    });
+    expect(answer.sources).toEqual([
+      {
+        ref: 2,
+        origin: 'SYSTEM',
+        headline: 'Sàn bị hack',
+        outlet: 'Cointelegraph',
+        publishedAt: '2026-11-12T08:00:00Z',
+        url: 'https://ct.example/hack',
+      },
+      {
+        ref: 4,
+        origin: 'SYSTEM',
+        headline: null,
+        outlet: null,
+        publishedAt: null,
+        url: 'https://ok.example',
+      },
+    ]);
+    expect(decodeAiMessage(MESSAGE).sources).toEqual([]);
+  });
+
   it('decodes an unlimited quota and a push without an answer', () => {
     expect(
       decodeAiQuota({ ...QUOTA, limit: null, remaining: null }).limit,

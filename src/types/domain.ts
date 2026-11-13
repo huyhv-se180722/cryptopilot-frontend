@@ -1191,6 +1191,17 @@ export interface AiConversationPage {
   pageSize: number;
   total: number;
 }
+/** A news article an answer cites as `[ref]` (T-074); the link opens the original. */
+export interface AiMessageSource {
+  ref: number;
+  /** SYSTEM for the outlets the news module reads. */
+  origin: string;
+  headline: string | null;
+  outlet: string | null;
+  publishedAt: ISODateTime | null;
+  /** Always an http(s) link. */
+  url: string;
+}
 export interface AiMessage {
   id: string;
   conversationId: string;
@@ -1199,6 +1210,8 @@ export interface AiMessage {
   content: string;
   status: AiMessageStatus;
   createdAt: ISODateTime;
+  /** The articles the answer cites, in citation order; empty on a question. */
+  sources: readonly AiMessageSource[];
 }
 export interface AiMessagePage {
   /** The newest first. */

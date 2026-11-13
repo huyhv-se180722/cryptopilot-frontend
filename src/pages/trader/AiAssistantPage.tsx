@@ -40,6 +40,7 @@ import {
   type ChatAccent,
 } from '../../features/ai-assistant/components/ChatPanel';
 import { ConversationList } from '../../features/ai-assistant/components/ConversationList';
+import { StyleChip } from '../../features/ai-assistant/components/StyleChip';
 import {
   useAiAnswerPush,
   useAiConversations,
@@ -523,7 +524,10 @@ function TopicWorkspace({ tab }: { tab: Tab }) {
                   t.noAdvice}
               </p>
             </div>
-            <QuotaBadge quota={quota.data} />
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+              {onPlan && <StyleChip />}
+              <QuotaBadge quota={quota.data} />
+            </div>
           </header>
           {onPlan &&
             (tab === 'market' ? (
