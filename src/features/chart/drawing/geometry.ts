@@ -402,7 +402,7 @@ export function figureOf(
         );
         shapes.push(
           label(
-            { x: left + 4, y: y - 2 },
+            { x: Math.max(left, 0) + 4, y: y - 2 },
             `${level} (${context.price(price)})`,
             'left',
             'bottom',

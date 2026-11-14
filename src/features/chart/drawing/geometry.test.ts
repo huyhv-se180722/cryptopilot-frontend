@@ -196,6 +196,17 @@ describe('figures and hits', () => {
     );
   });
 
+  it('keeps the level labels on the pane when the swing starts left of it', () => {
+    const figure = figureOf(
+      drawable('FIB_RETRACEMENT', ['900', '700'], { fibLevels: ['0.5'] }),
+      [at(-300, 900), at(200, 700)],
+      CONTEXT,
+    )!;
+    expect(figure.shapes.find((shape) => shape.kind === 'text')).toMatchObject({
+      at: { x: 4 },
+    });
+  });
+
   it('shows a long position with its zones, target, stop and ratio', () => {
     const figure = figureOf(
       drawable('LONG_POSITION', ['800', '780', '840']),
