@@ -151,6 +151,7 @@ function TradeSpot({
             referenceBars={reference}
             referenceLabel={copy.marketStatus.sourceLabel}
             drawingPairId={pair.pairId}
+            expandTo={`/chart/spot/${pair.symbol}`}
             priceLines={chartOrders.lines}
             markers={chartOrders.markers}
             extraItems={[chartOrders.toggle]}

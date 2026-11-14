@@ -104,6 +104,24 @@ describe('route definitions', () => {
     ]);
   });
 
+  it('serves the Chart screen to traders, traced to D-149, with a menu entry', () => {
+    expect(
+      traderRoutes
+        .filter((route) => route.path.startsWith('/chart'))
+        .map((route) => [route.path, route.screen]),
+    ).toEqual([
+      ['/chart', 'D-149'],
+      ['/chart/:market', 'D-149'],
+      ['/chart/:market/:symbol', 'D-149'],
+    ]);
+    expect(traderNav.map((item) => item.to).slice(0, 4)).toEqual([
+      '/dashboard',
+      '/markets',
+      '/chart',
+      '/trade/spot',
+    ]);
+  });
+
   it('has an English title for every route', () => {
     for (const route of all) expect(en.screens[route.titleKey]).toBeTruthy();
   });

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { GripVertical, X } from 'lucide-react';
+import { GripVertical, Maximize2, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import {
   CandlestickSeries,
   HistogramSeries,
@@ -413,6 +414,7 @@ export function AnalysisChart<T extends ChartTimeframe = CandleTimeframe>({
   extendable = false,
   height,
   drawingPairId,
+  expandTo,
 }: {
   market: MarketType;
   symbol: string;
@@ -439,6 +441,8 @@ export function AnalysisChart<T extends ChartTimeframe = CandleTimeframe>({
   extendable?: boolean;
   height?: string;
   drawingPairId?: string;
+  /** The Chart screen of the pair, linked from the header. */
+  expandTo?: string;
 }) {
   const copy = useCopy();
   const locale = useLocale();
@@ -929,6 +933,16 @@ export function AnalysisChart<T extends ChartTimeframe = CandleTimeframe>({
             </span>
           )}
           <span>{formatCopy(c.timeZone, { zone: zoneLabel(offset) })}</span>
+          {expandTo && (
+            <Link
+              to={expandTo}
+              aria-label={c.openInChart}
+              title={c.openInChart}
+              className="inline-flex size-7 items-center justify-center rounded-md border border-line text-muted hover:bg-raised hover:text-fg-2"
+            >
+              <Maximize2 size={14} aria-hidden="true" />
+            </Link>
+          )}
         </span>
       </div>
       {series.status === 'loading' ? (

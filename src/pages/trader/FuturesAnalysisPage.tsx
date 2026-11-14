@@ -100,6 +100,7 @@ function FuturesAnalysis({ pair }: { pair: MarketPair }) {
             timeframe={timeframe}
             onTimeframeChange={setTimeframe}
             drawingPairId={pair.pairId}
+            expandTo={`/chart/futures/${pair.symbol}`}
             {...(data
               ? {
                   levels: {

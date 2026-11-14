@@ -211,6 +211,7 @@ function TradeFutures({
             referenceBars={reference}
             referenceLabel={copy.marketStatus.sourceLabel}
             drawingPairId={pair.pairId}
+            expandTo={`/chart/futures/${pair.symbol}`}
             priceLines={chart.lines}
             extendable
             height="h-[420px] xl:h-[var(--futures-chart)]"

@@ -261,6 +261,11 @@ export const vi: PartialCopy = {
     sessionExpiredTitle: 'Phiên đăng nhập đã hết hạn',
     sessionExpiredAction: 'Đăng nhập lại',
   },
+  chartPage: {
+    marketLabel: 'Thị trường',
+    fullscreen: 'Toàn màn hình',
+    exitFullscreen: 'Thoát toàn màn hình',
+  },
   drawing: {
     toolbarLabel: 'Công cụ vẽ',
     groups: {

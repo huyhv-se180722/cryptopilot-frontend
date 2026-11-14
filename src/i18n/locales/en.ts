@@ -120,6 +120,7 @@ export const en = {
     dashboard: 'Overview',
     markets: 'Markets',
     spotAnalysis: 'Spot analysis',
+    chart: 'Chart',
     futuresAnalysis: 'Futures analysis',
     tradeSpot: 'Spot demo trading',
     tradeFutures: 'Futures demo trading',
@@ -337,6 +338,7 @@ export const en = {
     primary: 'Main navigation',
     overview: 'Overview',
     markets: 'Markets',
+    chart: 'Chart',
     watchlist: 'Watchlist',
     alerts: 'Alerts',
     plans: 'Trading Plans',
@@ -1806,6 +1808,14 @@ export const en = {
     // tradingview.com on a page the users see.
     credit: 'Charts by TradingView Lightweight Charts™',
     creditCopyright: '© TradingView, Inc.',
+    openInChart: 'Open in Chart',
+  },
+  chartPage: {
+    marketLabel: 'Market',
+    spot: 'Spot',
+    futures: 'Futures',
+    fullscreen: 'Full screen',
+    exitFullscreen: 'Exit full screen',
   },
   coinMarket: {
     title: 'Crypto prices by market cap',

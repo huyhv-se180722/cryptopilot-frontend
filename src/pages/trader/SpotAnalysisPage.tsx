@@ -92,6 +92,7 @@ function SpotAnalysis({ pair }: { pair: MarketPair }) {
             timeframe={timeframe}
             onTimeframeChange={setTimeframe}
             drawingPairId={pair.pairId}
+            expandTo={`/chart/spot/${pair.symbol}`}
             {...(data
               ? {
                   levels: {
