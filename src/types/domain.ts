@@ -2463,3 +2463,72 @@ export interface SystemHealth {
   services: readonly ServiceHealth[];
   feeds: readonly FeedHealth[];
 }
+
+/** The tools a Trader draws with on the chart (D-149). */
+export type DrawingType =
+  | 'TREND_LINE'
+  | 'HORIZONTAL_LINE'
+  | 'HORIZONTAL_RAY'
+  | 'VERTICAL_LINE'
+  | 'RECTANGLE'
+  | 'FIB_RETRACEMENT'
+  | 'LONG_POSITION'
+  | 'SHORT_POSITION'
+  | 'TEXT'
+  | 'PARALLEL_CHANNEL'
+  | 'FIB_EXTENSION'
+  | 'PRICE_RANGE'
+  | 'DATE_RANGE'
+  | 'ARROW';
+
+export type DrawingLineStyle = 'SOLID' | 'DASHED' | 'DOTTED';
+
+/** One anchor of a drawing: a candle open time and a price (D-149 (4)). */
+export interface DrawingPoint {
+  time: ISODateTime;
+  price: Decimal;
+}
+
+/** How a drawing looks; only these values are stored. */
+export interface DrawingStyle {
+  /** `#RRGGBB` or `#RRGGBBAA`. */
+  lineColor: string;
+  /** 1 to 4 pixels. */
+  lineWidth: number;
+  lineStyle: DrawingLineStyle;
+  fillColor: string | null;
+  extendLeft: boolean;
+  extendRight: boolean;
+  fontSize: number | null;
+  /** The Fibonacci ratios shown; null for the tool's default set. */
+  fibLevels: readonly Decimal[] | null;
+}
+
+/** A drawing of the signed-in Trader on a pair's chart (`/chart-drawings`). */
+export interface ChartDrawing {
+  id: string;
+  pairId: string;
+  type: DrawingType;
+  points: readonly DrawingPoint[];
+  style: DrawingStyle;
+  text: string | null;
+  locked: boolean;
+  hidden: boolean;
+  /** Sent back with the next change; a stale one is refused (409). */
+  version: number;
+}
+
+/** What the Trader may change on a drawing; every field is replaced. */
+export interface ChartDrawingChange {
+  points: readonly DrawingPoint[];
+  style: DrawingStyle;
+  text: string | null;
+  locked: boolean;
+  hidden: boolean;
+}
+
+/** A new drawing on a pair's chart. */
+export interface NewChartDrawing extends ChartDrawingChange {
+  pairId: string;
+  type: DrawingType;
+}

@@ -210,6 +210,7 @@ function TradeFutures({
             timeframes={timeframes}
             referenceBars={reference}
             referenceLabel={copy.marketStatus.sourceLabel}
+            drawingPairId={pair.pairId}
             priceLines={chart.lines}
             extendable
             height="h-[420px] xl:h-[var(--futures-chart)]"

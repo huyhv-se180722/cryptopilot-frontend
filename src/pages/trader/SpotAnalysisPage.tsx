@@ -91,6 +91,7 @@ function SpotAnalysis({ pair }: { pair: MarketPair }) {
             tickSize={pair.tickSize}
             timeframe={timeframe}
             onTimeframeChange={setTimeframe}
+            drawingPairId={pair.pairId}
             {...(data
               ? {
                   levels: {

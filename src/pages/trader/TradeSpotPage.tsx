@@ -150,6 +150,7 @@ function TradeSpot({
             timeframes={timeframes}
             referenceBars={reference}
             referenceLabel={copy.marketStatus.sourceLabel}
+            drawingPairId={pair.pairId}
             priceLines={chartOrders.lines}
             markers={chartOrders.markers}
             extraItems={[chartOrders.toggle]}

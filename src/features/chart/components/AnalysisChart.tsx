@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GripVertical, X } from 'lucide-react';
 import {
   CandlestickSeries,
@@ -51,6 +51,10 @@ import {
 } from './chart-markers';
 import { labelsShown } from './chart-labels';
 import { TimeframePicker } from './TimeframePicker';
+import { DrawingFloatingBar } from '../drawing/components/DrawingFloatingBar';
+import { DrawingTextDialog } from '../drawing/components/DrawingTextDialog';
+import { DrawingToolbar } from '../drawing/components/DrawingToolbar';
+import { useDrawingLayer } from '../drawing/use-drawing-layer';
 
 export type { ChartMarker } from './chart-markers';
 
@@ -390,6 +394,8 @@ function build(
  * candles when dragged to its start, keeping the view in place. `height`
  * (a height class) fixes the drawing's height, the panels sharing it with
  * the price pane, where a screen lays the chart out beside other regions.
+ * `drawingPairId` turns on the Trader's drawing tools (D-149): the drawings
+ * of that pair are loaded, painted and edited on the price pane.
  */
 export function AnalysisChart<T extends ChartTimeframe = CandleTimeframe>({
   market,
@@ -406,6 +412,7 @@ export function AnalysisChart<T extends ChartTimeframe = CandleTimeframe>({
   referenceLabel,
   extendable = false,
   height,
+  drawingPairId,
 }: {
   market: MarketType;
   symbol: string;
@@ -431,6 +438,7 @@ export function AnalysisChart<T extends ChartTimeframe = CandleTimeframe>({
   referenceLabel?: string;
   extendable?: boolean;
   height?: string;
+  drawingPairId?: string;
 }) {
   const copy = useCopy();
   const locale = useLocale();
@@ -531,6 +539,22 @@ export function AnalysisChart<T extends ChartTimeframe = CandleTimeframe>({
   };
   const hasYielding = lines.some((line) => line.yields);
   const [anchors, setAnchors] = useState<readonly Anchor[]>([]);
+  const bars = useMemo(
+    () =>
+      series.forming ? [...series.candles, series.forming] : series.candles,
+    [series.candles, series.forming],
+  );
+  const layer = useDrawingLayer({
+    pairId: drawingPairId,
+    bars,
+    timeframe,
+    offset,
+    // Without a tick size, enough decimals for the smallest prices.
+    places: tickSize === null ? 8 : places,
+  });
+  const drawingsOn = Boolean(drawingPairId) && layer.status === 'success';
+  const { attach } = layer;
+  const detachLayer = useRef<(() => void) | null>(null);
 
   // Declared before the rebuild so a rebuild writes the newest data.
   useEffect(() => {
@@ -570,6 +594,9 @@ export function AnalysisChart<T extends ChartTimeframe = CandleTimeframe>({
       scale.subscribeVisibleLogicalRangeChange(onRange);
     } else scale.fitContent();
     return () => {
+      // The drawing layer leaves before the chart it is attached to.
+      detachLayer.current?.();
+      detachLayer.current = null;
       if (extendable) scale.unsubscribeVisibleLogicalRangeChange(onRange);
       write.current = null;
       updateForming.current = null;
@@ -629,6 +656,28 @@ export function AnalysisChart<T extends ChartTimeframe = CandleTimeframe>({
     time,
     locale,
     extendable,
+  ]);
+
+  // The drawing layer goes on each chart built once the drawings are loaded.
+  useEffect(() => {
+    const chart = chartApi.current;
+    const candles = priceSeries.current;
+    if (!drawingsOn || !chart || !candles || !container.current) return;
+    detachLayer.current = attach(chart, candles, container.current);
+    return () => {
+      detachLayer.current?.();
+      detachLayer.current = null;
+    };
+  }, [
+    drawingsOn,
+    attach,
+    ready,
+    togglesKey,
+    places,
+    theme,
+    extendable,
+    time,
+    locale,
   ]);
 
   // Lines change often (orders, levels): redraw them on the same series.
@@ -894,137 +943,152 @@ export function AnalysisChart<T extends ChartTimeframe = CandleTimeframe>({
           {c.empty}
         </p>
       ) : (
-        <>
-          <div className="relative">
-            <div
-              ref={container}
-              role="img"
-              aria-label={formatCopy(c.chartLabel, {
-                symbol,
-                timeframe,
-                count: series.candles.length,
-              })}
-              className={classNames('w-full', heightClass)}
-            />
-            {(hasActions ? anchors : []).map((anchor) => {
-              const line = lines.find((each) => each.id === anchor.id);
-              const action = line?.action;
-              const drag = line?.drag;
-              const moving =
-                draggingPrice?.id === anchor.id ? draggingPrice.price : null;
-              const drop = () => {
-                const next = dragging.current;
-                moveTo(null);
-                if (drag && line && next && next.price !== line.price)
-                  drag.onDrop(next.price);
-              };
-              return line && (action || drag) ? (
-                <div
-                  key={anchor.id}
-                  style={{ top: anchor.y }}
-                  className={classNames(
-                    'absolute left-2 z-10 inline-flex -translate-y-1/2 items-center gap-1 rounded border bg-surface font-mono text-xs leading-none',
-                    drag ? '' : 'pl-1.5',
-                    moving ? 'ring-1 ring-primary' : '',
-                    CHIP_TONES[line.tone],
-                  )}
-                >
-                  {drag ? (
-                    <button
-                      type="button"
-                      aria-label={drag.label}
-                      title={drag.label}
-                      disabled={drag.disabled}
-                      data-testid={'chart-line-drag-' + line.id}
-                      className="inline-flex cursor-ns-resize touch-none items-center gap-0.5 py-1 pr-0.5 pl-1 disabled:cursor-not-allowed disabled:opacity-50"
-                      onPointerDown={(event) => {
-                        event.currentTarget.setPointerCapture?.(
-                          event.pointerId,
-                        );
-                        pointer.current = {
-                          id: line.id,
-                          startY: event.clientY,
-                          moved: false,
-                        };
-                      }}
-                      onPointerMove={(event) => {
-                        const held = pointer.current;
-                        if (!held || held.id !== line.id) return;
-                        if (
-                          !held.moved &&
-                          Math.abs(event.clientY - held.startY) < 3
-                        )
-                          return;
-                        held.moved = true;
-                        const price = priceAt(event.clientY);
-                        if (price) moveTo({ id: line.id, price });
-                      }}
-                      onPointerUp={() => {
-                        const held = pointer.current;
-                        pointer.current = null;
-                        if (held?.moved) drop();
-                      }}
-                      onPointerCancel={() => {
-                        pointer.current = null;
-                        moveTo(null);
-                      }}
-                      onKeyDown={(event) => {
-                        if (
-                          event.key === 'ArrowUp' ||
-                          event.key === 'ArrowDown'
-                        ) {
-                          event.preventDefault();
-                          const from = dragging.current?.price ?? line.price;
-                          const next =
-                            event.key === 'ArrowUp'
-                              ? add(from, tick)
-                              : subtract(from, tick);
-                          if (Number(next) > 0)
-                            moveTo({
-                              id: line.id,
-                              price: toStep(next, tick, 'half-up'),
-                            });
-                        } else if (event.key === 'Enter' && dragging.current) {
-                          event.preventDefault();
-                          drop();
-                        } else if (event.key === 'Escape') {
+        <div className="flex gap-2">
+          {drawingsOn && <DrawingToolbar layer={layer} symbol={symbol} />}
+          <div className="min-w-0 flex-1">
+            <div className="relative">
+              <div
+                ref={container}
+                role="img"
+                aria-label={formatCopy(c.chartLabel, {
+                  symbol,
+                  timeframe,
+                  count: series.candles.length,
+                })}
+                className={classNames('w-full', heightClass)}
+              />
+              {(hasActions ? anchors : []).map((anchor) => {
+                const line = lines.find((each) => each.id === anchor.id);
+                const action = line?.action;
+                const drag = line?.drag;
+                const moving =
+                  draggingPrice?.id === anchor.id ? draggingPrice.price : null;
+                const drop = () => {
+                  const next = dragging.current;
+                  moveTo(null);
+                  if (drag && line && next && next.price !== line.price)
+                    drag.onDrop(next.price);
+                };
+                return line && (action || drag) ? (
+                  <div
+                    key={anchor.id}
+                    style={{ top: anchor.y }}
+                    className={classNames(
+                      'absolute left-2 z-10 inline-flex -translate-y-1/2 items-center gap-1 rounded border bg-surface font-mono text-xs leading-none',
+                      drag ? '' : 'pl-1.5',
+                      moving ? 'ring-1 ring-primary' : '',
+                      CHIP_TONES[line.tone],
+                    )}
+                  >
+                    {drag ? (
+                      <button
+                        type="button"
+                        aria-label={drag.label}
+                        title={drag.label}
+                        disabled={drag.disabled}
+                        data-testid={'chart-line-drag-' + line.id}
+                        className="inline-flex cursor-ns-resize touch-none items-center gap-0.5 py-1 pr-0.5 pl-1 disabled:cursor-not-allowed disabled:opacity-50"
+                        onPointerDown={(event) => {
+                          event.currentTarget.setPointerCapture?.(
+                            event.pointerId,
+                          );
+                          pointer.current = {
+                            id: line.id,
+                            startY: event.clientY,
+                            moved: false,
+                          };
+                        }}
+                        onPointerMove={(event) => {
+                          const held = pointer.current;
+                          if (!held || held.id !== line.id) return;
+                          if (
+                            !held.moved &&
+                            Math.abs(event.clientY - held.startY) < 3
+                          )
+                            return;
+                          held.moved = true;
+                          const price = priceAt(event.clientY);
+                          if (price) moveTo({ id: line.id, price });
+                        }}
+                        onPointerUp={() => {
+                          const held = pointer.current;
+                          pointer.current = null;
+                          if (held?.moved) drop();
+                        }}
+                        onPointerCancel={() => {
+                          pointer.current = null;
                           moveTo(null);
-                        }
-                      }}
-                      onBlur={() => {
-                        if (!pointer.current) moveTo(null);
-                      }}
-                    >
-                      <GripVertical size={11} aria-hidden="true" />
-                      <span>
-                        {moving
-                          ? formatCopy(c.dragTo, { price: moving })
-                          : line.label}
-                      </span>
-                    </button>
-                  ) : (
-                    <span className="py-1">{line.label}</span>
-                  )}
-                  {action && (
-                    <button
-                      type="button"
-                      aria-label={action.label}
-                      title={action.label}
-                      disabled={action.disabled}
-                      onClick={action.onSelect}
-                      className="inline-flex h-5 w-5 items-center justify-center border-l border-inherit text-muted hover:text-fg disabled:opacity-50 pointer-coarse:h-8 pointer-coarse:w-8"
-                    >
-                      <X size={12} aria-hidden="true" />
-                    </button>
-                  )}
-                </div>
-              ) : null;
-            })}
+                        }}
+                        onKeyDown={(event) => {
+                          if (
+                            event.key === 'ArrowUp' ||
+                            event.key === 'ArrowDown'
+                          ) {
+                            event.preventDefault();
+                            const from = dragging.current?.price ?? line.price;
+                            const next =
+                              event.key === 'ArrowUp'
+                                ? add(from, tick)
+                                : subtract(from, tick);
+                            if (Number(next) > 0)
+                              moveTo({
+                                id: line.id,
+                                price: toStep(next, tick, 'half-up'),
+                              });
+                          } else if (
+                            event.key === 'Enter' &&
+                            dragging.current
+                          ) {
+                            event.preventDefault();
+                            drop();
+                          } else if (event.key === 'Escape') {
+                            moveTo(null);
+                          }
+                        }}
+                        onBlur={() => {
+                          if (!pointer.current) moveTo(null);
+                        }}
+                      >
+                        <GripVertical size={11} aria-hidden="true" />
+                        <span>
+                          {moving
+                            ? formatCopy(c.dragTo, { price: moving })
+                            : line.label}
+                        </span>
+                      </button>
+                    ) : (
+                      <span className="py-1">{line.label}</span>
+                    )}
+                    {action && (
+                      <button
+                        type="button"
+                        aria-label={action.label}
+                        title={action.label}
+                        disabled={action.disabled}
+                        onClick={action.onSelect}
+                        className="inline-flex h-5 w-5 items-center justify-center border-l border-inherit text-muted hover:text-fg disabled:opacity-50 pointer-coarse:h-8 pointer-coarse:w-8"
+                      >
+                        <X size={12} aria-hidden="true" />
+                      </button>
+                    )}
+                  </div>
+                ) : null;
+              })}
+              {drawingsOn && layer.selected && (
+                <DrawingFloatingBar layer={layer} drawing={layer.selected} />
+              )}
+            </div>
+            {series.candles.length < 200 && toggles.ema200 && (
+              <p className="mt-2 text-xs text-muted-dim">{c.insufficient}</p>
+            )}
           </div>
-          {series.candles.length < 200 && toggles.ema200 && (
-            <p className="mt-2 text-xs text-muted-dim">{c.insufficient}</p>
-          )}
-        </>
+        </div>
+      )}
+      {layer.textDraft && (
+        <DrawingTextDialog
+          onSubmit={layer.submitText}
+          onCancel={layer.cancelText}
+        />
       )}
     </section>
   );
