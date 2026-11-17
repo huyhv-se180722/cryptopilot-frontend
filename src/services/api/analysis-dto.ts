@@ -51,6 +51,18 @@ function components(
   name: string,
   futures: boolean,
 ): ComponentScores {
+  // T-107: a plan without the score components gets them as null
+  // (`componentsLocked`); the card shows them locked, so none is known here.
+  if (value === null || value === undefined) {
+    return {
+      formulaVersion: null,
+      trend: null,
+      momentum: null,
+      volume: null,
+      level: null,
+      ...(futures ? { derivatives: null } : {}),
+    };
+  }
   const scores = record(value, name);
   return {
     formulaVersion: nullableText(scores.formulaVersion, 'formulaVersion'),
