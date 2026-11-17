@@ -875,6 +875,29 @@ export function createDevelopmentCommunity(
         )
         .slice(0, limit);
     },
+    async coinSentiment(signal) {
+      await pause(signal);
+      const since = Date.now() - 30 * 1440 * MINUTE;
+      const tally = new Map<string, { bullish: number; bearish: number }>();
+      for (const post of posts.values()) {
+        if (post.status !== 'PUBLISHED' || post.createdAt < since) continue;
+        const bullish =
+          (post.sentiment === 'BULLISH' ? 1 : 0) + votesOf(post, 'BULLISH');
+        const bearish =
+          (post.sentiment === 'BEARISH' ? 1 : 0) + votesOf(post, 'BEARISH');
+        if (bullish + bearish === 0) continue;
+        for (const coin of post.coins) {
+          const known = tally.get(coin) ?? { bullish: 0, bearish: 0 };
+          tally.set(coin, {
+            bullish: known.bullish + bullish,
+            bearish: known.bearish + bearish,
+          });
+        }
+      }
+      return [...tally.entries()]
+        .map(([symbol, votes]) => ({ symbol, ...votes }))
+        .sort((a, b) => a.symbol.localeCompare(b.symbol));
+    },
     async trendingCoins(limit, signal) {
       await pause(signal);
       const now = Date.now();

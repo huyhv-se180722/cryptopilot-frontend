@@ -117,6 +117,8 @@ export const EXTERNAL_SOURCES: readonly SystemEventSource[] = [
   'NEWS_SOURCE',
   'MEDIA_STORAGE',
   'MAIL',
+  'COINPAPRIKA',
+  'FEAR_GREED',
 ];
 
 /** Every source of the system log, as its filter offers them. */

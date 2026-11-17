@@ -4,6 +4,7 @@ import { integrationPending } from './errors';
 import type { HttpClient } from './http-client';
 import {
   decodeCandles,
+  decodeCoinMarket,
   decodeFuturesMetrics,
   decodeFuturesStats,
   decodePairPage,
@@ -13,6 +14,7 @@ import {
 /** Used while no API base URL is configured. */
 export function createPendingMarketService(): MarketService {
   return {
+    getCoinMarket: async () => integrationPending(),
     listPairs: async () => integrationPending(),
     getCandles: async () => integrationPending(),
     getTicker: async () => integrationPending(),
@@ -43,6 +45,13 @@ const withSignal = (signal?: AbortSignal) => (signal ? { signal } : {});
  */
 export function createHttpMarketService(http: HttpClient): MarketService {
   return {
+    getCoinMarket: (signal) =>
+      http.request({
+        path: 'market/coins',
+        decode: decodeCoinMarket,
+        anonymous: true,
+        ...withSignal(signal),
+      }),
     async listPairs(market, signal) {
       const pairs: MarketPair[] = [];
       for (let page = 1; page <= MAX_PAGES; page += 1) {

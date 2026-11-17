@@ -3,6 +3,8 @@ import {
   Activity,
   Bot,
   CandlestickChart,
+  Coins,
+  Gauge,
   ImageIcon,
   Mail,
   Rss,
@@ -36,6 +38,8 @@ const icons: Partial<Record<SystemEventSource, LucideIcon>> = {
   NEWS_SOURCE: Rss,
   MEDIA_STORAGE: ImageIcon,
   MAIL: Mail,
+  COINPAPRIKA: Coins,
+  FEAR_GREED: Gauge,
 };
 
 const edge = {

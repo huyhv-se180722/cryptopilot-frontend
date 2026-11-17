@@ -93,6 +93,7 @@ async function open(path = '/trade/spot/BTCUSDT', pairs = PAIRS) {
   const market: MarketService = {
     listPairs: vi.fn(async () => pairs),
     getCandles: vi.fn(async () => []),
+    getCoinMarket: vi.fn(),
     getFuturesMetrics: vi.fn(),
     getTicker: vi.fn(async (_m, symbol) =>
       ticker(symbol, prices[symbol] ?? '1'),

@@ -445,6 +445,24 @@ export function createDevelopmentAdminAudit(
             lastError: null,
             bannedUntil: null,
           },
+          {
+            source: 'COINPAPRIKA',
+            status: 'UP',
+            lastSuccessAt: ago(300),
+            lastFailureAt: null,
+            failures24h: 0,
+            lastError: null,
+            bannedUntil: null,
+          },
+          {
+            source: 'FEAR_GREED',
+            status: 'UP',
+            lastSuccessAt: ago(40),
+            lastFailureAt: null,
+            failures24h: 0,
+            lastError: null,
+            bannedUntil: null,
+          },
         ],
         feeds: [
           {

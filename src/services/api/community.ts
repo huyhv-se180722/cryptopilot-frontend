@@ -17,6 +17,7 @@ import {
   decodePostDetail,
   decodePostPage,
   decodeTrendingCoins,
+  decodeCoinSentiment,
   decodeUploadForm,
   decodeVotes,
   encodePostDraft,
@@ -56,6 +57,7 @@ export function createPendingCommunityService(): CommunityService {
     block: async () => integrationPending(),
     influencers: async () => integrationPending(),
     trendingCoins: async () => integrationPending(),
+    coinSentiment: async () => integrationPending(),
     searchMembers: async () => integrationPending(),
     upload: async () => integrationPending(),
   };
@@ -339,6 +341,12 @@ export function createHttpCommunityService(http: HttpClient): CommunityService {
       http.request({
         path: 'posts/trending-coins' + query({ limit }),
         decode: decodeTrendingCoins,
+        ...withSignal(signal),
+      }),
+    coinSentiment: (signal) =>
+      http.request({
+        path: 'posts/coin-sentiment',
+        decode: decodeCoinSentiment,
         ...withSignal(signal),
       }),
     searchMembers: (q, signal) =>

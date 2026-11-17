@@ -160,6 +160,7 @@ async function open({
         quoteVolume: '630500',
       })),
     ),
+    getCoinMarket: vi.fn(),
     getFuturesMetrics: vi.fn(),
     getTicker: vi.fn(async () => null),
   };

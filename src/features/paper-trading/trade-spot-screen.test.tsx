@@ -157,6 +157,7 @@ async function open(
         );
       },
     ),
+    getCoinMarket: vi.fn(),
     getFuturesMetrics: vi.fn(),
     getTicker: vi.fn(async () => null),
   };

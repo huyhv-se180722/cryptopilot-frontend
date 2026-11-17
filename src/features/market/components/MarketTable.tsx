@@ -18,6 +18,7 @@ import {
   toFixedDecimal,
 } from '../../../utils/decimal-format';
 import { formatCountdown } from '../../../utils/countdown';
+import { CoinLogo } from '../../../components/ui/CoinLogo';
 
 type SortKey = 'order' | 'symbol' | 'price' | 'change' | 'volume' | 'funding';
 type Direction = 'asc' | 'desc';
@@ -95,21 +96,23 @@ export function MarketTable({
       <NumericText value={formatPrice(value, row.pair.tickSize)} />
     );
 
+  const change = (row: Row) =>
+    row.ticker?.changePercent24h ? (
+      <NumericText
+        signed
+        value={toFixedDecimal(row.ticker.changePercent24h, 2)}
+        suffix="%"
+      />
+    ) : (
+      none
+    );
+
   const pairCell = (row: Row) => {
     const { pair } = row;
     const selected = selectedSymbol === pair.symbol;
     const body = (
       <>
-        <span
-          aria-hidden="true"
-          className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full border border-line-strong bg-raised text-[10px] font-bold text-fg-2"
-        >
-          {pair.logoUrl ? (
-            <img src={pair.logoUrl} alt="" className="size-full object-cover" />
-          ) : (
-            (pair.baseAsset ?? pair.symbol).slice(0, 2)
-          )}
-        </span>
+        <CoinLogo src={pair.logoUrl} symbol={pair.baseAsset ?? pair.symbol} />
         <span className="min-w-0 text-left">
           <span className="flex items-center gap-1.5 text-xs font-semibold text-fg">
             {pair.baseAsset ?? pair.symbol}
@@ -164,16 +167,7 @@ export function MarketTable({
             header: m.colChange,
             sort: 'change',
             numeric: true,
-            cell: (row) =>
-              row.ticker?.changePercent24h ? (
-                <NumericText
-                  signed
-                  value={toFixedDecimal(row.ticker.changePercent24h, 2)}
-                  suffix="%"
-                />
-              ) : (
-                none
-              ),
+            cell: change,
           },
           {
             id: 'high',
@@ -253,10 +247,11 @@ export function MarketTable({
           {
             id: 'change',
             header: m.colChange,
+            sort: 'change',
             numeric: true,
             from: 'lg',
-            // M-09: the backend has no Futures 24h statistics yet.
-            cell: () => none,
+            // The Futures @ticker stream (TR-38) carries the 24h change.
+            cell: change,
           },
         ];
 

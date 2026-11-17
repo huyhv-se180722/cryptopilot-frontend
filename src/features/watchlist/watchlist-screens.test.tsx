@@ -183,6 +183,7 @@ function fakeMarket(): MarketService {
           ],
     ),
     getCandles: vi.fn(async () => []),
+    getCoinMarket: vi.fn(),
     getFuturesMetrics: vi.fn(),
     getTicker: vi.fn(async () => null),
   };

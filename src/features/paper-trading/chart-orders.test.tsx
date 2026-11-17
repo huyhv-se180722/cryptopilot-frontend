@@ -115,6 +115,7 @@ async function open() {
   const market: MarketService = {
     listPairs: vi.fn(async () => [BTC]),
     getCandles: vi.fn(async () => candles()),
+    getCoinMarket: vi.fn(),
     getFuturesMetrics: vi.fn(),
     getTicker: vi.fn(async (_m, symbol) => ticker(symbol)),
   };

@@ -132,6 +132,82 @@ export function createDevelopmentMarket(now: () => number = Date.now): {
   }
 
   const market: MarketService = {
+    async getCoinMarket(signal) {
+      signal?.throwIfAborted();
+      const fixed = (value: number) => value.toPrecision(8);
+      const spot = devPairs('spot');
+      const futures = devPairs('futures');
+      const bases = new Map<
+        string,
+        {
+          spot: string | null;
+          futures: string | null;
+          name: string;
+          logo: string | null;
+        }
+      >();
+      for (const pair of spot) {
+        const base = pair.baseAsset ?? pair.symbol;
+        bases.set(base, {
+          spot: pair.symbol,
+          futures: null,
+          name: pair.baseAssetName ?? base,
+          logo: pair.logoUrl,
+        });
+      }
+      for (const pair of futures) {
+        const base = pair.baseAsset ?? pair.symbol;
+        const known = bases.get(base);
+        bases.set(base, {
+          spot: known?.spot ?? null,
+          futures: pair.symbol,
+          name: known?.name ?? pair.baseAssetName ?? base,
+          logo: known?.logo ?? pair.logoUrl,
+        });
+      }
+      const coins = [...bases.entries()].map(([symbol, coin], index) => {
+        const price = priceOf(coin.spot ?? coin.futures ?? symbol);
+        const sparkline7d = Array.from({ length: 168 }, (_, hour) =>
+          fixed(price * (0.9 + 0.1 * (hour / 167) + 0.02 * Math.sin(hour / 9))),
+        );
+        return {
+          symbol,
+          name: coin.name,
+          logoUrl: coin.logo,
+          rank: index + 1,
+          spotSymbol: coin.spot,
+          futuresSymbol: coin.futures,
+          circulatingSupply: String(Math.round(1e9 / Math.max(price, 0.01))),
+          price1hAgo: fixed(price * 0.998),
+          price7dAgo: sparkline7d[0] ?? null,
+          sparkline7d,
+        };
+      });
+      return {
+        asOf: new Date(now()).toISOString(),
+        global: {
+          marketCapUsd: '2307025721623',
+          marketCapChange24hPercent: '0.61',
+          volume24hUsd: '310587923210',
+          bitcoinDominancePercent: '56.57',
+        },
+        fearGreed: {
+          value: 12,
+          classification: 'Extreme Fear',
+          asOf: new Date(now()).toISOString(),
+        },
+        altcoinSeason: { index: 46, altcoins: coins.length - 1, days: 90 },
+        openInterest: {
+          valueUsd: '12085150783',
+          change24hPercent: '-0.05',
+          lastDay: Array.from({ length: 25 }, (_, hour) => ({
+            at: new Date(now() - (24 - hour) * 3_600_000).toISOString(),
+            valueUsd: String(12_000_000_000 + Math.round(Math.sin(hour) * 9e7)),
+          })),
+        },
+        coins,
+      };
+    },
     async listPairs(marketType, signal) {
       signal?.throwIfAborted();
       return devPairs(marketType);

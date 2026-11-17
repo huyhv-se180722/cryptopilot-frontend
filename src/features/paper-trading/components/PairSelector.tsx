@@ -19,6 +19,7 @@ import {
   formatPrice,
   toFixedDecimal,
 } from '../../../utils/decimal-format';
+import { CoinLogo } from '../../../components/ui/CoinLogo';
 
 /** The Trader's watched Spot pairs, as far as they are known. */
 export type FavoritePairs =
@@ -120,6 +121,11 @@ export function PairSelector({
         onClick={() => setOpen((value) => !value)}
         className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2 text-lg font-semibold text-fg hover:bg-raised pointer-coarse:h-11"
       >
+        <CoinLogo
+          src={current.logoUrl}
+          symbol={current.baseAsset ?? current.symbol}
+          size="sm"
+        />
         {current.baseAsset ?? current.symbol}
         <span className="font-normal text-muted-dim">
           /{current.quoteAsset ?? ''}
@@ -406,6 +412,11 @@ function PairPanel({
                     className="shrink-0 fill-warning text-warning"
                   />
                 )}
+                <CoinLogo
+                  src={pair.logoUrl}
+                  symbol={pair.baseAsset ?? pair.symbol}
+                  size="xs"
+                />
                 <span className="truncate font-semibold">
                   {pair.baseAsset ?? pair.symbol}
                   <span className="font-normal text-muted-dim">
