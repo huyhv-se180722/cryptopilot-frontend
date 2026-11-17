@@ -1,6 +1,7 @@
 import type {
   AuthorStanding,
   CoinDiscussion,
+  CoinSentiment,
   CommentPage,
   Engagement,
   Influencer,
@@ -325,4 +326,16 @@ export function encodePostDraft(draft: PostDraft) {
       ? { officialCategory: draft.officialCategory }
       : {}),
   };
+}
+
+/** `GET /posts/coin-sentiment`. */
+export function decodeCoinSentiment(body: unknown): CoinSentiment[] {
+  return list(body, 'coinSentiment').map((item) => {
+    const value = record(item, 'coinSentiment');
+    return {
+      symbol: text(value.symbol, 'symbol'),
+      bullish: integer(value.bullish, 'bullish'),
+      bearish: integer(value.bearish, 'bearish'),
+    };
+  });
 }

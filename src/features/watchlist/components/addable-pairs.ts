@@ -6,6 +6,7 @@ export interface AddablePair {
   symbol: string;
   baseAsset: string | null;
   baseAssetName: string | null;
+  logoUrl: string | null;
   spot: boolean;
   futures: boolean;
 }
@@ -26,6 +27,7 @@ export function addablePairs(
     symbol: pair.symbol,
     baseAsset: pair.baseAsset,
     baseAssetName: pair.baseAssetName,
+    logoUrl: pair.logoUrl,
     spot: onSpot.has(pair.pairId),
     futures: onFutures.has(pair.pairId),
   });

@@ -137,6 +137,7 @@ const fakeMarket = (count: number): MarketService => ({
     },
   ]),
   getCandles: vi.fn(async () => candles(count)),
+  getCoinMarket: vi.fn(),
   getFuturesMetrics: vi.fn(),
   getTicker: vi.fn(async () => null),
 });

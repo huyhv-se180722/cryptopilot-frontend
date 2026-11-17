@@ -11,6 +11,7 @@ import { useCopy } from '../../../hooks/use-copy';
 import { formatCopy } from '../../../i18n/copy';
 import { pairLabel } from '../../../utils/pair-label';
 import { matchesPair, type AddablePair } from './addable-pairs';
+import { CoinLogo } from '../../../components/ui/CoinLogo';
 
 /**
  * SCR-12 Add pair (UC-12; no Figma frame, after the exchange's add to
@@ -108,6 +109,10 @@ export function AddPairDialog({
                   key={pair.pairId}
                   className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg px-1 py-2 hover:bg-raised"
                 >
+                  <CoinLogo
+                    src={pair.logoUrl}
+                    symbol={pair.baseAsset ?? pair.symbol}
+                  />
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold text-fg">
                       {label}

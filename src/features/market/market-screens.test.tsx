@@ -12,6 +12,8 @@ import type {
 import { createPendingMarketService } from '../../services/api/market';
 import type {
   Candle,
+  CoinMarket,
+  CoinMarketRow,
   MarketOverview,
   MarketPair,
   MarketTicker,
@@ -105,6 +107,7 @@ function fakeMarket(): MarketService {
         : [pair('BTC', 'futures', 1)],
     ),
     getCandles: vi.fn(async () => CANDLES),
+    getCoinMarket: vi.fn(),
     getFuturesMetrics: vi.fn(),
     getTicker: vi.fn(async () => null),
   };
@@ -133,100 +136,187 @@ function fakeFeed(status: FeedStatus) {
   return { feed, publish };
 }
 
-async function openMarkets(status: FeedStatus = 'open', path = '/markets') {
+const coinRow = (
+  symbol: string,
+  name: string,
+  rank: number,
+  over: Partial<CoinMarketRow> = {},
+): CoinMarketRow => ({
+  symbol,
+  name,
+  logoUrl: null,
+  rank,
+  spotSymbol: symbol + 'USDT',
+  futuresSymbol: null,
+  circulatingSupply: null,
+  price1hAgo: null,
+  price7dAgo: null,
+  sparkline7d: [],
+  ...over,
+});
+
+const COIN_MARKET: CoinMarket = {
+  asOf: '2026-11-17T05:49:03Z',
+  global: {
+    marketCapUsd: '2307025721623',
+    marketCapChange24hPercent: '0.61',
+    volume24hUsd: '310587923210',
+    bitcoinDominancePercent: '56.57',
+  },
+  fearGreed: {
+    value: 12,
+    classification: 'Extreme Fear',
+    asOf: '2026-11-17T00:00:00Z',
+  },
+  altcoinSeason: { index: 46, altcoins: 13, days: 90 },
+  openInterest: {
+    valueUsd: '12085150783.36',
+    change24hPercent: '-0.05',
+    lastDay: [
+      { at: '2026-11-16T05:49:00Z', valueUsd: '12000000000' },
+      { at: '2026-11-16T06:49:00Z', valueUsd: '12100000000' },
+      { at: '2026-11-16T07:49:00Z', valueUsd: '12050000000' },
+    ],
+  },
+  coins: [
+    coinRow('BTC', 'Bitcoin', 1, {
+      futuresSymbol: 'BTCUSDT',
+      circulatingSupply: '20000000',
+      price1hAgo: '62000',
+      price7dAgo: '70000',
+      sparkline7d: ['70000', '66000', '62000'],
+    }),
+    coinRow('ETH', 'Ethereum', 2, { circulatingSupply: '120000000' }),
+    coinRow('SOL', 'Solana', 7),
+    coinRow('PEPE', 'Pepe', 30, {
+      spotSymbol: null,
+      futuresSymbol: 'PEPEUSDT',
+    }),
+  ],
+};
+
+async function openCoins(status: FeedStatus = 'open') {
   const market = fakeMarket();
+  vi.mocked(market.getCoinMarket).mockResolvedValue(COIN_MARKET);
   const { feed, publish } = fakeFeed(status);
   await renderRoutes(
     [
       page('/markets', <MarketsPage />),
       page('/markets/:market/:symbol', <p>analysis</p>),
     ],
-    path,
+    '/markets',
     fakeAuth(),
     { market, marketFeed: feed },
   );
-  await screen.findByText('Bitcoin');
+  await screen.findByRole('link', { name: 'Bitcoin' });
   return { market, publish };
 }
 
+const coinRows = () => screen.getAllByRole('row').slice(1);
+const nameOf = (row: HTMLElement) =>
+  within(row).getAllByRole('cell')[1]?.textContent ?? '';
+
 describe('SCR-09 Market List', () => {
-  it('lists pairs in display order with live prices from the overview (CR-09)', async () => {
-    const { publish } = await openMarkets();
+  it('lists the coins by market cap with live prices and the changes computed from them', async () => {
+    const { publish } = await openCoins();
     publish('spot', [
       spotTicker('BTC', '63000.016', '1.254'),
       spotTicker('ETH', '2500.5', '-0.5'),
     ]);
-    const rows = screen.getAllByRole('row').slice(1);
-    expect(
-      rows.map((row) => within(row).getAllByRole('cell')[0]?.textContent),
-    ).toEqual([
-      expect.stringContaining('BTC'),
-      expect.stringContaining('ETH'),
-      expect.stringContaining('SOL'),
+    const rows = coinRows();
+    expect(rows.map(nameOf)).toEqual([
+      expect.stringContaining('Bitcoin'),
+      expect.stringContaining('Ethereum'),
+      expect.stringContaining('Solana'),
+      expect.stringContaining('Pepe'),
     ]);
     const btc = within(rows[0] as HTMLElement);
-    expect(btc.getAllByText('63,000.02')).toHaveLength(3);
-    expect(btc.getByText('+1.25%')).toBeTruthy();
-    expect(btc.getByText('1.14B')).toBeTruthy();
-    expect(within(rows[1] as HTMLElement).getByText('-0.50%')).toBeTruthy();
-    // SOL has no ticker yet: a dash, never an invented price.
-    expect(within(rows[2] as HTMLElement).getAllByText('—').length).toBe(5);
-    expect(screen.getByRole('status', { name: '' }).textContent).toContain(
-      'Live',
+    expect(btc.getAllByText('$63,000.02').length).toBeGreaterThan(0);
+    // 1h: 63000.016 against 62000; 24h from the ticker; 7d against 70000.
+    expect(btc.getByText('1.61%')).toBeTruthy();
+    expect(btc.getByText('1.25%')).toBeTruthy();
+    expect(btc.getByText('10.00%')).toBeTruthy();
+    // Market cap: the live price times the supply.
+    expect(btc.getByText('$1.26T')).toBeTruthy();
+    expect(btc.getByText('$1.14B')).toBeTruthy();
+    expect(btc.getByText('20.00M BTC')).toBeTruthy();
+    expect(
+      btc.getByRole('img', { name: 'BTC price over the last 7 days' }),
+    ).toBeTruthy();
+    // SOL has no ticker yet: dashes, never an invented price.
+    expect(
+      within(rows[2] as HTMLElement).getAllByText('—').length,
+    ).toBeGreaterThan(3);
+
+    // The market's figures above the list.
+    expect(
+      screen.getByRole('img', {
+        name: 'Fear and Greed Index 12 of 100: Extreme fear',
+      }),
+    ).toBeTruthy();
+    expect(screen.getByText('$2.31T')).toBeTruthy();
+    expect(screen.getByText('56.57%')).toBeTruthy();
+    expect(screen.getByText('$12.09B')).toBeTruthy();
+    const trending = within(
+      screen.getByRole('region', { name: 'Trending Coins' }),
     );
+    expect(trending.getAllByRole('link').map((a) => a.textContent)).toEqual([
+      expect.stringContaining('BTC'),
+      expect.stringContaining('ETH'),
+    ]);
   });
 
-  it('searches and sorts on the client, and links a pair to its analysis', async () => {
-    const { publish } = await openMarkets();
+  it('searches and sorts on the client, and links a coin to its analysis', async () => {
+    const { publish } = await openCoins();
     publish('spot', [
       spotTicker('BTC', '63000', '1'),
       spotTicker('ETH', '2500', '3'),
       spotTicker('SOL', '140', '-2'),
     ]);
-    await userEvent.click(screen.getByRole('button', { name: /24h change/ }));
-    const firstCells = () =>
-      screen
-        .getAllByRole('row')
-        .slice(1)
-        .map((row) => within(row).getAllByRole('cell')[0]?.textContent ?? '');
-    expect(firstCells()[0]).toContain('ETH');
-    expect(firstCells()[2]).toContain('SOL');
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Sort by 24h %' }),
+    );
+    expect(nameOf(coinRows()[0] as HTMLElement)).toContain('Ethereum');
+    await userEvent.click(screen.getByRole('radio', { name: 'Losers' }));
+    expect(nameOf(coinRows()[0] as HTMLElement)).toContain('Solana');
     await userEvent.type(screen.getByRole('searchbox'), 'bitcoin');
-    expect(firstCells()).toHaveLength(1);
+    expect(coinRows()).toHaveLength(1);
     await userEvent.clear(screen.getByRole('searchbox'));
     await userEvent.type(screen.getByRole('searchbox'), 'zzz');
-    expect(screen.getByText('No results found.')).toBeTruthy();
+    expect(screen.getByText('No coin matches.')).toBeTruthy();
     await userEvent.clear(screen.getByRole('searchbox'));
-    await userEvent.click(screen.getByRole('link', { name: /^BTC/ }));
+    await userEvent.click(screen.getByRole('link', { name: 'Bitcoin' }));
     expect(await screen.findByText('analysis')).toBeTruthy();
   });
 
-  it('shows Futures with mark price, funding in percent and the M-09 note', async () => {
-    const { publish } = await openMarkets('open', '/markets?market=futures');
+  it('prices a coin listed only on Futures by its mark price and opens its Futures analysis', async () => {
+    const { publish } = await openCoins();
     publish('futures', [
       {
-        ...spotTicker('BTC', '0', '0'),
+        ...spotTicker('PEPE', '0', '0'),
         market: 'futures',
         lastPrice: null,
-        changePercent24h: null,
-        baseVolume24h: null,
-        quoteVolume24h: null,
-        markPrice: '63010.2',
-        indexPrice: '63005.8',
-        fundingRate: '-0.00007500',
-        nextFundingTime: new Date(Date.now() + 3_600_000).toISOString(),
+        changePercent24h: '4.2',
+        markPrice: '0.0000123456',
       },
     ]);
-    expect(screen.getByText('Perp')).toBeTruthy();
-    expect(screen.getByText('63,010.20')).toBeTruthy();
-    expect(screen.getByText('-0.0075%')).toBeTruthy();
-    expect(screen.getByText(/not provided for Futures yet/)).toBeTruthy();
+    const pepe = within(coinRows()[3] as HTMLElement);
+    expect(pepe.getByText('Perp')).toBeTruthy();
+    expect(pepe.getByText('$0.00001235')).toBeTruthy();
+    await userEvent.click(pepe.getByRole('link', { name: 'Pepe' }));
+    expect(await screen.findByText('analysis')).toBeTruthy();
   });
 
   it('is Delayed without a socket and polls the stored snapshots', async () => {
-    const { market } = await openMarkets('unavailable');
+    const { market } = await openCoins('unavailable');
     expect(await screen.findByText('Delayed')).toBeTruthy();
-    await waitFor(() => expect(market.getTicker).toHaveBeenCalledTimes(3));
+    await waitFor(() =>
+      expect(market.getTicker).toHaveBeenCalledWith(
+        'spot',
+        'BTCUSDT',
+        expect.anything(),
+      ),
+    );
   });
 });
 

@@ -2090,6 +2090,54 @@ export interface AuditLogExport {
   matched: number | null;
 }
 
+/** One listed coin of the market list (SCR-09): what the live tickers do not carry. */
+export interface CoinMarketRow {
+  symbol: string;
+  name: string;
+  logoUrl: string | null;
+  /** Rank by market cap on CoinPaprika, or null. */
+  rank: number | null;
+  /** Its pair on Spot, e.g. BTCUSDT, or null. */
+  spotSymbol: string | null;
+  futuresSymbol: string | null;
+  circulatingSupply: Decimal | null;
+  price1hAgo: Decimal | null;
+  price7dAgo: Decimal | null;
+  /** Hourly closes of the last seven days, oldest first. */
+  sparkline7d: readonly Decimal[];
+}
+
+/** The market list of coins and the whole market's figures (SCR-09). */
+export interface CoinMarket {
+  asOf: ISODateTime;
+  global: {
+    marketCapUsd: Decimal;
+    marketCapChange24hPercent: Decimal | null;
+    volume24hUsd: Decimal | null;
+    bitcoinDominancePercent: Decimal | null;
+  } | null;
+  fearGreed: {
+    value: number;
+    classification: string;
+    asOf: ISODateTime;
+  } | null;
+  /** Share (0–100) of listed altcoins that beat Bitcoin over `days`. */
+  altcoinSeason: { index: number; altcoins: number; days: number } | null;
+  openInterest: {
+    valueUsd: Decimal;
+    change24hPercent: Decimal | null;
+    lastDay: readonly { at: ISODateTime; valueUsd: Decimal }[];
+  } | null;
+  coins: readonly CoinMarketRow[];
+}
+
+/** How the community leans on a coin over 30 days (D-125). */
+export interface CoinSentiment {
+  symbol: string;
+  bullish: number;
+  bearish: number;
+}
+
 export type SystemEventCategory = 'SYSTEM_ERROR' | 'EXTERNAL_API_FAILURE';
 
 export type SystemEventSource =
@@ -2099,7 +2147,9 @@ export type SystemEventSource =
   | 'AI_SERVICE'
   | 'MEDIA_STORAGE'
   | 'NEWS_SOURCE'
-  | 'MAIL';
+  | 'MAIL'
+  | 'COINPAPRIKA'
+  | 'FEAR_GREED';
 
 /** One row of the system log: a failure and how often it repeated (UC-46). */
 export interface SystemEvent {

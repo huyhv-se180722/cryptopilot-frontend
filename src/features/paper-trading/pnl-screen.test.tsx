@@ -36,6 +36,7 @@ async function setup(overrides: Partial<PaperTradingService> = {}) {
   const market: MarketService = {
     listPairs: vi.fn(async () => []),
     getCandles: vi.fn(async () => []),
+    getCoinMarket: vi.fn(),
     getFuturesMetrics: vi.fn(),
     getTicker: vi.fn(
       async (_m, symbol) =>

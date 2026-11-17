@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { SegmentedControl } from '../../../components/ui/SegmentedControl';
 import { Skeleton } from '../../../components/ui/Skeleton';
@@ -7,7 +7,7 @@ import { useCopy } from '../../../hooks/use-copy';
 import { formatCopy } from '../../../i18n/copy';
 import type { MarketPair, MarketType } from '../../../types/domain';
 import { classNames } from '../../../utils/class-names';
-import { compareDecimal, formatPrice } from '../../../utils/decimal-format';
+import { formatPrice } from '../../../utils/decimal-format';
 import { useMarketBoard } from '../hooks/use-market-board';
 import {
   OVERVIEW_RANGES,
@@ -22,37 +22,10 @@ import {
   overviewRows,
   type OverviewTab,
 } from './market-overview';
+import { FlashingValue } from '../../../components/ui/FlashingValue';
 
 const TABS: readonly OverviewTab[] = ['spot', 'futures', 'gainers', 'losers'];
 const RANGES = Object.keys(OVERVIEW_RANGES) as OverviewRange[];
-
-/**
- * A live number that flashes green when it rises and red when it falls,
- * so a change in the stream is seen without reading every digit.
- */
-function FlashingValue({ value, text }: { value: string; text: string }) {
-  const previous = useRef(value);
-  const [flash, setFlash] = useState<'up' | 'down' | null>(null);
-  useEffect(() => {
-    if (value === previous.current) return;
-    setFlash(compareDecimal(value, previous.current) > 0 ? 'up' : 'down');
-    previous.current = value;
-    const timer = window.setTimeout(() => setFlash(null), 700);
-    return () => window.clearTimeout(timer);
-  }, [value]);
-  return (
-    <span
-      data-flash={flash ?? undefined}
-      className={classNames(
-        'rounded px-1 transition-colors duration-700',
-        flash === 'up' && 'bg-positive-soft text-positive',
-        flash === 'down' && 'bg-negative-soft text-negative',
-      )}
-    >
-      {text}
-    </span>
-  );
-}
 
 /**
  * A market overview in the style of a news site's markets widget (D-126):

@@ -1,5 +1,7 @@
 ﻿import type {
   Candle,
+  CoinMarket,
+  CoinMarketRow,
   CandleTimeframe,
   FundingSettlement,
   FuturesMetrics,
@@ -306,4 +308,89 @@ function decodeMarketTrade(item: unknown): MarketTrade {
 export function decodeMarketTrades(body: unknown): readonly MarketTrade[] {
   const value = record(body, 'trades');
   return list(value.trades, 'trades').map(decodeMarketTrade);
+}
+
+function decodeCoinRow(body: unknown): CoinMarketRow {
+  const value = record(body, 'coin');
+  return {
+    symbol: text(value.symbol, 'symbol'),
+    name: text(value.name, 'name'),
+    logoUrl: nullableText(value.logoUrl, 'logoUrl'),
+    rank:
+      value.rank === null || value.rank === undefined
+        ? null
+        : integer(value.rank, 'rank'),
+    spotSymbol: nullableText(value.spotSymbol, 'spotSymbol'),
+    futuresSymbol: nullableText(value.futuresSymbol, 'futuresSymbol'),
+    circulatingSupply: nullableDecimal(
+      value.circulatingSupply,
+      'circulatingSupply',
+    ),
+    price1hAgo: nullableDecimal(value.price1hAgo, 'price1hAgo'),
+    price7dAgo: nullableDecimal(value.price7dAgo, 'price7dAgo'),
+    sparkline7d: list(value.sparkline7d ?? [], 'sparkline7d').map((point) =>
+      decimal(point, 'sparkline7d'),
+    ),
+  };
+}
+
+/** `GET /market/coins`: the market list of coins and the market figures. */
+export function decodeCoinMarket(body: unknown): CoinMarket {
+  const value = record(body);
+  const global =
+    value.global === null || value.global === undefined
+      ? null
+      : record(value.global, 'global');
+  const fear =
+    value.fearGreed === null || value.fearGreed === undefined
+      ? null
+      : record(value.fearGreed, 'fearGreed');
+  const season =
+    value.altcoinSeason === null || value.altcoinSeason === undefined
+      ? null
+      : record(value.altcoinSeason, 'altcoinSeason');
+  const interest =
+    value.openInterest === null || value.openInterest === undefined
+      ? null
+      : record(value.openInterest, 'openInterest');
+  return {
+    asOf: instant(value.asOf, 'asOf'),
+    global: global && {
+      marketCapUsd: decimal(global.marketCapUsd, 'marketCapUsd'),
+      marketCapChange24hPercent: nullableDecimal(
+        global.marketCapChange24hPercent,
+        'marketCapChange24hPercent',
+      ),
+      volume24hUsd: nullableDecimal(global.volume24hUsd, 'volume24hUsd'),
+      bitcoinDominancePercent: nullableDecimal(
+        global.bitcoinDominancePercent,
+        'bitcoinDominancePercent',
+      ),
+    },
+    fearGreed: fear && {
+      value: integer(fear.value, 'fearGreed.value'),
+      classification: text(fear.classification, 'classification'),
+      asOf: instant(fear.asOf, 'fearGreed.asOf'),
+    },
+    altcoinSeason: season && {
+      index: integer(season.index, 'altcoinSeason.index'),
+      altcoins: integer(season.altcoins, 'altcoinSeason.altcoins'),
+      days: integer(season.days, 'altcoinSeason.days'),
+    },
+    openInterest: interest && {
+      valueUsd: decimal(interest.valueUsd, 'openInterest.valueUsd'),
+      change24hPercent: nullableDecimal(
+        interest.change24hPercent,
+        'openInterest.change24hPercent',
+      ),
+      lastDay: list(interest.lastDay ?? [], 'lastDay').map((point) => {
+        const p = record(point, 'lastDay');
+        return {
+          at: instant(p.at, 'lastDay.at'),
+          valueUsd: decimal(p.valueUsd, 'lastDay.valueUsd'),
+        };
+      }),
+    },
+    coins: list(value.coins, 'coins').map(decodeCoinRow),
+  };
 }

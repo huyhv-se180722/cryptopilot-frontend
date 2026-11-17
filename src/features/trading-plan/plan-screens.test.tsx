@@ -253,6 +253,7 @@ const fakeMarket = (): MarketService => ({
       quoteVolume: '620500',
     })),
   ),
+  getCoinMarket: vi.fn(),
   getFuturesMetrics: vi.fn(),
   getTicker: vi.fn(async () => null),
 });

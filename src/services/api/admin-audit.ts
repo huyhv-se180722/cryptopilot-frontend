@@ -42,6 +42,8 @@ export const SYSTEM_EVENT_SOURCES: readonly SystemEventSource[] = [
   'MEDIA_STORAGE',
   'NEWS_SOURCE',
   'MAIL',
+  'COINPAPRIKA',
+  'FEAR_GREED',
 ];
 
 const count = (value: unknown, name: string) => {

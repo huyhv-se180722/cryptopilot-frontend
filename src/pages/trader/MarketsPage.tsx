@@ -1,34 +1,22 @@
-import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { useCopy } from '../../hooks/use-copy';
-import { MarketBoard } from '../../features/market/components/MarketBoard';
-import { useMarketBoard } from '../../features/market/hooks/use-market-board';
-import type { MarketType } from '../../types/domain';
+import { CoinMarketBoard } from '../../features/market/components/CoinMarketBoard';
 
 /**
- * SCR-09 Market List (SRS 3.3.1, UC-09): Spot and Futures tabs with live
- * prices, search and sort; a pair opens its analysis (SCR-10 / SCR-11),
- * where plan gates apply (SRS 3.3.3).
+ * SCR-09 Market List (SRS 3.3.1, UC-09): every listed coin in one list,
+ * Spot and Futures together, with live prices, the market's figures above
+ * and search and sort; a coin opens its analysis (SCR-10 / SCR-11), where
+ * plan gates apply (SRS 3.3.3).
  */
 export function MarketsPage() {
   const copy = useCopy();
-  const [params, setParams] = useSearchParams();
-  const market: MarketType =
-    params.get('market') === 'futures' ? 'futures' : 'spot';
-  const board = useMarketBoard(market);
   return (
     <div className="w-full">
       <PageHeader
-        title={copy.screens.markets}
-        description={copy.market.marketsSubtitle}
+        title={copy.coinMarket.title}
+        description={copy.coinMarket.subtitle}
       />
-      <MarketBoard
-        board={board}
-        onMarketChange={(next) =>
-          setParams(next === 'spot' ? {} : { market: next }, { replace: true })
-        }
-        hrefOf={(pair) => `/markets/${pair.market}/${pair.symbol}`}
-      />
+      <CoinMarketBoard />
     </div>
   );
 }

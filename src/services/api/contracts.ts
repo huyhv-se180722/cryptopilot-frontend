@@ -41,6 +41,8 @@ import type {
   AlertRule,
   AnnouncementDraft,
   CoinDiscussion,
+  CoinMarket,
+  CoinSentiment,
   CommentPage,
   Engagement,
   FeedQuery,
@@ -167,6 +169,8 @@ export interface CandlesRequest {
 }
 /** Public market data (`/market/**`, SRS 3.3.1); no token needed. */
 export interface MarketService {
+  /** The market list of coins and the whole market's figures (SCR-09). */
+  getCoinMarket(signal?: AbortSignal): Promise<CoinMarket>;
   /** Every enabled pair of a market, in admin display order. */
   listPairs(
     market: MarketType,
@@ -493,6 +497,8 @@ export interface CommunityService {
     limit: number,
     signal?: AbortSignal,
   ): Promise<readonly CoinDiscussion[]>;
+  /** How the community leans on each coin over 30 days (D-125); public. */
+  coinSentiment(signal?: AbortSignal): Promise<readonly CoinSentiment[]>;
   /** Traders whose name starts with the text (D-99); a Trader's search. */
   searchMembers(
     text: string,

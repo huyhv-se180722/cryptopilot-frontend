@@ -74,6 +74,23 @@ describe('analysis decoder', () => {
     ).toBeNull();
   });
 
+  it('reads components a plan does not include as locked, not as an error (T-107)', () => {
+    const locked = decodeAnalysis({
+      ...SPOT,
+      componentsLocked: true,
+      components: null,
+      setupScore: { ...SPOT.setupScore, score: null, components: null },
+    });
+    expect(locked.setupScore.score).toBeNull();
+    expect(locked.setupScore.components).toEqual({
+      formulaVersion: null,
+      trend: null,
+      momentum: null,
+      volume: null,
+      level: null,
+    });
+  });
+
   it('rejects an unknown preset or a score outside 0–100', () => {
     expect(() =>
       decodeAnalysis({
