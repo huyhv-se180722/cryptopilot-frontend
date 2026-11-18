@@ -3,41 +3,44 @@
 /*
  * CryptoPilot semantic tokens, ported from the Figma Make prototype (ADR-013).
  * Light is the default; dark applies with [data-theme='dark'] on <html>.
+ * Dark follows CoinMarketCap's navy (never pure black or neutral grey): the
+ * page, then cards a step lighter, then inner boxes, all tinted blue; light
+ * follows Binance's white panels on a pale grey page.
  * Components use the Tailwind names from @theme below, never raw hex values.
  */
 :root {
-  --cp-bg: #f5f7fa;
-  --cp-bg-alt: #edf1f7;
+  --cp-bg: #f5f6f8;
+  --cp-bg-alt: #eef0f3;
   --cp-surface: #ffffff;
-  --cp-surface-alt: #f0f4fa;
-  --cp-raised: #edf1f7;
-  --cp-raised-hover: #e4eaf4;
+  --cp-surface-alt: #fafbfc;
+  --cp-raised: #f3f4f6;
+  --cp-raised-hover: #eaecef;
 
-  --cp-border: #d9e0ea;
-  --cp-border-s: #c4cfde;
+  --cp-border: #eaecef;
+  --cp-border-s: #d8dce2;
 
-  --cp-text: #17212f;
-  --cp-text-2: #2e4460;
-  --cp-muted: #526175;
-  --cp-muted-dim: #6b7e94;
-  --cp-muted-x: #8a9db5;
+  --cp-text: #1e2329;
+  --cp-text-2: #3c434d;
+  --cp-muted: #5e6673;
+  --cp-muted-dim: #707a8a;
+  --cp-muted-x: #8a93a1;
 
-  --cp-primary: #2563eb;
-  --cp-primary-bg: rgba(37, 99, 235, 0.1);
-  --cp-primary-dim: rgba(37, 99, 235, 0.25);
-  --cp-link: #1d4ed8;
+  --cp-primary: #3861fb;
+  --cp-primary-bg: rgba(56, 97, 251, 0.1);
+  --cp-primary-dim: rgba(56, 97, 251, 0.28);
+  --cp-link: #2a4fd6;
 
-  --cp-positive: #087f5b;
-  --cp-positive-bg: rgba(8, 127, 91, 0.1);
-  --cp-positive-dim: rgba(8, 127, 91, 0.25);
+  --cp-positive: #02855a;
+  --cp-positive-bg: rgba(14, 203, 129, 0.12);
+  --cp-positive-dim: rgba(14, 203, 129, 0.32);
 
-  --cp-negative: #c52d3a;
-  --cp-negative-bg: rgba(197, 45, 58, 0.1);
-  --cp-negative-dim: rgba(197, 45, 58, 0.25);
+  --cp-negative: #d0304a;
+  --cp-negative-bg: rgba(246, 70, 93, 0.1);
+  --cp-negative-dim: rgba(246, 70, 93, 0.3);
 
-  --cp-warning: #925400;
-  --cp-warning-bg: rgba(146, 84, 0, 0.1);
-  --cp-warning-dim: rgba(146, 84, 0, 0.25);
+  --cp-warning: #9a6a00;
+  --cp-warning-bg: rgba(240, 185, 11, 0.14);
+  --cp-warning-dim: rgba(240, 185, 11, 0.38);
 
   --cp-accent: #0891b2;
   --cp-accent-bg: rgba(8, 145, 178, 0.1);
@@ -66,70 +69,70 @@
 }
 
 [data-theme='dark'] {
-  --cp-bg: #030712;
-  --cp-bg-alt: #070d1a;
-  --cp-surface: #0d1424;
-  --cp-surface-alt: #091020;
-  --cp-raised: #131f35;
-  --cp-raised-hover: #1a2840;
+  --cp-bg: #0d1421;
+  --cp-bg-alt: #111a2b;
+  --cp-surface: #171f30;
+  --cp-surface-alt: #141c2c;
+  --cp-raised: #222b3f;
+  --cp-raised-hover: #2a3449;
 
-  --cp-border: rgba(255, 255, 255, 0.08);
-  --cp-border-s: rgba(255, 255, 255, 0.14);
+  --cp-border: #232d42;
+  --cp-border-s: #323d56;
 
-  --cp-text: #f9fafb;
-  --cp-text-2: #c1c9d8;
-  --cp-muted: #9ca3af;
-  --cp-muted-dim: #7b8498;
-  --cp-muted-x: #6b7280;
+  --cp-text: #f4f6fa;
+  --cp-text-2: #cfd5e2;
+  --cp-muted: #a1a7bb;
+  --cp-muted-dim: #8990a6;
+  --cp-muted-x: #717a92;
 
-  --cp-primary: #3b82f6;
-  --cp-primary-bg: rgba(59, 130, 246, 0.15);
-  --cp-primary-dim: rgba(59, 130, 246, 0.32);
-  --cp-link: #60a5fa;
+  --cp-primary: #3861fb;
+  --cp-primary-bg: rgba(56, 97, 251, 0.18);
+  --cp-primary-dim: rgba(97, 136, 255, 0.45);
+  --cp-link: #7c9bff;
 
-  --cp-positive: #10b981;
-  --cp-positive-bg: rgba(16, 185, 129, 0.15);
-  --cp-positive-dim: rgba(16, 185, 129, 0.32);
+  --cp-positive: #16c784;
+  --cp-positive-bg: rgba(22, 199, 132, 0.15);
+  --cp-positive-dim: rgba(22, 199, 132, 0.38);
 
-  --cp-negative: #f43f5e;
-  --cp-negative-bg: rgba(244, 63, 94, 0.15);
-  --cp-negative-dim: rgba(244, 63, 94, 0.32);
+  --cp-negative: #ea3943;
+  --cp-negative-bg: rgba(234, 57, 67, 0.15);
+  --cp-negative-dim: rgba(234, 57, 67, 0.38);
 
-  --cp-warning: #ffbb33;
-  --cp-warning-bg: rgba(255, 187, 51, 0.12);
-  --cp-warning-dim: rgba(255, 187, 51, 0.28);
+  --cp-warning: #f0b90b;
+  --cp-warning-bg: rgba(240, 185, 11, 0.13);
+  --cp-warning-dim: rgba(240, 185, 11, 0.34);
 
-  --cp-accent: #06b6d4;
-  --cp-accent-bg: rgba(6, 182, 212, 0.12);
-  --cp-accent-dim: rgba(6, 182, 212, 0.28);
+  --cp-accent: #7b8cff;
+  --cp-accent-bg: rgba(123, 140, 255, 0.16);
+  --cp-accent-dim: rgba(123, 140, 255, 0.36);
 
   --cp-purple: #b47eff;
   --cp-purple-bg: rgba(180, 126, 255, 0.15);
 
   --cp-shadow-panel:
-    0 4px 24px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    0 4px 20px rgba(3, 8, 18, 0.45), 0 0 0 1px rgba(124, 146, 196, 0.06);
   --cp-shadow-overlay: 0 24px 64px rgba(0, 0, 0, 0.6);
-  --cp-glow-primary: 0 0 14px rgba(59, 130, 246, 0.3);
+  --cp-glow-primary: 0 0 14px rgba(56, 97, 251, 0.35);
   --cp-glow-positive:
-    0 0 14px rgba(16, 185, 129, 0.35), 0 0 3px rgba(16, 185, 129, 0.2);
+    0 0 14px rgba(22, 199, 132, 0.35), 0 0 3px rgba(22, 199, 132, 0.2);
   --cp-glow-negative:
-    0 0 14px rgba(244, 63, 94, 0.35), 0 0 3px rgba(244, 63, 94, 0.2);
+    0 0 14px rgba(234, 57, 67, 0.35), 0 0 3px rgba(234, 57, 67, 0.2);
   --cp-glow-accent:
     0 0 18px rgba(6, 182, 212, 0.3), 0 0 4px rgba(6, 182, 212, 0.18);
   --cp-mesh-hero:
     radial-gradient(
       ellipse 60% 50% at 50% -20%,
-      rgba(59, 130, 246, 0.18) 0%,
+      rgba(56, 97, 251, 0.16) 0%,
       transparent 70%
     ),
     radial-gradient(
       ellipse 40% 40% at 80% 10%,
-      rgba(6, 182, 212, 0.12) 0%,
+      rgba(123, 140, 255, 0.1) 0%,
       transparent 60%
     );
-  --cp-dock-bg: rgba(7, 13, 26, 0.82);
-  --cp-dock-border: rgba(255, 255, 255, 0.06);
-  --cp-backdrop: rgba(3, 7, 18, 0.75);
+  --cp-dock-bg: rgba(17, 26, 43, 0.88);
+  --cp-dock-border: #232d42;
+  --cp-backdrop: rgba(6, 11, 20, 0.72);
 
   color-scheme: dark;
 }
