@@ -98,7 +98,11 @@ export function CommunityFrame({
             />
           </aside>
           <div className="min-w-0">{children(openComposer)}</div>
-          <aside className="flex flex-col gap-4">
+          {/* The right column stays in view while the feed scrolls (D-99),
+              like the coin list: it holds to the top under the header, is
+              never taller than the screen and scrolls on its own, so the
+              page never shows an empty strip below it. */}
+          <aside className="flex flex-col gap-4 lg:sticky lg:top-16 lg:max-h-[calc(100dvh-5rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain">
             <PinnedCarousel />
             {coin && <CoinDiscussionCard coin={coin} />}
             <InfluencerList />
