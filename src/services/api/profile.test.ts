@@ -3,6 +3,7 @@ import { createHttpClient } from './http-client';
 import {
   createHttpProfileService,
   createPendingProfileService,
+  decodeProfileImageForm,
 } from './profile';
 import {
   decodeProfile,
@@ -22,6 +23,21 @@ const PROFILE = {
   riskProfile: 'CONSERVATIVE',
   notifyEmail: true,
   notifyPush: false,
+  bio: 'Swing trader',
+  websiteUrl: 'https://x.com/pro',
+  bannerUrl: null,
+  avatarPublicId: null,
+  bannerPublicId: null,
+};
+/** `ProfileImageUploadResponse`; 5 bytes keep the upload test offline. */
+const FORM = {
+  uploadUrl: 'https://api.cloudinary.example/v1_1/demo/image/upload',
+  apiKey: 'key',
+  timestamp: 42,
+  signature: 'sig',
+  publicId: 'cryptopilot/profiles/u/new',
+  allowedFormats: ['jpg', 'png', 'webp'],
+  maxBytes: 5,
 };
 const RISK = {
   riskProfile: 'BALANCED',
@@ -102,6 +118,24 @@ describe('profile decoders', () => {
   });
 });
 
+describe('profile image form', () => {
+  it('is an image upload that never overwrites', () => {
+    expect(decodeProfileImageForm(FORM)).toEqual({
+      ...FORM,
+      overwrite: false,
+      kind: 'IMAGE',
+      maxDurationSeconds: null,
+    });
+  });
+
+  it('refuses a form that is not https or has no size limit', () => {
+    expect(() =>
+      decodeProfileImageForm({ ...FORM, uploadUrl: 'http://up.example' }),
+    ).toThrow();
+    expect(() => decodeProfileImageForm({ ...FORM, maxBytes: 0 })).toThrow();
+  });
+});
+
 describe('HTTP profile service', () => {
   it('reads the profile, risk profile and questionnaire', async () => {
     const { profile, calls } = setup((path) =>
@@ -176,6 +210,41 @@ describe('HTTP profile service', () => {
         path: 'me/risk-questionnaire',
         method: 'POST',
         body: { answers: { CAPACITY_SHARE_OF_SAVINGS: 'MORE_THAN_HALF' } },
+      },
+    ]);
+  });
+
+  it('saves the member page as a whole and signs an image upload (D-99)', async () => {
+    const { profile, calls } = setup((path) =>
+      path === 'me/profile-images/upload-signature'
+        ? json(200, FORM)
+        : json(200, SAVED),
+    );
+    await profile.updateCommunityProfile({
+      bio: 'Swing trader',
+      websiteUrl: null,
+      avatarPublicId: 'cryptopilot/profiles/u/a',
+      bannerPublicId: null,
+    });
+    const tooBig = new File(['x'.repeat(10)], 'a.png', { type: 'image/png' });
+    await expect(profile.uploadProfileImage(tooBig)).rejects.toMatchObject({
+      problem: { messageCode: 'MSG32' },
+    });
+    expect(calls).toEqual([
+      {
+        path: 'me/community-profile',
+        method: 'PUT',
+        body: {
+          bio: 'Swing trader',
+          websiteUrl: null,
+          avatarPublicId: 'cryptopilot/profiles/u/a',
+          bannerPublicId: null,
+        },
+      },
+      {
+        path: 'me/profile-images/upload-signature',
+        method: 'POST',
+        body: undefined,
       },
     ]);
   });

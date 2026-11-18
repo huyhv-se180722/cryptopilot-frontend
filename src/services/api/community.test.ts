@@ -429,6 +429,90 @@ describe('HTTP community adapter', () => {
       '/api/v1/posts/coins/BTC/discussion',
     );
   });
+
+  it('reads what a member page shows besides the posts (D-99)', async () => {
+    const member = setup({
+      userId: AUTHOR.userId,
+      displayName: 'Lan Pham',
+      avatarUrl: null,
+      joinedAt: '2026-09-01T00:00:00Z',
+      posts: 3,
+      likesReceived: 10,
+      me: false,
+      bio: 'Swing trader',
+      websiteUrl: 'javascript:alert(1)',
+      bannerUrl: 'https://img.example/b.png',
+      influenceScore: 146.67,
+      depthScore: 0,
+    });
+    expect(await member.community.member(AUTHOR.userId)).toMatchObject({
+      bio: 'Swing trader',
+      // A link that is not https is never shown as a link.
+      websiteUrl: null,
+      bannerUrl: 'https://img.example/b.png',
+      influenceScore: 146.67,
+      depthScore: 0,
+    });
+
+    const mentions = setup([
+      {
+        symbol: 'BTC',
+        name: 'Bitcoin',
+        posts: 3,
+        sharePercent: 75,
+        bullishPosts: 1,
+        bearishPosts: 1,
+        lastPostAt: '2026-11-01T00:00:00Z',
+      },
+    ]);
+    expect(await mentions.community.tokenMentions(AUTHOR.userId, 10)).toEqual([
+      expect.objectContaining({ symbol: 'BTC', sharePercent: 75 }),
+    ]);
+    expect(mentions.calls[0]?.url.pathname).toBe(
+      '/api/v1/community/members/' + AUTHOR.userId + '/token-mentions',
+    );
+    expect(mentions.calls[0]?.url.search).toBe('?limit=10');
+
+    const comments = setup({
+      items: [
+        {
+          commentId: 'c1',
+          postId: 'p1',
+          reply: true,
+          content: 'Agreed',
+          likes: 2,
+          createdAt: '2026-11-01T00:00:00Z',
+          postTitle: 'BTC breakout',
+          postExcerpt: 'Watching the range',
+        },
+      ],
+      page: 2,
+      pageSize: 10,
+      total: 11,
+    });
+    const page = await comments.community.memberComments(AUTHOR.userId, 2, 10);
+    expect(page.items[0]).toMatchObject({
+      reply: true,
+      postTitle: 'BTC breakout',
+    });
+    expect(comments.calls[0]?.url.pathname).toBe(
+      '/api/v1/community/members/' + AUTHOR.userId + '/comments',
+    );
+    expect(comments.calls[0]?.url.search).toBe('?page=2&pageSize=10');
+
+    const reactions = setup({ items: [], page: 1, pageSize: 10, total: 0 });
+    await reactions.community.memberReactions(AUTHOR.userId, 1, 10);
+    expect(reactions.calls[0]?.url.pathname).toBe(
+      '/api/v1/community/members/' + AUTHOR.userId + '/reactions',
+    );
+  });
+
+  it('refuses member page answers outside the contract', async () => {
+    const mentions = setup([{ symbol: 'BTC', name: 'Bitcoin', posts: -1 }]);
+    await expect(
+      mentions.community.tokenMentions(AUTHOR.userId, 10),
+    ).rejects.toBeDefined();
+  });
 });
 
 describe('upload to the media storage (D-98)', () => {

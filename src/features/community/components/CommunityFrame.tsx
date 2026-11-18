@@ -1,5 +1,6 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useCopy } from '../../../hooks/use-copy';
 import { classNames } from '../../../utils/class-names';
 import { CoinDiscussionCard } from './CoinDiscussionCard';
 import { CoinPricesProvider } from './CoinPricesProvider';
@@ -29,11 +30,21 @@ function readCollapsed(): boolean {
 export function CommunityFrame({
   actions,
   children,
+  left,
+  member,
 }: {
   actions: PostActions;
   children: (openComposer: () => void) => ReactNode;
+  /**
+   * What stands on the left instead of the coin list: a member page puts
+   * the member's card, insights and token mentions there (D-99).
+   */
+  left?: ReactNode;
+  /** The member whose page this is, left out of "Other Influencers". */
+  member?: string;
 }) {
   const trader = actions.trader;
+  const copy = useCopy();
   const [params, setParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -82,30 +93,50 @@ export function CommunityFrame({
         <CommunityNav trader={trader} />
         <div
           className={classNames(
-            'grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]',
-            collapsed
-              ? 'xl:grid-cols-[36px_minmax(0,1fr)_320px]'
-              : 'xl:grid-cols-[250px_minmax(0,1fr)_320px]',
+            'grid gap-5',
+            left
+              ? 'lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_320px]'
+              : 'lg:grid-cols-[minmax(0,1fr)_300px]',
+            !left &&
+              (collapsed
+                ? 'xl:grid-cols-[36px_minmax(0,1fr)_320px]'
+                : 'xl:grid-cols-[250px_minmax(0,1fr)_320px]'),
           )}
         >
-          <aside className="hidden xl:block">
-            <TokenRail
-              selected={coin}
-              onSelect={select}
-              trader={trader}
-              collapsed={collapsed}
-              onCollapse={collapse}
-            />
-          </aside>
+          {left ? (
+            <aside className="flex flex-col gap-4 lg:sticky lg:top-16 lg:max-h-[calc(100dvh-5rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain">
+              {left}
+            </aside>
+          ) : (
+            <aside className="hidden xl:block">
+              <TokenRail
+                selected={coin}
+                onSelect={select}
+                trader={trader}
+                collapsed={collapsed}
+                onCollapse={collapse}
+              />
+            </aside>
+          )}
           <div className="min-w-0">{children(openComposer)}</div>
           {/* The right column stays in view while the feed scrolls (D-99),
               like the coin list: it holds to the top under the header, is
               never taller than the screen and scrolls on its own, so the
               page never shows an empty strip below it. */}
-          <aside className="flex flex-col gap-4 lg:sticky lg:top-16 lg:max-h-[calc(100dvh-5rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain">
+          <aside
+            className={classNames(
+              'flex flex-col gap-4 lg:sticky lg:top-16 lg:max-h-[calc(100dvh-5rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain',
+              // Beside a member's column the screen holds two columns until xl.
+              left && 'lg:hidden xl:flex',
+            )}
+          >
             <PinnedCarousel />
             {coin && <CoinDiscussionCard coin={coin} />}
-            <InfluencerList />
+            <InfluencerList
+              {...(member
+                ? { title: copy.community.otherInfluencers, exclude: member }
+                : {})}
+            />
             {!trader && actions.role === 'guest' && <JoinCard />}
             <RulesCard />
           </aside>

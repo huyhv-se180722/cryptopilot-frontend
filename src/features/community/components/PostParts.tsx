@@ -37,13 +37,14 @@ export function AuthorAvatar({
   size = 30,
 }: {
   author: Pick<PostAuthor, 'displayName' | 'avatarUrl'>;
-  size?: 24 | 30 | 40 | 56;
+  size?: 24 | 30 | 40 | 56 | 84;
 }) {
   const box = {
     24: 'size-6 text-[9px]',
     30: 'size-[30px] text-[10px]',
     40: 'size-10 text-xs',
     56: 'size-14 text-base',
+    84: 'size-[84px] text-2xl',
   }[size];
   return author.avatarUrl ? (
     <img

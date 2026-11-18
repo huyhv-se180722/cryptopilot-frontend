@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CommunityPage } from '../../pages/trader/CommunityPage';
+import { CommunityRulesPage } from '../../pages/trader/CommunityRulesPage';
 import { PostEditorPage } from '../../pages/trader/PostEditorPage';
 import { CoinDiscussionCard } from './components/CoinDiscussionCard';
 import type { CommunityService } from '../../services/api/contracts';
@@ -38,6 +39,35 @@ function community(overrides: Partial<CommunityService>): CommunityService {
 }
 
 describe('community screens', () => {
+  it('lists Saved and Community Rules under More, and opens the rules', async () => {
+    const user = userEvent.setup();
+    await renderRoutes(
+      [
+        page('/community', <CommunityPage />),
+        page('/community/rules', <CommunityRulesPage />),
+      ],
+      '/community',
+      signedIn(testTrader),
+      { community: community({ influencers: async () => [] }) },
+    );
+    await user.click(await screen.findByRole('button', { name: 'More' }));
+    expect(
+      screen.getAllByRole('menuitem').map((item) => item.textContent),
+    ).toEqual(['Saved', 'Community rules']);
+    await user.click(screen.getByRole('menuitem', { name: 'Community rules' }));
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Community Rules' }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('heading', { name: 'Scams and fraud' }),
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByRole('link', { name: 'Scams and fraud' })
+        .getAttribute('href'),
+    ).toBe('#scams');
+  });
+
   it('says the feature is not connected while the backend module is pending', async () => {
     await renderRoutes([page('/community', <CommunityPage />)], '/community');
     expect(

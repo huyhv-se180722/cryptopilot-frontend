@@ -330,7 +330,7 @@ function ChatBody({ onClose }: { onClose: () => void }) {
           className="relative inline-flex size-9 shrink-0 items-center justify-center rounded-[11px] bg-primary"
         >
           <AiBotIcon size={26} />
-          <span className="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full border-2 border-[#17212f] bg-[#10b981]" />
+          <span className="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full border-2 border-[#17212f] bg-positive" />
         </span>
         <div className="min-w-0 flex-1">
           <p className="m-0 text-sm font-semibold">{t.bubbleTitle}</p>

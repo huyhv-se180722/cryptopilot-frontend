@@ -31,6 +31,10 @@ const decimals = (value: string) => value.split('.')[1]?.length ?? 0;
 
 export function createDevelopmentProfile(): ProfileService {
   let profile = { ...devProfile };
+  // The images "uploaded" in this session, by key, shown from the browser.
+  const uploads = new Map<string, string>();
+  const imageUrl = (key: string | null, current: string | null) =>
+    key === null ? null : (uploads.get(key) ?? current);
   return {
     async get(signal) {
       signal?.throwIfAborted();
@@ -76,6 +80,31 @@ export function createDevelopmentProfile(): ProfileService {
     async getQuestionnaire(signal) {
       signal?.throwIfAborted();
       return devQuestionnaire;
+    },
+    async updateCommunityProfile(update) {
+      const errors: Record<string, string> = {};
+      if ((update.bio ?? '').length > 300) errors.bio = 'MSG01';
+      const link = update.websiteUrl?.trim() ?? '';
+      if (link !== '' && (!/^https:\/\/\S+$/.test(link) || link.length > 200))
+        errors.websiteUrl = 'MSG01';
+      if (Object.keys(errors).length > 0)
+        refuse('VALIDATION_FAILED', 'MSG01', errors);
+      profile = {
+        ...profile,
+        bio: update.bio?.trim() || null,
+        websiteUrl: link || null,
+        avatarPublicId: update.avatarPublicId,
+        avatarUrl: imageUrl(update.avatarPublicId, profile.avatarUrl),
+        bannerPublicId: update.bannerPublicId,
+        bannerUrl: imageUrl(update.bannerPublicId, profile.bannerUrl),
+      };
+    },
+    async uploadProfileImage(file, onProgress, signal) {
+      signal?.throwIfAborted();
+      const key = 'dev/profiles/' + crypto.randomUUID();
+      uploads.set(key, URL.createObjectURL(file));
+      onProgress?.(1);
+      return key;
     },
     async suggestRiskProfile(answers) {
       const answered = devQuestionnaire.every((question) =>

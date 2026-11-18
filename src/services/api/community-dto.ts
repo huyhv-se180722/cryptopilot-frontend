@@ -5,6 +5,8 @@ import type {
   CommentPage,
   Engagement,
   Influencer,
+  MemberComment,
+  MemberCommentPage,
   MemberProfile,
   OfficialCategory,
   PostAuthor,
@@ -19,6 +21,7 @@ import type {
   PostSummary,
   PostType,
   PostVotes,
+  TokenMention,
 } from '../../types/domain';
 import {
   flag,
@@ -237,7 +240,57 @@ export function decodeMember(body: unknown): MemberProfile {
     followedByMe: flag(value.followedByMe ?? false, 'followedByMe'),
     blockedByMe: flag(value.blockedByMe ?? false, 'blockedByMe'),
     me: flag(value.me, 'me'),
+    bio: nullableText(value.bio, 'bio'),
+    websiteUrl: safeLink(value.websiteUrl),
+    bannerUrl: nullableText(value.bannerUrl, 'bannerUrl'),
+    // A backend before the member page sends no scores; the card shows 0.
+    influenceScore: score(value.influenceScore ?? 0, 'influenceScore'),
+    depthScore: score(value.depthScore ?? 0, 'depthScore'),
   };
+}
+
+/** A member's link is shown as a link only when it is https (D-99). */
+function safeLink(value: unknown): string | null {
+  const link = nullableText(value, 'websiteUrl');
+  if (link === null) return null;
+  try {
+    return new URL(link).protocol === 'https:' ? link : null;
+  } catch {
+    return null;
+  }
+}
+
+export function decodeTokenMentions(body: unknown): TokenMention[] {
+  return list(body, 'tokenMentions').map((item) => {
+    const value = record(item, 'tokenMention');
+    return {
+      symbol: text(value.symbol, 'symbol'),
+      name: text(value.name, 'name'),
+      posts: count(value.posts, 'posts'),
+      sharePercent: score(value.sharePercent, 'sharePercent'),
+      bullishPosts: count(value.bullishPosts, 'bullishPosts'),
+      bearishPosts: count(value.bearishPosts, 'bearishPosts'),
+      lastPostAt: instant(value.lastPostAt, 'lastPostAt'),
+    };
+  });
+}
+
+function decodeMemberComment(body: unknown): MemberComment {
+  const value = record(body, 'memberComment');
+  return {
+    commentId: text(value.commentId, 'commentId'),
+    postId: text(value.postId, 'postId'),
+    reply: flag(value.reply, 'reply'),
+    content: text(value.content, 'content'),
+    likes: count(value.likes, 'likes'),
+    createdAt: instant(value.createdAt, 'createdAt'),
+    postTitle: text(value.postTitle, 'postTitle'),
+    postExcerpt: text(value.postExcerpt, 'postExcerpt'),
+  };
+}
+
+export function decodeMemberCommentPage(body: unknown): MemberCommentPage {
+  return page(body, decodeMemberComment);
 }
 
 export function decodeVotes(body: unknown): PostVotes {

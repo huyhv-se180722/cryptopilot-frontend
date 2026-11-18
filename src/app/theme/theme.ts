@@ -7,8 +7,8 @@ export const DEFAULT_THEME_PREFERENCE: ThemePreference = 'light';
 
 /** Browser chrome colour per theme (matches --cp-bg). */
 export const THEME_COLOR: Record<ResolvedTheme, string> = {
-  light: '#f5f7fa',
-  dark: '#030712',
+  light: '#f5f6f8',
+  dark: '#0d1421',
 };
 
 export function parseThemePreference(value: unknown): ThemePreference {
