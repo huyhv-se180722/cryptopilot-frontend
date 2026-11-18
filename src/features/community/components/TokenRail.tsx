@@ -21,8 +21,9 @@ const ROWS = 15;
 
 /**
  * The left column of CoinMarketCap Community, "Showing Posts of:" (D-99):
- * the coins the week's posts talk about, the Spot pairs by 24h volume, or
- * the Trader's watchlist, each with its live price and 24h change.
+ * the Spot pairs by 24h volume (the default, the longest list), the coins
+ * the week's posts talk about, or the Trader's watchlist, each with its
+ * live price and 24h change.
  * Choosing a coin filters the feed by it; choosing it again clears it.
  */
 export function TokenRail({
@@ -49,7 +50,7 @@ export function TokenRail({
   const Collapse = side === 'left' ? ChevronsLeft : ChevronsRight;
   const Expand = side === 'left' ? ChevronsRight : ChevronsLeft;
   const c = useCopy().community;
-  const [tab, setTab] = useState<RailTab>('trending');
+  const [tab, setTab] = useState<RailTab>('top');
   const { quotes } = useCoinPrices();
   const trending = useTrendingCoins();
   const watchlist = useWatchlist(trader);
@@ -98,8 +99,8 @@ export function TokenRail({
     (tab === 'trending' && trending.isPending) ||
     (tab === 'watchlist' && trader && watchlist.isPending);
   const tabs: readonly { id: RailTab; label: string }[] = [
-    { id: 'trending', label: c.railTrending },
     { id: 'top', label: c.railTop },
+    { id: 'trending', label: c.railTrending },
     { id: 'watchlist', label: c.railWatchlist },
   ];
 
