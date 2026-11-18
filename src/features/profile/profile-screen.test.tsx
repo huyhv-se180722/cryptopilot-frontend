@@ -29,6 +29,11 @@ const PROFILE: UserProfile = {
   riskProfile: 'CONSERVATIVE',
   notifyEmail: true,
   notifyPush: false,
+  bio: null,
+  websiteUrl: null,
+  bannerUrl: null,
+  avatarPublicId: null,
+  bannerPublicId: null,
 };
 
 function refusal(code: string, messageCode: string) {
@@ -47,6 +52,8 @@ function fakeProfile(overrides: Partial<ProfileService> = {}) {
     get: vi.fn(async () => ({ ...PROFILE, riskProfile })),
     update: vi.fn(async () => undefined),
     updateNotifications: vi.fn(async () => undefined),
+    updateCommunityProfile: vi.fn(async () => undefined),
+    uploadProfileImage: vi.fn(async () => 'cryptopilot/profiles/test/key'),
     getRiskProfile: vi.fn(async () => ({
       riskProfile,
       riskPerTradePercent: '0.5',

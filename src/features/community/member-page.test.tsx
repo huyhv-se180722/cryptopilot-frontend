@@ -158,6 +158,8 @@ describe('member page (D-99)', () => {
               status: 404,
               code: 'RESOURCE_NOT_FOUND',
               messageCode: 'MSG41',
+              messageArgs: [],
+              fieldErrors: {},
             });
           },
         }),
