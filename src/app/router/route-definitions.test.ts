@@ -50,6 +50,7 @@ describe('route definitions', () => {
       '/community',
       '/community/topics',
       '/community/articles',
+      '/community/rules',
       '/community/:postId',
       '/community/members/:memberId',
     ]);

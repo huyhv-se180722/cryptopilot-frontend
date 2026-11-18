@@ -21,6 +21,11 @@ export const devProfile: UserProfile = {
   riskProfile: 'CONSERVATIVE',
   notifyEmail: true,
   notifyPush: false,
+  bio: null,
+  websiteUrl: null,
+  bannerUrl: null,
+  avatarPublicId: null,
+  bannerPublicId: null,
 };
 
 export const devRiskParams: Readonly<Record<RiskProfile, RiskProfileParams>> = {

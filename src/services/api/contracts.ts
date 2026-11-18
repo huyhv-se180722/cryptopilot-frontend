@@ -48,6 +48,7 @@ import type {
   FeedQuery,
   Influencer,
   InfluencerRank,
+  MemberCommentPage,
   MemberProfile,
   PostAuthor,
   PostSentiment,
@@ -143,6 +144,8 @@ import type {
   PairSettings,
   PairStatus,
   SystemSetting,
+  TokenMention,
+  CommunityProfileUpdate,
 } from '../../types/domain';
 
 /** UI-facing contracts only. Pagination and transport DTOs need backend agreement. */
@@ -480,6 +483,26 @@ export interface CommunityService {
   removeComment(id: string): Promise<void>;
   report(postId: string, report: PostReport): Promise<void>;
   member(id: string, signal?: AbortSignal): Promise<MemberProfile>;
+  /** The coins a member's posts talk about, most posted first (D-99). */
+  tokenMentions(
+    memberId: string,
+    limit: number,
+    signal?: AbortSignal,
+  ): Promise<readonly TokenMention[]>;
+  /** A member's comments, newest first, each with its post (D-99). */
+  memberComments(
+    memberId: string,
+    page: number,
+    pageSize: number,
+    signal?: AbortSignal,
+  ): Promise<MemberCommentPage>;
+  /** The posts a member liked or voted on, newest reaction first (D-99). */
+  memberReactions(
+    memberId: string,
+    page: number,
+    pageSize: number,
+    signal?: AbortSignal,
+  ): Promise<PostPage>;
   /** Votes a post Bullish or Bearish, or takes the vote back with null (D-99). */
   vote(postId: string, sentiment: PostSentiment | null): Promise<PostVotes>;
   /** Follows a member or stops; the count is their followers (D-99). */
@@ -806,4 +829,15 @@ export interface ProfileService {
   suggestRiskProfile(
     answers: Readonly<Record<string, string>>,
   ): Promise<RiskSuggestion>;
+  /** Saves the Edit dialog of the member page, as a whole (D-99). */
+  updateCommunityProfile(update: CommunityProfileUpdate): Promise<void>;
+  /**
+   * Uploads an avatar or banner straight to the media storage with a form
+   * the backend signs, answering the key to save it under (D-98, D-99).
+   */
+  uploadProfileImage(
+    file: File,
+    onProgress?: (share: number) => void,
+    signal?: AbortSignal,
+  ): Promise<string>;
 }

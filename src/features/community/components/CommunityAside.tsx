@@ -41,20 +41,20 @@ export function PinnedCarousel() {
     <section aria-labelledby="community-pinned">
       <Link
         to={postPath(post.id)}
-        className="block rounded-2xl border border-primary-line bg-linear-135 from-primary-soft via-surface to-accent-soft p-4 no-underline transition-colors duration-150 hover:border-primary"
+        className="relative block overflow-hidden rounded-2xl bg-linear-135 from-primary to-brand-ink p-4 no-underline shadow-glow-primary transition-[filter] duration-150 hover:brightness-110"
       >
         <h2
           id="community-pinned"
-          className="flex items-center gap-1.5 text-[11px] font-semibold text-muted"
+          className="flex items-center gap-1.5 text-[11px] font-semibold text-white/80"
         >
-          <Megaphone size={12} aria-hidden="true" className="text-primary" />
+          <Megaphone size={12} aria-hidden="true" className="text-white" />
           {c.announcementsTitle}
           <ChevronRight size={12} aria-hidden="true" />
         </h2>
-        <p className="mt-2 line-clamp-2 text-[15px] leading-snug font-semibold text-fg">
+        <p className="mt-2 line-clamp-2 text-[15px] leading-snug font-semibold text-white">
           {post.title}
         </p>
-        <p className="mt-2 text-[11px] text-muted-dim">
+        <p className="mt-2 text-[11px] text-white/70">
           {post.officialCategory && c[`category${post.officialCategory}`]} ·{' '}
           {postAge(copy, post.createdAt)}
         </p>
@@ -99,12 +99,23 @@ export function PinnedCarousel() {
 
 /**
  * Top Influencers (D-99): Social Influence or Analytical Depth, each
- * member with their score and the stance of their recent posts.
+ * member with their score and the stance of their recent posts. On a
+ * member page it is "Other Influencers", without that member.
  */
-export function InfluencerList() {
+export function InfluencerList({
+  title,
+  exclude,
+}: {
+  title?: string;
+  exclude?: string;
+} = {}) {
   const c = useCopy().community;
   const [rank, setRank] = useState<InfluencerRank>('INFLUENCE');
-  const list = useInfluencers(rank);
+  const query = useInfluencers(rank, exclude ? 9 : 8);
+  const list = {
+    isPending: query.isPending,
+    data: query.data?.filter((member) => member.userId !== exclude).slice(0, 8),
+  };
   const ranks: readonly InfluencerRank[] = ['INFLUENCE', 'DEPTH'];
   return (
     <section className={panel} aria-labelledby="community-influencers">
@@ -114,7 +125,7 @@ export function InfluencerList() {
           id="community-influencers"
           className="text-sm font-semibold text-fg"
         >
-          {c.influencersTitle}
+          {title ?? c.influencersTitle}
         </h2>
         <span title={c.influencersHint} className="text-muted-x">
           <Info size={12} aria-label={c.influencersHint} />
@@ -200,7 +211,13 @@ function InfluencerRow({
  * marked as many Bullish as Bearish, else the side and its share, with
  * the bar CoinMarketCap draws under it.
  */
-function Stance({ bullish, bearish }: { bullish: number; bearish: number }) {
+export function Stance({
+  bullish,
+  bearish,
+}: {
+  bullish: number;
+  bearish: number;
+}) {
   const c = useCopy().community;
   const total = bullish + bearish;
   const side =

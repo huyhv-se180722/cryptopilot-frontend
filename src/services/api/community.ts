@@ -14,8 +14,10 @@ import {
   decodeEngagement,
   decodeInfluencers,
   decodeMember,
+  decodeMemberCommentPage,
   decodePostDetail,
   decodePostPage,
+  decodeTokenMentions,
   decodeTrendingCoins,
   decodeCoinSentiment,
   decodeUploadForm,
@@ -52,6 +54,9 @@ export function createPendingCommunityService(): CommunityService {
     removeComment: async () => integrationPending(),
     report: async () => integrationPending(),
     member: async () => integrationPending(),
+    tokenMentions: async () => integrationPending(),
+    memberComments: async () => integrationPending(),
+    memberReactions: async () => integrationPending(),
     vote: async () => integrationPending(),
     follow: async () => integrationPending(),
     block: async () => integrationPending(),
@@ -157,9 +162,9 @@ function videoDuration(file: File): Promise<number | null> {
 /**
  * Posts the file to the storage with the signed fields (D-98). Any failure
  * of the storage is the file's (MSG32); the backend reads the stored file
- * back before it attaches it.
+ * back before it attaches it. The member page's images use it too (D-99).
  */
-function send(
+export function send(
   file: File,
   form: UploadForm,
   onProgress?: (share: number) => void,
@@ -310,6 +315,36 @@ export function createHttpCommunityService(http: HttpClient): CommunityService {
       http.request({
         path: 'community/members/' + id(memberId),
         decode: decodeMember,
+        ...withSignal(signal),
+      }),
+    tokenMentions: (memberId, limit, signal) =>
+      http.request({
+        path:
+          'community/members/' +
+          id(memberId) +
+          '/token-mentions' +
+          query({ limit }),
+        decode: decodeTokenMentions,
+        ...withSignal(signal),
+      }),
+    memberComments: (memberId, page, pageSize, signal) =>
+      http.request({
+        path:
+          'community/members/' +
+          id(memberId) +
+          '/comments' +
+          query({ page, pageSize }),
+        decode: decodeMemberCommentPage,
+        ...withSignal(signal),
+      }),
+    memberReactions: (memberId, page, pageSize, signal) =>
+      http.request({
+        path:
+          'community/members/' +
+          id(memberId) +
+          '/reactions' +
+          query({ page, pageSize }),
+        decode: decodePostPage,
         ...withSignal(signal),
       }),
     vote: (postId, sentiment) =>

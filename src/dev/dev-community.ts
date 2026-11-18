@@ -545,6 +545,29 @@ export function createDevelopmentCommunity(
     return text;
   }
 
+  /** A member the caller may see, by stored key; MSG41 otherwise (D-125). */
+  function memberKey(
+    id: string,
+    who: { key: string; session: Session } | null,
+  ): string {
+    const key = authorKey(id, who?.session ?? null);
+    const known =
+      key === ME ||
+      key === DEV_ADMIN_AUTHOR.userId ||
+      devMembers.some((m) => m.userId === key);
+    if (!known || (who !== null && blocks.has(relation(key, who.key))))
+      return notFound();
+    return key;
+  }
+  /** A rough stand-in for the backend's log-scaled scores (D-125). */
+  function devScore(weighted: number, theirs: readonly StoredPost[]) {
+    const likes = theirs.reduce((sum, p) => sum + p.likes.size, 0);
+    return (
+      Math.round((50 * Math.log1p(weighted) + 25 * Math.log1p(likes)) * 100) /
+      100
+    );
+  }
+
   const community: CommunityService = {
     async feed(q, signal) {
       await pause(signal);
@@ -798,6 +821,100 @@ export function createDevelopmentCommunity(
         followedByMe: who !== null && follows.has(relation(who.key, key)),
         blockedByMe: who !== null && blocks.has(relation(who.key, key)),
         me: key === ME && me !== null,
+        bio: null,
+        websiteUrl: null,
+        bannerUrl: null,
+        influenceScore: devScore(theirs.length, theirs),
+        depthScore: devScore(
+          theirs.filter((p) => p.media.length > 0 || p.content.length >= 600)
+            .length,
+          theirs,
+        ),
+      };
+    },
+    async tokenMentions(memberId, limit, signal) {
+      await pause(signal);
+      const who = await caller();
+      const key = memberKey(memberId, who);
+      const theirs = [...posts.values()].filter(
+        (p) =>
+          p.authorId === key && p.status === 'PUBLISHED' && p.official === null,
+      );
+      const all = theirs.reduce((sum, p) => sum + p.coins.length, 0);
+      const byCoin = new Map<string, StoredPost[]>();
+      for (const post of theirs)
+        for (const coin of post.coins)
+          byCoin.set(coin, [...(byCoin.get(coin) ?? []), post]);
+      return [...byCoin.entries()]
+        .map(([symbol, tagged]) => ({
+          symbol,
+          name: symbol,
+          posts: tagged.length,
+          sharePercent: Math.round((tagged.length * 10_000) / all) / 100,
+          bullishPosts: tagged.filter((p) => p.sentiment === 'BULLISH').length,
+          bearishPosts: tagged.filter((p) => p.sentiment === 'BEARISH').length,
+          lastPostAt: new Date(
+            Math.max(...tagged.map((p) => p.createdAt)),
+          ).toISOString(),
+        }))
+        .sort(
+          (a, b) =>
+            b.posts - a.posts || b.lastPostAt.localeCompare(a.lastPostAt),
+        )
+        .slice(0, Math.min(Math.max(limit, 1), 20));
+    },
+    async memberComments(memberId, pageNo, pageSize, signal) {
+      await pause(signal);
+      const who = await caller();
+      const key = memberKey(memberId, who);
+      const theirs = [...comments.values()]
+        .filter((c) => {
+          const post = posts.get(c.postId);
+          return (
+            c.authorId === key &&
+            !c.deleted &&
+            post !== undefined &&
+            post.status === 'PUBLISHED' &&
+            !blockedEitherWay(who?.key ?? null, post.authorId)
+          );
+        })
+        .sort((a, b) => b.createdAt - a.createdAt);
+      const result = page(theirs, pageNo, pageSize);
+      return {
+        ...result,
+        items: result.items.map((c) => {
+          const post = anyPost(c.postId);
+          return {
+            commentId: c.id,
+            postId: c.postId,
+            reply: c.parentId !== null,
+            content: c.content,
+            likes: c.likes.size,
+            createdAt: new Date(c.createdAt).toISOString(),
+            postTitle: post.title,
+            postExcerpt: post.content.slice(0, 160),
+          };
+        }),
+      };
+    },
+    async memberReactions(memberId, pageNo, pageSize, signal) {
+      await pause(signal);
+      const who = await caller();
+      const key = memberKey(memberId, who);
+      const reacted = [...posts.values()]
+        .filter(
+          (p) =>
+            p.status === 'PUBLISHED' &&
+            (p.likes.has(key) || p.votes.has(key)) &&
+            !blockedEitherWay(who?.key ?? null, p.authorId),
+        )
+        .sort((a, b) => b.updatedAt - a.updatedAt);
+      const result = page(reacted, pageNo, pageSize);
+      return {
+        ...result,
+        items: result.items.map((p) =>
+          summary(p, who?.key ?? null, who?.session ?? null),
+        ),
       };
     },
     async vote(postId, sentiment) {

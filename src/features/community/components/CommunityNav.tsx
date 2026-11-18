@@ -1,11 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import {
-  Bell,
-  Bookmark,
-  ChevronDown,
-  FileText,
-  ShieldCheck,
-} from 'lucide-react';
+import { Bell, Bookmark, ChevronDown, ShieldCheck } from 'lucide-react';
 import { Menu } from '../../../components/ui/Menu';
 import { useAuth } from '../../../hooks/use-auth';
 import { useCopy } from '../../../hooks/use-copy';
@@ -22,8 +16,8 @@ const tab = ({ isActive }: { isActive: boolean }) =>
 
 /**
  * The section bar of CoinMarketCap Community: Feeds, Topics, Articles,
- * My Page and More, with Notifications on the right (D-99). Lives has no
- * counterpart here and is left out.
+ * My Page and More (Saved, Community Rules), with Notifications
+ * on the right (D-99). Lives has no counterpart here and is left out.
  */
 export function CommunityNav({ trader }: { trader: boolean }) {
   const c = useCopy().community;
@@ -33,7 +27,7 @@ export function CommunityNav({ trader }: { trader: boolean }) {
     <div className="mb-5 flex items-center gap-4 border-b border-line">
       <nav
         aria-label={c.navLabel}
-        className="flex min-w-0 flex-1 items-center gap-5 overflow-x-auto sm:gap-7"
+        className="flex min-w-0 items-center gap-5 overflow-x-auto sm:gap-7"
       >
         <NavLink to="/community" end className={tab}>
           {c.navFeeds}
@@ -49,6 +43,9 @@ export function CommunityNav({ trader }: { trader: boolean }) {
             {c.navMyPage}
           </NavLink>
         )}
+      </nav>
+      {/* Outside the scrolling tab strip, whose overflow would clip the menu. */}
+      <div className="shrink-0">
         <Menu
           label={c.navMore}
           align="start"
@@ -61,22 +58,13 @@ export function CommunityNav({ trader }: { trader: boolean }) {
                     icon: <Bookmark size={13} />,
                     onSelect: () => navigate('/community?tab=SAVED'),
                   },
-                  {
-                    id: 'mine',
-                    label: c.tabMine,
-                    icon: <FileText size={13} />,
-                    onSelect: () => navigate('/community?tab=MINE'),
-                  },
                 ]
               : []),
             {
               id: 'rules',
               label: c.navRules,
               icon: <ShieldCheck size={13} />,
-              onSelect: () =>
-                document
-                  .getElementById('community-rules')
-                  ?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+              onSelect: () => navigate('/community/rules'),
             },
           ]}
           trigger={
@@ -86,11 +74,11 @@ export function CommunityNav({ trader }: { trader: boolean }) {
             </span>
           }
         />
-      </nav>
+      </div>
       {trader && (
         <NavLink
           to="/notifications"
-          className="hidden h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-raised px-3 text-xs font-semibold text-fg-2 no-underline hover:bg-raised-hover sm:inline-flex"
+          className="ml-auto hidden h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-raised px-3 text-xs font-semibold text-fg-2 no-underline hover:bg-raised-hover sm:inline-flex"
         >
           <Bell size={13} aria-hidden="true" />
           {c.navNotifications}

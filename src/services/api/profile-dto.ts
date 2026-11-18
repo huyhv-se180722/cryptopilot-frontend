@@ -82,6 +82,12 @@ export function decodeProfile(body: unknown): UserProfile {
     riskProfile: oneOf(value.riskProfile, RISK_PROFILES, 'riskProfile'),
     notifyEmail: bool(value.notifyEmail, 'notifyEmail'),
     notifyPush: bool(value.notifyPush, 'notifyPush'),
+    // A backend before the member page (D-99) sends none of these.
+    bio: nullableText(value.bio, 'bio'),
+    websiteUrl: nullableText(value.websiteUrl, 'websiteUrl'),
+    bannerUrl: nullableText(value.bannerUrl, 'bannerUrl'),
+    avatarPublicId: nullableText(value.avatarPublicId, 'avatarPublicId'),
+    bannerPublicId: nullableText(value.bannerPublicId, 'bannerPublicId'),
   };
 }
 

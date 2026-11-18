@@ -141,6 +141,51 @@ export function useMember(id: string) {
   });
 }
 
+/** The coins a member's posts talk about, for Token Mentions (D-99). */
+export function useTokenMentions(memberId: string, enabled = true) {
+  const { community } = useServices();
+  return useQuery({
+    queryKey: [...COMMUNITY_KEY, 'member', memberId, 'token-mentions'],
+    enabled,
+    queryFn: ({ signal }) => community.tokenMentions(memberId, 10, signal),
+  });
+}
+
+/** One numbered page of a member's comments, newest first (D-99). */
+export function useMemberComments(
+  memberId: string,
+  page: number,
+  enabled = true,
+) {
+  const { community } = useServices();
+  return useQuery({
+    queryKey: [...COMMUNITY_KEY, 'member', memberId, 'comments', { page }],
+    enabled,
+    placeholderData: keepPreviousData,
+    queryFn: ({ signal }) =>
+      community.memberComments(memberId, page, LIST_PAGE_SIZE, signal),
+  });
+}
+
+/**
+ * One numbered page of the posts a member reacted to (D-99). It is kept
+ * under the feed key, so a like or a vote on one of its cards reaches it.
+ */
+export function useMemberReactions(
+  memberId: string,
+  page: number,
+  enabled = true,
+) {
+  const { community } = useServices();
+  return useQuery({
+    queryKey: [...FEED_KEY, { reactionsOf: memberId }, { page }],
+    enabled,
+    placeholderData: keepPreviousData,
+    queryFn: ({ signal }) =>
+      community.memberReactions(memberId, page, LIST_PAGE_SIZE, signal),
+  });
+}
+
 /** How much the community talks about a coin (D-99). */
 export function useCoinDiscussion(symbol: string | undefined) {
   const { community } = useServices();

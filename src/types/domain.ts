@@ -921,6 +921,45 @@ export interface MemberProfile {
   followedByMe: boolean;
   blockedByMe: boolean;
   me: boolean;
+  /** What the member wrote about themselves, or null (D-99). */
+  bio: string | null;
+  /** One https link the member gave, or null (D-99). */
+  websiteUrl: string | null;
+  /** The cover image of the page, or null for the default one (D-99). */
+  bannerUrl: string | null;
+  /** Social Influence (D-125); 0 when they published nothing. */
+  influenceScore: number;
+  /** Analytical Depth (D-125); 0 when they published nothing. */
+  depthScore: number;
+}
+/** A coin a member's posts talk about: Token Mentions on their page (D-99). */
+export interface TokenMention {
+  symbol: string;
+  name: string;
+  posts: number;
+  /** Its share of all their coin tags, in percent (mindshare). */
+  sharePercent: number;
+  /** Their own posts on it marked Bullish or Bearish. */
+  bullishPosts: number;
+  bearishPosts: number;
+  lastPostAt: ISODateTime;
+}
+/** A comment on the Comments tab of a member page, with its post (D-99). */
+export interface MemberComment {
+  commentId: string;
+  postId: string;
+  reply: boolean;
+  content: string;
+  likes: number;
+  createdAt: ISODateTime;
+  postTitle: string;
+  postExcerpt: string;
+}
+export interface MemberCommentPage {
+  items: readonly MemberComment[];
+  page: number;
+  pageSize: number;
+  total: number;
 }
 /** A post's Bullish and Bearish votes after the caller voted (D-99). */
 export interface PostVotes {
@@ -1373,6 +1412,23 @@ export interface UserProfile {
   riskProfile: RiskProfile;
   notifyEmail: boolean;
   notifyPush: boolean;
+  /** What the community member page says (D-99); null when never set. */
+  bio: string | null;
+  websiteUrl: string | null;
+  bannerUrl: string | null;
+  /** The keys of the stored images, sent back unchanged to keep them. */
+  avatarPublicId: string | null;
+  bannerPublicId: string | null;
+}
+/**
+ * The Edit dialog of a member page, replaced as a whole (D-99): an image is
+ * named by its key, the one the profile has keeps it, null removes it.
+ */
+export interface CommunityProfileUpdate {
+  bio: string | null;
+  websiteUrl: string | null;
+  avatarPublicId: string | null;
+  bannerPublicId: string | null;
 }
 /** Full replacement of the profile fields (fields left null are cleared). */
 export interface ProfileUpdate {

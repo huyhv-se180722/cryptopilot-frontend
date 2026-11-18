@@ -41,6 +41,7 @@ export const communityReadRoutes = [
     screen: 'D-99',
     titleKey: 'communityArticles',
   },
+  { path: '/community/rules', screen: 'D-99', titleKey: 'communityRules' },
   { path: '/community/:postId', screen: 'SCR-25', titleKey: 'postDetail' },
   {
     path: '/community/members/:memberId',

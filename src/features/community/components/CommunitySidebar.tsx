@@ -21,6 +21,12 @@ export function RulesCard() {
       <p className="text-[11px] leading-relaxed text-muted-dim">
         {c.rulesBody}
       </p>
+      <Link
+        to="/community/rules"
+        className="mt-2 inline-block text-[11px] font-semibold text-primary no-underline hover:underline"
+      >
+        {c.rulesReadAll}
+      </Link>
     </section>
   );
 }
