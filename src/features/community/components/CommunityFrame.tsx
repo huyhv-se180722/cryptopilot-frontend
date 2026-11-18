@@ -127,7 +127,7 @@ export function CommunityFrame({
             className={classNames(
               'flex flex-col gap-4 lg:sticky lg:top-16 lg:max-h-[calc(100dvh-5rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain',
               // Beside a member's column the screen holds two columns until xl.
-              left && 'lg:hidden xl:flex',
+              left ? 'lg:hidden xl:flex' : undefined,
             )}
           >
             <PinnedCarousel />
