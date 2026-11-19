@@ -52,11 +52,13 @@ import { useWatchlist } from '../../features/watchlist/hooks/use-watchlist';
 import type { Decimal, MarketPair } from '../../types/domain';
 import type { FuturesAccountEvent } from '../../types/futures';
 import { classNames } from '../../utils/class-names';
+import { formatInstantLocal } from '../../utils/instant-format';
 import { PausedMarketPanel } from '../../features/market-status/components/PausedMarketPanel';
 import { ReferencePriceNote } from '../../features/market-status/components/ReferencePriceNote';
 import {
   isLost,
   useMarketHealth,
+  useReferenceBars,
   useTradingBlock,
 } from '../../features/market-status/hooks/use-market-status';
 
@@ -150,7 +152,9 @@ function TradeFutures({
     region === name ? 'flex' : 'hidden md:flex';
   // D-158: closed while the exchange data is lost; the book would mislead.
   const blocked = useTradingBlock('FUTURES', pair.symbol);
-  const lost = isLost(useMarketHealth('FUTURES'));
+  const futuresHealth = useMarketHealth('FUTURES');
+  const lost = isLost(futuresHealth);
+  const reference = useReferenceBars('FUTURES', pair.symbol, timeframe);
   const unavailable = account.isError
     ? errorText(copy, account.error)
     : blocked;
@@ -203,6 +207,8 @@ function TradeFutures({
             tickSize={pair.tickSize}
             timeframe={timeframe}
             onTimeframeChange={setTimeframe}
+            referenceBars={reference}
+            referenceLabel={copy.marketStatus.sourceLabel}
             priceLines={chart.lines}
             extendable
             height="h-[420px] xl:h-[var(--futures-chart)]"
@@ -273,6 +279,18 @@ function TradeFutures({
           />
           <div className="mt-4 border-t border-line pt-3">
             <AccountMarginPanel account={futuresAccount.data} />
+            {lost && (
+              <p
+                data-testid="pnl-estimated"
+                className="mt-2 text-[11px] text-warning"
+              >
+                {formatCopy(copy.marketStatus.estimated, {
+                  time: futuresHealth.since
+                    ? formatInstantLocal(futuresHealth.since)
+                    : '—',
+                })}
+              </p>
+            )}
           </div>
         </TradePanel>
         <div className="min-w-0 md:col-span-2 xl:col-start-1 xl:row-start-2">

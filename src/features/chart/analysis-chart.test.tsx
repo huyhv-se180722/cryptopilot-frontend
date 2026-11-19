@@ -486,3 +486,64 @@ describe('SCR-10 analysis chart (T-032)', () => {
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('reference bars while the exchange data is lost (D-158, Q5)', () => {
+  const bar = (openTime: string): Candle => ({
+    openTime,
+    open: '100',
+    high: '110',
+    low: '95',
+    close: '105',
+    baseVolume: '0',
+    quoteVolume: '0',
+  });
+
+  function chart(referenceBars: readonly Candle[]) {
+    const market = fakeMarket(260);
+    const marketFeed: MarketFeed = {
+      status: () => 'open',
+      onStatus: () => () => undefined,
+      subscribeOverview: () => () => undefined,
+      subscribeTicker: () => () => undefined,
+      subscribeKline: () => () => undefined,
+    };
+    return renderRoutes(
+      [
+        page(
+          '/',
+          <AnalysisChart
+            market="spot"
+            symbol="BTCUSDT"
+            tickSize="0.01"
+            timeframe="1h"
+            onTimeframeChange={() => undefined}
+            referenceBars={referenceBars}
+            referenceLabel="Source: OKX (reference)"
+          />,
+        ),
+      ],
+      '/',
+      fakeAuth(),
+      { market, marketFeed },
+    );
+  }
+
+  it('draws them in a series of their own after the last exchange bar, labelled', async () => {
+    await chart([bar('2000-01-01T00:00:00Z'), bar('2099-01-01T00:00:00Z')]);
+    await screen.findByRole('img');
+    await waitFor(() =>
+      expect(drawn.series.filter((s) => s.pane === 0)).toHaveLength(9),
+    );
+    const reference = drawn.series.filter((s) => s.kind === 'candles')[1];
+    expect(reference?.data).toHaveLength(1);
+    expect(screen.getByTestId('chart-reference-label').textContent).toBe(
+      'Source: OKX (reference)',
+    );
+  });
+
+  it('adds nothing while there are none after the exchange bars', async () => {
+    await chart([bar('2000-01-01T00:00:00Z')]);
+    await screen.findByRole('img');
+    expect(drawn.series.filter((s) => s.pane === 0)).toHaveLength(8);
+  });
+});

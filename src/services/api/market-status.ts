@@ -82,6 +82,17 @@ export interface FallbackPrices {
   prices: readonly FallbackPrice[];
 }
 
+/** One display-only reference one-minute candle; never stored. */
+export interface FallbackCandle {
+  openTime: string;
+  open: Decimal;
+  high: Decimal;
+  low: Decimal;
+  close: Decimal;
+  volume: Decimal;
+  closed: boolean;
+}
+
 export interface MarketIncident {
   id: string;
   market: HealthMarket;
@@ -118,6 +129,13 @@ export interface MarketStatusService {
     market: HealthMarket,
     listener: (prices: FallbackPrices) => void,
   ): () => void;
+  /** The latest reference one-minute candles of a pair, oldest first. */
+  fallbackCandles(
+    market: HealthMarket,
+    symbol: string,
+    limit: number,
+    signal?: AbortSignal,
+  ): Promise<FallbackCandle[]>;
   maintenance(input: MaintenanceInput): Promise<MarketStatus>;
   resume(market: HealthMarket): Promise<MarketStatus>;
   incidents(
@@ -222,6 +240,19 @@ export function decodeFallbackPrices(body: unknown): FallbackPrices {
   };
 }
 
+export function decodeFallbackCandle(body: unknown): FallbackCandle {
+  const value = record(body, 'candle');
+  return {
+    openTime: instant(value.openTime, 'openTime'),
+    open: decimal(value.open, 'open'),
+    high: decimal(value.high, 'high'),
+    low: decimal(value.low, 'low'),
+    close: decimal(value.close, 'close'),
+    volume: decimal(value.volume, 'volume'),
+    closed: flag(value.closed, 'closed'),
+  };
+}
+
 export function decodeMarketIncident(body: unknown): MarketIncident {
   const value = record(body, 'incident');
   return {
@@ -274,6 +305,7 @@ export function createPendingMarketStatusService(): MarketStatusService {
       prices: [],
     }),
     subscribeFallback: () => () => undefined,
+    fallbackCandles: async () => [],
     maintenance: async () => integrationPending(),
     resume: async () => integrationPending(),
     incidents: async () => integrationPending(),
@@ -315,6 +347,18 @@ export function createHttpMarketStatusService(
             listener,
           )
         : () => undefined,
+    fallbackCandles: (market, symbol, limit, signal) =>
+      http.request({
+        path:
+          'market/fallback/candles?market=' +
+          market +
+          '&symbol=' +
+          encodeURIComponent(symbol) +
+          '&limit=' +
+          limit,
+        decode: (body) => list(body, 'candles').map(decodeFallbackCandle),
+        ...withSignal(signal),
+      }),
     maintenance: (input) =>
       http.request({
         path: 'admin/market/maintenance',

@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCopy } from '../../../hooks/use-copy';
 import { useServices } from '../../../hooks/use-services';
 import { formatCopy } from '../../../i18n/copy';
+import type { Candle, CandleTimeframe } from '../../../types/domain';
+import { referenceBars } from '../model/reference-bars';
 import {
   ALL_LIVE,
   type FallbackPrices,
@@ -107,3 +109,32 @@ export function useFallbackPrices(market: HealthMarket): FallbackPrices | null {
   }, [marketStatus, client, market, lost]);
   return lost ? (query.data ?? null) : null;
 }
+
+/** How many reference minutes the chart reads: five hours. */
+const REFERENCE_MINUTES = 300;
+
+/**
+ * The display-only reference candles of a pair while its market's data is
+ * lost (D-158, Q5), as bars of the chart's timeframe, read again each
+ * minute; none otherwise. Drawn apart from the exchange's, never stored.
+ */
+export function useReferenceBars(
+  market: HealthMarket,
+  symbol: string,
+  timeframe: CandleTimeframe,
+): readonly Candle[] {
+  const { marketStatus } = useServices();
+  const lost = isLost(useMarketHealth(market));
+  const query = useQuery({
+    queryKey: [...MARKET_STATUS_KEY, 'candles', market, symbol],
+    queryFn: ({ signal }) =>
+      marketStatus.fallbackCandles(market, symbol, REFERENCE_MINUTES, signal),
+    enabled: lost,
+    refetchInterval: lost ? 60_000 : false,
+    retry: false,
+  });
+  if (!lost || !query.data) return NO_BARS;
+  return referenceBars(query.data, timeframe);
+}
+
+const NO_BARS: readonly Candle[] = [];

@@ -385,6 +385,8 @@ export function AnalysisChart({
   priceLines,
   markers,
   extraItems,
+  referenceBars,
+  referenceLabel,
   extendable = false,
   height,
 }: {
@@ -397,6 +399,13 @@ export function AnalysisChart({
   priceLines?: readonly ChartPriceLine[];
   markers?: readonly ChartMarker[];
   extraItems?: readonly ChartExtraItem[];
+  /**
+   * Display-only reference bars of another venue while the exchange's data
+   * is lost (D-158): drawn in their own colour after the exchange's last
+   * bar, labelled with `referenceLabel`, never mixed into the indicators.
+   */
+  referenceBars?: readonly Candle[];
+  referenceLabel?: string;
   extendable?: boolean;
   height?: string;
 }) {
@@ -427,6 +436,13 @@ export function AnalysisChart({
   );
   const theme = useThemeVersion();
   const priceSeries = useRef<ISeriesApi<'Candlestick'> | null>(null);
+  const referenceSeries = useRef<ISeriesApi<'Candlestick'> | null>(null);
+  const latestReference = useRef<readonly Candle[]>(referenceBars ?? []);
+  const referenceKey = (referenceBars ?? [])
+    .map((bar) =>
+      [bar.openTime, bar.open, bar.high, bar.low, bar.close].join(':'),
+    )
+    .join('|');
   const drawnLines = useRef<IPriceLine[]>([]);
   // BR-14: nearest support and resistance, then the caller's own lines.
   const lines: ChartPriceLine[] = [
@@ -474,6 +490,7 @@ export function AnalysisChart({
     latest.current = series;
     latestLines.current = lines;
     latestMarkers.current = markers ?? [];
+    latestReference.current = referenceBars ?? [];
     loadOlder.current = series.loadOlder;
   });
 
@@ -510,12 +527,60 @@ export function AnalysisChart({
       written.current = null;
       chartApi.current = null;
       priceSeries.current = null;
+      referenceSeries.current = null;
       drawnLines.current = [];
       markersApi.current = null;
       chart.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `toggles` is read through `togglesKey`.
   }, [ready, togglesKey, places, theme, extendable, time, locale]);
+
+  // D-158: the reference bars after the exchange's last one, apart from it.
+  const lastOwn = series.forming?.openTime ?? series.candles.at(-1)?.openTime;
+  useEffect(() => {
+    const chart = chartApi.current;
+    if (!chart) return;
+    const after = lastOwn ? Date.parse(lastOwn) : Number.NEGATIVE_INFINITY;
+    const bars = latestReference.current
+      .filter((bar) => Date.parse(bar.openTime) > after)
+      .map((bar) => ({
+        time: time(bar),
+        open: Number(bar.open),
+        high: Number(bar.high),
+        low: Number(bar.low),
+        close: Number(bar.close),
+      }));
+    if (bars.length === 0) {
+      referenceSeries.current?.setData([]);
+      return;
+    }
+    if (!referenceSeries.current) {
+      // Hollow bars in their own colour: plainly not the exchange's.
+      const reference = token('--cp-purple');
+      referenceSeries.current = chart.addSeries(CandlestickSeries, {
+        upColor: 'transparent',
+        downColor: reference,
+        borderVisible: true,
+        borderUpColor: reference,
+        borderDownColor: reference,
+        wickUpColor: reference,
+        wickDownColor: reference,
+        priceLineVisible: false,
+        lastValueVisible: true,
+      });
+    }
+    referenceSeries.current.setData(bars);
+  }, [
+    referenceKey,
+    lastOwn,
+    ready,
+    togglesKey,
+    places,
+    theme,
+    time,
+    locale,
+    extendable,
+  ]);
 
   // Lines change often (orders, levels): redraw them on the same series.
   useEffect(() => {
@@ -724,6 +789,14 @@ export function AnalysisChart({
             </button>
           ))}
         </div>
+        {referenceLabel && (referenceBars?.length ?? 0) > 0 && (
+          <span
+            data-testid="chart-reference-label"
+            className="rounded-full border border-(--cp-purple) px-2 text-[11px] font-medium text-(--cp-purple)"
+          >
+            {referenceLabel}
+          </span>
+        )}
         {series.loadingOlder && (
           <span role="status" className="text-[11px] text-muted">
             {c.loadingOlder}

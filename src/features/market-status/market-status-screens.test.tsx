@@ -63,6 +63,7 @@ function fakeService(
       ],
     }),
     subscribeFallback: () => () => undefined,
+    fallbackCandles: async () => [],
     maintenance: async () => status,
     resume: async () => status,
     incidents: async () => [],

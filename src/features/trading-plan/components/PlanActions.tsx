@@ -9,6 +9,7 @@ import { useCopy } from '../../../hooks/use-copy';
 import { useToast } from '../../../hooks/use-toast';
 import { messageText } from '../../../i18n/messages';
 import type { TradingPlan } from '../../../types/domain';
+import { useTradingBlock } from '../../market-status/hooks/use-market-status';
 import { usePlanActions } from '../hooks/use-plans';
 import { EntryDeviationDialog } from './EntryDeviationDialog';
 import { activationErrorText, entryDeviationOf } from './plan-errors';
@@ -29,6 +30,12 @@ export function PlanActions({ plan }: { plan: TradingPlan }) {
   const { show } = useToast();
   const { activate, cancel, pending, error, errorCode } = usePlanActions(
     plan.id,
+  );
+  // D-158: while the plan's market is closed, a plan is neither activated
+  // nor cancelled once active; drafts stay editable and cancellable.
+  const closed = useTradingBlock(
+    plan.market === 'spot' ? 'SPOT' : 'FUTURES',
+    null,
   );
   const [confirming, setConfirming] = useState(false);
   const deviation = entryDeviationOf(error);
@@ -62,7 +69,7 @@ export function PlanActions({ plan }: { plan: TradingPlan }) {
         {plan.status === 'DRAFT' && (
           <Button
             onClick={() => void onActivate()}
-            disabled={pending}
+            disabled={pending || closed !== null}
             aria-describedby={
               plan.blocksActivation ? 'plan-blocked-note' : undefined
             }
@@ -75,13 +82,16 @@ export function PlanActions({ plan }: { plan: TradingPlan }) {
           <Button
             variant="danger"
             onClick={() => setConfirming(true)}
-            disabled={pending}
+            disabled={pending || (closed !== null && plan.status === 'ACTIVE')}
           >
             <X size={14} aria-hidden="true" />
             {p.cancel}
           </Button>
         )}
       </div>
+      {closed && (plan.status === 'DRAFT' || plan.status === 'ACTIVE') && (
+        <p className="mt-2 text-xs text-warning">{closed}</p>
+      )}
       {plan.blocksActivation && plan.status === 'DRAFT' && (
         <p id="plan-blocked-note" className="sr-only">
           {messageText(copy, 'MSG18')}

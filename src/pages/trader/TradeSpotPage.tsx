@@ -45,6 +45,7 @@ import { ReferencePriceNote } from '../../features/market-status/components/Refe
 import {
   isLost,
   useMarketHealth,
+  useReferenceBars,
   useTradingBlock,
 } from '../../features/market-status/hooks/use-market-status';
 
@@ -82,6 +83,7 @@ function TradeSpot({
   // D-158: closed while the exchange data is lost; the book would mislead.
   const blocked = useTradingBlock('SPOT', pair.symbol);
   const lost = isLost(useMarketHealth('SPOT'));
+  const reference = useReferenceBars('SPOT', pair.symbol, timeframe);
   const book = useOrderBook('spot', pair.symbol);
   const trades = useMarketTrades('spot', pair.symbol);
   const symbols = useMemo(() => pairs.map((each) => each.symbol), [pairs]);
@@ -145,6 +147,8 @@ function TradeSpot({
             tickSize={pair.tickSize}
             timeframe={timeframe}
             onTimeframeChange={setTimeframe}
+            referenceBars={reference}
+            referenceLabel={copy.marketStatus.sourceLabel}
             priceLines={chartOrders.lines}
             markers={chartOrders.markers}
             extraItems={[chartOrders.toggle]}

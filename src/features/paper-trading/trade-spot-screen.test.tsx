@@ -16,6 +16,12 @@ import type {
   WatchlistItem,
 } from '../../types/domain';
 import { createPendingPaperTradingService } from '../../services/api/paper-trading';
+import {
+  ALL_LIVE,
+  createPendingMarketStatusService,
+  type MarketStatus,
+  type MarketStatusService,
+} from '../../services/api/market-status';
 import { fakeAuth, page, renderRoutes, testTrader } from '../../test/render';
 
 /** What the screen asks of the chart's time scale. */
@@ -144,6 +150,7 @@ const watched = (symbol: string): WatchlistItem => ({
 async function open(
   path = '/trade/spot/BTCUSDT',
   paperTrading?: PaperTradingService,
+  marketStatus?: MarketStatusService,
 ) {
   let live: ((value: MarketTicker) => void) | null = null;
   let overview: ((value: MarketOverview) => void) | null = null;
@@ -192,6 +199,7 @@ async function open(
       marketFeed,
       watchlist,
       ...(paperTrading ? { paperTrading } : {}),
+      ...(marketStatus ? { marketStatus } : {}),
     },
   );
   return {
@@ -287,6 +295,41 @@ describe('Spot demo trading layout (TR-F1, D-86)', () => {
       ).toBe('Demo account: Ready'),
     );
     expect(paperTrading.openAccount).toHaveBeenCalledTimes(1);
+  });
+
+  it('locks the form and hides the book while Spot trading is paused (D-158)', async () => {
+    const paperTrading: PaperTradingService = {
+      ...createPendingPaperTradingService(),
+      openAccount: vi.fn(async () => ({ openedAt: '2026-10-13T00:00:00Z' })),
+    };
+    const paused: MarketStatus = {
+      markets: ALL_LIVE.markets.map((health) =>
+        health.market === 'SPOT'
+          ? {
+              ...health,
+              state: 'PAUSED',
+              tradingOpen: false,
+              since: '2026-11-19T07:32:05Z',
+              displaySource: 'NONE',
+            }
+          : health,
+      ),
+    };
+    await open('/trade/spot/BTCUSDT', paperTrading, {
+      ...createPendingMarketStatusService(),
+      status: async () => paused,
+    });
+    const form = await screen.findByRole('region', { name: 'Spot order' });
+    await waitFor(() =>
+      expect(form.textContent).toContain('Spot trading is paused'),
+    );
+    expect(
+      within(form).getByRole('button', { name: 'Buy BTC' }),
+    ).toHaveProperty('disabled', true);
+    expect(screen.getAllByTestId('paused-market-panel')).toHaveLength(2);
+    expect(screen.getByTestId('reference-price').textContent).toContain(
+      'No reference price',
+    );
   });
 
   it('shows the 24h statistics with both volumes and the direction of the last tick', async () => {
