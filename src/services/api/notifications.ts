@@ -32,6 +32,10 @@ const TYPES: readonly NotificationType[] = [
   'SUBSCRIPTION',
   'COMMENT',
   'SYSTEM',
+  'FOLLOW',
+  'MENTION',
+  'FUTURES',
+  'MARKET',
 ];
 const REFERENCES: readonly NotificationReferenceType[] = [
   'ALERT',
@@ -39,6 +43,7 @@ const REFERENCES: readonly NotificationReferenceType[] = [
   'POST',
   'SUBSCRIPTION',
   'NEWS_SOURCE',
+  'MEMBER',
 ];
 export const NOTIFICATION_QUEUE = '/user/queue/notifications';
 
@@ -52,11 +57,14 @@ export function decodeNotification(body: unknown): AppNotification {
     title: text(value.title, 'title'),
     content: typeof value.content === 'string' ? value.content : '',
     // A reference needs both halves; either alone opens nothing.
+    // A reference this client does not know opens nothing rather than
+    // failing the notice.
     reference:
       referenceType === null ||
       referenceType === undefined ||
       referenceId === null ||
-      referenceId === undefined
+      referenceId === undefined ||
+      !REFERENCES.includes(referenceType as NotificationReferenceType)
         ? null
         : {
             type: oneOf(REFERENCES, referenceType, 'referenceType'),
@@ -71,7 +79,13 @@ export function decodeNotification(body: unknown): AppNotification {
 export function decodeNotificationPage(body: unknown): NotificationPage {
   const value = record(body);
   return {
-    items: list(value.items, 'items').map(decodeNotification),
+    // A notice of a type this client does not know yet is left out, so a
+    // newer backend never empties the whole list.
+    items: list(value.items, 'items')
+      .filter((item) =>
+        TYPES.includes(record(item, 'notification').type as NotificationType),
+      )
+      .map(decodeNotification),
     page: integer(value.page, 'page'),
     pageSize: integer(value.pageSize, 'pageSize'),
     total: integer(value.total, 'total'),

@@ -6,6 +6,7 @@ import {
   createHttpNotificationService,
   createPendingNotificationService,
   decodeNotification,
+  decodeNotificationPage,
   decodeUnreadCount,
 } from './notifications';
 import type { AccountFeed } from './paper-trading';
@@ -37,6 +38,36 @@ function setup(reply: unknown, feed: AccountFeed | null = null) {
 }
 
 describe('notification decoders', () => {
+  it('reads every type the backend writes, and leaves out one it does not know rather than failing the page (D-158)', () => {
+    const page = decodeNotificationPage({
+      items: [
+        {
+          ...ROW,
+          id: 'm',
+          type: 'MARKET',
+          referenceType: null,
+          referenceId: null,
+        },
+        {
+          ...ROW,
+          id: 'f',
+          type: 'FOLLOW',
+          referenceType: 'MEMBER',
+          referenceId: 'u-1',
+        },
+        { ...ROW, id: 'x', type: 'SOMETHING_NEW' },
+        { ...ROW, id: 'r', referenceType: 'WIDGET', referenceId: 'w-1' },
+      ],
+      page: 0,
+      pageSize: 20,
+      total: 4,
+    });
+
+    expect(page.items.map((item) => item.id)).toEqual(['m', 'f', 'r']);
+    expect(page.items[1]?.reference).toEqual({ type: 'MEMBER', id: 'u-1' });
+    expect(page.items[2]?.reference).toBeNull();
+  });
+
   it('decodes a notification with what it opens', () => {
     expect(decodeNotification(ROW)).toMatchObject({
       type: 'COMMENT',

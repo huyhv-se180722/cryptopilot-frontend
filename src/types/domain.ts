@@ -1028,13 +1028,27 @@ export interface ModerationResult {
 }
 /**
  * What a notification is about (SRS 3.4.5; COMMENT from SRS 3.7.3; SYSTEM,
- * a fault an administrator acts on such as a failing news source, NSF-10).
+ * a fault an administrator acts on such as a failing news source, NSF-10;
+ * FOLLOW and MENTION, D-125; FUTURES, TR-43; MARKET, a market's trading
+ * paused or reopened, D-158).
  */
 export type NotificationType =
-  'ALERT' | 'PLAN' | 'MODERATION' | 'SUBSCRIPTION' | 'COMMENT' | 'SYSTEM';
-/** What opening a notification navigates to (SRS 3.4.5; NEWS_SOURCE, SCR-41). */
+  | 'ALERT'
+  | 'PLAN'
+  | 'MODERATION'
+  | 'SUBSCRIPTION'
+  | 'COMMENT'
+  | 'SYSTEM'
+  | 'FOLLOW'
+  | 'MENTION'
+  | 'FUTURES'
+  | 'MARKET';
+/**
+ * What opening a notification navigates to (SRS 3.4.5; NEWS_SOURCE, SCR-41;
+ * MEMBER, a member page, D-99).
+ */
 export type NotificationReferenceType =
-  'ALERT' | 'PLAN' | 'POST' | 'SUBSCRIPTION' | 'NEWS_SOURCE';
+  'ALERT' | 'PLAN' | 'POST' | 'SUBSCRIPTION' | 'NEWS_SOURCE' | 'MEMBER';
 /** One entry of the notification center (SCR-15, UC-15). */
 export interface AppNotification {
   id: string;

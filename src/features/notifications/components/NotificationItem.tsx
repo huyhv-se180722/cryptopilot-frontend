@@ -1,10 +1,14 @@
 import {
+  AtSign,
   Bell,
   CreditCard,
   FileText,
   MessageSquare,
+  PauseCircle,
   ServerCrash,
   ShieldAlert,
+  TrendingUp,
+  UserPlus,
   type LucideIcon,
 } from 'lucide-react';
 import { useCopy } from '../../../hooks/use-copy';
@@ -20,6 +24,10 @@ const icons: Record<NotificationType, LucideIcon> = {
   SUBSCRIPTION: CreditCard,
   COMMENT: MessageSquare,
   SYSTEM: ServerCrash,
+  FOLLOW: UserPlus,
+  MENTION: AtSign,
+  FUTURES: TrendingUp,
+  MARKET: PauseCircle,
 };
 const tones: Record<NotificationType, string> = {
   ALERT: 'bg-warning-soft text-warning',
@@ -28,6 +36,10 @@ const tones: Record<NotificationType, string> = {
   SUBSCRIPTION: 'bg-accent-soft text-accent',
   COMMENT: 'bg-positive-soft text-positive',
   SYSTEM: 'bg-warning-soft text-warning',
+  FOLLOW: 'bg-primary-soft text-primary',
+  MENTION: 'bg-accent-soft text-accent',
+  FUTURES: 'bg-negative-soft text-negative',
+  MARKET: 'bg-warning-soft text-warning',
 };
 
 /**

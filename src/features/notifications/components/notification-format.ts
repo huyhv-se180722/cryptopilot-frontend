@@ -27,6 +27,8 @@ export function notificationPath(
       return '/subscription';
     case 'NEWS_SOURCE':
       return '/admin/news-sources';
+    case 'MEMBER':
+      return '/community/members/' + id;
   }
 }
 
