@@ -4,6 +4,7 @@ import type {
   DrawingStyle,
   DrawingType,
 } from '../../../types/domain';
+import { patternShapes } from './patterns';
 import { FIB_EXTENSION_LEVELS, FIB_RETRACEMENT_LEVELS } from './tools';
 
 export interface Pixel {
@@ -29,7 +30,10 @@ export interface FigureContext {
   price: (price: number) => string;
   /** Bars between two times of the drawing, for the date range. */
   bars: (from: number, to: number) => number;
-  /** Label templates: `{price}`, `{change}`, `{ratio}`, `{bars}`, `{time}`. */
+  /**
+   * Label templates (`{price}`, `{change}`, `{ratio}`, `{bars}`, `{time}`)
+   * and the names of a head and shoulders' swings.
+   */
   labels: FigureLabels;
 }
 
@@ -38,6 +42,9 @@ export interface FigureLabels {
   stop: string;
   ratio: string;
   span: string;
+  leftShoulder: string;
+  head: string;
+  rightShoulder: string;
 }
 
 function fill(
@@ -526,6 +533,18 @@ export function figureOf(
       });
       return { shapes, handles: [p[0]!] };
     }
+    default:
+      return {
+        shapes: patternShapes(
+          drawing.type,
+          p,
+          prices,
+          style,
+          context.labels,
+          width,
+        ),
+        handles: p,
+      };
   }
 }
 

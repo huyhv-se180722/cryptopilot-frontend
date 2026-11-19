@@ -21,13 +21,30 @@ export type ToolId =
   | 'shortPosition'
   | 'priceRange'
   | 'dateRange'
-  | 'text';
+  | 'text'
+  | 'xabcd'
+  | 'cypher'
+  | 'abcd'
+  | 'threeDrives'
+  | 'headAndShoulders'
+  | 'trianglePattern'
+  | 'elliottImpulse'
+  | 'elliottCorrection'
+  | 'elliottTriangle'
+  | 'elliottDoubleCombo'
+  | 'elliottTripleCombo';
 
 export interface Tool {
   id: ToolId;
   type: DrawingType;
   style?: Partial<DrawingStyle>;
 }
+
+const PATTERN_STYLE: Partial<DrawingStyle> = {
+  lineColor: '#2962FF',
+  fillColor: '#2962FF26',
+};
+const WAVE_STYLE: Partial<DrawingStyle> = { lineColor: '#FF9800' };
 
 export const TOOLS: Readonly<Record<ToolId, Tool>> = {
   trendLine: { id: 'trendLine', type: 'TREND_LINE' },
@@ -74,7 +91,55 @@ export const TOOLS: Readonly<Record<ToolId, Tool>> = {
     style: { fillColor: '#2962FF1A' },
   },
   text: { id: 'text', type: 'TEXT', style: { fontSize: 14 } },
+  xabcd: { id: 'xabcd', type: 'XABCD_PATTERN', style: PATTERN_STYLE },
+  cypher: { id: 'cypher', type: 'CYPHER_PATTERN', style: PATTERN_STYLE },
+  abcd: { id: 'abcd', type: 'ABCD_PATTERN', style: { lineColor: '#26A69A' } },
+  threeDrives: {
+    id: 'threeDrives',
+    type: 'THREE_DRIVES_PATTERN',
+    style: { lineColor: '#9C27B0' },
+  },
+  headAndShoulders: {
+    id: 'headAndShoulders',
+    type: 'HEAD_AND_SHOULDERS',
+    style: { lineColor: '#26A69A', fillColor: '#26A69A26' },
+  },
+  trianglePattern: {
+    id: 'trianglePattern',
+    type: 'TRIANGLE_PATTERN',
+    style: { lineColor: '#FF9800', fillColor: '#FF980026' },
+  },
+  elliottImpulse: {
+    id: 'elliottImpulse',
+    type: 'ELLIOTT_IMPULSE_WAVE',
+    style: WAVE_STYLE,
+  },
+  elliottCorrection: {
+    id: 'elliottCorrection',
+    type: 'ELLIOTT_CORRECTION_WAVE',
+    style: WAVE_STYLE,
+  },
+  elliottTriangle: {
+    id: 'elliottTriangle',
+    type: 'ELLIOTT_TRIANGLE_WAVE',
+    style: WAVE_STYLE,
+  },
+  elliottDoubleCombo: {
+    id: 'elliottDoubleCombo',
+    type: 'ELLIOTT_DOUBLE_COMBO',
+    style: WAVE_STYLE,
+  },
+  elliottTripleCombo: {
+    id: 'elliottTripleCombo',
+    type: 'ELLIOTT_TRIPLE_COMBO',
+    style: WAVE_STYLE,
+  },
 };
+
+/** The tool a drawing of the type was made with, a trend line aside. */
+export function toolOfType(type: DrawingType): ToolId {
+  return Object.values(TOOLS).find((tool) => tool.type === type)!.id;
+}
 
 /** The groups of the bar, each opening on the tool used last in it. */
 export const TOOL_GROUPS = [
@@ -95,6 +160,27 @@ export const TOOL_GROUPS = [
   { id: 'shapes', tools: ['rectangle'] },
   { id: 'positions', tools: ['longPosition', 'shortPosition'] },
   { id: 'measure', tools: ['priceRange', 'dateRange'] },
+  {
+    id: 'patterns',
+    tools: [
+      'xabcd',
+      'cypher',
+      'abcd',
+      'threeDrives',
+      'headAndShoulders',
+      'trianglePattern',
+    ],
+  },
+  {
+    id: 'elliott',
+    tools: [
+      'elliottImpulse',
+      'elliottCorrection',
+      'elliottTriangle',
+      'elliottDoubleCombo',
+      'elliottTripleCombo',
+    ],
+  },
   { id: 'annotation', tools: ['text'] },
 ] as const satisfies readonly { id: string; tools: readonly ToolId[] }[];
 
@@ -116,6 +202,17 @@ export const ANCHORS: Readonly<Record<DrawingType, number>> = {
   PRICE_RANGE: 2,
   DATE_RANGE: 2,
   ARROW: 2,
+  XABCD_PATTERN: 5,
+  CYPHER_PATTERN: 5,
+  ABCD_PATTERN: 4,
+  THREE_DRIVES_PATTERN: 6,
+  HEAD_AND_SHOULDERS: 7,
+  TRIANGLE_PATTERN: 4,
+  ELLIOTT_IMPULSE_WAVE: 6,
+  ELLIOTT_CORRECTION_WAVE: 4,
+  ELLIOTT_TRIANGLE_WAVE: 6,
+  ELLIOTT_DOUBLE_COMBO: 4,
+  ELLIOTT_TRIPLE_COMBO: 6,
 };
 
 /**
@@ -171,6 +268,10 @@ export const FILLED: ReadonlySet<DrawingType> = new Set([
   'PARALLEL_CHANNEL',
   'PRICE_RANGE',
   'DATE_RANGE',
+  'XABCD_PATTERN',
+  'CYPHER_PATTERN',
+  'HEAD_AND_SHOULDERS',
+  'TRIANGLE_PATTERN',
 ]);
 
 /** Types whose line may extend past its anchors. */

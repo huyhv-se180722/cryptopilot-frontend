@@ -3,12 +3,11 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createDevelopmentChartDrawings } from '../../../dev/dev-chart-drawings';
-import type { ChartDrawingService } from '../../../services/api/chart-drawings';
 import type {
   MarketFeed,
   MarketService,
 } from '../../../services/api/contracts';
-import type { Candle } from '../../../types/domain';
+import type { Candle, NewChartDrawing } from '../../../types/domain';
 import { fakeAuth, page, renderRoutes } from '../../../test/render';
 import { AnalysisChart } from '../components/AnalysisChart';
 import type { DrawingPrimitive } from './drawing-primitive';
@@ -93,7 +92,29 @@ const marketFeed: MarketFeed = {
   subscribeKline: () => () => undefined,
 };
 
-async function render(chartDrawings: ChartDrawingService) {
+type DevDrawings = ReturnType<typeof createDevelopmentChartDrawings>;
+
+/** Every drawing of the Trader on pair-1, whichever copy holds it. */
+async function all(service: DevDrawings) {
+  const layouts = await service.chartLayouts.list('pair-1');
+  const lists = await Promise.all(
+    layouts.map((layout) => service.chartDrawings.list(layout.id)),
+  );
+  return lists.flat();
+}
+
+/** A drawing in the first copy of pair-1, opening it when there is none. */
+async function seed(
+  service: DevDrawings,
+  drawing: Omit<NewChartDrawing, 'layoutId'>,
+) {
+  const layout =
+    (await service.chartLayouts.list('pair-1'))[0] ??
+    (await service.chartLayouts.create({ pairId: 'pair-1' }));
+  return service.chartDrawings.create({ ...drawing, layoutId: layout.id });
+}
+
+async function render(service: DevDrawings) {
   await renderRoutes(
     [
       page(
@@ -110,7 +131,7 @@ async function render(chartDrawings: ChartDrawingService) {
     ],
     '/chart',
     fakeAuth(),
-    { market, marketFeed, chartDrawings },
+    { market, marketFeed, ...service },
   );
   await screen.findByRole('toolbar', { name: 'Drawing tools' });
   return screen.getByRole('img', { name: /candlestick chart/ });
@@ -140,11 +161,15 @@ afterEach(() => {
 
 describe('drawing on the chart (D-149, T-120, T-121)', () => {
   it('shows no tools while the drawings cannot be loaded', async () => {
+    const dev = createDevelopmentChartDrawings();
     const failing = {
-      ...createDevelopmentChartDrawings(),
-      list: vi.fn(async () => {
-        throw new Error('down');
-      }),
+      ...dev,
+      chartLayouts: {
+        ...dev.chartLayouts,
+        list: vi.fn(async () => {
+          throw new Error('down');
+        }),
+      },
     };
     await renderRoutes(
       [
@@ -162,7 +187,7 @@ describe('drawing on the chart (D-149, T-120, T-121)', () => {
       ],
       '/chart',
       fakeAuth(),
-      { market, marketFeed, chartDrawings: failing },
+      { market, marketFeed, ...failing },
     );
     await screen.findByRole('img', { name: /candlestick chart/ });
     expect(screen.queryByRole('toolbar', { name: 'Drawing tools' })).toBeNull();
@@ -183,10 +208,8 @@ describe('drawing on the chart (D-149, T-120, T-121)', () => {
     fireEvent.pointerMove(pane, { clientX: 80, clientY: 150 });
     click(pane, 30, 100);
 
-    await waitFor(async () =>
-      expect(await service.list('pair-1')).toHaveLength(1),
-    );
-    const [line] = await service.list('pair-1');
+    await waitFor(async () => expect(await all(service)).toHaveLength(1));
+    const [line] = await all(service);
     expect(line).toMatchObject({
       type: 'TREND_LINE',
       points: [
@@ -204,21 +227,16 @@ describe('drawing on the chart (D-149, T-120, T-121)', () => {
     const undo = screen.getByRole('button', { name: 'Undo (Ctrl+Z)' });
     await waitFor(() => expect(undo.hasAttribute('disabled')).toBe(false));
     await userEvent.click(undo);
-    await waitFor(async () =>
-      expect(await service.list('pair-1')).toHaveLength(0),
-    );
+    await waitFor(async () => expect(await all(service)).toHaveLength(0));
     await userEvent.click(
       screen.getByRole('button', { name: 'Redo (Ctrl+Y)' }),
     );
-    await waitFor(async () =>
-      expect(await service.list('pair-1')).toHaveLength(1),
-    );
+    await waitFor(async () => expect(await all(service)).toHaveLength(1));
   });
 
   it('selects a drawing, restyles, locks and removes it from the floating bar', async () => {
     const service = createDevelopmentChartDrawings();
-    await service.create({
-      pairId: 'pair-1',
+    await seed(service, {
       type: 'HORIZONTAL_LINE',
       points: [{ time: time(20), price: '104' }],
       style: {
@@ -248,20 +266,18 @@ describe('drawing on the chart (D-149, T-120, T-121)', () => {
       '4',
     );
     await waitFor(async () =>
-      expect((await service.list('pair-1'))[0]?.style.lineWidth).toBe(4),
+      expect((await all(service))[0]?.style.lineWidth).toBe(4),
     );
     await userEvent.click(screen.getByRole('button', { name: 'Colour' }));
     await userEvent.click(
       screen.getByRole('button', { name: 'Colour #EF5350' }),
     );
     await waitFor(async () =>
-      expect((await service.list('pair-1'))[0]?.style.lineColor).toBe(
-        '#EF5350',
-      ),
+      expect((await all(service))[0]?.style.lineColor).toBe('#EF5350'),
     );
     await userEvent.click(screen.getByRole('button', { name: 'Lock' }));
     await waitFor(async () =>
-      expect((await service.list('pair-1'))[0]?.locked).toBe(true),
+      expect((await all(service))[0]?.locked).toBe(true),
     );
     expect(
       screen.getByRole('button', { name: 'Remove' }).hasAttribute('disabled'),
@@ -273,9 +289,7 @@ describe('drawing on the chart (D-149, T-120, T-121)', () => {
       ).toBe(false),
     );
     await userEvent.click(screen.getByRole('button', { name: 'Remove' }));
-    await waitFor(async () =>
-      expect(await service.list('pair-1')).toHaveLength(0),
-    );
+    await waitFor(async () => expect(await all(service)).toHaveLength(0));
     expect(
       screen.queryByRole('toolbar', { name: 'Selected drawing' }),
     ).toBeNull();
@@ -283,8 +297,7 @@ describe('drawing on the chart (D-149, T-120, T-121)', () => {
 
   it('sets exact prices in the settings, and asks before removing every drawing', async () => {
     const service = createDevelopmentChartDrawings();
-    await service.create({
-      pairId: 'pair-1',
+    await seed(service, {
       type: 'LONG_POSITION',
       points: [
         { time: time(20), price: '102' },
@@ -321,7 +334,7 @@ describe('drawing on the chart (D-149, T-120, T-121)', () => {
     await userEvent.type(stop, '99.5');
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(async () =>
-      expect((await service.list('pair-1'))[0]?.points[1]?.price).toBe('99.5'),
+      expect((await all(service))[0]?.points[1]?.price).toBe('99.5'),
     );
 
     await userEvent.click(
@@ -330,9 +343,7 @@ describe('drawing on the chart (D-149, T-120, T-121)', () => {
     await userEvent.click(
       await screen.findByRole('button', { name: 'Remove all' }),
     );
-    await waitFor(async () =>
-      expect(await service.list('pair-1')).toHaveLength(0),
-    );
+    await waitFor(async () => expect(await all(service)).toHaveLength(0));
   });
 
   it('adds a text drawing once its text is written', async () => {
@@ -345,7 +356,7 @@ describe('drawing on the chart (D-149, T-120, T-121)', () => {
     await userEvent.type(box, 'FOMC tonight');
     await userEvent.click(screen.getByRole('button', { name: 'Add' }));
     await waitFor(async () =>
-      expect((await service.list('pair-1'))[0]).toMatchObject({
+      expect((await all(service))[0]).toMatchObject({
         type: 'TEXT',
         text: 'FOMC tonight',
       }),
@@ -386,9 +397,7 @@ describe('drawing on the chart (D-149, T-120, T-121)', () => {
       screen.getByRole('button', { name: 'Long position' }),
     );
     click(pane, 10, 102);
-    await waitFor(async () =>
-      expect(await service.list('pair-1')).toHaveLength(1),
-    );
+    await waitFor(async () => expect(await all(service)).toHaveLength(1));
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
@@ -411,5 +420,135 @@ describe('drawing on the chart (D-149, T-120, T-121)', () => {
           ) => paint({ context }),
         } as never);
     expect(draw).not.toThrow();
+  });
+  it('keeps drawings per copy: a new copy is empty, a duplicate keeps them, a copy is renamed and removed', async () => {
+    const service = createDevelopmentChartDrawings();
+    await seed(service, {
+      type: 'HORIZONTAL_LINE',
+      points: [{ time: time(20), price: '104' }],
+      style: {
+        lineColor: '#2962FF',
+        lineWidth: 2,
+        lineStyle: 'SOLID',
+        fillColor: null,
+        extendLeft: false,
+        extendRight: false,
+        fontSize: null,
+        fibLevels: null,
+      },
+      text: null,
+      locked: false,
+      hidden: false,
+    });
+    await render(service);
+    const menu = await screen.findByRole('button', {
+      name: 'Chart copies of BTCUSDT',
+    });
+    const removeAll = () =>
+      screen.getByRole('button', { name: 'Remove all drawings' });
+    const counts = async () =>
+      (await service.chartLayouts.list('pair-1')).map(
+        (layout) => layout.drawings,
+      );
+    expect(menu.textContent).toContain('Copy 1');
+
+    await userEvent.click(menu);
+    await userEvent.click(screen.getByRole('button', { name: 'New copy' }));
+    await waitFor(() => expect(menu.textContent).toContain('Copy 2'));
+    expect(await counts()).toEqual([1, 0]);
+    await waitFor(() =>
+      expect(removeAll().hasAttribute('disabled')).toBe(true),
+    );
+
+    await userEvent.click(menu);
+    await userEvent.click(screen.getByRole('button', { name: /^Copy 1/ }));
+    await waitFor(() =>
+      expect(removeAll().hasAttribute('disabled')).toBe(false),
+    );
+    expect(menu.textContent).toContain('Copy 1');
+
+    await userEvent.click(menu);
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Duplicate this copy' }),
+    );
+    await waitFor(() => expect(menu.textContent).toContain('Copy 3'));
+    expect(await counts()).toEqual([1, 0, 1]);
+
+    await userEvent.click(menu);
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Rename Copy 3' }),
+    );
+    await userEvent.type(
+      screen.getByRole('textbox', { name: 'Name of the copy' }),
+      'Wave count{Enter}',
+    );
+    await waitFor(() => expect(menu.textContent).toContain('Wave count'));
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Remove Copy 2' }),
+    );
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Remove copy' }),
+    );
+    await waitFor(async () =>
+      expect(
+        (await service.chartLayouts.list('pair-1')).map(
+          (layout) => layout.name ?? layout.number,
+        ),
+      ).toEqual([1, 'Wave count']),
+    );
+    expect(window.localStorage.getItem('cp-chart-layout:pair-1')).toBe(
+      (await service.chartLayouts.list('pair-1'))[1]?.id,
+    );
+  });
+
+  it('draws a harmonic pattern and an Elliott wave by clicking each swing', async () => {
+    const service = createDevelopmentChartDrawings();
+    const pane = await render(service);
+    await waitFor(() => expect(chart.primitives).toHaveLength(1));
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'XABCD pattern' }),
+    );
+    for (const [bar, price] of [
+      [10, 100],
+      [20, 106],
+      [30, 102],
+      [40, 105],
+      [50, 99],
+    ] as const)
+      click(pane, bar, price);
+    await waitFor(async () => expect(await all(service)).toHaveLength(1));
+    expect((await all(service))[0]).toMatchObject({
+      type: 'XABCD_PATTERN',
+      style: { fillColor: '#2962FF26' },
+    });
+    expect((await all(service))[0]?.points).toHaveLength(5);
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'More Elliott waves tools' }),
+    );
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {
+        name: 'Elliott correction wave (ABC)',
+      }),
+    );
+    for (const [bar, price] of [
+      [60, 106],
+      [70, 100],
+      [80, 103],
+      [90, 98],
+    ] as const)
+      click(pane, bar, price);
+    await waitFor(async () => expect(await all(service)).toHaveLength(2));
+    expect((await all(service))[1]).toMatchObject({
+      type: 'ELLIOTT_CORRECTION_WAVE',
+      points: [
+        { time: time(60), price: '106.00' },
+        { time: time(70), price: '100.00' },
+        { time: time(80), price: '103.00' },
+        { time: time(90), price: '98.00' },
+      ],
+    });
   });
 });

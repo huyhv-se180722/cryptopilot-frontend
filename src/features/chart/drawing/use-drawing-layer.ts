@@ -28,8 +28,10 @@ import { chartProjection } from './projection';
 import { BAR_SECONDS } from './time-axis';
 import type { ToolId } from './tools';
 import { useChartDrawings } from './use-chart-drawings';
+import { useChartLayouts } from './use-chart-layouts';
 
 const OPTIONS_KEY = 'cp-drawing-options';
+const NONE: readonly ChartDrawing[] = [];
 const DEFAULT_OPTIONS: ControllerOptions = {
   magnet: false,
   stayInDrawing: false,
@@ -89,10 +91,10 @@ interface Attachment {
 
 /**
  * The drawing layer of one chart (D-149, T-120, T-121): it loads the
- * Trader's drawings on the pair, paints them on the price pane, turns
- * presses, drags and keys into drawings and changes, saves each change, and
- * keeps an undo history per pair. The chart calls `attach` each time it is
- * built.
+ * Trader's layouts on the pair and the drawings of the one shown, paints
+ * them on the price pane, turns presses, drags and keys into drawings and
+ * changes, saves each change, and keeps an undo history per layout. The
+ * chart calls `attach` each time it is built.
  */
 export function useDrawingLayer({
   pairId,
@@ -110,12 +112,16 @@ export function useDrawingLayer({
   const copy = useCopy();
   const d = copy.drawing;
   const { show } = useToast();
-  const data = useChartDrawings(pairId);
-  const drawings = data.query.data;
+  const layouts = useChartLayouts(pairId);
+  const layoutId = layouts.active?.id;
+  const data = useChartDrawings(layoutId, layouts.ensure);
+  const drawings = layoutId ? data.query.data : NONE;
   const pair = pairId ?? '';
+  // The undo history belongs to the layout shown.
+  const scope = layoutId ?? '';
   const histories = useRef(new Map<string, DrawingHistory>());
   const [stacks, setStacks] = useState({
-    pair,
+    scope,
     canUndo: false,
     canRedo: false,
   });
@@ -141,10 +147,17 @@ export function useDrawingLayer({
     return history;
   }, []);
 
-  const syncStacks = useCallback(() => {
-    const history = historyOf(pair);
-    setStacks({ pair, canUndo: history.canUndo, canRedo: history.canRedo });
-  }, [historyOf, pair]);
+  const syncStacks = useCallback(
+    (layout: string = scope) => {
+      const history = historyOf(layout);
+      setStacks({
+        scope: layout,
+        canUndo: history.canUndo,
+        canRedo: history.canRedo,
+      });
+    },
+    [historyOf, scope],
+  );
 
   const fail = useCallback(
     (error: unknown) =>
@@ -159,11 +172,11 @@ export function useDrawingLayer({
   );
 
   const record = useCallback(
-    (entry: HistoryEntry) => {
-      historyOf(pair).record(entry);
-      syncStacks();
+    (entry: HistoryEntry, layout: string = scope) => {
+      historyOf(layout).record(entry);
+      syncStacks(layout);
     },
-    [historyOf, pair, syncStacks],
+    [historyOf, scope, syncStacks],
   );
 
   const save = useCallback(
@@ -186,14 +199,17 @@ export function useDrawingLayer({
     (draft: Draft) =>
       data
         .create(draft)
-        .then((drawing) => record({ kind: 'create', drawing }))
+        // The first drawing of a pair opens its layout: record it there.
+        .then((drawing) =>
+          record({ kind: 'create', drawing }, drawing.layoutId),
+        )
         .catch(fail),
     [data, fail, record],
   );
 
   const replay = useCallback(
     async (direction: 'undo' | 'redo') => {
-      const history = historyOf(pair);
+      const history = historyOf(scope);
       const entry =
         direction === 'undo' ? history.takeUndo() : history.takeRedo();
       if (!entry) return;
@@ -220,7 +236,7 @@ export function useDrawingLayer({
       }
       syncStacks();
     },
-    [data, fail, historyOf, pair, syncStacks],
+    [data, fail, historyOf, scope, syncStacks],
   );
 
   useLayoutEffect(() => {
@@ -269,6 +285,11 @@ export function useDrawingLayer({
   useEffect(() => {
     controller.setDrawings(drawings ?? []);
   }, [controller, drawings]);
+
+  const { counted } = layouts;
+  useEffect(() => {
+    if (layoutId && drawings) counted(layoutId, drawings);
+  }, [counted, drawings, layoutId]);
 
   useEffect(() => {
     controller.setOptions(options);
@@ -413,10 +434,10 @@ export function useDrawingLayer({
   }, [remove, selected]);
 
   const removeAll = useCallback(() => {
-    historyOf(pair).clear();
+    historyOf(scope).clear();
     syncStacks();
     data.removeAll().catch(fail);
-  }, [data, fail, historyOf, pair, syncStacks]);
+  }, [data, fail, historyOf, scope, syncStacks]);
 
   const hidden = (drawings ?? []).filter((each) => each.hidden);
   const showHidden = () => {
@@ -431,9 +452,16 @@ export function useDrawingLayer({
     setTextDraft(null);
   };
 
-  const current = stacks.pair === pair;
+  const current = stacks.scope === scope;
+  // A layout switch keeps the tools on while its drawings load.
+  const status =
+    layouts.query.status === 'error' ||
+    (layoutId !== undefined && data.query.status === 'error')
+      ? 'error'
+      : layouts.query.status;
   return {
-    status: data.query.status,
+    status,
+    layouts,
     attach,
     count: drawings?.length ?? 0,
     tool,

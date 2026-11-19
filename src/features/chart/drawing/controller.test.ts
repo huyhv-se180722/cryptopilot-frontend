@@ -26,6 +26,9 @@ const projection: Projection = {
       stop: '{price}',
       ratio: '{ratio}',
       span: '{bars}',
+      leftShoulder: 'LS',
+      head: 'H',
+      rightShoulder: 'RS',
     },
   },
   pixel: (point) => ({
@@ -57,7 +60,7 @@ function drawing(
 ): ChartDrawing {
   return {
     id,
-    pairId: 'pair',
+    layoutId: 'layout',
     type: 'TREND_LINE',
     points: [point(10, 800), point(30, 700)],
     style: DEFAULT_STYLE,

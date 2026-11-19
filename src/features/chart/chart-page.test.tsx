@@ -116,7 +116,7 @@ function render(path: string) {
     ],
     path,
     fakeAuth(),
-    { market, marketFeed, chartDrawings: createDevelopmentChartDrawings() },
+    { market, marketFeed, ...createDevelopmentChartDrawings() },
   );
 }
 

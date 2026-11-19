@@ -52,6 +52,7 @@ import {
 } from './chart-markers';
 import { labelsShown } from './chart-labels';
 import { TimeframePicker } from './TimeframePicker';
+import { ChartLayoutMenu } from '../drawing/components/ChartLayoutMenu';
 import { DrawingFloatingBar } from '../drawing/components/DrawingFloatingBar';
 import { DrawingTextDialog } from '../drawing/components/DrawingTextDialog';
 import { DrawingToolbar } from '../drawing/components/DrawingToolbar';
@@ -917,6 +918,7 @@ export function AnalysisChart<T extends ChartTimeframe = CandleTimeframe>({
             {referenceLabel}
           </span>
         )}
+        {drawingsOn && <ChartLayoutMenu layer={layer} symbol={symbol} />}
         {series.loadingOlder && (
           <span role="status" className="text-xs text-muted">
             {c.loadingOlder}

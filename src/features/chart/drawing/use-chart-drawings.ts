@@ -7,23 +7,30 @@ import type {
   NewChartDrawing,
 } from '../../../types/domain';
 
-export const chartDrawingsKey = (pairId: string) =>
-  ['chart-drawings', pairId] as const;
+export const chartDrawingsKey = (layoutId: string) =>
+  ['chart-drawings', layoutId] as const;
 
 /**
- * The Trader's drawings on a pair's chart and the writes on them (D-149
- * (5)). Every change is shown at once and saved in the background; writes
- * run one after another, so an update always sends the version the last
- * one returned. A failed write reads the drawings again and is thrown.
+ * The drawings of the layout shown and the writes on them (D-149 (5)).
+ * Every change is shown at once and saved in the background; writes run one
+ * after another, so an update always sends the version the last one
+ * returned. A failed write reads the drawings again and is thrown. Without
+ * a layout yet, the first drawing asks `ensureLayout` to open one.
  */
-export function useChartDrawings(pairId: string | undefined) {
+export function useChartDrawings(
+  layoutId: string | undefined,
+  ensureLayout: () => Promise<string>,
+) {
   const { chartDrawings } = useServices();
   const client = useQueryClient();
-  const key = useMemo(() => chartDrawingsKey(pairId ?? ''), [pairId]);
+  const key = useMemo(() => chartDrawingsKey(layoutId ?? ''), [layoutId]);
   const query = useQuery({
     queryKey: key,
-    enabled: Boolean(pairId),
-    queryFn: ({ signal }) => chartDrawings.list(pairId ?? '', signal),
+    enabled: Boolean(layoutId),
+    queryFn: ({ signal }) => chartDrawings.list(layoutId ?? '', signal),
+    // A layout just opened starts from what is known of it; reading it again
+    // at once could answer before its first drawing is saved.
+    staleTime: 30_000,
   });
   const queue = useRef<Promise<unknown>>(Promise.resolve());
 
@@ -33,12 +40,21 @@ export function useChartDrawings(pairId: string | undefined) {
     return next;
   }, []);
 
-  const set = useCallback(
-    (change: (list: readonly ChartDrawing[]) => readonly ChartDrawing[]) =>
-      client.setQueryData<readonly ChartDrawing[]>(key, (old) =>
+  const setIn = useCallback(
+    (
+      target: readonly unknown[],
+      change: (list: readonly ChartDrawing[]) => readonly ChartDrawing[],
+    ) =>
+      client.setQueryData<readonly ChartDrawing[]>(target, (old) =>
         change(old ?? []),
       ),
-    [client, key],
+    [client],
+  );
+
+  const set = useCallback(
+    (change: (list: readonly ChartDrawing[]) => readonly ChartDrawing[]) =>
+      setIn(key, change),
+    [key, setIn],
   );
 
   const guarded = useCallback(
@@ -54,16 +70,17 @@ export function useChartDrawings(pairId: string | undefined) {
   );
 
   const create = useCallback(
-    (drawing: Omit<NewChartDrawing, 'pairId'>) =>
+    (drawing: Omit<NewChartDrawing, 'layoutId'>) =>
       guarded(async () => {
+        const target = layoutId ?? (await ensureLayout());
         const created = await chartDrawings.create({
           ...drawing,
-          pairId: pairId ?? '',
+          layoutId: target,
         });
-        set((list) => [...list, created]);
+        setIn(chartDrawingsKey(target), (list) => [...list, created]);
         return created;
       }),
-    [chartDrawings, guarded, pairId, set],
+    [chartDrawings, ensureLayout, guarded, layoutId, setIn],
   );
 
   const update = useCallback(
@@ -96,9 +113,10 @@ export function useChartDrawings(pairId: string | undefined) {
   );
 
   const removeAll = useCallback(() => {
+    if (!layoutId) return Promise.resolve();
     set(() => []);
-    return guarded(() => chartDrawings.removeAll(pairId ?? ''));
-  }, [chartDrawings, guarded, pairId, set]);
+    return guarded(() => chartDrawings.removeAll(layoutId));
+  }, [chartDrawings, guarded, layoutId, set]);
 
   return { query, create, update, remove, removeAll };
 }

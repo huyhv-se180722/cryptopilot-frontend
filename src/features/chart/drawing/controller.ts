@@ -29,7 +29,7 @@ export interface Projection {
   scale(price: string, factor: number): string;
 }
 
-export type Draft = Omit<NewChartDrawing, 'pairId'>;
+export type Draft = Omit<NewChartDrawing, 'layoutId'>;
 
 export interface ControllerEvents {
   create(draft: Draft): void;

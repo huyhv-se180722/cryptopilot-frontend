@@ -10,7 +10,7 @@ import type {
   ChartDrawingChange,
 } from '../../../../types/domain';
 import { positionValid } from '../controller';
-import { EXTENDABLE, FILLED } from '../tools';
+import { EXTENDABLE, FILLED, toolOfType } from '../tools';
 import type { ToolId } from '../tools';
 
 const PRICE = /^\d+(\.\d+)?$/;
@@ -53,6 +53,8 @@ function toolOf(drawing: ChartDrawing): ToolId {
       return 'dateRange';
     case 'TEXT':
       return 'text';
+    default:
+      return toolOfType(drawing.type);
   }
 }
 

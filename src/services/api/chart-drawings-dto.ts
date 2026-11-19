@@ -36,6 +36,17 @@ export const DRAWING_TYPES: readonly DrawingType[] = [
   'PRICE_RANGE',
   'DATE_RANGE',
   'ARROW',
+  'XABCD_PATTERN',
+  'CYPHER_PATTERN',
+  'ABCD_PATTERN',
+  'THREE_DRIVES_PATTERN',
+  'HEAD_AND_SHOULDERS',
+  'TRIANGLE_PATTERN',
+  'ELLIOTT_IMPULSE_WAVE',
+  'ELLIOTT_CORRECTION_WAVE',
+  'ELLIOTT_TRIANGLE_WAVE',
+  'ELLIOTT_DOUBLE_COMBO',
+  'ELLIOTT_TRIPLE_COMBO',
 ];
 const LINE_STYLES: readonly DrawingLineStyle[] = ['SOLID', 'DASHED', 'DOTTED'];
 
@@ -75,7 +86,7 @@ export function decodeChartDrawing(body: unknown): ChartDrawing {
   const value = record(body, 'drawing');
   return {
     id: text(value.id, 'id'),
-    pairId: text(value.pairId, 'pairId'),
+    layoutId: text(value.layoutId, 'layoutId'),
     type: oneOf(DRAWING_TYPES, value.type, 'type'),
     points: list(value.points, 'points').map((each, i) =>
       point(each, `points[${i}]`),
@@ -88,7 +99,7 @@ export function decodeChartDrawing(body: unknown): ChartDrawing {
   };
 }
 
-/** `GET /chart-drawings?pairId=`. */
+/** `GET /chart-drawings?layoutId=`. */
 export function decodeChartDrawings(body: unknown): readonly ChartDrawing[] {
   return list(body, 'drawings').map(decodeChartDrawing);
 }

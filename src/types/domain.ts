@@ -2479,7 +2479,18 @@ export type DrawingType =
   | 'FIB_EXTENSION'
   | 'PRICE_RANGE'
   | 'DATE_RANGE'
-  | 'ARROW';
+  | 'ARROW'
+  | 'XABCD_PATTERN'
+  | 'CYPHER_PATTERN'
+  | 'ABCD_PATTERN'
+  | 'THREE_DRIVES_PATTERN'
+  | 'HEAD_AND_SHOULDERS'
+  | 'TRIANGLE_PATTERN'
+  | 'ELLIOTT_IMPULSE_WAVE'
+  | 'ELLIOTT_CORRECTION_WAVE'
+  | 'ELLIOTT_TRIANGLE_WAVE'
+  | 'ELLIOTT_DOUBLE_COMBO'
+  | 'ELLIOTT_TRIPLE_COMBO';
 
 export type DrawingLineStyle = 'SOLID' | 'DASHED' | 'DOTTED';
 
@@ -2504,10 +2515,32 @@ export interface DrawingStyle {
   fibLevels: readonly Decimal[] | null;
 }
 
-/** A drawing of the signed-in Trader on a pair's chart (`/chart-drawings`). */
-export interface ChartDrawing {
+/**
+ * One of the signed-in Trader's layouts on a pair's chart
+ * (`/chart-layouts`): a set of drawings the chart switches between. Shown
+ * as "Copy {number}" while it has no name.
+ */
+export interface ChartLayout {
   id: string;
   pairId: string;
+  /** From 1; a new layout takes the smallest number still free. */
+  number: number;
+  name: string | null;
+  /** How many drawings it holds. */
+  drawings: number;
+}
+
+/** A new layout: empty, or a copy of another layout of the same pair. */
+export interface NewChartLayout {
+  pairId: string;
+  name?: string | null;
+  copyFrom?: string | null;
+}
+
+/** A drawing of the signed-in Trader in one of their layouts (`/chart-drawings`). */
+export interface ChartDrawing {
+  id: string;
+  layoutId: string;
   type: DrawingType;
   points: readonly DrawingPoint[];
   style: DrawingStyle;
@@ -2527,8 +2560,8 @@ export interface ChartDrawingChange {
   hidden: boolean;
 }
 
-/** A new drawing on a pair's chart. */
+/** A new drawing in one of the Trader's layouts. */
 export interface NewChartDrawing extends ChartDrawingChange {
-  pairId: string;
+  layoutId: string;
   type: DrawingType;
 }

@@ -8,11 +8,14 @@ import { integrationPending } from './errors';
 import type { HttpClient } from './http-client';
 
 /**
- * The signed-in Trader's drawings on the chart of each pair (D-149).
- * A pair's drawings are shared by its Spot and Futures charts.
+ * The signed-in Trader's drawings in each of their chart layouts (D-149).
+ * A layout belongs to a pair, so its Spot and Futures charts share it.
  */
 export interface ChartDrawingService {
-  list(pairId: string, signal?: AbortSignal): Promise<readonly ChartDrawing[]>;
+  list(
+    layoutId: string,
+    signal?: AbortSignal,
+  ): Promise<readonly ChartDrawing[]>;
   create(drawing: NewChartDrawing): Promise<ChartDrawing>;
   /**
    * Replaces the drawing; `version` is the one last read. The server refuses
@@ -24,8 +27,8 @@ export interface ChartDrawingService {
     change: ChartDrawingChange,
   ): Promise<ChartDrawing>;
   remove(id: string): Promise<void>;
-  /** Removes every drawing of the Trader on the pair. */
-  removeAll(pairId: string): Promise<void>;
+  /** Removes every drawing of the layout. */
+  removeAll(layoutId: string): Promise<void>;
 }
 
 /** Used while no API base URL is configured. */
@@ -40,8 +43,8 @@ export function createPendingChartDrawingService(): ChartDrawingService {
 }
 
 const ROOT = 'chart-drawings';
-const byPair = (pairId: string) =>
-  ROOT + '?' + new URLSearchParams({ pairId }).toString();
+const byLayout = (layoutId: string) =>
+  ROOT + '?' + new URLSearchParams({ layoutId }).toString();
 const noContent = () => undefined;
 
 /** `/chart-drawings/**` with the bearer token (Trader only). */
@@ -49,9 +52,9 @@ export function createHttpChartDrawingService(
   http: HttpClient,
 ): ChartDrawingService {
   return {
-    list: (pairId, signal) =>
+    list: (layoutId, signal) =>
       http.request({
-        path: byPair(pairId),
+        path: byLayout(layoutId),
         decode: decodeChartDrawings,
         ...(signal ? { signal } : {}),
       }),
@@ -75,9 +78,9 @@ export function createHttpChartDrawingService(
         method: 'DELETE',
         decode: noContent,
       }),
-    removeAll: (pairId) =>
+    removeAll: (layoutId) =>
       http.request({
-        path: byPair(pairId),
+        path: byLayout(layoutId),
         method: 'DELETE',
         decode: noContent,
       }),

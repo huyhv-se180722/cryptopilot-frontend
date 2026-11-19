@@ -28,7 +28,7 @@ export function createDevelopmentServices(base: Services): Services {
     tradingPlan: createDevelopmentTradingPlan(() => auth.restoreSession()),
     ...createDevelopmentJournal(() => auth.restoreSession()),
     ...createDevelopmentWatchlist(() => auth.restoreSession()),
-    chartDrawings: createDevelopmentChartDrawings(),
+    ...createDevelopmentChartDrawings(),
     ...createDevelopmentPaperTrading(
       () => auth.restoreSession(),
       market.market,

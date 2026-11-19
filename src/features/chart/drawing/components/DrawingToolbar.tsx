@@ -17,6 +17,7 @@ import { useCopy } from '../../../../hooks/use-copy';
 import { formatCopy } from '../../../../i18n/copy';
 import { classNames } from '../../../../utils/class-names';
 import { TOOL_GROUPS, type ToolGroupId, type ToolId } from '../tools';
+import { layoutName } from '../layout-name';
 import type { DrawingLayer } from '../use-drawing-layer';
 import { TOOL_ICONS } from './tool-icons';
 
@@ -232,7 +233,10 @@ export function DrawingToolbar({
         open={confirming}
         onOpenChange={setConfirming}
         title={d.removeAllTitle}
-        description={formatCopy(d.removeAllBody, { symbol })}
+        description={formatCopy(d.removeAllBody, {
+          symbol,
+          layout: layoutName(layer.layouts.active, d.layouts.defaultName),
+        })}
         size="sm"
         accent="negative"
         footer={

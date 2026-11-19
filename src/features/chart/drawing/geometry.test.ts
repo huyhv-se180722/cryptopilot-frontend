@@ -27,6 +27,9 @@ const CONTEXT: FigureContext = {
     stop: 'Stop {price} ({change})',
     ratio: 'R:R {ratio}',
     span: '{bars} bars, {time}',
+    leftShoulder: 'Left shoulder',
+    head: 'Head',
+    rightShoulder: 'Right shoulder',
   },
 };
 
