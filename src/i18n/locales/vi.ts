@@ -9,6 +9,79 @@ export type PartialCopy = DeepPartial<Copy>;
  * D-125) and the Academy (T-114) render in Vietnamese.
  */
 export const vi: PartialCopy = {
+  marketStatus: {
+    pausedTitle: 'Tạm dừng giao dịch {market}',
+    pausedBody:
+      'Không nhận được dữ liệu sàn từ {since}. Lệnh, vị thế và plan của bạn được giữ nguyên; không có khớp lệnh, thanh lý hay funding nào cho tới khi có lại dữ liệu.',
+    maintenanceTitle: '{market} đang bảo trì',
+    maintenanceBody:
+      'Giao dịch tạm đóng. Lệnh, vị thế và plan của bạn được giữ nguyên.',
+    expectedEnd: 'Dự kiến kết thúc lúc {time}.',
+    retryAt: 'Sàn cho gọi lại vào khoảng {time}.',
+    recoveringTitle: '{market} đang đồng bộ lại',
+    recoveringBody:
+      'Đã có lại dữ liệu sàn. Hệ thống đang áp dụng khoảng bị mất đúng như sàn đã chạy; giao dịch mở lại khi xong.',
+    progress: 'Đã đồng bộ {done}/{total} cặp',
+    resumedTitle: 'Giao dịch {market} đã hoạt động lại',
+    resumedBody:
+      'Khoảng từ {since} đến {resumed} đã được áp dụng theo giá sàn. Xem thông báo để biết lệnh của bạn thay đổi thế nào.',
+    referenceOkx: 'Giá tham khảo từ OKX, chỉ để xem.',
+    referenceNone: 'Không có giá tham khảo.',
+    dismiss: 'Đóng',
+    reasons: {
+      STREAM_LOST: 'luồng dữ liệu sàn bị ngắt',
+      REST_UNAVAILABLE: 'sàn không phản hồi',
+      RATE_LIMITED: 'sàn giới hạn số lần gọi',
+      IP_BANNED: 'sàn chặn máy chủ',
+      MAINTENANCE: 'bảo trì',
+    },
+    blocked:
+      'Giao dịch {market} đang tạm dừng: chưa thể đặt, sửa hay hủy lệnh lúc này.',
+    pairBlocked: 'Mất dữ liệu {symbol}: tạm dừng giao dịch cặp này.',
+    sourceLabel: 'Nguồn: OKX (tham khảo)',
+    referencePrice: 'Giá tham khảo',
+    asOf: 'lúc {time}',
+    diverged: 'Giá tham khảo có thể khác Binance đáng kể.',
+    noReference: 'Cặp này không có giá tham khảo.',
+    bookPaused: 'Tạm ngưng',
+    bookPausedBody:
+      'Sổ lệnh và giao dịch gần đây sẽ hiện lại khi có lại dữ liệu sàn.',
+    estimated: 'Tạm tính theo mark cuối của sàn, lúc {time}.',
+  },
+  marketHealthAdmin: {
+    title: 'Sức khỏe thị trường',
+    subtitle:
+      'Trạng thái dữ liệu của từng thị trường, công tắc bảo trì và lịch sử sự cố. Giao dịch của một thị trường bị đóng khi mất dữ liệu sàn.',
+    state: 'Trạng thái',
+    states: {
+      LIVE: 'Bình thường',
+      RECONNECTING: 'Đang kết nối lại',
+      PAUSED: 'Tạm dừng',
+      RECOVERING: 'Đang đồng bộ',
+      MAINTENANCE: 'Bảo trì',
+    },
+    since: 'Mất dữ liệu từ',
+    reason: 'Lý do',
+    source: 'Giá đang hiển thị',
+    message: 'Lời nhắn cho Trader',
+    messageHint: 'Tối đa 500 ký tự, hiện trên banner.',
+    expectedEnd: 'Dự kiến kết thúc',
+    start: 'Bật bảo trì',
+    end: 'Tắt bảo trì',
+    resume: 'Mở lại bằng tay',
+    resumeHint:
+      'Chỉ dùng khi sự cố dài hơn khoảng có thể replay: giao dịch mở lại mà không chờ đồng bộ xong.',
+    resumeConfirm: 'Mở lại giao dịch {market} ngay, không chờ đồng bộ xong?',
+    started: 'Đã bật bảo trì.',
+    ended: 'Đã tắt bảo trì. Giao dịch mở lại khi dữ liệu đồng bộ xong.',
+    resumed: 'Đã mở lại giao dịch.',
+    incidents: 'Sự cố',
+    kind: 'Loại',
+    pausedAt: 'Tạm dừng',
+    resumedAt: 'Mở lại',
+    open: 'Đang mở',
+    none: 'Chưa có sự cố nào.',
+  },
   coinMarket: {
     title: 'Giá tiền điện tử theo vốn hóa',
     subtitle:

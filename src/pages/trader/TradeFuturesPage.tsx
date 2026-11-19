@@ -52,6 +52,13 @@ import { useWatchlist } from '../../features/watchlist/hooks/use-watchlist';
 import type { Decimal, MarketPair } from '../../types/domain';
 import type { FuturesAccountEvent } from '../../types/futures';
 import { classNames } from '../../utils/class-names';
+import { PausedMarketPanel } from '../../features/market-status/components/PausedMarketPanel';
+import { ReferencePriceNote } from '../../features/market-status/components/ReferencePriceNote';
+import {
+  isLost,
+  useMarketHealth,
+  useTradingBlock,
+} from '../../features/market-status/hooks/use-market-status';
 
 type PhoneRegion = 'chart' | 'book' | 'trades';
 const LAST_PAIR_KEY = 'cryptopilot.trade.futures.lastPair';
@@ -141,7 +148,12 @@ function TradeFutures({
         };
   const shown = (name: PhoneRegion) =>
     region === name ? 'flex' : 'hidden md:flex';
-  const unavailable = account.isError ? errorText(copy, account.error) : null;
+  // D-158: closed while the exchange data is lost; the book would mislead.
+  const blocked = useTradingBlock('FUTURES', pair.symbol);
+  const lost = isLost(useMarketHealth('FUTURES'));
+  const unavailable = account.isError
+    ? errorText(copy, account.error)
+    : blocked;
 
   return (
     <>
@@ -159,6 +171,7 @@ function TradeFutures({
           />
         }
       />
+      <ReferencePriceNote market="FUTURES" symbol={pair.symbol} />
       <div className="my-2 md:hidden">
         <SegmentedControl
           label={p.panelsLabel}
@@ -202,13 +215,17 @@ function TradeFutures({
               'relative h-[560px] flex-col xl:h-auto xl:flex-[3]',
             )}
           >
-            <OrderBookPanel
-              pair={pair}
-              stream={book}
-              lastPrice={ticker?.lastPrice ?? null}
-              onPickPrice={pick}
-              className="absolute inset-0"
-            />
+            {lost ? (
+              <PausedMarketPanel className="absolute inset-0" />
+            ) : (
+              <OrderBookPanel
+                pair={pair}
+                stream={book}
+                lastPrice={ticker?.lastPrice ?? null}
+                onPickPrice={pick}
+                className="absolute inset-0"
+              />
+            )}
           </div>
           <div
             className={classNames(
@@ -216,12 +233,16 @@ function TradeFutures({
               'relative h-[560px] flex-col xl:h-auto xl:flex-[2]',
             )}
           >
-            <MarketTradesPanel
-              pair={pair}
-              stream={trades}
-              onPickPrice={pick}
-              className="absolute inset-0"
-            />
+            {lost ? (
+              <PausedMarketPanel className="absolute inset-0" />
+            ) : (
+              <MarketTradesPanel
+                pair={pair}
+                stream={trades}
+                onPickPrice={pick}
+                className="absolute inset-0"
+              />
+            )}
           </div>
         </div>
         <TradePanel

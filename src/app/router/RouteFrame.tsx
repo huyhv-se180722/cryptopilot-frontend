@@ -5,8 +5,12 @@ import { useCopy } from '../../hooks/use-copy';
 import { useIntegrationMode } from '../../hooks/use-integration-mode';
 import { DocumentTitle } from './DocumentTitle';
 import { SessionExpiredDialog } from '../../features/auth/components/SessionExpiredDialog';
+import { MarketStatusBanner } from '../../features/market-status/components/MarketStatusBanner';
 
-/** Root route host: skip link, document title and integration status. */
+/**
+ * Root route host: skip link, document title, integration status and the
+ * markets' trading status (D-158), on every page, public ones included.
+ */
 export function RouteFrame() {
   const copy = useCopy();
   const bannerShown = useIntegrationMode() !== 'backend';
@@ -24,6 +28,7 @@ export function RouteFrame() {
         {copy.common.skipToContent}
       </a>
       <IntegrationBanner />
+      <MarketStatusBanner />
       <Outlet />
       <SessionExpiredDialog />
     </div>

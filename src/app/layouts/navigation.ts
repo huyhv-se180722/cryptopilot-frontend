@@ -1,4 +1,5 @@
 import {
+  Activity,
   BarChart2,
   BookOpen,
   Bell,
@@ -141,6 +142,11 @@ export const adminNav: readonly AdminNavGroup[] = [
     headingKey: 'groupSystem',
     items: [
       { to: '/admin/ai-config', labelKey: 'aiConfig', icon: Bot },
+      {
+        to: '/admin/market-health',
+        labelKey: 'marketHealth',
+        icon: Activity,
+      },
       { to: '/admin/settings', labelKey: 'settings', icon: Settings },
       { to: '/admin/audit-log', labelKey: 'auditLog', icon: ScrollText },
       { to: '/admin/account', labelKey: 'account', icon: ShieldCheck },

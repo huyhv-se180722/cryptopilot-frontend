@@ -117,6 +117,11 @@ import {
   createPendingAdminUserService,
 } from '../../services/api/admin-users';
 
+import {
+  createHttpMarketStatusService,
+  createPendingMarketStatusService,
+} from '../../services/api/market-status';
+
 export async function createServices(env: Environment): Promise<Services> {
   // The session renews through the same client it authorizes (anonymous call).
   // The refresh token survives a reload in the tab's sessionStorage (D-109).
@@ -151,6 +156,9 @@ export async function createServices(env: Environment): Promise<Services> {
       ? createHttpMarketService(http)
       : createPendingMarketService(),
     marketFeed: stomp ?? unavailableMarketFeed,
+    marketStatus: connected
+      ? createHttpMarketStatusService(http, stomp)
+      : createPendingMarketStatusService(),
     tradingMarket: connected
       ? createHttpTradingMarketService(http, stomp)
       : createPendingTradingMarketService(),

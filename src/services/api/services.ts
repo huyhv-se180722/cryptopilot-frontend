@@ -29,6 +29,7 @@ import type {
   WatchlistService,
 } from './contracts';
 import type { FuturesTradingService } from './futures';
+import type { MarketStatusService } from './market-status';
 import type { HttpClient } from './http-client';
 
 export interface Services {
@@ -38,6 +39,8 @@ export interface Services {
   profile: ProfileService;
   market: MarketService;
   marketFeed: MarketFeed;
+  /** The markets' data health, reference prices and maintenance (D-158). */
+  marketStatus: MarketStatusService;
   tradingMarket: TradingMarketService;
   analysis: AnalysisService;
   tradingPlan: TradingPlanService;

@@ -40,6 +40,13 @@ import { useTradeTimeframe } from '../../features/paper-trading/hooks/use-trade-
 import { useWatchlist } from '../../features/watchlist/hooks/use-watchlist';
 import type { Decimal, MarketPair } from '../../types/domain';
 import { classNames } from '../../utils/class-names';
+import { PausedMarketPanel } from '../../features/market-status/components/PausedMarketPanel';
+import { ReferencePriceNote } from '../../features/market-status/components/ReferencePriceNote';
+import {
+  isLost,
+  useMarketHealth,
+  useTradingBlock,
+} from '../../features/market-status/hooks/use-market-status';
 
 type PhoneRegion = 'chart' | 'book' | 'trades';
 
@@ -72,6 +79,9 @@ function TradeSpot({
       }
     : null;
   const { ticker, freshness } = useLiveTicker('spot', pair.symbol);
+  // D-158: closed while the exchange data is lost; the book would mislead.
+  const blocked = useTradingBlock('SPOT', pair.symbol);
+  const lost = isLost(useMarketHealth('SPOT'));
   const book = useOrderBook('spot', pair.symbol);
   const trades = useMarketTrades('spot', pair.symbol);
   const symbols = useMemo(() => pairs.map((each) => each.symbol), [pairs]);
@@ -109,6 +119,7 @@ function TradeSpot({
           />
         }
       />
+      <ReferencePriceNote market="SPOT" symbol={pair.symbol} />
       <div className="my-2 md:hidden">
         <SegmentedControl
           label={p.panelsLabel}
@@ -152,13 +163,17 @@ function TradeSpot({
             'relative h-[560px] flex-col xl:col-start-1 xl:row-span-2 xl:row-start-1 xl:h-auto',
           )}
         >
-          <OrderBookPanel
-            pair={pair}
-            stream={book}
-            lastPrice={ticker?.lastPrice ?? null}
-            onPickPrice={pick}
-            className="absolute inset-0"
-          />
+          {lost ? (
+            <PausedMarketPanel className="absolute inset-0" />
+          ) : (
+            <OrderBookPanel
+              pair={pair}
+              stream={book}
+              lastPrice={ticker?.lastPrice ?? null}
+              onPickPrice={pick}
+              className="absolute inset-0"
+            />
+          )}
         </div>
         <div
           className={classNames(
@@ -167,12 +182,16 @@ function TradeSpot({
             'relative h-[560px] flex-col xl:col-start-3 xl:row-span-2 xl:row-start-1 xl:h-auto',
           )}
         >
-          <MarketTradesPanel
-            pair={pair}
-            stream={trades}
-            onPickPrice={pick}
-            className="absolute inset-0"
-          />
+          {lost ? (
+            <PausedMarketPanel className="absolute inset-0" />
+          ) : (
+            <MarketTradesPanel
+              pair={pair}
+              stream={trades}
+              onPickPrice={pick}
+              className="absolute inset-0"
+            />
+          )}
         </div>
         <TradePanel
           title={p.orderForm}
@@ -185,7 +204,7 @@ function TradeSpot({
             picked={picked}
             funds={funds}
             unavailable={
-              account.isError ? errorText(copy, account.error) : null
+              account.isError ? errorText(copy, account.error) : blocked
             }
           />
         </TradePanel>

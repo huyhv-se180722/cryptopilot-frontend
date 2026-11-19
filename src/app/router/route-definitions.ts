@@ -9,7 +9,14 @@ import type { Copy } from '../../i18n/locales/en';
  * Dialog screens (SCR-14, SCR-19, SCR-27) have no route of their own.
  */
 export type ScreenId =
-  `SCR-${string}` | 'D-86' | 'D-99' | 'D-124' | 'D-127' | 'UC-44' | 'T-114';
+  | `SCR-${string}`
+  | 'D-86'
+  | 'D-99'
+  | 'D-124'
+  | 'D-127'
+  | 'D-158'
+  | 'UC-44'
+  | 'T-114';
 export type ScreenTitleKey = keyof Copy['screens'];
 
 export interface RouteDefinition {
@@ -169,6 +176,12 @@ export const adminRoutes = [
   },
   { path: '/admin/ai-config', screen: 'SCR-42', titleKey: 'adminAiConfig' },
   { path: '/admin/settings', screen: 'SCR-43', titleKey: 'adminSettings' },
+  // The markets' data health and maintenance switch: no SRS screen (D-158).
+  {
+    path: '/admin/market-health',
+    screen: 'D-158',
+    titleKey: 'adminMarketHealth',
+  },
   { path: '/admin/audit-log', screen: 'SCR-44', titleKey: 'adminAuditLog' },
   { path: '/admin/account', screen: 'SCR-07', titleKey: 'adminAccount' },
 ] as const satisfies readonly RouteDefinition[];

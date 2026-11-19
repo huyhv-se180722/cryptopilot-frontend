@@ -74,6 +74,8 @@ export const en = {
       'The price has moved {deviation}R from your plan, beyond the allowed {max}R or past the take profit. The plan was not activated.',
     MSG48:
       'The Aggressive profile allows higher risk per trade and higher leverage and can lead to large losses. Continue?',
+    MSG57:
+      'Trading on this market is paused while exchange data is unavailable. Please try again once it reopens.',
     MSG56:
       'This post is under moderation review, so its images and videos cannot be removed. You can still edit the text or add media.',
   },
@@ -168,6 +170,7 @@ export const en = {
     adminNewsArticles: 'News articles',
     adminAiConfig: 'AI configuration',
     adminSettings: 'System settings',
+    adminMarketHealth: 'Market health',
     adminAuditLog: 'Audit log',
     adminAccount: 'Account security',
   },
@@ -3321,6 +3324,7 @@ export const en = {
     newsSources: 'News Sources',
     newsArticles: 'News Articles',
     aiConfig: 'AI Configuration',
+    marketHealth: 'Market Health',
     settings: 'System Settings',
     auditLog: 'Audit Log',
     account: 'Account security',
@@ -3330,6 +3334,83 @@ export const en = {
     bannedTitle: 'Account banned',
     statusLocked: 'locked',
     statusBanned: 'banned',
+  },
+  marketStatus: {
+    spot: 'Spot',
+    futures: 'Futures',
+    pausedTitle: '{market} trading is paused',
+    pausedBody:
+      'Exchange data has been unavailable since {since}. Your orders, positions and plans are kept; nothing is filled, liquidated or charged until the data is back.',
+    maintenanceTitle: '{market} is under maintenance',
+    maintenanceBody:
+      'Trading is closed. Your orders, positions and plans are kept.',
+    expectedEnd: 'Expected to end at {time}.',
+    retryAt: 'The exchange accepts calls again at about {time}.',
+    recoveringTitle: '{market} is catching up',
+    recoveringBody:
+      'Exchange data is back. The missed period is being applied as the exchange traded; trading reopens when it is done.',
+    progress: '{done} of {total} pairs caught up',
+    resumedTitle: '{market} trading has reopened',
+    resumedBody:
+      "The period from {since} to {resumed} was applied at the exchange's prices. Check your notifications for what changed.",
+    referenceOkx: 'Reference prices from OKX, for display only.',
+    referenceNone: 'No reference price is available.',
+    dismiss: 'Dismiss',
+    reasons: {
+      STREAM_LOST: 'the exchange stream sends nothing',
+      REST_UNAVAILABLE: 'the exchange does not answer',
+      RATE_LIMITED: 'the exchange limits our calls',
+      IP_BANNED: 'the exchange blocked the server',
+      MAINTENANCE: 'maintenance',
+    },
+    blocked:
+      '{market} trading is paused: orders cannot be placed, changed or cancelled now.',
+    pairBlocked:
+      'Data for {symbol} is unavailable: trading this pair is paused.',
+    sourceLabel: 'Source: OKX (reference)',
+    referencePrice: 'Reference price',
+    asOf: 'as of {time}',
+    diverged: 'This reference price may differ markedly from the exchange.',
+    noReference: 'No reference price for this pair.',
+    bookPaused: 'Paused',
+    bookPausedBody:
+      'The order book and trades return when exchange data is back.',
+    estimated: 'Estimated at the last exchange mark, {time}.',
+  },
+  marketHealthAdmin: {
+    title: 'Market health',
+    subtitle:
+      'Data health of each market, maintenance switch and incident history. Trading on a market closes while its exchange data is lost.',
+    state: 'State',
+    states: {
+      LIVE: 'Live',
+      RECONNECTING: 'Reconnecting',
+      PAUSED: 'Paused',
+      RECOVERING: 'Recovering',
+      MAINTENANCE: 'Maintenance',
+    },
+    since: 'Data lost since',
+    reason: 'Reason',
+    source: 'Displayed prices',
+    message: 'Message for the Traders',
+    messageHint: 'At most 500 characters, shown on the banner.',
+    expectedEnd: 'Expected end',
+    start: 'Start maintenance',
+    end: 'End maintenance',
+    resume: 'Reopen by hand',
+    resumeHint:
+      'Only for an outage longer than can be replayed: trading reopens without waiting for the catch-up.',
+    resumeConfirm:
+      'Reopen {market} trading now, without waiting for the catch-up?',
+    started: 'Maintenance started.',
+    ended: 'Maintenance ended. Trading reopens once the data has caught up.',
+    resumed: 'Trading reopened.',
+    incidents: 'Incidents',
+    kind: 'Kind',
+    pausedAt: 'Paused',
+    resumedAt: 'Reopened',
+    open: 'Open',
+    none: 'No incident yet.',
   },
   theme: {
     label: 'Appearance',
