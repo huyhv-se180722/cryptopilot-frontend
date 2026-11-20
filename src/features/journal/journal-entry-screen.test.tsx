@@ -297,5 +297,91 @@ describe('SCR-21 journal entry (T-052)', () => {
       ).toBeTruthy();
       expect(screen.getByRole('button', { name: 'Save review' })).toBeTruthy();
     });
+
+    it('uploads a new chart image and attaches it with the review', async () => {
+      const user = userEvent.setup();
+      const journal = fakeJournal();
+      vi.mocked(journal.uploadChartImage).mockImplementation(
+        async (_id, _file, onProgress) => {
+          onProgress?.(0.5);
+          return 'cryptopilot/journal/u/new-key';
+        },
+      );
+      await openEntry(journal);
+      await user.click(
+        await screen.findByRole('button', { name: 'Edit review' }),
+      );
+      const file = new File(['png'], 'chart.png', { type: 'image/png' });
+      await user.upload(screen.getByLabelText('Chart image'), file);
+      expect(journal.uploadChartImage).toHaveBeenCalledWith(
+        'j-1',
+        file,
+        expect.any(Function),
+      );
+      expect(
+        await screen.findByText('Uploaded. Save the review to attach it.'),
+      ).toBeTruthy();
+      await user.click(screen.getByRole('button', { name: 'Save review' }));
+      await waitFor(() =>
+        expect(journal.review).toHaveBeenCalledWith(
+          'j-1',
+          expect.objectContaining({
+            chartImageKey: 'cryptopilot/journal/u/new-key',
+          }),
+        ),
+      );
+    });
+
+    it('removes the chart image with the review', async () => {
+      const user = userEvent.setup();
+      const journal = fakeJournal(withImage);
+      await openEntry(journal);
+      await user.click(
+        await screen.findByRole('button', { name: 'Edit review' }),
+      );
+      await user.click(screen.getByRole('button', { name: 'Remove image' }));
+      expect(
+        screen.getByText('The image is removed when you save the review.'),
+      ).toBeTruthy();
+      await user.click(screen.getByRole('button', { name: 'Save review' }));
+      await waitFor(() =>
+        expect(journal.review).toHaveBeenCalledWith(
+          'j-1',
+          expect.objectContaining({ chartImageKey: null }),
+        ),
+      );
+    });
+
+    it('shows MSG32 when the file is refused, keeping the review as it was', async () => {
+      const user = userEvent.setup();
+      const journal = fakeJournal(withImage);
+      vi.mocked(journal.uploadChartImage).mockRejectedValue(
+        new ServiceError('Refused', 'HTTP_ERROR', 400, {
+          status: 400,
+          code: 'MEDIA_INVALID',
+          messageCode: 'MSG32',
+          messageArgs: ['5 MB'],
+          fieldErrors: {},
+        }),
+      );
+      await openEntry(journal);
+      await user.click(
+        await screen.findByRole('button', { name: 'Edit review' }),
+      );
+      await user.upload(
+        screen.getByLabelText('Chart image'),
+        new File(['x'], 'chart.png', { type: 'image/png' }),
+      );
+      expect((await screen.findByRole('alert')).textContent).toBe(
+        'File type or size is not supported (maximum 5 MB).',
+      );
+      await user.click(screen.getByRole('button', { name: 'Save review' }));
+      await waitFor(() =>
+        expect(journal.review).toHaveBeenCalledWith(
+          'j-1',
+          expect.objectContaining({ chartImageKey: KEY }),
+        ),
+      );
+    });
   });
 });

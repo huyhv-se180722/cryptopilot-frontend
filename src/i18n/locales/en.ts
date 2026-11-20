@@ -1614,6 +1614,13 @@ export const en = {
       'This review has a chart image this page cannot keep, so it is read only here.',
     textCount: '{count} / {max}',
     textLimit: '4,000 characters',
+    chartImageAdd: 'Add image',
+    chartImageReplace: 'Replace image',
+    chartImageRemove: 'Remove image',
+    chartImageUploading: 'Uploading {percent}%',
+    chartImageUploaded: 'Uploaded. Save the review to attach it.',
+    chartImageWillRemove: 'The image is removed when you save the review.',
+    chartImageHint: 'JPG, PNG or WEBP.',
   },
   chart: {
     timeframeLabel: 'Timeframe',

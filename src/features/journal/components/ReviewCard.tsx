@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useState } from 'react';
 import { Pencil } from 'lucide-react';
 import { Alert } from '../../../components/feedback/States';
 import { Button } from '../../../components/ui/Button';
@@ -17,6 +17,7 @@ import { problemOf } from '../../../services/api/errors';
 import type { JournalEntry } from '../../../types/domain';
 import { classNames } from '../../../utils/class-names';
 import { useSaveReview, useStrategies } from '../hooks/use-journal-entry';
+import { ChartImageField } from './ChartImageField';
 
 /** The backend's limit of each review text (UC-23). */
 export const REVIEW_TEXT_MAX = 4000;
@@ -141,15 +142,9 @@ const blankToNull = (value: string) => (value.trim() === '' ? null : value);
 export function ReviewCard({
   entry,
   symbol,
-  imageField,
 }: {
   entry: JournalEntry;
   symbol: string;
-  /** The chart image control (C4): its key, and the field that sets it. */
-  imageField?: (
-    key: string | null,
-    setKey: (key: string | null) => void,
-  ) => ReactNode;
 }) {
   const copy = useCopy();
   const j = copy.journal;
@@ -180,7 +175,7 @@ export function ReviewCard({
       {editing ? (
         <ReviewForm
           entry={entry}
-          imageField={imageField}
+          symbol={symbol}
           onDone={(saved) => {
             setEditing(false);
             if (saved)
@@ -204,13 +199,11 @@ const FIELDS = [
 
 function ReviewForm({
   entry,
-  imageField,
+  symbol,
   onDone,
 }: {
   entry: JournalEntry;
-  imageField:
-    | ((key: string | null, setKey: (key: string | null) => void) => ReactNode)
-    | undefined;
+  symbol: string;
   onDone: (saved: boolean) => void;
 }) {
   const copy = useCopy();
@@ -300,7 +293,14 @@ function ReviewForm({
         onChange={setMistakes}
         error={fieldError('mistakes', j.mistakes)}
       />
-      {imageField?.(imageKey, setImageKey)}
+      <ChartImageField
+        tradeId={entry.trade.id}
+        savedUrl={entry.chartImageUrl}
+        savedKey={entry.chartImageKey}
+        imageKey={imageKey}
+        onKey={setImageKey}
+        alt={formatCopy(j.chartImageAlt, { symbol })}
+      />
       {fieldErrors.chartImagePublicId && (
         <span role="alert" className={fieldErrorClass}>
           {fieldError('chartImagePublicId', j.chartImage)}
