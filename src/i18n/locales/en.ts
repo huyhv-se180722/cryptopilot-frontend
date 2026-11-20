@@ -1459,6 +1459,8 @@ export const en = {
     watchlistMore: 'View all',
     notificationsTitle: 'Recent notifications',
     performanceTitle: 'Performance summary',
+    performanceScope: 'All time · closed simulated trades',
+    performanceBar: '{rate}% win rate · {trades} trades',
     newsTitle: 'Latest news',
     openPage: 'Open',
   },

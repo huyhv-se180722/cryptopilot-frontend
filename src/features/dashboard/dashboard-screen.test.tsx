@@ -8,12 +8,14 @@ import { DashboardPage } from '../../pages/trader/DashboardPage';
 import type {
   MarketFeed,
   MarketService,
+  PerformanceService,
   TradingPlanService,
   WatchlistService,
 } from '../../services/api/contracts';
 import type {
   MarketOverview,
   MarketTicker,
+  PerformanceSummary,
   PlanEntitlements,
   Session,
   TradingPlanSummary,
@@ -121,7 +123,10 @@ const entitlements: PlanEntitlements = {
   limits: { ACTIVE_PLAN_MAX: 5, WATCHLIST_MAX: 10 },
 };
 
-async function open(locale: Locale = 'en') {
+async function open(
+  locale: Locale = 'en',
+  extra: { performance?: PerformanceService } = {},
+) {
   let overview: ((value: MarketOverview) => void) | null = null;
   const market: MarketService = {
     listPairs: vi.fn(async () => PAIRS),
@@ -186,7 +191,7 @@ async function open(locale: Locale = 'en') {
     ],
     '/dashboard',
     fakeAuth({ restoreSession: async () => session }),
-    { market, marketFeed, tradingPlan, watchlist },
+    { market, marketFeed, tradingPlan, watchlist, ...extra },
   );
   return {
     tradingPlan,
@@ -291,5 +296,134 @@ describe('SCR-08 Trader dashboard (T-112)', () => {
     expect(
       screen.getByRole('region', { name: 'Market snapshot' }),
     ).toBeTruthy();
+  });
+
+  describe('performance summary', () => {
+    const summary = (
+      over: Partial<PerformanceSummary> = {},
+    ): PerformanceSummary => ({
+      from: null,
+      to: '2026-11-22',
+      trades: 46,
+      wins: 31,
+      losses: 14,
+      breakeven: 1,
+      winRate: '0.67391304',
+      totalNetPnl: '1642.50000000',
+      provisionalTrades: 0,
+      totalFees: '84.55000000',
+      totalFunding: '-7.32000000',
+      advanced: {
+        averageWin: '120.00000000',
+        averageLoss: '-80.00000000',
+        profitFactor: '2.10000000',
+        averagePlannedRiskReward: '2.40000000',
+        averageRealizedR: '0.85000000',
+        tradesWithR: 40,
+        largestWin: '312.00000000',
+        largestLoss: '-150.00000000',
+        maxConsecutiveLosses: 3,
+        maxDrawdown: '400.00000000',
+        averageEntryDeviationR: null,
+        costOfLateEntryR: null,
+        averageMaeR: null,
+        averageMfeR: null,
+      },
+      ...over,
+    });
+    const service = (
+      result: () => Promise<PerformanceSummary>,
+    ): PerformanceService =>
+      ({
+        summary: vi.fn(result),
+        breakdown: vi.fn(),
+        equityCurve: vi.fn(),
+      }) as unknown as PerformanceService;
+    const block = () =>
+      screen.findByRole('region', { name: 'Performance summary' });
+
+    it('reads the simulated trades of all time and shows the server figures', async () => {
+      const performance = service(async () => summary());
+      await open('en', { performance });
+      const region = await block();
+      await waitFor(() => expect(region.textContent).toContain('46'));
+      expect(performance.summary).toHaveBeenCalledWith(
+        { source: 'SIMULATED' },
+        expect.anything(),
+      );
+      expect(region.textContent).toContain(
+        'All time · closed simulated trades',
+      );
+      expect(region.textContent).toContain('+1,642.50 USDT');
+      expect(region.textContent).toContain('67.39%');
+      expect(region.textContent).toContain('Wins 31 · Losses 14 · Breakeven 1');
+      expect(region.textContent).toContain('Average realized R');
+      expect(region.textContent).toContain('+312.00 USDT');
+      expect(
+        within(region).getByRole('img', {
+          name: '67.39% win rate · 46 trades',
+        }),
+      ).toBeTruthy();
+      expect(
+        within(region)
+          .getByRole('link', { name: /open/i })
+          .getAttribute('href'),
+      ).toBe('/performance');
+    });
+
+    it('signs a loss and leaves out the PRO figures the server does not send (FREE)', async () => {
+      await open('en', {
+        performance: service(async () =>
+          summary({
+            totalNetPnl: '-1148.99417816',
+            winRate: '0.00000000',
+            wins: 0,
+            losses: 15,
+            breakeven: 0,
+            trades: 15,
+            advanced: null,
+          }),
+        ),
+      });
+      const region = await block();
+      await waitFor(() =>
+        expect(region.textContent).toContain('-1,148.99 USDT'),
+      );
+      expect(region.textContent).not.toContain('Average realized R');
+      expect(region.textContent).not.toContain('Largest win');
+    });
+
+    it('says there are no results when no trade is closed yet', async () => {
+      await open('en', {
+        performance: service(async () =>
+          summary({
+            trades: 0,
+            wins: 0,
+            losses: 0,
+            breakeven: 0,
+            winRate: null,
+            totalNetPnl: null,
+            advanced: null,
+          }),
+        ),
+      });
+      const region = await block();
+      await waitFor(() =>
+        expect(region.textContent).toContain('No results found.'),
+      );
+    });
+
+    it('shows the server error instead of figures', async () => {
+      await open('en', {
+        performance: service(async () => {
+          throw new Error('boom');
+        }),
+      });
+      const region = await block();
+      await waitFor(() =>
+        expect(region.textContent).toContain('Something went wrong'),
+      );
+      expect(region.textContent).not.toContain('USDT');
+    });
   });
 });
