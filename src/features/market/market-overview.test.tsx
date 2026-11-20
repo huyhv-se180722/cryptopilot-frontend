@@ -149,6 +149,25 @@ describe('market overview (D-126)', () => {
     expect(absoluteChange('52269', '-1.13', '1')).toBe('-597');
   });
 
+  it('computes the change in exact decimals, not floats', () => {
+    // 2.01 at +100 % moved by 1.005: half-up gives 1.01; the float formula
+    // gave 1.0049999… and showed +1.00.
+    expect(absoluteChange('2.01', '100', '0.01')).toBe('+1.01');
+    expect(absoluteChange('0.00012345', '23.45', '0.00000001')).toBe(
+      '+0.00002345',
+    );
+    expect(absoluteChange('95', '-5', '0.01')).toBe('-5.00');
+    expect(absoluteChange('99999.99', '0', '0.01')).toBe('+0.00');
+    // A fall too small for the tick is no fall: never "-0.00".
+    expect(absoluteChange('0.0001', '-0.0001', '0.01')).toBe('+0.00');
+  });
+
+  it('gives no change when it cannot be told', () => {
+    expect(absoluteChange('10', '-100', '0.01')).toBeNull();
+    expect(absoluteChange('10', '-150', '0.01')).toBeNull();
+    expect(absoluteChange('n/a', '5', '0.01')).toBeNull();
+  });
+
   it('ranks the gainers and losers by their 24-hour change, pairs without a ticker left out', () => {
     const pairs = ['A', 'B', 'C'].map((b, i) => pair(b, 'spot', i));
     const tickers = new Map([
