@@ -1,5 +1,9 @@
-import { Link, useParams } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ChevronLeft, Pencil, Trash2 } from 'lucide-react';
+import { Button } from '../../components/ui/Button';
+import { Dialog } from '../../components/ui/Dialog';
+import { buttonClassName } from '../../components/ui/button-styles';
 import { ErrorState } from '../../components/feedback/States';
 import { Card } from '../../components/ui/Card';
 import { SectionTitle } from '../../components/ui/SectionTitle';
@@ -12,7 +16,10 @@ import { LearningCard } from '../../features/journal/components/LearningCard';
 import { AmountValue } from '../../features/journal/components/PerformanceValues';
 import { ReviewCard } from '../../features/journal/components/ReviewCard';
 import { TradeFacts } from '../../features/journal/components/TradeFacts';
-import { useJournalEntry } from '../../features/journal/hooks/use-journal-entry';
+import {
+  useDeleteManualTrade,
+  useJournalEntry,
+} from '../../features/journal/hooks/use-journal-entry';
 import { tradeResult } from '../../features/journal/model/trade-result';
 import { DirectionText } from '../../features/trading-plan/components/PlanBadges';
 import { classNames } from '../../utils/class-names';
@@ -36,6 +43,9 @@ export function JournalEntryPage() {
   const symbol = pair ? pairLabel(pair.symbol) : copy.market.noValue;
   const missing = query.missing;
   const result = entry ? tradeResult(entry.trade) : null;
+  const navigate = useNavigate();
+  const remove = useDeleteManualTrade(entryId);
+  const [confirming, setConfirming] = useState(false);
 
   return (
     <div className="w-full">
@@ -84,6 +94,25 @@ export function JournalEntryPage() {
                 {j.openPlan}
               </Link>
             )}
+            {entry.trade.source === 'MANUAL' && (
+              <div className="ml-auto flex gap-2">
+                <Link
+                  to={`/journal/new?edit=${entry.trade.id}`}
+                  className={buttonClassName('secondary', 'sm', 'no-underline')}
+                >
+                  <Pencil size={13} aria-hidden="true" />
+                  {j.editTrade}
+                </Link>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => setConfirming(true)}
+                >
+                  <Trash2 size={13} aria-hidden="true" />
+                  {j.deleteTrade}
+                </Button>
+              </div>
+            )}
           </header>
           <div
             className={classNames(
@@ -107,6 +136,47 @@ export function JournalEntryPage() {
               {copy.plan.journalProvisional}
             </p>
           )}
+          <Dialog
+            open={confirming}
+            onOpenChange={(open) => {
+              if (!remove.isPending) setConfirming(open);
+            }}
+            title={j.deleteTitle}
+            accent="negative"
+            footer={
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={remove.isPending}
+                  onClick={() => setConfirming(false)}
+                >
+                  {j.reviewCancel}
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  disabled={remove.isPending}
+                  onClick={() =>
+                    remove.mutate(undefined, {
+                      onSuccess: () => navigate('/journal', { replace: true }),
+                    })
+                  }
+                >
+                  {j.deleteConfirm}
+                </Button>
+              </>
+            }
+          >
+            <p className="m-0 text-xs text-fg-2">
+              {formatCopy(j.deleteBody, { symbol })}
+            </p>
+            {remove.isError && (
+              <p role="alert" className="mt-2 text-xs text-negative">
+                {errorText(copy, remove.error)}
+              </p>
+            )}
+          </Dialog>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <div className="flex min-w-0 flex-col gap-4">
               <Card>

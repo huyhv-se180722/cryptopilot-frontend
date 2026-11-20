@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { BarChart2 } from 'lucide-react';
+import { BarChart2, Plus } from 'lucide-react';
 import { ErrorState } from '../../components/feedback/States';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Badge, type Tone } from '../../components/ui/Badge';
@@ -181,16 +181,25 @@ export function JournalPage() {
         title={j.title}
         description={j.subtitle}
         actions={
-          <Link
-            to={
-              '/performance' +
-              (performanceSearch ? '?' + performanceSearch : '')
-            }
-            className={buttonClassName('secondary', 'sm', 'no-underline')}
-          >
-            <BarChart2 size={13} aria-hidden="true" />
-            {j.openPerformance}
-          </Link>
+          <>
+            <Link
+              to={
+                '/performance' +
+                (performanceSearch ? '?' + performanceSearch : '')
+              }
+              className={buttonClassName('secondary', 'sm', 'no-underline')}
+            >
+              <BarChart2 size={13} aria-hidden="true" />
+              {j.openPerformance}
+            </Link>
+            <Link
+              to="/journal/new"
+              className={buttonClassName('primary', 'sm', 'no-underline')}
+            >
+              <Plus size={13} aria-hidden="true" />
+              {j.recordTrade}
+            </Link>
+          </>
         }
       />
       <section
