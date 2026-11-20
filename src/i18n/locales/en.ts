@@ -1606,6 +1606,14 @@ export const en = {
     chartImage: 'Chart image',
     chartImageAlt: 'Chart of the {symbol} trade',
     reviewEmpty: 'No review yet.',
+    reviewEdit: 'Edit review',
+    reviewSave: 'Save review',
+    reviewSaving: 'Saving…',
+    reviewCancel: 'Cancel',
+    reviewImageLocked:
+      'This review has a chart image this page cannot keep, so it is read only here.',
+    textCount: '{count} / {max}',
+    textLimit: '4,000 characters',
   },
   chart: {
     timeframeLabel: 'Timeframe',

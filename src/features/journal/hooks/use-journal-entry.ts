@@ -44,12 +44,20 @@ export function useStrategies() {
   });
 }
 
-/** Keeps the answered trade and reads every list again. */
+/**
+ * Keeps the answered trade and reads the lists again, not the trade
+ * itself: the answer already is its new state.
+ */
 function useSettle() {
   const client = useQueryClient();
   return (entry: JournalEntry) => {
-    client.setQueryData(entryKey(entry.trade.id), entry);
-    void client.invalidateQueries({ queryKey: LIST_KEY });
+    const key = entryKey(entry.trade.id);
+    client.setQueryData(key, entry);
+    void client.invalidateQueries({
+      queryKey: LIST_KEY,
+      predicate: (query) =>
+        !(query.queryKey[3] === key[3] && query.queryKey[4] === key[4]),
+    });
   };
 }
 

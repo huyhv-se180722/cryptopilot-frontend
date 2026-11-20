@@ -10,7 +10,7 @@ import { errorText, messageText } from '../../i18n/messages';
 import { usePairLookup } from '../../features/market/hooks/use-market-data';
 import { LearningCard } from '../../features/journal/components/LearningCard';
 import { AmountValue } from '../../features/journal/components/PerformanceValues';
-import { ReviewView } from '../../features/journal/components/ReviewCard';
+import { ReviewCard } from '../../features/journal/components/ReviewCard';
 import { TradeFacts } from '../../features/journal/components/TradeFacts';
 import { useJournalEntry } from '../../features/journal/hooks/use-journal-entry';
 import { tradeResult } from '../../features/journal/model/trade-result';
@@ -125,8 +125,7 @@ export function JournalEntryPage() {
               )}
             </div>
             <Card className="self-start">
-              <SectionTitle>{j.reviewTitle}</SectionTitle>
-              <ReviewView entry={entry} symbol={symbol} />
+              <ReviewCard entry={entry} symbol={symbol} />
             </Card>
           </div>
         </>

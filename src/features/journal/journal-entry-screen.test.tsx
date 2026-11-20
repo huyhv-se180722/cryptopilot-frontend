@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { JournalEntryPage } from '../../pages/trader/JournalEntryPage';
 import type {
   JournalService,
@@ -197,5 +198,104 @@ describe('SCR-21 journal entry (T-052)', () => {
     );
     const alert = await screen.findByRole('alert');
     expect(within(alert).getByText('No results found.')).toBeTruthy();
+  });
+
+  describe('review (UC-23)', () => {
+    const KEY =
+      'cryptopilot/journal/01a18806-f703-7786-8f90-8c7c34ce23e8/0b6f2f0e-1d2c-4c5b-9a8e-7f6e5d4c3b2a';
+    const withImage: JournalEntry = {
+      ...SIMULATED_ENTRY,
+      chartImageUrl:
+        'https://res.cloudinary.com/d/image/upload/v1/' + KEY + '.png',
+      chartImageKey: KEY,
+    };
+
+    it('sends the whole review again, keeping the strategy and the image', async () => {
+      const user = userEvent.setup();
+      const journal = fakeJournal(withImage);
+      await openEntry(journal);
+      await user.click(
+        await screen.findByRole('button', { name: 'Edit review' }),
+      );
+      const strategy = screen.getByLabelText('Strategy') as HTMLSelectElement;
+      await waitFor(() => expect(strategy.value).toBe('s-1'));
+      await user.type(screen.getByLabelText('Lessons learned'), 'Wait.');
+      expect(screen.getByText('5 / 4000')).toBeTruthy();
+      const reads = vi.mocked(journal.get).mock.calls.length;
+      await user.click(screen.getByRole('button', { name: 'Save review' }));
+      await waitFor(() =>
+        expect(journal.review).toHaveBeenCalledWith('j-1', {
+          strategyId: 's-1',
+          setupDescription: 'Rejected at the weekly level.',
+          lessonsLearned: 'Wait.',
+          mistakes: 'Moved the stop.',
+          chartImageKey: KEY,
+        }),
+      );
+      expect(await screen.findByText('Saved successfully.')).toBeTruthy();
+      // The answer is the new state: the trade is not read again.
+      expect(journal.get).toHaveBeenCalledTimes(reads);
+      expect(screen.queryByRole('button', { name: 'Save review' })).toBeNull();
+      expect(screen.getByText('Wait.')).toBeTruthy();
+    });
+
+    it('clears a text left blank and a strategy taken off', async () => {
+      const user = userEvent.setup();
+      const journal = fakeJournal();
+      await openEntry(journal);
+      await user.click(
+        await screen.findByRole('button', { name: 'Edit review' }),
+      );
+      await user.clear(screen.getByLabelText('Mistakes'));
+      await user.type(screen.getByLabelText('Setup'), '   ');
+      await user.selectOptions(screen.getByLabelText('Strategy'), '');
+      await user.click(screen.getByRole('button', { name: 'Save review' }));
+      await waitFor(() =>
+        expect(journal.review).toHaveBeenCalledWith(
+          'j-1',
+          expect.objectContaining({ strategyId: null, mistakes: null }),
+        ),
+      );
+    });
+
+    it('keeps a review read only when its image key cannot be read back (Q-97)', async () => {
+      await openEntry(
+        fakeJournal({
+          ...SIMULATED_ENTRY,
+          chartImageUrl: 'https://cdn.example.com/chart.png',
+          chartImageKey: null,
+        }),
+      );
+      await screen.findByRole('heading', { name: 'BTC/USDT · Futures' });
+      expect(screen.queryByRole('button', { name: 'Edit review' })).toBeNull();
+      expect(
+        screen.getByText(/chart image this page cannot keep/),
+      ).toBeTruthy();
+    });
+
+    it('shows a text the server refuses under its field (MSG15)', async () => {
+      const user = userEvent.setup();
+      const journal = fakeJournal();
+      vi.mocked(journal.review).mockRejectedValueOnce(
+        new ServiceError('Invalid', 'HTTP_ERROR', 400, {
+          status: 400,
+          code: 'VALIDATION_FAILED',
+          messageCode: 'MSG01',
+          messageArgs: [],
+          fieldErrors: { lessonsLearned: 'MSG15' },
+        }),
+      );
+      await openEntry(journal);
+      await user.click(
+        await screen.findByRole('button', { name: 'Edit review' }),
+      );
+      await user.click(screen.getByRole('button', { name: 'Save review' }));
+      expect(
+        await screen.findByText(
+          'Lessons learned must be between 0 and 4,000 characters.',
+        ),
+      ).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Save review' })).toBeTruthy();
+    });
   });
 });
