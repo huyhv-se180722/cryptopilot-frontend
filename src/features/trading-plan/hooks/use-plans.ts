@@ -18,6 +18,8 @@ import type {
 export const PLAN_PAGE_SIZE = 20;
 
 const LIST_KEY = ['plans', 'list'] as const;
+/** The tab counts of SCR-16, under the plan list's key. */
+export const TAB_COUNTS_KEY = [...LIST_KEY, 'tab-counts'] as const;
 const detailKey = (id: string) => ['plans', 'detail', id] as const;
 const DAY_MS = 86_400_000;
 
@@ -283,7 +285,16 @@ export function usePositionUpdates() {
     () =>
       tradingPlan.subscribePositions((update) => {
         void client.invalidateQueries({ queryKey: detailKey(update.planId) });
-        void client.invalidateQueries({ queryKey: LIST_KEY });
+        // An exit keeps the plan in the Executed tab, so the tab counts stay
+        // right and are not read again; a fill moves it from Active.
+        void client.invalidateQueries({
+          queryKey: LIST_KEY,
+          ...(update.status === 'CLOSED'
+            ? {
+                predicate: (query) => query.queryKey[2] !== TAB_COUNTS_KEY[2],
+              }
+            : {}),
+        });
       }),
     [tradingPlan, client],
   );

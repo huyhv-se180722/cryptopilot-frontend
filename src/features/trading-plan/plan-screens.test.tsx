@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { PlanCreatePage } from '../../pages/trader/PlanCreatePage';
 import { PlanDetailPage } from '../../pages/trader/PlanDetailPage';
@@ -2043,6 +2043,98 @@ describe('SCR-19 close an open position (T-047, UC-21)', () => {
         'Take profit',
       ),
     );
+  });
+});
+
+describe('SCR-16 requests (review 2026-10-28)', () => {
+  // Only the tab counts read the Draft tab one row at a time.
+  const counts = (service: TradingPlanService) =>
+    vi
+      .mocked(service.list)
+      .mock.calls.filter(
+        ([query]) => query.pageSize === 1 && query.tab === 'DRAFT',
+      ).length;
+
+  it('reads the tab counts again on a fill, not on an exit', async () => {
+    let push:
+      | ((update: {
+          planId: string;
+          status: 'OPEN' | 'CLOSED';
+          closeReason: null;
+          netPnl: null;
+          provisional: boolean;
+        }) => void)
+      | undefined;
+    const service = fakePlans({
+      subscribePositions: vi.fn((listener) => {
+        push = listener as typeof push;
+        return () => undefined;
+      }),
+    });
+    await open('/plans', service);
+    await screen.findByRole('region', { name: 'Draft trading plans' });
+    await waitFor(() => expect(counts(service)).toBeGreaterThan(0));
+    const lists = () => vi.mocked(service.list).mock.calls.length;
+    // Settled: nothing more is read without a push.
+    let settled = lists();
+    await waitFor(() => {
+      const now = lists();
+      const still = now === settled;
+      settled = now;
+      expect(still).toBe(true);
+    });
+    const base = counts(service);
+
+    // An exit: the plan stays in Executed; the list is read, the counts not.
+    const before = lists();
+    act(() =>
+      push?.({
+        planId: ROW.id,
+        status: 'CLOSED',
+        closeReason: null,
+        netPnl: null,
+        provisional: false,
+      }),
+    );
+    await waitFor(() => expect(lists()).toBeGreaterThan(before));
+    expect(counts(service)).toBe(base);
+
+    // A fill moves the plan from Active to Executed: the counts are read.
+    act(() =>
+      push?.({
+        planId: ROW.id,
+        status: 'OPEN',
+        closeReason: null,
+        netPnl: null,
+        provisional: false,
+      }),
+    );
+    await waitFor(() => expect(counts(service)).toBeGreaterThan(base));
+  });
+
+  it('streams no coin prices while the coin column is hidden (below xl)', async () => {
+    const matchMedia = vi.fn((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+    vi.stubGlobal('matchMedia', matchMedia);
+    try {
+      const market = fakeMarket();
+      await open('/plans', fakePlans(), 'FREE', market);
+      await screen.findByRole('region', { name: 'Draft trading plans' });
+      expect(matchMedia).toHaveBeenCalledWith('(min-width: 1280px)');
+      expect(
+        screen.queryByRole('complementary', {
+          name: 'Coins to filter the plans and the journal by',
+        }),
+      ).toBeNull();
+      expect(screen.queryByText('Coins')).toBeNull();
+      expect(market.getTicker).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 

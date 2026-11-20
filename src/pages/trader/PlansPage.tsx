@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
@@ -31,6 +31,7 @@ import {
   useActivePlanCount,
   usePlanList,
   usePositionUpdates,
+  TAB_COUNTS_KEY,
 } from '../../features/trading-plan/hooks/use-plans';
 import type { MarketPair, MarketType, PlanTab } from '../../types/domain';
 import { classNames } from '../../utils/class-names';
@@ -97,7 +98,7 @@ function useTabCounts(filter: {
 }) {
   const { tradingPlan } = useServices();
   return useQuery({
-    queryKey: ['plans', 'list', 'tab-counts', filter],
+    queryKey: [...TAB_COUNTS_KEY, filter],
     queryFn: async ({ signal }) => {
       const from = filter.periodDays
         ? new Date(Date.now() - filter.periodDays * 86_400_000).toISOString()
@@ -122,6 +123,28 @@ function useTabCounts(filter: {
       return new Map(TABS.map((tab, index) => [tab, totals[index] ?? 0]));
     },
   });
+}
+
+/** Tailwind's `xl` breakpoint. */
+const XL = 1280;
+
+/** True while the window is at least `width` wide. */
+function useMinWidth(width: number) {
+  const query = `(min-width: ${width}px)`;
+  const [matches, setMatches] = useState(
+    () =>
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia(query).matches,
+  );
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const media = window.matchMedia(query);
+    const onChange = () => setMatches(media.matches);
+    onChange();
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
+  }, [query]);
+  return matches;
 }
 
 /**
@@ -200,6 +223,9 @@ export function PlansPage() {
       ...(futuresPairs ?? []).filter((pair) => !onSpot.has(pair.pairId)),
     ];
   }, [spotPairs, futuresPairs]);
+  // The coin column shows from `xl` only; below it its live prices are
+  // neither streamed nor polled.
+  const wide = useMinWidth(XL);
   const period = periodOf(params.get('period'));
   const page = Math.max(1, Number(params.get('page')) || 1);
   // A position closed by the engine updates the Executed tab (T-048b).
@@ -287,7 +313,7 @@ export function PlansPage() {
   );
 
   return (
-    <CoinPricesProvider>
+    <>
       <div className="w-full">
         <header className="mb-4 flex flex-wrap items-center gap-3">
           <h1 className="mr-auto text-lg font-semibold text-fg">
@@ -350,16 +376,20 @@ export function PlansPage() {
               className="xl:sticky xl:top-16 xl:max-h-[calc(100dvh-5rem)]"
             />
           </aside>
-          <aside className="hidden xl:order-3 xl:block">
-            <div className="xl:w-[250px] has-[>button]:xl:w-9">
-              <CoinColumn
-                pairId={pairId}
-                onPair={(value) => update({ pair: value || null })}
-              />
-            </div>
-          </aside>
+          {wide && (
+            <aside className="hidden xl:order-3 xl:block">
+              <div className="xl:w-[250px] has-[>button]:xl:w-9">
+                <CoinPricesProvider>
+                  <CoinColumn
+                    pairId={pairId}
+                    onPair={(value) => update({ pair: value || null })}
+                  />
+                </CoinPricesProvider>
+              </div>
+            </aside>
+          )}
         </div>
       </div>
-    </CoinPricesProvider>
+    </>
   );
 }
