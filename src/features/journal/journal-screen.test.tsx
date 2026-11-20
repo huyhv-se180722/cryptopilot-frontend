@@ -49,6 +49,13 @@ function service(items: readonly JournalTrade[] = [TRADE], total = 1) {
       pageSize,
       total,
     })),
+    get: vi.fn(),
+    record: vi.fn(),
+    edit: vi.fn(),
+    remove: vi.fn(),
+    review: vi.fn(),
+    uploadChartImage: vi.fn(),
+    strategies: vi.fn(async () => []),
   } satisfies JournalService;
 }
 

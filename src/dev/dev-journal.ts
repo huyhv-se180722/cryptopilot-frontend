@@ -5,6 +5,8 @@ import type {
 import { ServiceError } from '../services/api/errors';
 import type {
   EquityPoint,
+  JournalEntry,
+  ManualTradeInput,
   PerformanceAdvanced,
   PerformanceBreakdownRow,
   PerformanceFilter,
@@ -12,7 +14,11 @@ import type {
 } from '../types/domain';
 import { addDays, businessDay } from '../utils/business-day';
 import { add, compare, divide, subtract } from '../utils/decimal-math';
-import { devJournalTrades, type DevTrade } from './fixtures/journal';
+import {
+  devJournalStrategies,
+  devJournalTrades,
+  type DevTrade,
+} from './fixtures/journal';
 import { devPairs } from './fixtures/market';
 
 function refuse(
@@ -154,7 +160,8 @@ export function createDevelopmentJournal(
   session: () => Promise<Session | null>,
   now: () => number = Date.now,
 ): { journal: JournalService; performance: PerformanceService } {
-  const trades = devJournalTrades(now());
+  // A copy the manual trades of this session are written to.
+  const trades = [...devJournalTrades(now())];
   const allowed = async () => {
     const entitlements = (await session())?.entitlements;
     return (
@@ -182,6 +189,102 @@ export function createDevelopmentJournal(
         (!filter.strategyId || trade.strategy?.id === filter.strategyId),
     );
   };
+  // The review of each trade, kept in memory (UC-23); no image storage in
+  // development, so a chart image cannot be uploaded here.
+  const reviews = new Map<
+    string,
+    Pick<JournalEntry, 'setupDescription' | 'lessonsLearned' | 'mistakes'>
+  >();
+  const strategies = devJournalStrategies();
+  const strategyOf = (id: string | null) => {
+    if (id === null) return null;
+    const found = strategies.find((strategy) => strategy.id === id);
+    if (!found)
+      refuse(400, 'VALIDATION_FAILED', 'MSG15', [], { strategyId: 'MSG15' });
+    return found;
+  };
+  const owned = (id: string) =>
+    trades.find((trade) => trade.id === id) ??
+    refuse(404, 'RESOURCE_NOT_FOUND', 'MSG41');
+  const entryOf = (trade: DevTrade): JournalEntry => {
+    const { strategy, risk, ...row } = trade;
+    const review = reviews.get(trade.id);
+    return {
+      trade: row,
+      strategyId: strategy?.id ?? null,
+      strategyName: strategy?.name ?? null,
+      setupDescription: review?.setupDescription ?? null,
+      lessonsLearned: review?.lessonsLearned ?? null,
+      mistakes: review?.mistakes ?? null,
+      chartImageUrl: null,
+      chartImageKey: null,
+      // Scripted: the fixture keeps the planned risk only (BR-70).
+      learning:
+        trade.source === 'SIMULATED'
+          ? {
+              plannedEntryPrice: null,
+              entryDeviationR: null,
+              entryLiquidity: null,
+              riskAmount: risk,
+              analysisTimeframe: null,
+              setupScorePreset: null,
+              setupScoreAtPlan: null,
+              setupScoreAtFill: null,
+              setupScoreDropWarned: null,
+              indicators: null,
+              maxAdversePrice: null,
+              maxFavorablePrice: null,
+              rMultiple: null,
+              maeR: null,
+              mfeR: null,
+            }
+          : null,
+    };
+  };
+  const manual = (id: string, input: ManualTradeInput): DevTrade => {
+    const missing = (
+      ['pairId', 'entryPrice', 'quantity', 'entryTime'] as const
+    ).filter((field) => !input[field]);
+    if (missing.length)
+      refuse(
+        400,
+        'VALIDATION_FAILED',
+        'MSG01',
+        [],
+        Object.fromEntries(missing.map((field) => [field, 'MSG01'])),
+      );
+    const closed = input.exitPrice !== null && input.exitTime !== null;
+    return {
+      id,
+      planId: null,
+      pairId: input.pairId,
+      market: input.market,
+      direction: input.direction,
+      source: 'MANUAL',
+      status: closed ? 'CLOSED' : 'OPEN',
+      leverage: input.leverage,
+      entryPrice: input.entryPrice,
+      quantity: input.quantity,
+      entryTime: input.entryTime,
+      entryFee: null,
+      stopLoss: input.stopLoss,
+      takeProfit: input.takeProfit,
+      exitPrice: closed ? input.exitPrice : null,
+      exitTime: closed ? input.exitTime : null,
+      closeReason: closed ? 'MANUAL' : null,
+      // The backend computes the P/L (BR-35); the fixture leaves it out.
+      realizedPnl: null,
+      feeAmount: closed ? (input.feeAmount ?? '0') : null,
+      fundingFeeAmount: input.fundingFeeAmount,
+      netPnl: null,
+      provisional: false,
+      strategy: strategyOf(input.strategyId),
+      risk: '0',
+    };
+  };
+  const simulatedRefused = (trade: DevTrade) => {
+    if (trade.source === 'SIMULATED') refuse(409, 'CONFLICT', 'MSG43');
+  };
   const symbol = (trade: DevTrade) =>
     devPairs(trade.market).find((pair) => pair.pairId === trade.pairId)
       ?.symbol ?? trade.pairId;
@@ -203,6 +306,51 @@ export function createDevelopmentJournal(
           total: rows.length,
         };
       },
+      get: async (id) => entryOf(owned(id)),
+      record: async (input) => {
+        const trade = manual(crypto.randomUUID(), input);
+        trades.unshift(trade);
+        reviews.set(trade.id, {
+          setupDescription: input.setupDescription,
+          lessonsLearned: input.lessonsLearned,
+          mistakes: input.mistakes,
+        });
+        return entryOf(trade);
+      },
+      edit: async (id, input) => {
+        const current = owned(id);
+        simulatedRefused(current);
+        const trade = manual(id, input);
+        trades.splice(trades.indexOf(current), 1, trade);
+        reviews.set(id, {
+          setupDescription: input.setupDescription,
+          lessonsLearned: input.lessonsLearned,
+          mistakes: input.mistakes,
+        });
+        return entryOf(trade);
+      },
+      remove: async (id) => {
+        const current = owned(id);
+        simulatedRefused(current);
+        trades.splice(trades.indexOf(current), 1);
+        reviews.delete(id);
+      },
+      review: async (id, review) => {
+        const current = owned(id);
+        current.strategy = strategyOf(review.strategyId);
+        if (review.chartImageKey !== null)
+          refuse(400, 'MEDIA_INVALID', 'MSG32', [], {
+            chartImagePublicId: 'MSG32',
+          });
+        reviews.set(id, {
+          setupDescription: review.setupDescription,
+          lessonsLearned: review.lessonsLearned,
+          mistakes: review.mistakes,
+        });
+        return entryOf(current);
+      },
+      uploadChartImage: async () => refuse(503, 'SERVICE_UNAVAILABLE', 'MSG43'),
+      strategies: async () => strategies,
     },
     performance: {
       summary: async (filter) => {

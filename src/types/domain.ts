@@ -598,6 +598,97 @@ export interface JournalPage {
   pageSize: number;
   total: number;
 }
+/** A strategy a Trader can tag a plan or a trade with (`GET /strategies`). */
+export interface Strategy {
+  id: string;
+  name: string;
+}
+export type LiquidityRole = 'MAKER' | 'TAKER';
+/** The indicators of the latest closed candle at the fill (BR-70). */
+export interface JournalIndicators {
+  timeframe: string | null;
+  openTime: ISODateTime | null;
+  macdLine: Decimal | null;
+  macdSignal: Decimal | null;
+  macdHistogram: Decimal | null;
+}
+/**
+ * What a simulated trade teaches (BR-70, D-111): the plan against the
+ * fill and the path of the price while open; null where not known.
+ */
+export interface JournalLearning {
+  plannedEntryPrice: Decimal | null;
+  /** In R; positive is a worse entry than planned. */
+  entryDeviationR: Decimal | null;
+  entryLiquidity: LiquidityRole | null;
+  riskAmount: Decimal | null;
+  analysisTimeframe: string | null;
+  /** Preset name and version of both scores, e.g. "DAY_TRADING v1". */
+  setupScorePreset: string | null;
+  setupScoreAtPlan: Decimal | null;
+  setupScoreAtFill: Decimal | null;
+  /** The score fell by at least the warning threshold (MSG55). */
+  setupScoreDropWarned: boolean | null;
+  indicators: JournalIndicators | null;
+  maxAdversePrice: Decimal | null;
+  maxFavorablePrice: Decimal | null;
+  /** Net P/L over the planned risk; CLOSED only. */
+  rMultiple: Decimal | null;
+  maeR: Decimal | null;
+  mfeR: Decimal | null;
+}
+/** `GET /journal/{id}` (SCR-21): a trade with its review. */
+export interface JournalEntry {
+  trade: JournalTrade;
+  strategyId: string | null;
+  strategyName: string | null;
+  setupDescription: string | null;
+  lessonsLearned: string | null;
+  mistakes: string | null;
+  chartImageUrl: string | null;
+  /**
+   * The storage key of the image, read back from its address until the
+   * detail returns it (Q-97); null without an image or when the address
+   * has another shape, in which case the review cannot keep the image.
+   */
+  chartImageKey: string | null;
+  /** Null for a manual trade. */
+  learning: JournalLearning | null;
+}
+/**
+ * `PUT /journal/{id}/review` (UC-23). The whole review is replaced: a null
+ * clears its field, the chart image included.
+ */
+export interface JournalReview {
+  strategyId: string | null;
+  setupDescription: string | null;
+  lessonsLearned: string | null;
+  mistakes: string | null;
+  /** The storage key of the image to keep or attach; null removes it. */
+  chartImageKey: string | null;
+}
+/** A trade made outside CryptoPilot (SCR-22, UC-24); source MANUAL. */
+export interface ManualTradeInput {
+  pairId: string;
+  market: MarketType;
+  direction: PlanDirection;
+  leverage: number | null;
+  entryPrice: Decimal;
+  quantity: Decimal;
+  entryTime: ISODateTime;
+  stopLoss: Decimal | null;
+  takeProfit: Decimal | null;
+  /** With `exitTime`, the trade is CLOSED; without both, OPEN. */
+  exitPrice: Decimal | null;
+  exitTime: ISODateTime | null;
+  feeAmount: Decimal | null;
+  /** Signed: + received. */
+  fundingFeeAmount: Decimal | null;
+  strategyId: string | null;
+  setupDescription: string | null;
+  lessonsLearned: string | null;
+  mistakes: string | null;
+}
 export type PerformanceSource = 'SIMULATED' | 'MANUAL' | 'ALL';
 /** The filters of every `/journal/performance/*` read (SCR-23, UC-25). */
 export interface PerformanceFilter {

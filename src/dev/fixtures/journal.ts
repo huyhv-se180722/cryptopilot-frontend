@@ -17,6 +17,11 @@ const PULLBACK: DevStrategy = {
   name: 'Pullback (fixture)',
 };
 
+/** The strategies of `GET /strategies` in development (labelled fixtures). */
+export function devJournalStrategies(): DevStrategy[] {
+  return [BREAKOUT, PULLBACK];
+}
+
 /** A journal row and what only the statistics read. */
 export interface DevTrade extends JournalTrade {
   strategy: DevStrategy | null;
