@@ -201,6 +201,34 @@ describe('market overview (D-126)', () => {
     );
   });
 
+  it('draws intraday ranges in local time and daily ranges in UTC, as the analysis chart', async () => {
+    // A Trader in UTC+7 (the owner's zone), whatever zone the test runs in.
+    const zone = vi
+      .spyOn(Date.prototype, 'getTimezoneOffset')
+      .mockReturnValue(-420);
+    try {
+      const user = userEvent.setup();
+      const { publish } = await open();
+      publish('spot', [ticker('BTC', 'spot', '110', '10')]);
+      const utc = (i: number) => Date.UTC(2026, 9, 25, i) / 1000;
+      // 1D = 15m candles: moved by the local offset.
+      expect(chart.setData).toHaveBeenLastCalledWith([
+        expect.objectContaining({ time: utc(0) + 7 * 3600 }),
+        expect.objectContaining({ time: utc(1) + 7 * 3600 }),
+        expect.objectContaining({ time: utc(2) + 7 * 3600 }),
+      ]);
+      // 6M = daily candles: a Binance day starts at 00:00 UTC, kept as is.
+      await user.click(screen.getByRole('radio', { name: '6M' }));
+      expect(chart.setData).toHaveBeenLastCalledWith([
+        expect.objectContaining({ time: utc(0) }),
+        expect.objectContaining({ time: utc(1) }),
+        expect.objectContaining({ time: utc(2) }),
+      ]);
+    } finally {
+      zone.mockRestore();
+    }
+  });
+
   it('flashes a price green when it rises and red when it falls', async () => {
     const { publish } = await open();
     publish('spot', [ticker('BTC', 'spot', '110', '10')]);
