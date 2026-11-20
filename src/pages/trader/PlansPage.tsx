@@ -344,8 +344,9 @@ export function PlansPage() {
           </div>
           <aside className="min-w-0 xl:order-1">
             <JournalPanel
-              key={pairId}
+              key={pairId + '|' + market}
               pairId={pairId}
+              market={market}
               pairOf={pairOf}
               className="xl:sticky xl:top-16 xl:max-h-[calc(100dvh-5rem)]"
             />

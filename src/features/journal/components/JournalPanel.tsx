@@ -32,15 +32,18 @@ const FILTERS: readonly Filter[] = ['ALL', 'OPEN', 'CLOSED'];
 /**
  * The journal column of SCR-16 (SCR-20 folded in, UC-22): the trades the
  * Trader's plans filled, the latest entry first, filtered by status and by
- * the pair the page is filtered by. A closed trade shows its net P/L, the
+ * the pair and market the page is filtered by. A closed trade shows its net P/L, the
  * one the plan detail shows; a row opens the plan that carried it out.
  */
 export function JournalPanel({
   pairId,
+  market,
   pairOf,
   className,
 }: {
   pairId: string;
+  /** The market filter of the page; `all` lists both. */
+  market: MarketType | 'all';
   pairOf: (pairId: string, market: MarketType) => MarketPair | undefined;
   className?: string;
 }) {
@@ -52,6 +55,7 @@ export function JournalPanel({
     page,
     ...(filter === 'ALL' ? {} : { status: filter }),
     ...(pairId ? { pairId } : {}),
+    ...(market === 'all' ? {} : { market }),
   });
   const pages = Math.max(
     1,

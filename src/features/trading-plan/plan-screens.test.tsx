@@ -2116,6 +2116,25 @@ describe('SCR-16 journal and coin columns (SCR-20 folded in)', () => {
     );
   });
 
+  it('lists only the trades of the market the page is filtered by', async () => {
+    const journal = fakeJournal();
+    await open(
+      '/plans?market=futures',
+      fakePlans(),
+      'FREE',
+      fakeMarket(),
+      undefined,
+      { journal },
+    );
+    await waitFor(() =>
+      expect(vi.mocked(journal.list).mock.calls.at(-1)?.[0]).toEqual({
+        page: 1,
+        pageSize: 10,
+        market: 'futures',
+      }),
+    );
+  });
+
   it('says so when no trade is recorded yet, and keeps a manual trade unlinked', async () => {
     await open('/plans', fakePlans(), 'FREE', fakeMarket(), undefined, {
       journal: fakeJournal([]),
