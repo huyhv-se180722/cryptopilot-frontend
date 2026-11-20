@@ -25,6 +25,7 @@ const PAUSED = {
   retryAt: '2026-11-19T07:40:00Z',
   recovery: null,
   displaySource: 'OKX',
+  dataLost: true,
 };
 
 function setup(answer: (url: URL, init: RequestInit) => unknown) {
@@ -62,6 +63,25 @@ describe('market status decoders', () => {
     });
     expect(open.pausedPairs).toEqual(['BTCUSDT']);
     expect(open.displaySource).toBe('BINANCE');
+  });
+
+  it('reads whether the data is lost, and derives it from an older backend', () => {
+    const afterMaintenance = {
+      ...PAUSED,
+      state: 'RECOVERING',
+      reason: 'MAINTENANCE',
+      displaySource: 'BINANCE',
+      dataLost: false,
+    };
+    expect(decodeMarketHealth(afterMaintenance).dataLost).toBe(false);
+    const older: Record<string, unknown> = { ...afterMaintenance };
+    delete older.dataLost;
+    expect(decodeMarketHealth(older).dataLost).toBe(true);
+    expect(
+      decodeMarketHealth({ market: 'SPOT', state: 'LIVE', tradingOpen: true })
+        .dataLost,
+    ).toBe(false);
+    expect(() => decodeMarketHealth({ ...PAUSED, dataLost: 'yes' })).toThrow();
   });
 
   it('rejects an unknown state or source', () => {

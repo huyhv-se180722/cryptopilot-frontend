@@ -80,6 +80,7 @@ const PAUSED: Partial<MarketHealth> = {
   incidentId: 'incident-1',
   retryAt: '2026-11-19T07:40:00Z',
   displaySource: 'OKX',
+  dataLost: true,
 };
 
 async function banner(status: MarketStatus) {

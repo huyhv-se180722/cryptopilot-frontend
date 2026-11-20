@@ -311,6 +311,7 @@ describe('Spot demo trading layout (TR-F1, D-86)', () => {
               tradingOpen: false,
               since: '2026-11-19T07:32:05Z',
               displaySource: 'NONE',
+              dataLost: true,
             }
           : health,
       ),
@@ -330,6 +331,41 @@ describe('Spot demo trading layout (TR-F1, D-86)', () => {
     expect(screen.getByTestId('reference-price').textContent).toContain(
       'No reference price',
     );
+  });
+
+  it('keeps the book while Spot recovers from a maintenance whose data kept flowing (D-158)', async () => {
+    const paperTrading: PaperTradingService = {
+      ...createPendingPaperTradingService(),
+      openAccount: vi.fn(async () => ({ openedAt: '2026-10-13T00:00:00Z' })),
+    };
+    const recovering: MarketStatus = {
+      markets: ALL_LIVE.markets.map((health) =>
+        health.market === 'SPOT'
+          ? {
+              ...health,
+              state: 'RECOVERING',
+              tradingOpen: false,
+              since: '2026-11-19T07:32:05Z',
+              reason: 'MAINTENANCE',
+              displaySource: 'BINANCE',
+              dataLost: false,
+            }
+          : health,
+      ),
+    };
+    await open('/trade/spot/BTCUSDT', paperTrading, {
+      ...createPendingMarketStatusService(),
+      status: async () => recovering,
+    });
+    const form = await screen.findByRole('region', { name: 'Spot order' });
+    await waitFor(() =>
+      expect(form.textContent).toContain('Spot trading is paused'),
+    );
+    expect(
+      within(form).getByRole('button', { name: 'Buy BTC' }),
+    ).toHaveProperty('disabled', true);
+    expect(screen.queryAllByTestId('paused-market-panel')).toHaveLength(0);
+    expect(screen.queryByTestId('reference-price')).toBeNull();
   });
 
   it('shows the 24h statistics with both volumes and the direction of the last tick', async () => {

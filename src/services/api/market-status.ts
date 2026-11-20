@@ -57,6 +57,12 @@ export interface MarketHealth {
   retryAt: string | null;
   recovery: { pairsDone: number; pairsTotal: number } | null;
   displaySource: DisplaySource;
+  /**
+   * Whether the exchange data is missing or being refilled now: paused, or
+   * recovering from an incident that lost data. False while recovering from a
+   * maintenance during which the data kept flowing, so the book stays shown.
+   */
+  dataLost: boolean;
 }
 
 export interface MarketStatus {
@@ -174,9 +180,10 @@ export function decodeMarketHealth(body: unknown): MarketHealth {
       ? null
       : record(value.recovery, 'recovery');
   const reason = value.reason;
+  const state = oneOf(STATES, value.state, 'state');
   return {
     market: oneOf(MARKETS, value.market, 'market'),
-    state: oneOf(STATES, value.state, 'state'),
+    state,
     tradingOpen: flag(value.tradingOpen, 'tradingOpen'),
     since: nullableInstant(value.since, 'since'),
     pausedAt: nullableInstant(value.pausedAt, 'pausedAt'),
@@ -205,6 +212,10 @@ export function decodeMarketHealth(body: unknown): MarketHealth {
       value.displaySource === undefined || value.displaySource === null
         ? 'BINANCE'
         : oneOf(SOURCES, value.displaySource, 'displaySource'),
+    dataLost:
+      value.dataLost === undefined || value.dataLost === null
+        ? state === 'PAUSED' || state === 'RECOVERING'
+        : flag(value.dataLost, 'dataLost'),
   };
 }
 
@@ -290,6 +301,7 @@ export const ALL_LIVE: MarketStatus = {
     retryAt: null,
     recovery: null,
     displaySource: 'BINANCE',
+    dataLost: false,
   })),
 };
 

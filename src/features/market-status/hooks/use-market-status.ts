@@ -60,9 +60,11 @@ export function useMarketHealth(market: HealthMarket): MarketHealth {
   );
 }
 
-/** Whether a market's exchange data is lost: paused or recovering. */
-export const isLost = (health: MarketHealth) =>
-  health.state === 'PAUSED' || health.state === 'RECOVERING';
+/**
+ * Whether a market's exchange data is lost: paused, or recovering from an
+ * incident that lost data; never after a maintenance whose data kept flowing.
+ */
+export const isLost = (health: MarketHealth) => health.dataLost;
 
 /**
  * Why a pair of a market cannot be traded now (I7), or null: its market is
