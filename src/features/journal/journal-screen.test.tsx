@@ -111,21 +111,9 @@ describe('SCR-20 trading journal', () => {
     expect(await screen.findByText('No results found.')).toBeTruthy();
   });
 
-  it('opens the facts of a row, keeping fees and funding apart', async () => {
-    const user = userEvent.setup();
+  it('opens the trade page of a row (SCR-21)', async () => {
     await open(service());
-    await user.click(await screen.findByRole('button', { name: /Open the/ }));
-    const dialog = await screen.findByRole('dialog', { hidden: true });
-    expect(
-      within(dialog).getByText('Realized P/L').parentElement?.textContent,
-    ).toContain('+20.00 USDT');
-    expect(
-      within(dialog).getByText('Funding').parentElement?.textContent,
-    ).toContain('-0.50 USDT');
-    expect(
-      within(dialog)
-        .getByRole('link', { name: 'Open the plan', hidden: true })
-        .getAttribute('href'),
-    ).toBe('/plans/plan-1');
+    const link = await screen.findByRole('link', { name: /Open the/ });
+    expect(link.getAttribute('href')).toBe('/journal/' + TRADE.id);
   });
 });
