@@ -487,7 +487,7 @@ describe('SCR-10 analysis chart (T-032)', () => {
   });
 });
 
-describe('reference bars while the exchange data is lost (D-158, Q5)', () => {
+describe('reference bars while the exchange data is lost (D-159, Q5)', () => {
   const bar = (openTime: string): Candle => ({
     openTime,
     open: '100',

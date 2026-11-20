@@ -24,7 +24,7 @@ export const MARKET_STATUS_KEY = ['market-status'] as const;
 export const STATUS_POLL_MS = 15_000;
 
 /**
- * The data health of both markets (D-158): read once, kept fresh by the
+ * The data health of both markets (D-159): read once, kept fresh by the
  * pushes of `/topic/market.status` and a poll. Until the first answer, and
  * when it cannot be read, every market counts as live: the backend is what
  * refuses trading.
@@ -117,7 +117,7 @@ const REFERENCE_MINUTES = 300;
 
 /**
  * The display-only reference candles of a pair while its market's data is
- * lost (D-158, Q5), as bars of the chart's timeframe, read again each
+ * lost (D-159, Q5), as bars of the chart's timeframe, read again each
  * minute; none otherwise. Drawn apart from the exchange's, never stored.
  */
 export function useReferenceBars(

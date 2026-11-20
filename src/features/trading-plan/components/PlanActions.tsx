@@ -31,7 +31,7 @@ export function PlanActions({ plan }: { plan: TradingPlan }) {
   const { activate, cancel, pending, error, errorCode } = usePlanActions(
     plan.id,
   );
-  // D-158: while the plan's market is closed, a plan is neither activated
+  // D-159: while the plan's market is closed, a plan is neither activated
   // nor cancelled once active; drafts stay editable and cancellable.
   const closed = useTradingBlock(
     plan.market === 'spot' ? 'SPOT' : 'FUTURES',

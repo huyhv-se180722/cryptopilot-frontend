@@ -80,7 +80,7 @@ function TradeSpot({
       }
     : null;
   const { ticker, freshness } = useLiveTicker('spot', pair.symbol);
-  // D-158: closed while the exchange data is lost; the book would mislead.
+  // D-159: closed while the exchange data is lost; the book would mislead.
   const blocked = useTradingBlock('SPOT', pair.symbol);
   const lost = isLost(useMarketHealth('SPOT'));
   const reference = useReferenceBars('SPOT', pair.symbol, timeframe);

@@ -4,7 +4,7 @@ import { classNames } from '../../../utils/class-names';
 
 /**
  * In place of the order book and the recent trades while a market's exchange
- * data is lost (D-158): a fallback book would mislead, so none is shown.
+ * data is lost (D-159): a fallback book would mislead, so none is shown.
  */
 export function PausedMarketPanel({ className }: { className?: string }) {
   const c = useCopy().marketStatus;

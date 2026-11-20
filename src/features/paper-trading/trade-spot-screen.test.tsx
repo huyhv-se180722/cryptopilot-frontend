@@ -297,7 +297,7 @@ describe('Spot demo trading layout (TR-F1, D-86)', () => {
     expect(paperTrading.openAccount).toHaveBeenCalledTimes(1);
   });
 
-  it('locks the form and hides the book while Spot trading is paused (D-158)', async () => {
+  it('locks the form and hides the book while Spot trading is paused (D-159)', async () => {
     const paperTrading: PaperTradingService = {
       ...createPendingPaperTradingService(),
       openAccount: vi.fn(async () => ({ openedAt: '2026-10-13T00:00:00Z' })),
@@ -333,7 +333,7 @@ describe('Spot demo trading layout (TR-F1, D-86)', () => {
     );
   });
 
-  it('keeps the book while Spot recovers from a maintenance whose data kept flowing (D-158)', async () => {
+  it('keeps the book while Spot recovers from a maintenance whose data kept flowing (D-159)', async () => {
     const paperTrading: PaperTradingService = {
       ...createPendingPaperTradingService(),
       openAccount: vi.fn(async () => ({ openedAt: '2026-10-13T00:00:00Z' })),

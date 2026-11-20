@@ -1030,7 +1030,7 @@ export interface ModerationResult {
  * What a notification is about (SRS 3.4.5; COMMENT from SRS 3.7.3; SYSTEM,
  * a fault an administrator acts on such as a failing news source, NSF-10;
  * FOLLOW and MENTION, D-125; FUTURES, TR-43; MARKET, a market's trading
- * paused or reopened, D-158).
+ * paused or reopened, D-159).
  */
 export type NotificationType =
   | 'ALERT'

@@ -12,7 +12,7 @@ import {
 } from '../hooks/use-market-status';
 
 /**
- * While a market's exchange data is lost (D-158), the pair's display-only
+ * While a market's exchange data is lost (D-159), the pair's display-only
  * reference price with its source and time, and a warning when it is far
  * from the exchange's last price; nothing while the market is live. The
  * label comes from the backend's `source`, never guessed (I7).

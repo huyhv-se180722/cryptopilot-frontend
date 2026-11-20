@@ -15,7 +15,7 @@ import { errorText } from '../../i18n/messages';
 import { formatInstantLocal } from '../../utils/instant-format';
 
 /**
- * The markets' data health on the administration console (D-158, no SRS
+ * The markets' data health on the administration console (D-159, no SRS
  * screen): each market's state with its maintenance switch and reopening
  * by hand, and the incidents of each, newest first.
  */

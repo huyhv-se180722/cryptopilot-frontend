@@ -16,7 +16,7 @@ import {
 import { integrationPending } from './errors';
 import type { HttpClient } from './http-client';
 
-/** The two exchange markets whose data health is watched (D-158). */
+/** The two exchange markets whose data health is watched (D-159). */
 export type HealthMarket = 'SPOT' | 'FUTURES';
 
 /**
@@ -121,7 +121,7 @@ export interface MaintenanceInput {
 }
 
 /**
- * The markets' data health (D-158): the status every screen reads, pushed on
+ * The markets' data health (D-159): the status every screen reads, pushed on
  * `/topic/market.status`; the display-only reference prices of a lost market,
  * pushed on `/topic/market.fallback.<MARKET>`; and the administrators'
  * maintenance switch, reopening and incident list.

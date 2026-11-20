@@ -38,7 +38,7 @@ function setup(reply: unknown, feed: AccountFeed | null = null) {
 }
 
 describe('notification decoders', () => {
-  it('reads every type the backend writes, and leaves out one it does not know rather than failing the page (D-158)', () => {
+  it('reads every type the backend writes, and leaves out one it does not know rather than failing the page (D-159)', () => {
     const page = decodeNotificationPage({
       items: [
         {

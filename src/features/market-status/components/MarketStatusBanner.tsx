@@ -15,7 +15,7 @@ const TONES = {
 } as const;
 
 /**
- * The strip on every page, public ones included (D-158, I7), one line per
+ * The strip on every page, public ones included (D-159, I7), one line per
  * market that is not live: paused, under maintenance or catching up, with
  * since when, why, what the Trader keeps and where the shown prices come
  * from; and for ten minutes after it ends, that trading has reopened, until

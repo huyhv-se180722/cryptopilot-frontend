@@ -401,7 +401,7 @@ export function AnalysisChart({
   extraItems?: readonly ChartExtraItem[];
   /**
    * Display-only reference bars of another venue while the exchange's data
-   * is lost (D-158): drawn in their own colour after the exchange's last
+   * is lost (D-159): drawn in their own colour after the exchange's last
    * bar, labelled with `referenceLabel`, never mixed into the indicators.
    */
   referenceBars?: readonly Candle[];
@@ -535,7 +535,7 @@ export function AnalysisChart({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `toggles` is read through `togglesKey`.
   }, [ready, togglesKey, places, theme, extendable, time, locale]);
 
-  // D-158: the reference bars after the exchange's last one, apart from it.
+  // D-159: the reference bars after the exchange's last one, apart from it.
   const lastOwn = series.forming?.openTime ?? series.candles.at(-1)?.openTime;
   useEffect(() => {
     const chart = chartApi.current;

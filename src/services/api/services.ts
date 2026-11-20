@@ -39,7 +39,7 @@ export interface Services {
   profile: ProfileService;
   market: MarketService;
   marketFeed: MarketFeed;
-  /** The markets' data health, reference prices and maintenance (D-158). */
+  /** The markets' data health, reference prices and maintenance (D-159). */
   marketStatus: MarketStatusService;
   tradingMarket: TradingMarketService;
   analysis: AnalysisService;

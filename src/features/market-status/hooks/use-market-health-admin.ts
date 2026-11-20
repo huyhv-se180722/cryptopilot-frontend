@@ -16,7 +16,7 @@ export type {
 const INCIDENTS_KEY = [...MARKET_STATUS_KEY, 'incidents'] as const;
 export const INCIDENTS_SHOWN = 20;
 
-/** A market's latest incidents, newest first (D-158), Admin only. */
+/** A market's latest incidents, newest first (D-159), Admin only. */
 export function useMarketIncidents(market: HealthMarket) {
   const { marketStatus } = useServices();
   return useQuery({

@@ -150,7 +150,7 @@ function TradeFutures({
         };
   const shown = (name: PhoneRegion) =>
     region === name ? 'flex' : 'hidden md:flex';
-  // D-158: closed while the exchange data is lost; the book would mislead.
+  // D-159: closed while the exchange data is lost; the book would mislead.
   const blocked = useTradingBlock('FUTURES', pair.symbol);
   const futuresHealth = useMarketHealth('FUTURES');
   const lost = isLost(futuresHealth);

@@ -89,7 +89,7 @@ async function banner(status: MarketStatus) {
   });
 }
 
-describe('market status banner (D-158, I7)', () => {
+describe('market status banner (D-159, I7)', () => {
   it('shows nothing while both markets are live, or only reconnecting', async () => {
     await banner(statusOf({ state: 'RECONNECTING' }));
     await waitFor(() =>
@@ -157,7 +157,7 @@ function Block({ symbol }: { symbol: string }) {
   return <p data-testid="block">{useTradingBlock('SPOT', symbol) ?? 'open'}</p>;
 }
 
-describe('trading block and reference price (D-158)', () => {
+describe('trading block and reference price (D-159)', () => {
   it('blocks a closed market, and only the lost pairs of an open one', async () => {
     await renderRoutes(
       [page('/', <Block symbol="ethusdt" />)],
@@ -198,7 +198,7 @@ describe('trading block and reference price (D-158)', () => {
   });
 });
 
-describe('market health console (D-158)', () => {
+describe('market health console (D-159)', () => {
   it('starts maintenance with the message, and reopens a recovering market by hand after confirming', async () => {
     const recovering = statusOf({
       ...PAUSED,

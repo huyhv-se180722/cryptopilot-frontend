@@ -10,7 +10,7 @@ const SECONDS: Record<CandleTimeframe, number> = {
 };
 
 /**
- * The display-only reference one-minute candles of a lost market (D-158)
+ * The display-only reference one-minute candles of a lost market (D-159)
  * merged into bars of the chart's timeframe, in UTC buckets as the
  * exchange's: the first open, the highest high, the lowest low, the last
  * close. Volumes are not added up (they are another venue's), so the

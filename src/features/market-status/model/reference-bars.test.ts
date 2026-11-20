@@ -18,7 +18,7 @@ const minute = (
   closed: true,
 });
 
-describe('reference bars (D-158, Q5)', () => {
+describe('reference bars (D-159, Q5)', () => {
   it('merges the minutes of each UTC bucket: first open, highest high, lowest low, last close', () => {
     const bars = referenceBars(
       [

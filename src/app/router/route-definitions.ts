@@ -14,7 +14,7 @@ export type ScreenId =
   | 'D-99'
   | 'D-124'
   | 'D-127'
-  | 'D-158'
+  | 'D-159'
   | 'UC-44'
   | 'T-114';
 export type ScreenTitleKey = keyof Copy['screens'];
@@ -176,10 +176,10 @@ export const adminRoutes = [
   },
   { path: '/admin/ai-config', screen: 'SCR-42', titleKey: 'adminAiConfig' },
   { path: '/admin/settings', screen: 'SCR-43', titleKey: 'adminSettings' },
-  // The markets' data health and maintenance switch: no SRS screen (D-158).
+  // The markets' data health and maintenance switch: no SRS screen (D-159).
   {
     path: '/admin/market-health',
-    screen: 'D-158',
+    screen: 'D-159',
     titleKey: 'adminMarketHealth',
   },
   { path: '/admin/audit-log', screen: 'SCR-44', titleKey: 'adminAuditLog' },
