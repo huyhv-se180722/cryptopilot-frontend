@@ -133,4 +133,15 @@ describe('SCR-38 leverage brackets (UC-46)', () => {
       screen.getByRole('button', { name: 'Discard changes' }),
     ).toBeTruthy();
   });
+
+  it('lets the template picker shrink so a phone screen does not scroll sideways (T-140)', async () => {
+    await open('/admin/leverage-brackets?pair=ETHUSDT');
+    const picker = await screen.findByLabelText('Start from a template');
+    // jsdom has no layout: the classes that let it shrink are what we can
+    // check; the 360 px measurement is in the browser check.
+    expect(picker.className).toContain('min-w-0');
+    expect(picker.className).toContain('flex-1');
+    expect(picker.parentElement?.className).toContain('w-full');
+    expect(picker.closest('form')?.className).toContain('min-w-0');
+  });
 });

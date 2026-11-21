@@ -161,7 +161,9 @@ export function BracketEditor({
     <form
       onSubmit={(event) => void submit(event)}
       noValidate
-      className="grid gap-3"
+      // A grid item keeps its content's width unless told otherwise; with
+      // the template picker below, this keeps the form inside a phone.
+      className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3"
     >
       <p className="text-xs text-muted-dim">
         {pair.maxLeverage === null
@@ -362,7 +364,9 @@ function TemplatePicker({
     ceiling === null || template.firstLeverage >= ceiling;
   const picked = templates.data.find((template) => template.id === chosen);
   return (
-    <span className="inline-flex items-center gap-1.5">
+    // On a phone the picker takes its own row and the long template names
+    // are cut by the select instead of widening the page.
+    <span className="flex w-full min-w-0 items-center gap-1.5 sm:inline-flex sm:w-auto">
       <label htmlFor="bracket-template" className="sr-only">
         {b.templateLabel}
       </label>
@@ -370,7 +374,7 @@ function TemplatePicker({
         id="bracket-template"
         value={chosen}
         onChange={(event) => setChosen(event.target.value)}
-        className="h-8 rounded-lg border border-line-strong bg-raised px-2 text-[11px] text-fg-2"
+        className="h-8 min-w-0 flex-1 rounded-lg border border-line-strong bg-raised px-2 text-[11px] text-fg-2 sm:flex-none"
       >
         <option value="">{b.templateLabel}</option>
         {templates.data.map((template) => (
