@@ -309,6 +309,28 @@ describe('SCR-16 plan list (T-041)', () => {
     expect(await cells.findByText('BTC/USDT')).toBeTruthy();
   });
 
+  it('keeps the plan id and the market under the pair, eight columns in all (T-140)', async () => {
+    await open('/plans');
+    const region = await screen.findByRole('region', {
+      name: 'Draft trading plans',
+    });
+    const row = (await within(region).findByText('Short')).closest(
+      'tr',
+    ) as HTMLElement;
+    const headers = within(region)
+      .getAllByRole('columnheader')
+      .map((header) => header.textContent);
+    expect(headers).toHaveLength(8);
+    expect(headers).not.toContain('#');
+    expect(headers).not.toContain('Market');
+    const pairCell = within(row).getAllByRole('cell')[0];
+    expect(within(pairCell).getByText('Futures · 5x')).toBeTruthy();
+    expect(within(pairCell).getByText('#0000a1b2')).toBeTruthy();
+    expect(
+      within(pairCell).getByRole('link', { name: 'Open plan 0000a1b2' }),
+    ).toBeTruthy();
+  });
+
   it('lists an INVALIDATED plan with its reason in the Cancelled / Expired tab (BR-68)', async () => {
     const invalidated: TradingPlanSummary = {
       ...ROW,
@@ -420,10 +442,11 @@ describe('SCR-16 plan list (T-041)', () => {
       })),
     });
     await open('/plans?tab=EXECUTED', service);
-    expect(
-      await screen.findByRole('columnheader', { name: 'Position' }),
-    ).toBeTruthy();
-    expect(screen.getByRole('cell', { name: 'Open' })).toBeTruthy();
+    // T-140 (owner, 2026-11-21): the position status sits under the plan
+    // status instead of in a column of its own.
+    const status = await screen.findByRole('cell', { name: /Executed/ });
+    expect(within(status).getByText('Open')).toBeTruthy();
+    expect(screen.queryByRole('columnheader', { name: 'Position' })).toBe(null);
     expect(screen.getByText('Page 1 of 3')).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Next' }));
     await waitFor(() => expect(lastList(service)?.page).toBe(2));
