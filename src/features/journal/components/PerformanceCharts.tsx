@@ -84,7 +84,7 @@ export function EquityCurveCard({
   return (
     <section
       aria-labelledby="performance-curve-title"
-      className="mb-4 rounded-xl border border-line bg-surface p-4"
+      className="min-w-0 rounded-xl border border-line bg-surface p-4"
     >
       <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1">
         <h2

@@ -127,7 +127,6 @@ export function PerformanceCards({ summary }: { summary: PerformanceSummary }) {
   return (
     <KpiStrip
       label={p.kpiLabel}
-      className="mb-4"
       items={items}
       header={
         summary.provisionalTrades > 0 ? (
@@ -153,12 +152,12 @@ function Metric({
   children: ReactNode;
 }) {
   return (
-    <div className="min-w-0">
-      <dt className="text-[11px] text-muted-dim">{label}</dt>
-      <dd className="m-0 mt-0.5 font-mono text-sm font-semibold text-fg-2">
+    <div className="min-w-0 border-b border-line px-4 py-2.5">
+      <dt className="text-[11.5px] text-muted-dim">{label}</dt>
+      <dd className="m-0 mt-0.5 font-mono text-[13.5px] font-semibold text-fg-2">
         {children}
       </dd>
-      {hint && <p className="mt-0.5 text-[10px] text-muted-x">{hint}</p>}
+      {hint && <p className="mt-0.5 text-[10.5px] text-muted-x">{hint}</p>}
     </div>
   );
 }
@@ -173,15 +172,15 @@ export function PerformanceAdvancedCard({
   return (
     <section
       aria-labelledby="performance-advanced-title"
-      className="mb-4 rounded-xl border border-line bg-surface p-4"
+      className="overflow-hidden rounded-xl border border-line bg-surface"
     >
       <h2
         id="performance-advanced-title"
-        className="mb-3 text-sm font-semibold text-fg"
+        className="border-b border-line px-4 py-3 text-sm font-semibold text-fg"
       >
         {p.advancedTitle}
       </h2>
-      <dl className="m-0 grid grid-cols-2 gap-x-4 gap-y-3 md:grid-cols-3 xl:grid-cols-5">
+      <dl className="m-0 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-2">
         <Metric label={p.averageWin}>
           <AmountValue value={advanced.averageWin} />
         </Metric>

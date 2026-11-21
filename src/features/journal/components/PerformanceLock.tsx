@@ -15,7 +15,7 @@ export function PerformanceLock({
   return (
     <section
       aria-label={title}
-      className="mb-4 rounded-xl border border-dashed border-line bg-surface p-4"
+      className="rounded-xl border border-dashed border-line bg-surface p-4"
     >
       <h2 className="mb-2 text-sm font-semibold text-fg">{title}</h2>
       <p className="mb-2 flex items-start gap-1.5 text-xs text-muted">
