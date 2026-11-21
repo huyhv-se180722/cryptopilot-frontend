@@ -206,7 +206,11 @@ async function open(
   };
 }
 
-describe('SCR-08 Trader dashboard (T-112)', () => {
+/** The figure of a key-figure cell, by its label. */
+const figure = (label: string) =>
+  screen.getByText(label, { selector: 'dt' }).nextElementSibling?.textContent;
+
+describe('SCR-08 Trader dashboard (T-112, T-139)', () => {
   it('dates the header in the interface language, not the browser one', async () => {
     // The date follows the interface's locale: Vietnamese copy (the 'vi'
     // stub) gets "14 thg 10, 2026", English copy "Oct 14, 2026", whatever
@@ -223,18 +227,25 @@ describe('SCR-08 Trader dashboard (T-112)', () => {
   it('counts active plans, open positions and watched pairs against the plan limits', async () => {
     await open();
     await screen.findByRole('heading', { level: 1, name: 'Overview' });
-    await waitFor(() => expect(screen.getByText('6 / 5')).toBeTruthy());
+    await waitFor(() => expect(figure('Active plans')).toBe('6 / 5'));
     expect(screen.getByText('Limit reached on PRO')).toBeTruthy();
-    expect(screen.getByText('3 / 10')).toBeTruthy();
+    await waitFor(() => expect(figure('Watchlist')).toBe('3 / 10'));
     expect(screen.getByText('7 slots left on PRO')).toBeTruthy();
+    expect(
+      screen.getByRole('img', { name: '3 of 10 watchlist slots used' }),
+    ).toBeTruthy();
     expect(screen.getByText(/6 of 5 active plans/)).toBeTruthy();
     // Only the executed plan whose position is still open counts.
-    expect(screen.getByText('Open positions').nextSibling?.textContent).toBe(
-      '1',
-    );
+    await waitFor(() => expect(figure('Open positions')).toBe('1'));
+    expect(screen.getByText(/1 open simulated positions/)).toBeTruthy();
     expect(
       screen.getByRole('link', { name: 'New plan' }).getAttribute('href'),
     ).toBe('/plans/new');
+    expect(
+      screen
+        .getByRole('link', { name: 'Record a manual trade' })
+        .getAttribute('href'),
+    ).toBe('/journal/new');
   });
 
   it('lists five plans of the chosen tab with a link to the rest', async () => {
@@ -283,11 +294,7 @@ describe('SCR-08 Trader dashboard (T-112)', () => {
 
   it('says which blocks are not connected yet instead of inventing data', async () => {
     await open();
-    for (const name of [
-      'Recent notifications',
-      'Performance summary',
-      'Latest news',
-    ]) {
+    for (const name of ['Recent notifications', 'Key figures']) {
       const block = await screen.findByRole('region', { name });
       await waitFor(() =>
         expect(block.textContent).toContain('not connected to the server yet'),
@@ -339,8 +346,7 @@ describe('SCR-08 Trader dashboard (T-112)', () => {
         breakdown: vi.fn(),
         equityCurve: vi.fn(),
       }) as unknown as PerformanceService;
-    const block = () =>
-      screen.findByRole('region', { name: 'Performance summary' });
+    const block = () => screen.findByRole('region', { name: 'Key figures' });
 
     it('reads the simulated trades of all time and shows the server figures', async () => {
       const performance = service(async () => summary());
@@ -352,21 +358,22 @@ describe('SCR-08 Trader dashboard (T-112)', () => {
         expect.anything(),
       );
       expect(region.textContent).toContain(
-        'All time · closed simulated trades',
+        'Performance of closed simulated trades · all time',
       );
-      expect(region.textContent).toContain('+1,642.50 USDT');
-      expect(region.textContent).toContain('67.39%');
+      expect(figure('Net P/L')).toBe('+1,642.50 USDT');
+      expect(region.textContent).toContain('46 closed trades');
+      expect(figure('Win rate')).toBe('67.39%');
       expect(region.textContent).toContain('Wins 31 · Losses 14 · Breakeven 1');
-      expect(region.textContent).toContain('Average realized R');
-      expect(region.textContent).toContain('+312.00 USDT');
+      expect(figure('Average realized R')).toBe('0.85');
+      expect(region.textContent).toContain('Profit factor 2.10');
       expect(
         within(region).getByRole('img', {
-          name: '67.39% win rate · 46 trades',
+          name: '31 wins, 14 losses, 1 breakeven',
         }),
       ).toBeTruthy();
       expect(
         within(region)
-          .getByRole('link', { name: /open/i })
+          .getByRole('link', { name: /View performance/ })
           .getAttribute('href'),
       ).toBe('/performance');
     });
@@ -390,7 +397,7 @@ describe('SCR-08 Trader dashboard (T-112)', () => {
         expect(region.textContent).toContain('-1,148.99 USDT'),
       );
       expect(region.textContent).not.toContain('Average realized R');
-      expect(region.textContent).not.toContain('Largest win');
+      expect(region.textContent).not.toContain('Profit factor');
     });
 
     it('says there are no results when no trade is closed yet', async () => {
