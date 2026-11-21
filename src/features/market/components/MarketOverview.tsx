@@ -77,6 +77,7 @@ export function MarketOverview() {
       {candles.data && candles.data.length > 0 && selected ? (
         <OverviewChart
           candles={candles.data}
+          timeframe={OVERVIEW_RANGES[range].timeframe}
           tickSize={selected.pair.tickSize}
           intraday={range === '1D' || range === '1W'}
           label={formatCopy(o.chartLabel, {

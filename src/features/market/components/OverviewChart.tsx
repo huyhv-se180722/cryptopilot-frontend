@@ -6,10 +6,13 @@ import {
   createChart,
   type IChartApi,
   type ISeriesApi,
-  type UTCTimestamp,
 } from 'lightweight-charts';
 import { useLocale } from '../../../hooks/use-copy';
-import type { Candle } from '../../../types/domain';
+import type { Candle, CandleTimeframe } from '../../../types/domain';
+import {
+  chartOffsetSeconds,
+  chartTime,
+} from '../../chart/components/chart-time';
 import { decimalPlaces } from '../../../utils/decimal-format';
 
 /** Reads a design token so the chart follows the light and dark themes. */
@@ -60,15 +63,19 @@ function areaColors(rising: boolean) {
  * widget: the closes of a range as a line over a tinted area, green when
  * the range ends above where it began and red otherwise, with the first
  * close as a dashed reference line. Prices become numbers only here, for
- * drawing, at the pair's tick precision.
+ * drawing, at the pair's tick precision. Times follow the analysis chart
+ * (`chart-time.ts`): local time below a day, UTC for daily candles.
  */
 export function OverviewChart({
   candles,
+  timeframe,
   tickSize,
   intraday,
   label,
 }: {
   candles: readonly Candle[];
+  /** The candles' timeframe: daily ones keep UTC, shorter ones local time. */
+  timeframe: CandleTimeframe;
   tickSize: string | null;
   /** Times on the axis for ranges within a few days, dates otherwise. */
   intraday: boolean;
@@ -132,9 +139,10 @@ export function OverviewChart({
     chart.current?.applyOptions({
       timeScale: { timeVisible: intraday, secondsVisible: false },
     });
+    const offset = chartOffsetSeconds(timeframe);
     s.setData(
       candles.map((candle) => ({
-        time: (Date.parse(candle.openTime) / 1000) as UTCTimestamp,
+        time: chartTime(candle.openTime, offset),
         value: Number(candle.close),
       })),
     );
@@ -148,7 +156,7 @@ export function OverviewChart({
         axisLabelVisible: false,
       });
     chart.current?.timeScale().fitContent();
-  }, [candles, tickSize, intraday, rising, first, locale]);
+  }, [candles, timeframe, tickSize, intraday, rising, first, locale]);
 
   return (
     <div
