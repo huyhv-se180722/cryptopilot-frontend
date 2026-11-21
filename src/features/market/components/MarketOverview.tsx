@@ -162,9 +162,10 @@ export function MarketOverview() {
                       tone,
                     )}
                   >
-                    {price !== null && percent !== null
-                      ? absoluteChange(price, percent, row.pair.tickSize)
-                      : o.noValue}
+                    {(price !== null &&
+                      percent !== null &&
+                      absoluteChange(price, percent, row.pair.tickSize)) ||
+                      o.noValue}
                   </td>
                   <td
                     className={classNames(
