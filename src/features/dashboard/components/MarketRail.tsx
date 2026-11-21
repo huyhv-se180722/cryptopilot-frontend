@@ -259,7 +259,7 @@ export function MarketRail({
       aria-label={d.railLabel}
       className="flex min-w-0 flex-col rounded-xl border border-line bg-surface"
     >
-      <div className="flex items-center gap-1 border-b border-line px-3 py-2.5">
+      <div className="flex flex-wrap items-center gap-1 border-b border-line px-3 py-2.5">
         <div role="group" aria-label={d.railTabs} className="flex gap-1">
           {tabs.map((each) => (
             <button
@@ -268,7 +268,7 @@ export function MarketRail({
               aria-pressed={tab === each.value}
               onClick={() => setTab(each.value)}
               className={classNames(
-                'h-7 cursor-pointer rounded-md px-2.5 text-xs font-semibold',
+                'h-7 cursor-pointer rounded-md px-2 text-xs font-semibold whitespace-nowrap',
                 tab === each.value
                   ? 'bg-primary-soft text-link'
                   : 'text-muted hover:text-fg',
