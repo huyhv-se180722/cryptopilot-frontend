@@ -32,6 +32,17 @@ export default defineConfig({
     baseURL: `http://localhost:${PORT}`,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    // The app opens in Vietnamese; the tests read the English copy, so
+    // each one starts with English chosen on the device (cp-locale).
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: `http://localhost:${PORT}`,
+          localStorage: [{ name: 'cp-locale', value: 'en' }],
+        },
+      ],
+    },
   },
   projects: [
     {

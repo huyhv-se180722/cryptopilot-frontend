@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LogOut, Menu as MenuIcon, ShieldAlert, X } from 'lucide-react';
 import { CryptoPilotLogo } from '../../components/brand/CryptoPilotLogo';
+import { LanguageToggle } from '../../components/layout/LanguageToggle';
 import { ThemeToggle } from '../../components/layout/ThemeToggle';
 import { IconButton } from '../../components/ui/IconButton';
 import { useAuth } from '../../hooks/use-auth';
@@ -85,8 +86,11 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         ))}
       </nav>
 
-      <div className="flex items-center justify-between gap-2 border-t border-line px-3 py-3">
-        <ThemeToggle />
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-3 py-3">
+        <div className="flex items-center gap-1.5">
+          <LanguageToggle />
+          <ThemeToggle />
+        </div>
         <button
           type="button"
           onClick={() => void signOut()}

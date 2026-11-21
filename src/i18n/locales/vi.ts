@@ -9,6 +9,15 @@ export type PartialCopy = DeepPartial<Copy>;
  * D-125) and the Academy (T-114) render in Vietnamese.
  */
 export const vi: PartialCopy = {
+  language: {
+    label: 'Ngôn ngữ',
+  },
+  theme: {
+    label: 'Giao diện',
+    light: 'Sáng',
+    dark: 'Tối',
+    system: 'Theo hệ thống',
+  },
   marketStatus: {
     pausedTitle: 'Tạm dừng giao dịch {market}',
     pausedBody:

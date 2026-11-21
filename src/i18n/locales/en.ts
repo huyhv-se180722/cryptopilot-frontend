@@ -3486,6 +3486,9 @@ export const en = {
     open: 'Open',
     none: 'No incident yet.',
   },
+  language: {
+    label: 'Language',
+  },
   theme: {
     label: 'Appearance',
     light: 'Light',

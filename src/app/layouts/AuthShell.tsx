@@ -1,6 +1,7 @@
 import { Link, Outlet } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { CryptoPilotLogo } from '../../components/brand/CryptoPilotLogo';
+import { LanguageToggle } from '../../components/layout/LanguageToggle';
 import { ThemeToggle } from '../../components/layout/ThemeToggle';
 import { useCopy } from '../../hooks/use-copy';
 import { AuthBackdrop } from './AuthBackdrop';
@@ -14,7 +15,8 @@ export function AuthShell() {
   return (
     <div className="relative flex min-h-[calc(100dvh-var(--cp-banner-h))] flex-col overflow-hidden">
       <AuthBackdrop />
-      <div className="relative flex justify-end p-4">
+      <div className="relative flex justify-end gap-2 p-4">
+        <LanguageToggle />
         <ThemeToggle />
       </div>
       <main
