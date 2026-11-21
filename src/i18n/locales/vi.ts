@@ -773,6 +773,11 @@ export const vi: PartialCopy = {
     unlabelled: 'Không nhãn',
     groupCount: '{label} ({count})',
     listLabel: 'Các cặp đang theo dõi',
+    colPair: 'Cặp',
+    colNote: 'Ghi chú',
+    colPrice: 'Giá',
+    colChange: '24h',
+    colAlerts: 'Cảnh báo',
     delisted: 'Không còn niêm yết',
     delistedHint:
       'Cặp này không còn được bật. Nó vẫn nằm đây cho tới khi bạn xóa và vẫn tính vào giới hạn của bạn.',

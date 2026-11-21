@@ -24,6 +24,13 @@ import { formatPrice, toFixedDecimal } from '../../../utils/decimal-format';
 import { pairLabel } from '../../../utils/pair-label';
 import { groupRows, moveWithinGroup } from './watchlist-order';
 
+/**
+ * The columns of a row from 1024 px (T-142): drag, pair, note, price, 24h,
+ * setup score, alerts, actions. Below that a row wraps as a card.
+ */
+const COLUMNS =
+  'lg:grid lg:grid-cols-[14px_minmax(150px,1.1fr)_minmax(0,1.4fr)_110px_84px_120px_76px_68px] lg:gap-x-4';
+
 export interface WatchlistPrices {
   spot: ReadonlyMap<string, MarketTicker>;
   futures: ReadonlyMap<string, MarketTicker>;
@@ -147,123 +154,164 @@ function Row({
   ];
   const iconButton =
     'inline-flex size-7 items-center justify-center rounded-lg text-muted-dim hover:bg-raised hover:text-primary disabled:cursor-not-allowed disabled:opacity-40 pointer-coarse:size-9';
+  const markets = [
+    item.spotListed ? copy.market.spot : null,
+    item.futuresListed ? copy.market.futures : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  const value = score?.score ?? null;
   return (
     <li
       className={classNames(
-        'flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border bg-surface p-3 sm:flex-nowrap sm:p-4',
-        dragOver ? 'border-primary' : 'border-line hover:border-line-strong',
+        'flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line px-3 py-3 sm:px-4',
+        COLUMNS,
+        dragOver ? 'bg-primary-soft' : 'hover:bg-raised/40',
         !listed && 'opacity-70',
       )}
       draggable={!disabled}
       {...dragProps}
     >
       <span
-        className="hidden cursor-grab text-muted-x md:inline-flex"
+        className="hidden cursor-grab text-muted-x lg:inline-flex"
         title={formatCopy(w.dragHandle, { pair: label })}
         aria-hidden="true"
       >
         <GripVertical size={14} />
       </span>
-      <span
-        aria-hidden="true"
-        className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-line-strong bg-raised text-[11px] font-bold text-fg-2"
-      >
-        {base.slice(0, 2)}
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          {listed ? (
-            <Link
-              to={`/markets/${market}/${item.symbol}`}
-              className="text-sm font-semibold text-fg no-underline hover:text-primary"
-            >
-              {label}
-            </Link>
-          ) : (
-            <span className="text-sm font-semibold text-fg">{label}</span>
-          )}
-          {!listed && (
-            <span title={w.delistedHint}>
-              <Badge>{w.delisted}</Badge>
-            </span>
-          )}
-        </div>
-        {item.note && (
-          <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-x sm:line-clamp-1">
-            {item.note}
-          </p>
-        )}
-      </div>
-      <div className="ml-auto flex items-center gap-4 sm:ml-0">
-        <div className="min-w-24 text-right">
-          <div className="text-sm font-semibold text-fg">
-            {price ? (
-              <NumericText
-                value={formatPrice(price, prices.tick(market, item.symbol))}
-              />
+      <div className="flex min-w-[150px] flex-1 items-center gap-2.5 lg:min-w-0">
+        <span
+          aria-hidden="true"
+          className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-line-strong bg-raised text-[10.5px] font-bold text-fg-2"
+        >
+          {base.slice(0, 3)}
+        </span>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            {listed ? (
+              <Link
+                to={`/markets/${market}/${item.symbol}`}
+                className="text-[13.5px] font-semibold text-fg no-underline hover:text-primary"
+              >
+                {label}
+              </Link>
             ) : (
-              <span className="text-muted-x">{copy.market.noValue}</span>
+              <span className="text-[13.5px] font-semibold text-fg">
+                {label}
+              </span>
+            )}
+            {!listed && (
+              <span title={w.delistedHint}>
+                <Badge>{w.delisted}</Badge>
+              </span>
             )}
           </div>
-          {change && (
-            <div className="text-xs">
-              <NumericText
-                value={toFixedDecimal(change, 2)}
-                signed
-                suffix="%"
-              />
-            </div>
+          {markets && (
+            <span className="block text-[11px] text-muted-dim">{markets}</span>
           )}
         </div>
-        <div className="w-10 text-right">
-          <span className="block text-[9px] font-semibold tracking-widest text-muted-x uppercase">
-            {w.score}
-          </span>
-          <ScoreCell
-            score={item.spotListed ? score : null}
-            loading={item.spotListed && scoreLoading}
+      </div>
+      <p
+        className={classNames(
+          'order-last m-0 w-full min-w-0 text-[12px] text-fg-2 lg:order-none lg:w-auto lg:truncate',
+          !item.note && 'hidden lg:block lg:text-muted-x',
+        )}
+        title={item.note ?? undefined}
+      >
+        {item.note ?? <span aria-hidden="true">{copy.market.noValue}</span>}
+      </p>
+      <div className="ml-auto text-right font-mono text-[13px] font-semibold text-fg lg:ml-0">
+        {price ? (
+          <NumericText
+            value={formatPrice(price, prices.tick(market, item.symbol))}
           />
-        </div>
-        <span
-          className="w-14 text-right text-[11px] text-muted-dim"
-          title={formatCopy(w.activeAlertsLabel, { count: item.activeAlerts })}
-        >
-          {formatCopy(w.activeAlerts, { count: item.activeAlerts })}
-        </span>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            className={iconButton}
-            aria-label={formatCopy(w.createAlertFor, { pair: label })}
-            title={w.createAlert}
-            onClick={onCreateAlert}
-            disabled={disabled || !listed}
+        ) : (
+          <span className="text-muted-x">{copy.market.noValue}</span>
+        )}
+      </div>
+      <div className="w-20 text-right lg:w-auto">
+        {change ? (
+          <span
+            className={classNames(
+              'inline-flex rounded px-1.5 py-0.5 font-mono text-xs font-semibold',
+              change.startsWith('-') ? 'bg-negative-soft' : 'bg-positive-soft',
+            )}
           >
-            <Bell size={14} aria-hidden="true" />
-          </button>
-          {disabled ? (
-            <span className={iconButton} aria-hidden="true">
-              <MoreHorizontal size={14} className="opacity-40" />
-            </span>
-          ) : (
-            <Menu
-              label={formatCopy(w.actionsFor, { pair: label })}
-              trigger={
-                <span className={iconButton}>
-                  <MoreHorizontal size={14} aria-hidden="true" />
-                </span>
-              }
-              items={menu}
+            <NumericText value={toFixedDecimal(change, 2)} signed suffix="%" />
+          </span>
+        ) : (
+          <span className="font-mono text-xs text-muted-x">
+            {copy.market.noValue}
+          </span>
+        )}
+      </div>
+      <div className="flex w-24 items-center gap-2 lg:w-auto">
+        <span className="text-[10.5px] font-semibold tracking-wider text-muted-x uppercase lg:sr-only">
+          {w.score}
+        </span>
+        <ScoreCell
+          score={item.spotListed ? score : null}
+          loading={item.spotListed && scoreLoading}
+        />
+        {item.spotListed && value !== null && (
+          <span
+            aria-hidden="true"
+            className="hidden h-1 flex-1 overflow-hidden rounded-sm bg-raised lg:block"
+          >
+            <span
+              className={classNames(
+                'block h-full',
+                value >= 70
+                  ? 'bg-positive'
+                  : value >= 40
+                    ? 'bg-warning'
+                    : 'bg-negative',
+              )}
+              style={{ width: `${value}%` }}
             />
-          )}
-        </div>
+          </span>
+        )}
+      </div>
+      <span
+        className="text-[11.5px] text-muted-dim"
+        title={formatCopy(w.activeAlertsLabel, { count: item.activeAlerts })}
+      >
+        {formatCopy(w.activeAlerts, { count: item.activeAlerts })}
+      </span>
+      <div className="flex items-center justify-end gap-1">
+        <button
+          type="button"
+          className={iconButton}
+          aria-label={formatCopy(w.createAlertFor, { pair: label })}
+          title={w.createAlert}
+          onClick={onCreateAlert}
+          disabled={disabled || !listed}
+        >
+          <Bell size={14} aria-hidden="true" />
+        </button>
+        {disabled ? (
+          <span className={iconButton} aria-hidden="true">
+            <MoreHorizontal size={14} className="opacity-40" />
+          </span>
+        ) : (
+          <Menu
+            label={formatCopy(w.actionsFor, { pair: label })}
+            trigger={
+              <span className={iconButton}>
+                <MoreHorizontal size={14} aria-hidden="true" />
+              </span>
+            }
+            items={menu}
+          />
+        )}
       </div>
     </li>
   );
 }
 
 /**
- * SCR-12 rows (Figma Watchlist cards; SRS 3.4.1): grouped by label, with
+ * SCR-12 rows (SRS 3.4.1; one table-like panel since T-142, a card per
+ * row below 1024 px): grouped by label, with
  * last price and 24h change from the live tickers, the setup score, the
  * number of active alerts, and per row Create alert, Edit, Move and Remove.
  * Rows drag within their group on a pointer device; Move up / down is the
@@ -303,19 +351,35 @@ export function WatchlistGroups({
     if (next) onReorder(next);
   };
   return (
-    <div className="grid gap-6">
+    <div className="overflow-hidden rounded-xl border border-line bg-surface">
+      <div
+        aria-hidden="true"
+        className={classNames(
+          'hidden px-4 py-2.5 text-[10.5px] font-semibold tracking-[0.06em] text-muted uppercase',
+          COLUMNS,
+        )}
+      >
+        <span />
+        <span>{w.colPair}</span>
+        <span>{w.colNote}</span>
+        <span className="text-right">{w.colPrice}</span>
+        <span className="text-right">{w.colChange}</span>
+        <span>{w.score}</span>
+        <span>{w.colAlerts}</span>
+        <span />
+      </div>
       {groups.map((group) => (
         <section
           key={group.label ?? ''}
           aria-label={group.label ?? w.unlabelled}
         >
-          <h2 className="mb-3 text-[10px] font-semibold tracking-widest text-muted-x uppercase">
+          <h2 className="m-0 border-t border-line bg-surface-alt px-4 py-2 text-[11px] font-semibold tracking-[0.06em] text-muted uppercase">
             {formatCopy(w.groupCount, {
               label: group.label ?? w.unlabelled,
               count: group.items.length,
             })}
           </h2>
-          <ul className="grid gap-3">
+          <ul className="m-0 list-none p-0">
             {group.items.map((item, index) => (
               <Row
                 key={item.id}

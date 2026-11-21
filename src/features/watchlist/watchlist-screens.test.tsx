@@ -6,6 +6,7 @@ import { AlertsPage } from '../../pages/trader/AlertsPage';
 import { WatchlistPage } from '../../pages/trader/WatchlistPage';
 import type {
   AlertsService,
+  AnalysisService,
   MarketService,
   WatchlistService,
 } from '../../services/api/contracts';
@@ -205,11 +206,13 @@ async function open(
     alerts = fakeAlerts(),
     market = fakeMarket(),
     tier = 'PRO',
+    analysis,
   }: {
     watchlist?: WatchlistService;
     alerts?: AlertsService;
     market?: MarketService;
     tier?: 'FREE' | 'PRO';
+    analysis?: AnalysisService;
   } = {},
 ) {
   const session: Session = { ...testTrader, entitlements: entitlements(tier) };
@@ -217,12 +220,38 @@ async function open(
     [page('/watchlist', <WatchlistPage />), page('/alerts', <AlertsPage />)],
     path,
     fakeAuth({ restoreSession: async () => session }),
-    { watchlist, alerts, market },
+    { watchlist, alerts, market, ...(analysis ? { analysis } : {}) },
   );
   return { watchlist, alerts, user: userEvent.setup() };
 }
 
 describe('SCR-12 watchlist (T-059)', () => {
+  it('T-142: shows the setup score as a figure and a bar of its share', async () => {
+    const get = vi.fn(async (_market: string, symbol: string) => ({
+      setupScore: {
+        score: symbol === 'BTCUSDT' ? 72 : null,
+        preset: 'SWING',
+        presetVersion: 'v1',
+        timeframe: '1h',
+      },
+    }));
+    await open('/watchlist', {
+      analysis: { get } as unknown as AnalysisService,
+    });
+    const majors = within(
+      (await screen.findAllByRole('region')).find(
+        (group) => group.getAttribute('aria-label') === 'Majors',
+      )!,
+    );
+    const btc = majors
+      .getByRole('link', { name: 'BTC/USDT' })
+      .closest('li') as HTMLElement;
+    await waitFor(() => expect(within(btc).getByText('72')).toBeTruthy());
+    const bar = btc.querySelector<HTMLElement>('[style*="width"]');
+    expect(bar?.style.width).toBe('72%');
+    expect(bar?.className).toContain('bg-positive');
+  });
+
   it('groups rows by label with unlabelled rows last and shows n / limit', async () => {
     await open('/watchlist');
     const groups = await screen.findAllByRole('region');
