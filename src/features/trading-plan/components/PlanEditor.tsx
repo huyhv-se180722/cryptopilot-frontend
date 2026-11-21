@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Loader2, Lock, Play, Save } from 'lucide-react';
 import { Alert as Banner } from '../../../components/feedback/States';
 import { Button } from '../../../components/ui/Button';
+import { classNames } from '../../../utils/class-names';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { NumericText } from '../../../components/ui/NumericText';
@@ -323,10 +324,23 @@ export function PlanEditor({
         void submit(false);
       }}
       noValidate
-      className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]"
+      className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_460px]"
     >
-      <div className="flex min-w-0 flex-col gap-4">
-        {charted && chart?.(charted, lines)}
+      {/* Below 1280 px the chart sits over the inputs with the risk panel
+          beside them; from 1280 px the chart has the left column (kept in
+          view while the form scrolls) and the inputs, the risk panel and
+          the actions share the right one (T-142). */}
+      {charted && chart && (
+        <div className="min-w-0 lg:col-start-1 xl:sticky xl:top-4 xl:row-span-2 xl:self-start">
+          {chart(charted, lines)}
+        </div>
+      )}
+      <div
+        className={classNames(
+          'flex min-w-0 flex-col gap-4 lg:col-start-1',
+          charted && chart && 'xl:col-start-2 xl:row-start-1',
+        )}
+      >
         <Section title={p.sectionPair}>
           <div>
             {target.mode === 'create' ? (
@@ -654,7 +668,12 @@ export function PlanEditor({
         </Section>
       </div>
 
-      <div className="flex flex-col gap-4 lg:sticky lg:top-4 lg:self-start">
+      <div
+        className={classNames(
+          'flex flex-col gap-4 lg:sticky lg:top-4 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start',
+          charted && chart && 'xl:static xl:row-span-1 xl:row-start-2',
+        )}
+      >
         <Panel
           id="plan-risk-title"
           title={p.riskTitle}
