@@ -776,6 +776,11 @@ export const en = {
     unlabelled: 'No label',
     groupCount: '{label} ({count})',
     listLabel: 'Watched pairs',
+    colPair: 'Pair',
+    colNote: 'Note',
+    colPrice: 'Price',
+    colChange: '24h',
+    colAlerts: 'Alerts',
     delisted: 'Not listed',
     delistedHint:
       'This pair is no longer enabled. It stays here until you remove it and still counts toward your limit.',
