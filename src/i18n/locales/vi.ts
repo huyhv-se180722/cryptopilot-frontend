@@ -1625,6 +1625,12 @@ export const vi: PartialCopy = {
     resultOPEN: 'Đang mở',
     tradeTitle: 'Lệnh',
     learningTitle: 'Bài học từ lệnh này',
+    entryGroup: 'Vào lệnh',
+    realizedR: 'R thực tế',
+    exitGroup: 'Ra lệnh và kết quả',
+    summaryLabel: 'Kết quả lệnh',
+    showEmpty: 'Hiện {count} trường chưa có dữ liệu',
+    hideEmpty: 'Ẩn các trường chưa có dữ liệu',
     learningHint:
       'Lấy từ plan và lần khớp của lệnh mô phỏng này. Dấu gạch ngang là giá trị chưa được ghi nhận.',
     plannedEntry: 'Giá vào theo plan',

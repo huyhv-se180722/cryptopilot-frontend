@@ -23,10 +23,13 @@ export function LearningCard({
   learning,
   symbol,
   entryPrice,
+  showAll = true,
 }: {
   learning: JournalLearning;
   symbol: string;
   entryPrice: Decimal;
+  /** False leaves out the facts the server did not record. */
+  showAll?: boolean;
 }) {
   const copy = useCopy();
   const j = copy.journal;
@@ -63,40 +66,72 @@ export function LearningCard({
         </p>
       )}
       <dl className="m-0">
-        <Fact label={j.plannedEntry}>{price(learning.plannedEntryPrice)}</Fact>
-        <Fact label={j.columnEntry}>{planPrice(entryPrice)}</Fact>
-        <Fact label={j.entryDeviation} hint={j.entryDeviationHint}>
-          {r(learning.entryDeviationR, false)}
-        </Fact>
-        <Fact label={j.entryLiquidity}>
-          {learning.entryLiquidity
-            ? j[`liquidity${learning.entryLiquidity}`]
-            : none}
-        </Fact>
-        <Fact label={j.plannedRisk}>
-          {learning.riskAmount === null
-            ? none
-            : planAmount(learning.riskAmount) + ' USDT'}
-        </Fact>
-        <Fact label={j.analysisTimeframe}>
-          {learning.analysisTimeframe ?? none}
-        </Fact>
-        <Fact
-          label={j.setupScore}
-          hint={learning.setupScorePreset ?? undefined}
-        >
-          {formatCopy(j.setupScoreAt, {
-            plan: score(learning.setupScoreAtPlan),
-            fill: score(learning.setupScoreAtFill),
-          })}
-        </Fact>
-        <Fact label={j.rMultiple}>{r(learning.rMultiple)}</Fact>
-        <Fact label={j.maeR}>{r(learning.maeR, false)}</Fact>
-        <Fact label={j.mfeR}>{r(learning.mfeR, false)}</Fact>
-        <Fact label={j.maxAdversePrice}>{price(learning.maxAdversePrice)}</Fact>
-        <Fact label={j.maxFavorablePrice}>
-          {price(learning.maxFavorablePrice)}
-        </Fact>
+        {(
+          [
+            [
+              j.plannedEntry,
+              learning.plannedEntryPrice,
+              () => price(learning.plannedEntryPrice),
+            ],
+            [j.columnEntry, entryPrice, () => planPrice(entryPrice)],
+            [
+              j.entryDeviation,
+              learning.entryDeviationR,
+              () => r(learning.entryDeviationR, false),
+              j.entryDeviationHint,
+            ],
+            [
+              j.entryLiquidity,
+              learning.entryLiquidity,
+              () =>
+                learning.entryLiquidity
+                  ? j[`liquidity${learning.entryLiquidity}`]
+                  : none,
+            ],
+            [
+              j.plannedRisk,
+              learning.riskAmount,
+              () =>
+                learning.riskAmount === null
+                  ? none
+                  : planAmount(learning.riskAmount) + ' USDT',
+            ],
+            [
+              j.analysisTimeframe,
+              learning.analysisTimeframe,
+              () => learning.analysisTimeframe ?? none,
+            ],
+            [
+              j.setupScore,
+              learning.setupScoreAtPlan ?? learning.setupScoreAtFill,
+              () =>
+                formatCopy(j.setupScoreAt, {
+                  plan: score(learning.setupScoreAtPlan),
+                  fill: score(learning.setupScoreAtFill),
+                }),
+              learning.setupScorePreset ?? undefined,
+            ],
+            [j.rMultiple, learning.rMultiple, () => r(learning.rMultiple)],
+            [j.maeR, learning.maeR, () => r(learning.maeR, false)],
+            [j.mfeR, learning.mfeR, () => r(learning.mfeR, false)],
+            [
+              j.maxAdversePrice,
+              learning.maxAdversePrice,
+              () => price(learning.maxAdversePrice),
+            ],
+            [
+              j.maxFavorablePrice,
+              learning.maxFavorablePrice,
+              () => price(learning.maxFavorablePrice),
+            ],
+          ] as const
+        )
+          .filter(([, raw]) => showAll || raw !== null)
+          .map(([label, , value, hint]) => (
+            <Fact key={label} label={label} hint={hint}>
+              {value()}
+            </Fact>
+          ))}
       </dl>
       {indicators && (
         <>

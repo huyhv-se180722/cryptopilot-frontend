@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { useCopy } from '../../../hooks/use-copy';
 import type { JournalTrade } from '../../../types/domain';
 import { formatInstantLocal } from '../../../utils/instant-format';
-import { DirectionText } from '../../trading-plan/components/PlanBadges';
 import {
   planPrice,
   planQuantity,
@@ -31,57 +30,115 @@ export function Fact({
   );
 }
 
+/** One fact of a trade; `null` is a value the server did not record. */
+type FactRow = { label: string; value: ReactNode | null };
+
+function FactGroup({
+  id,
+  title,
+  rows,
+  showAll,
+}: {
+  id: string;
+  title: string;
+  rows: readonly FactRow[];
+  showAll: boolean;
+}) {
+  const none = useCopy().market.noValue;
+  const shown = showAll ? rows : rows.filter((row) => row.value !== null);
+  if (shown.length === 0) return null;
+  return (
+    <section
+      aria-labelledby={id}
+      className="overflow-hidden rounded-xl border border-line bg-surface"
+    >
+      <h2
+        id={id}
+        className="m-0 border-b border-line px-4 py-2.5 text-[13px] font-semibold text-fg"
+      >
+        {title}
+      </h2>
+      <dl className="m-0 px-4 py-1.5">
+        {shown.map((row) => (
+          <Fact key={row.label} label={row.label}>
+            {row.value ?? none}
+          </Fact>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
 /**
- * The execution facts of a trade (SCR-21): realized P/L, fees, funding
- * and net stay apart (D-97).
+ * The execution facts of a trade (SCR-21), in two groups: the entry and
+ * the exit. Realized P/L, fees and funding stay apart (D-97); the net is
+ * the page's headline. A fact
+ * the server did not record is left out until `showAll`, so the page is
+ * not a list of dashes; `emptyCount` says how many are hidden.
  */
-export function TradeFacts({ trade }: { trade: JournalTrade }) {
-  const copy = useCopy();
+function tradeFactGroups(
+  trade: JournalTrade,
+  copy: ReturnType<typeof useCopy>,
+) {
   const j = copy.journal;
   const p = copy.plan;
-  const none = copy.market.noValue;
   const price = (value: string | null) =>
-    value === null ? none : planPrice(value);
+    value === null ? null : planPrice(value);
   const time = (value: string | null) =>
-    value === null ? none : formatInstantLocal(value);
+    value === null ? null : formatInstantLocal(value);
+  const amount = (value: string | null, plain = false) =>
+    value === null ? null : <AmountValue value={value} plain={plain} />;
+  const entry: FactRow[] = [
+    { label: j.columnEntry, value: planPrice(trade.entryPrice) },
+    { label: j.columnEntryTime, value: time(trade.entryTime) },
+    { label: j.quantity, value: planQuantity(trade.quantity) },
+    // Spot has no leverage: the row is left out, not counted as missing.
+    ...(trade.leverage === null
+      ? []
+      : [{ label: j.leverage, value: `${trade.leverage}x` }]),
+    { label: j.entryFee, value: amount(trade.entryFee, true) },
+    { label: j.stopLoss, value: price(trade.stopLoss) },
+    { label: j.takeProfit, value: price(trade.takeProfit) },
+  ];
+  const exit: FactRow[] = [
+    { label: j.columnStatus, value: p[`position${trade.status}`] },
+    { label: j.columnExit, value: price(trade.exitPrice) },
+    { label: j.exitTime, value: time(trade.exitTime) },
+    {
+      label: j.closeReason,
+      value: trade.closeReason ? p[`close${trade.closeReason}`] : null,
+    },
+    { label: j.realizedPnl, value: amount(trade.realizedPnl) },
+    { label: j.fees, value: amount(trade.feeAmount, true) },
+    { label: j.funding, value: amount(trade.fundingFeeAmount) },
+  ];
+  return { entry, exit };
+}
+
+export function TradeFacts({
+  trade,
+  showAll,
+}: {
+  trade: JournalTrade;
+  showAll: boolean;
+}) {
+  const copy = useCopy();
+  const j = copy.journal;
+  const { entry, exit } = tradeFactGroups(trade, copy);
   return (
-    <dl className="m-0">
-      <Fact label={j.columnMarket}>{copy.market[trade.market]}</Fact>
-      <Fact label={j.columnDirection}>
-        <DirectionText direction={trade.direction} />
-      </Fact>
-      <Fact label={j.columnSource}>
-        {copy.performance[`source${trade.source}`]}
-      </Fact>
-      <Fact label={j.columnStatus}>{p[`position${trade.status}`]}</Fact>
-      {trade.leverage !== null && (
-        <Fact label={j.leverage}>{trade.leverage}x</Fact>
-      )}
-      <Fact label={j.columnEntry}>{planPrice(trade.entryPrice)}</Fact>
-      <Fact label={j.quantity}>{planQuantity(trade.quantity)}</Fact>
-      <Fact label={j.columnEntryTime}>{time(trade.entryTime)}</Fact>
-      <Fact label={j.entryFee}>
-        <AmountValue value={trade.entryFee} plain />
-      </Fact>
-      <Fact label={j.stopLoss}>{price(trade.stopLoss)}</Fact>
-      <Fact label={j.takeProfit}>{price(trade.takeProfit)}</Fact>
-      <Fact label={j.columnExit}>{price(trade.exitPrice)}</Fact>
-      <Fact label={j.exitTime}>{time(trade.exitTime)}</Fact>
-      <Fact label={j.closeReason}>
-        {trade.closeReason ? p[`close${trade.closeReason}`] : none}
-      </Fact>
-      <Fact label={j.realizedPnl}>
-        <AmountValue value={trade.realizedPnl} />
-      </Fact>
-      <Fact label={j.fees}>
-        <AmountValue value={trade.feeAmount} plain />
-      </Fact>
-      <Fact label={j.funding}>
-        <AmountValue value={trade.fundingFeeAmount} />
-      </Fact>
-      <Fact label={j.netPnl}>
-        <AmountValue value={trade.netPnl} />
-      </Fact>
-    </dl>
+    <>
+      <FactGroup
+        id="trade-entry-title"
+        title={j.entryGroup}
+        rows={entry}
+        showAll={showAll}
+      />
+      <FactGroup
+        id="trade-exit-title"
+        title={j.exitGroup}
+        rows={exit}
+        showAll={showAll}
+      />
+    </>
   );
 }
