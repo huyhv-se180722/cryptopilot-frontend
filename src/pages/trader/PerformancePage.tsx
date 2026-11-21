@@ -119,28 +119,30 @@ export function PerformancePage() {
       ) : summary.data.trades === 0 ? (
         <EmptyState title={messageText(copy, 'MSG41')} />
       ) : (
-        <>
+        <div className="flex flex-col gap-4">
           <PerformanceCards summary={summary.data} />
-          {summary.data.advanced ? (
-            <PerformanceAdvancedCard advanced={summary.data.advanced} />
-          ) : (
-            <PerformanceLock title={p.advancedTitle} />
-          )}
-          {advancedOn ? (
-            <>
+          {/* The curve and the metrics side by side from 1280 px (T-139). */}
+          <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
+            {advancedOn ? (
               <EquityCurveCard
                 filter={filter}
                 from={filter.from ?? summary.data.from}
               />
-              <PerformanceBreakdowns filter={filter} />
-            </>
-          ) : (
-            <>
+            ) : (
               <PerformanceLock title={p.curveTitle} />
-              <PerformanceLock title={p.breakdownTitle} />
-            </>
+            )}
+            {summary.data.advanced ? (
+              <PerformanceAdvancedCard advanced={summary.data.advanced} />
+            ) : (
+              <PerformanceLock title={p.advancedTitle} />
+            )}
+          </div>
+          {advancedOn ? (
+            <PerformanceBreakdowns filter={filter} />
+          ) : (
+            <PerformanceLock title={p.breakdownTitle} />
           )}
-        </>
+        </div>
       )}
     </div>
   );

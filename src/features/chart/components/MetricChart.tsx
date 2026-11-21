@@ -31,11 +31,26 @@ export function MetricChart({
   label,
   lines,
   daily = false,
+  note,
+  lastValues = true,
+  className = 'h-[220px] w-full',
 }: {
   label: string;
   lines: readonly MetricLine[];
   /** Points at the start of UTC days: drawn in UTC, as daily candles. */
   daily?: boolean;
+  /**
+   * The line under the chart in place of its time zone, for points that
+   * are days counted in another zone (the equity curve's UTC+7 days).
+   */
+  note?: string;
+  /**
+   * The last value of each line on the scale. Off where the lines end on
+   * the same value and their labels would cover each other and the scale.
+   */
+  lastValues?: boolean;
+  /** Size of the chart box. */
+  className?: string;
 }) {
   const copy = useCopy();
   const locale = useLocale();
@@ -64,6 +79,7 @@ export function MetricChart({
         lineWidth: 2,
         priceScaleId: line.scale,
         priceLineVisible: false,
+        lastValueVisible: lastValues,
         priceFormat:
           line.format === 'amount'
             ? { type: 'volume' as const }
@@ -80,7 +96,7 @@ export function MetricChart({
     }
     chart.timeScale().fitContent();
     return () => chart.remove();
-  }, [lines, theme, offset, locale, daily]);
+  }, [lines, theme, offset, locale, daily, lastValues]);
 
   return (
     <>
@@ -88,10 +104,10 @@ export function MetricChart({
         ref={container}
         role="img"
         aria-label={label}
-        className="h-[220px] w-full"
+        className={className}
       />
       <p className="mt-1 text-right text-[11px] text-muted-dim">
-        {formatCopy(copy.chart.timeZone, { zone: zoneLabel(offset) })}
+        {note ?? formatCopy(copy.chart.timeZone, { zone: zoneLabel(offset) })}
       </p>
     </>
   );

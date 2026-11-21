@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { ErrorState } from '../../../components/feedback/States';
+import { SegmentedControl } from '../../../components/ui/SegmentedControl';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { Table, type Column } from '../../../components/ui/Table';
 import { useCopy } from '../../../hooks/use-copy';
@@ -84,7 +85,7 @@ export function EquityCurveCard({
   return (
     <section
       aria-labelledby="performance-curve-title"
-      className="mb-4 rounded-xl border border-line bg-surface p-4"
+      className="min-w-0 rounded-xl border border-line bg-surface p-4"
     >
       <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1">
         <h2
@@ -97,7 +98,7 @@ export function EquityCurveCard({
         <Legend color={DRAWDOWN} label={p.curveDrawdown} />
       </div>
       {curve.isPending ? (
-        <Skeleton className="h-[220px] w-full" />
+        <Skeleton className="h-[300px] w-full" />
       ) : curve.isError ? (
         <ErrorState
           message={errorText(copy, curve.error)}
@@ -110,6 +111,9 @@ export function EquityCurveCard({
           })}
           lines={lines}
           daily
+          note={p.curveDays}
+          lastValues={false}
+          className="h-[300px] w-full"
         />
       ) : (
         <p className="py-8 text-center text-xs text-muted-dim">
@@ -197,47 +201,68 @@ function BreakdownTable({
 
   const tier = rows.isError ? lockedTier(rows.error) : undefined;
   if (tier) return <PerformanceLock title={title} tier={tier} />;
-  return (
-    <div className="mb-4 min-w-0">
-      <h3 className="mb-2 text-xs font-semibold text-fg-2">{title}</h3>
-      {rows.isPending ? (
-        <Skeleton className="h-24 w-full" />
-      ) : rows.isError ? (
+  if (rows.isPending) return <Skeleton className="m-4 h-24" />;
+  if (rows.isError)
+    return (
+      <div className="p-4">
         <ErrorState
+          variant="inline"
           message={errorText(copy, rows.error)}
           onRetry={() => void rows.refetch()}
         />
-      ) : (
-        <Table
-          caption={title}
-          columns={columns}
-          rows={rows.data}
-          rowKey={(row) => row.key ?? 'unassigned'}
-          emptyMessage={messageText(copy, 'MSG41')}
-        />
-      )}
-    </div>
+      </div>
+    );
+  return (
+    <Table
+      caption={title}
+      columns={columns}
+      rows={rows.data}
+      rowKey={(row) => row.key ?? 'unassigned'}
+      emptyMessage={messageText(copy, 'MSG41')}
+      cards
+    />
   );
 }
 
-/** By coin, by strategy and by market, the highest net P/L first. */
+const KINDS: readonly PerformanceBreakdownKind[] = [
+  'coin',
+  'strategy',
+  'market',
+];
+
+/**
+ * By coin, by strategy or by market, the highest net P/L first, one at a
+ * time behind tabs (T-139): only the group shown is read.
+ */
 export function PerformanceBreakdowns({
   filter,
 }: {
   filter: PerformanceFilter;
 }) {
   const p = useCopy().performance;
+  const [kind, setKind] = useState<PerformanceBreakdownKind>('coin');
   return (
-    <section aria-labelledby="performance-breakdown-title">
-      <h2
-        id="performance-breakdown-title"
-        className="mb-3 text-sm font-semibold text-fg"
-      >
-        {p.breakdownTitle}
-      </h2>
-      <BreakdownTable kind="coin" filter={filter} />
-      <BreakdownTable kind="strategy" filter={filter} />
-      <BreakdownTable kind="market" filter={filter} />
+    <section
+      aria-labelledby="performance-breakdown-title"
+      className="overflow-hidden rounded-xl border border-line bg-surface"
+    >
+      <div className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3">
+        <h2
+          id="performance-breakdown-title"
+          className="text-sm font-semibold text-fg"
+        >
+          {p.breakdownTitle}
+        </h2>
+        <SegmentedControl
+          label={p.breakdownGroups}
+          value={kind}
+          onChange={setKind}
+          options={KINDS.map((value) => ({ value, label: p[`by${value}`] }))}
+        />
+      </div>
+      <div className="p-3">
+        <BreakdownTable key={kind} kind={kind} filter={filter} />
+      </div>
     </section>
   );
 }

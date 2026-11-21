@@ -12,14 +12,20 @@ import type {
 } from '../../types/domain';
 import { page, renderRoutes, fakeAuth, testTrader } from '../../test/render';
 
-const line = vi.hoisted(() => ({ setData: vi.fn() }));
+const line = vi.hoisted(() => ({
+  setData: vi.fn(),
+  options: [] as Record<string, unknown>[],
+}));
 vi.mock('lightweight-charts', () => ({
   ColorType: { Solid: 'solid' },
   CrosshairMode: { Normal: 0 },
   LineStyle: { Dashed: 2, Solid: 0 },
   LineSeries: {},
   createChart: () => ({
-    addSeries: () => line,
+    addSeries: (_type: unknown, options: Record<string, unknown>) => {
+      line.options.push(options);
+      return line;
+    },
     timeScale: () => ({ fitContent: vi.fn() }),
     remove: vi.fn(),
   }),
@@ -125,6 +131,16 @@ describe('SCR-23 performance dashboard', () => {
     expect(screen.getByText('+1,234.50 USDT')).toBeTruthy();
     expect(screen.getByText('66.67%')).toBeTruthy();
     expect(screen.getByText('Wins 2 · Losses 1 · Breakeven 1')).toBeTruthy();
+    const strip = screen.getByRole('region', { name: 'Key figures' });
+    expect(
+      within(strip).getByRole('img', {
+        name: '2 wins, 1 losses, 1 breakeven',
+      }),
+    ).toBeTruthy();
+    // BR-42: no PRO figure on the strip of FREE.
+    expect(within(strip).queryByText('Profit factor')).toBeNull();
+    expect(within(strip).queryByText('Max drawdown')).toBeNull();
+    expect(strip.textContent).toContain('Funding -0.75 (+ received, − paid)');
     expect(screen.getAllByRole('link', { name: 'View plans' })).toHaveLength(3);
     expect(screen.queryByLabelText('Strategy')).toBeNull();
     expect(performance.breakdown).not.toHaveBeenCalled();
@@ -137,6 +153,8 @@ describe('SCR-23 performance dashboard', () => {
       breakdown: vi.fn(async () => [{ ...ROW, key: 'SPOT', label: 'SPOT' }]),
     });
     await open(performance, PRO);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('radio', { name: 'By market' }));
     const markets = await screen.findByRole('region', { name: 'By market' });
     expect(await within(markets).findByText('Spot')).toBeTruthy();
     expect(within(markets).queryByText('SPOT')).toBeNull();
@@ -148,19 +166,38 @@ describe('SCR-23 performance dashboard', () => {
     });
     await open(performance, PRO);
     expect(await screen.findByText('Advanced metrics')).toBeTruthy();
+    const strip = screen.getByRole('region', { name: 'Key figures' });
+    expect(within(strip).getByText('Profit factor')).toBeTruthy();
+    expect(within(strip).getByText('Max drawdown')).toBeTruthy();
+    expect(strip.textContent).toContain('Longest losing streak 1');
     const metrics = screen.getByRole('heading', { name: 'Advanced metrics' })
       .parentElement as HTMLElement;
     const factor = within(metrics).getByText('Profit factor');
     expect(factor.parentElement?.textContent).toBe('Profit factor—');
-    const coins = await screen.findByRole('region', { name: 'By strategy' });
+    const coins = await screen.findByRole('region', { name: 'By coin' });
     expect(await within(coins).findByText('Unassigned')).toBeTruthy();
     expect(screen.queryByRole('link', { name: 'View plans' })).toBeNull();
-    expect(
+    // Only the group shown is read (T-139); the strategies also fill the
+    // strategy filter.
+    const kinds = () =>
       new Set(
         vi.mocked(performance.breakdown).mock.calls.map(([kind]) => kind),
-      ),
-    ).toEqual(new Set(['coin', 'strategy', 'market']));
+      );
+    expect(kinds()).toEqual(new Set(['coin', 'strategy']));
+    await userEvent
+      .setup()
+      .click(screen.getByRole('radio', { name: 'By market' }));
+    await waitFor(() =>
+      expect(kinds()).toEqual(new Set(['coin', 'strategy', 'market'])),
+    );
     await waitFor(() => expect(line.setData).toHaveBeenCalled());
+    // The curve's days are the backend's UTC+7 business days (D-138).
+    expect(
+      screen.getByText('Each point is a day with an exit · days in UTC+7'),
+    ).toBeTruthy();
+    expect(screen.queryByText('Times in UTC')).toBeNull();
+    // The two lines end on one value: no labels on the scale to overlap.
+    expect(line.options.at(-1)).toMatchObject({ lastValueVisible: false });
     expect(line.setData.mock.calls[0]?.[0]).toHaveLength(2);
     expect(line.setData.mock.calls[0]?.[0][0]).toMatchObject({ value: 0 });
   });

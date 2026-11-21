@@ -21,6 +21,9 @@ export interface StrategyOption {
   label: string;
 }
 
+/** One filter box: the whole row on a phone, a fixed width from 640 px. */
+const FIELD = 'w-full sm:w-52';
+
 /**
  * The filter bar of SCR-23. There is no list of strategies to read, so
  * they come from the by-strategy breakdown: `strategies` is null without
@@ -51,9 +54,9 @@ export function PerformanceFilters({
   return (
     <section
       aria-label={p.filtersLabel}
-      className="mb-4 rounded-xl border border-line bg-surface p-4"
+      className="mb-4 flex flex-wrap items-start gap-2 rounded-xl border border-line bg-surface px-3 py-2.5"
     >
-      <div className="mb-3 max-w-full overflow-x-auto">
+      <div className="max-w-full overflow-x-auto">
         <SegmentedControl
           label={p.period}
           value={view.period}
@@ -64,10 +67,13 @@ export function PerformanceFilters({
           }))}
         />
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <span aria-hidden="true" className="hidden h-9 w-px bg-line sm:block" />
+      <div className="contents">
         {view.period === 'custom' && (
           <>
             <Input
+              inline
+              className={FIELD}
               label={p.from}
               type="date"
               value={view.from}
@@ -75,6 +81,8 @@ export function PerformanceFilters({
               onChange={(event) => onChange({ from: event.target.value })}
             />
             <Input
+              inline
+              className={FIELD}
               label={p.to}
               type="date"
               value={view.to}
@@ -84,6 +92,8 @@ export function PerformanceFilters({
           </>
         )}
         <Select
+          inline
+          className={FIELD}
           label={p.market}
           value={view.market}
           error={errors.market}
@@ -98,6 +108,8 @@ export function PerformanceFilters({
           ))}
         </Select>
         <Select
+          inline
+          className={FIELD}
           label={p.source}
           value={view.source}
           error={errors.source}
@@ -112,6 +124,8 @@ export function PerformanceFilters({
           ))}
         </Select>
         <Select
+          inline
+          className={FIELD}
           label={p.pair}
           value={view.pairId}
           error={errors.pairId}
@@ -129,6 +143,8 @@ export function PerformanceFilters({
         </Select>
         {strategies !== null && (
           <Select
+            inline
+            className={FIELD}
             label={p.strategy}
             value={view.strategyId}
             error={errors.strategyId}
