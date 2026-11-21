@@ -8,6 +8,7 @@ import { DashboardPage } from '../../pages/trader/DashboardPage';
 import type {
   MarketFeed,
   MarketService,
+  NewsService,
   PerformanceService,
   TradingPlanService,
   WatchlistService,
@@ -84,7 +85,7 @@ const row = (
   status: 'ACTIVE' | 'EXECUTED',
 ): TradingPlanSummary => ({
   id,
-  pairId: 'p-1',
+  pairId: 'p-BTCUSDT',
   market: 'spot',
   direction: 'LONG',
   entryType: 'LIMIT',
@@ -125,7 +126,7 @@ const entitlements: PlanEntitlements = {
 
 async function open(
   locale: Locale = 'en',
-  extra: { performance?: PerformanceService } = {},
+  extra: { performance?: PerformanceService; news?: NewsService } = {},
 ) {
   let overview: ((value: MarketOverview) => void) | null = null;
   const market: MarketService = {
@@ -146,7 +147,9 @@ async function open(
     subscribeKline: () => () => undefined,
   };
   const active = ['a1', 'a2', 'a3', 'a4', 'a5', 'a6'].map((id) =>
-    row(id, 'ACTIVE'),
+    id === 'a2'
+      ? { ...row(id, 'ACTIVE'), market: 'futures' as const, leverage: 5 }
+      : row(id, 'ACTIVE'),
   );
   const tradingPlan = {
     list: vi.fn<TradingPlanService['list']>(async (query) => {
@@ -194,6 +197,7 @@ async function open(
     { market, marketFeed, tradingPlan, watchlist, ...extra },
   );
   return {
+    market,
     tradingPlan,
     pushOverview: (tickers: MarketTicker[]) =>
       act(() =>
@@ -206,7 +210,11 @@ async function open(
   };
 }
 
-describe('SCR-08 Trader dashboard (T-112)', () => {
+/** The figure of a key-figure cell, by its label. */
+const figure = (label: string) =>
+  screen.getByText(label, { selector: 'dt' }).nextElementSibling?.textContent;
+
+describe('SCR-08 Trader dashboard (T-112, T-139)', () => {
   it('dates the header in the interface language, not the browser one', async () => {
     // The date follows the interface's locale: Vietnamese copy (the 'vi'
     // stub) gets "14 thg 10, 2026", English copy "Oct 14, 2026", whatever
@@ -223,18 +231,25 @@ describe('SCR-08 Trader dashboard (T-112)', () => {
   it('counts active plans, open positions and watched pairs against the plan limits', async () => {
     await open();
     await screen.findByRole('heading', { level: 1, name: 'Overview' });
-    await waitFor(() => expect(screen.getByText('6 / 5')).toBeTruthy());
+    await waitFor(() => expect(figure('Active plans')).toBe('6 / 5'));
     expect(screen.getByText('Limit reached on PRO')).toBeTruthy();
-    expect(screen.getByText('3 / 10')).toBeTruthy();
+    await waitFor(() => expect(figure('Watchlist')).toBe('3 / 10'));
     expect(screen.getByText('7 slots left on PRO')).toBeTruthy();
+    expect(
+      screen.getByRole('img', { name: '3 of 10 watchlist slots used' }),
+    ).toBeTruthy();
     expect(screen.getByText(/6 of 5 active plans/)).toBeTruthy();
     // Only the executed plan whose position is still open counts.
-    expect(screen.getByText('Open positions').nextSibling?.textContent).toBe(
-      '1',
-    );
+    await waitFor(() => expect(figure('Open positions')).toBe('1'));
+    expect(screen.getByText(/1 open simulated positions/)).toBeTruthy();
     expect(
       screen.getByRole('link', { name: 'New plan' }).getAttribute('href'),
     ).toBe('/plans/new');
+    expect(
+      screen
+        .getByRole('link', { name: 'Record a manual trade' })
+        .getAttribute('href'),
+    ).toBe('/journal/new');
   });
 
   it('lists five plans of the chosen tab with a link to the rest', async () => {
@@ -261,33 +276,107 @@ describe('SCR-08 Trader dashboard (T-112)', () => {
     ).toBe('/plans?tab=EXECUTED');
   });
 
-  it('shows the watched pairs with live Spot prices, a dash for Futures only and a delisted pair', async () => {
+  it('draws each plan from stop loss to take profit, with the live Spot price and its distance from the entry', async () => {
     const { pushOverview } = await open();
-    const block = await screen.findByRole('region', { name: 'Watchlist' });
-    pushOverview([ticker('ETHUSDT', '2500.10', '-1.20')]);
-    const links = await within(block).findAllByRole('link', {
-      name: /USDT|XRPUSDT/,
+    const block = await screen.findByRole('region', {
+      name: 'Active plans and open positions',
     });
-    await waitFor(() => expect(block.textContent).toContain('2,500.10'));
-    expect(block.textContent).toContain('-1.20%');
-    expect(links.map((link) => link.getAttribute('href'))).toEqual([
-      '/markets/spot/ETHUSDT',
-      '/markets/futures/XRPUSDT',
-    ]);
+    await waitFor(() =>
+      expect(within(block).getAllByRole('row')).toHaveLength(6),
+    );
+    pushOverview([ticker('BTCUSDT', '63000.00', '1.00')]);
+    const rows = within(block).getAllByRole('row').slice(1);
+    const spot = rows[0] as HTMLElement;
+    await waitFor(() =>
+      expect(
+        within(spot).getByRole('img', {
+          name: 'Stop loss 61,000.00, entry 62,000.00, take profit 65,000.00, current price 63,000.00',
+        }),
+      ).toBeTruthy(),
+    );
+    // (63,000 - 62,000) / 62,000 = 1.6129 %
+    expect(spot.textContent).toContain('+1.61%');
+    // The page reads no Futures price: the line has no current price.
+    const futures = rows[1] as HTMLElement;
+    expect(
+      within(futures).getByRole('img', {
+        name: 'Stop loss 61,000.00, entry 62,000.00, take profit 65,000.00',
+      }),
+    ).toBeTruthy();
+    expect(futures.textContent).toContain('Futures · 5x');
+    expect(within(block).queryByText('Created')).toBeNull();
+  });
+
+  it('lists the watched pairs: a Spot pair charts, a Futures-only one links, a delisted one stays', async () => {
+    const { pushOverview } = await open();
+    const rail = await screen.findByRole('complementary', {
+      name: 'Watchlist and movers',
+    });
+    pushOverview([ticker('ETHUSDT', '2500.10', '-1.20')]);
+    await waitFor(() => expect(rail.textContent).toContain('2,500.10'));
+    expect(rail.textContent).toContain('-1.20%');
+    // The first watched Spot pair is charted and marked as picked.
+    const eth = within(rail).getByRole('button', { name: /ETH\/USDT/ });
+    expect(eth.getAttribute('aria-pressed')).toBe('true');
+    expect(
+      within(rail)
+        .getByRole('link', { name: /XRP\/USDT/ })
+        .getAttribute('href'),
+    ).toBe('/markets/futures/XRPUSDT');
     // The delisted pair keeps its name, says so, and opens nothing.
-    const delisted = within(block).getByText('Not listed').closest('li');
+    const delisted = within(rail).getByText('Not listed').closest('li');
     expect(delisted?.textContent).toContain('MATIC/USDT');
     expect(delisted?.textContent).toContain('no longer enabled');
     expect(within(delisted as HTMLElement).queryByRole('link')).toBeNull();
+    expect(within(delisted as HTMLElement).queryByRole('button')).toBeNull();
+  });
+
+  it('reads one candle list on load, of the first watched Spot pair, and one more per pick', async () => {
+    const user = userEvent.setup();
+    const { market, pushOverview } = await open();
+    const chart = await screen.findByRole('region', {
+      name: 'Market snapshot',
+    });
+    await waitFor(() => expect(market.getCandles).toHaveBeenCalledTimes(1));
+    expect(market.getCandles).toHaveBeenCalledWith(
+      expect.objectContaining({
+        market: 'spot',
+        symbol: 'ETHUSDT',
+        timeframe: '1h',
+      }),
+    );
+    expect(chart.textContent).toContain('Times in');
+    await user.click(within(chart).getByRole('radio', { name: '4h' }));
+    await waitFor(() => expect(market.getCandles).toHaveBeenCalledTimes(2));
+    expect(market.getCandles).toHaveBeenLastCalledWith(
+      expect.objectContaining({ symbol: 'ETHUSDT', timeframe: '4h' }),
+    );
+    // The movers come from the tickers the page already reads.
+    pushOverview([
+      ticker('BTCUSDT', '63000', '2.11'),
+      ticker('ETHUSDT', '2500', '-1.20'),
+      ticker('SOLUSDT', '144', '4.82'),
+    ]);
+    const rail = screen.getByRole('complementary', {
+      name: 'Watchlist and movers',
+    });
+    await user.click(within(rail).getByRole('button', { name: 'Top gainers' }));
+    const gainers = within(rail)
+      .getAllByRole('listitem')
+      .map((item) => item.textContent?.slice(0, 3));
+    expect(gainers).toEqual(['SOL', 'BTC', 'ETH']);
+    await user.click(within(rail).getByRole('button', { name: 'Top losers' }));
+    await user.click(within(rail).getByRole('button', { name: /BTC\/USDT/ }));
+    await waitFor(() => expect(market.getCandles).toHaveBeenCalledTimes(3));
+    expect(market.getCandles).toHaveBeenLastCalledWith(
+      expect.objectContaining({ symbol: 'BTCUSDT', timeframe: '4h' }),
+    );
+    expect(within(chart).getByRole('heading').textContent).toContain('BTC');
   });
 
   it('says which blocks are not connected yet instead of inventing data', async () => {
     await open();
-    for (const name of [
-      'Recent notifications',
-      'Performance summary',
-      'Latest news',
-    ]) {
+    for (const name of ['Recent notifications', 'Key figures', 'Latest news']) {
       const block = await screen.findByRole('region', { name });
       await waitFor(() =>
         expect(block.textContent).toContain('not connected to the server yet'),
@@ -296,6 +385,28 @@ describe('SCR-08 Trader dashboard (T-112)', () => {
     expect(
       screen.getByRole('region', { name: 'Market snapshot' }),
     ).toBeTruthy();
+  });
+
+  it('says in one line that the news failed, with a retry, while the rest works', async () => {
+    const user = userEvent.setup();
+    const feed = vi.fn(async () => {
+      throw new Error('boom');
+    });
+    await open('en', {
+      news: { feed, article: vi.fn() } as unknown as NewsService,
+    });
+    const block = await screen.findByRole('region', { name: 'Latest news' });
+    const alert = await within(block).findByRole('alert');
+    expect(alert.textContent).toContain('News could not load.');
+    expect(
+      within(block).queryByRole('heading', { level: 2, name: /wrong/ }),
+    ).toBeNull();
+    await user.click(within(alert).getByRole('button', { name: 'Try again' }));
+    await waitFor(() => expect(feed.mock.calls.length).toBeGreaterThan(1));
+    expect(feed).toHaveBeenCalledWith(
+      { page: 1, pageSize: 5 },
+      expect.anything(),
+    );
   });
 
   describe('performance summary', () => {
@@ -339,8 +450,7 @@ describe('SCR-08 Trader dashboard (T-112)', () => {
         breakdown: vi.fn(),
         equityCurve: vi.fn(),
       }) as unknown as PerformanceService;
-    const block = () =>
-      screen.findByRole('region', { name: 'Performance summary' });
+    const block = () => screen.findByRole('region', { name: 'Key figures' });
 
     it('reads the simulated trades of all time and shows the server figures', async () => {
       const performance = service(async () => summary());
@@ -352,21 +462,22 @@ describe('SCR-08 Trader dashboard (T-112)', () => {
         expect.anything(),
       );
       expect(region.textContent).toContain(
-        'All time · closed simulated trades',
+        'Performance of closed simulated trades · all time',
       );
-      expect(region.textContent).toContain('+1,642.50 USDT');
-      expect(region.textContent).toContain('67.39%');
+      expect(figure('Net P/L')).toBe('+1,642.50 USDT');
+      expect(region.textContent).toContain('46 closed trades');
+      expect(figure('Win rate')).toBe('67.39%');
       expect(region.textContent).toContain('Wins 31 · Losses 14 · Breakeven 1');
-      expect(region.textContent).toContain('Average realized R');
-      expect(region.textContent).toContain('+312.00 USDT');
+      expect(figure('Average realized R')).toBe('0.85');
+      expect(region.textContent).toContain('Profit factor 2.10');
       expect(
         within(region).getByRole('img', {
-          name: '67.39% win rate · 46 trades',
+          name: '31 wins, 14 losses, 1 breakeven',
         }),
       ).toBeTruthy();
       expect(
         within(region)
-          .getByRole('link', { name: /open/i })
+          .getByRole('link', { name: /View performance/ })
           .getAttribute('href'),
       ).toBe('/performance');
     });
@@ -390,7 +501,7 @@ describe('SCR-08 Trader dashboard (T-112)', () => {
         expect(region.textContent).toContain('-1,148.99 USDT'),
       );
       expect(region.textContent).not.toContain('Average realized R');
-      expect(region.textContent).not.toContain('Largest win');
+      expect(region.textContent).not.toContain('Profit factor');
     });
 
     it('says there are no results when no trade is closed yet', async () => {

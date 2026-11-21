@@ -1,7 +1,11 @@
 import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useServices } from '../../../hooks/use-services';
-import type { MarketPair, MarketType } from '../../../types/domain';
+import type {
+  CandleTimeframe,
+  MarketPair,
+  MarketType,
+} from '../../../types/domain';
 
 /** The list changes only when Admin enables a pair: cache for minutes. */
 const PAIRS_STALE_MS = 5 * 60_000;
@@ -66,16 +70,24 @@ export function usePairLookup(): (
   );
 }
 
-/** Closed daily candles for the basic chart; idle without a symbol. */
-export function usePairCandles(market: MarketType, symbol: string | null) {
+/**
+ * Closed candles for the basic chart, daily unless a timeframe is given
+ * (the dashboard's 1h / 4h / 1D buttons, T-139); idle without a symbol.
+ */
+export function usePairCandles(
+  market: MarketType,
+  symbol: string | null,
+  timeframe: CandleTimeframe = BASIC_CHART.timeframe,
+) {
   const { market: service } = useServices();
   return useQuery({
-    queryKey: ['market', 'candles', market, symbol, BASIC_CHART.timeframe],
+    queryKey: ['market', 'candles', market, symbol, timeframe],
     queryFn: ({ signal }) =>
       service.getCandles({
         market,
         symbol: symbol ?? '',
-        ...BASIC_CHART,
+        timeframe,
+        limit: BASIC_CHART.limit,
         signal,
       }),
     enabled: symbol !== null,

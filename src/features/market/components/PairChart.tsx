@@ -5,10 +5,13 @@ import {
   createChart,
   type IChartApi,
   type ISeriesApi,
-  type UTCTimestamp,
 } from 'lightweight-charts';
 import { useLocale } from '../../../hooks/use-copy';
-import type { Candle } from '../../../types/domain';
+import type { Candle, CandleTimeframe } from '../../../types/domain';
+import {
+  chartOffsetSeconds,
+  chartTime,
+} from '../../chart/components/chart-time';
 import { decimalPlaces } from '../../../utils/decimal-format';
 
 /** Reads a design token so the chart follows the light and dark themes. */
@@ -60,6 +63,7 @@ export function PairChart({
   label,
   className = 'h-64 w-full sm:h-72',
   lastClose = true,
+  timeframe = '1d',
 }: {
   candles: readonly Candle[];
   tickSize: string | null;
@@ -72,6 +76,11 @@ export function PairChart({
    * as a second, different price.
    */
   lastClose?: boolean;
+  /**
+   * The candles' timeframe: intraday ones are drawn in the Trader's local
+   * time with hours on the axis, daily ones in UTC (chart-time.ts).
+   */
+  timeframe?: CandleTimeframe;
 }) {
   const locale = useLocale();
   const container = useRef<HTMLDivElement>(null);
@@ -123,9 +132,13 @@ export function PairChart({
         minMove: places === 0 ? 1 : Number('1e-' + places),
       },
     });
+    const offset = chartOffsetSeconds(timeframe);
+    chart.current?.applyOptions({
+      timeScale: { timeVisible: timeframe !== '1d' },
+    });
     series.current?.setData(
       candles.map((candle) => ({
-        time: (Date.parse(candle.openTime) / 1000) as UTCTimestamp,
+        time: chartTime(candle.openTime, offset),
         open: Number(candle.open),
         high: Number(candle.high),
         low: Number(candle.low),
@@ -134,7 +147,7 @@ export function PairChart({
     );
     chart.current?.timeScale().fitContent();
     // Also after a rebuild (another locale), so the new chart has the candles.
-  }, [candles, tickSize, lastClose, locale]);
+  }, [candles, tickSize, lastClose, locale, timeframe]);
 
   return (
     <div ref={container} role="img" aria-label={label} className={className} />

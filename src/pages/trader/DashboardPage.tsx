@@ -1,18 +1,17 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
-import { StatCard } from '../../components/layout/StatCard';
 import { buttonClassName } from '../../components/ui/button-styles';
 import { useCopy, useLocale } from '../../hooks/use-copy';
 import { usePlanLimit, usePlanTier } from '../../hooks/use-entitlement';
 import { formatCopy } from '../../i18n/copy';
 import { DashboardCard } from '../../features/dashboard/components/DashboardCard';
+import { DashboardKpis } from '../../features/dashboard/components/DashboardKpis';
 import { MarketSnapshot } from '../../features/dashboard/components/MarketSnapshot';
 import { NewsBlock } from '../../features/dashboard/components/NewsBlock';
-import { PerformanceBlock } from '../../features/dashboard/components/PerformanceBlock';
 import { RecentNotifications } from '../../features/notifications/components/RecentNotifications';
 import { PlanSnapshot } from '../../features/dashboard/components/PlanSnapshot';
-import { WatchlistSnapshot } from '../../features/dashboard/components/WatchlistSnapshot';
+import { MarketRail } from '../../features/dashboard/components/MarketRail';
 import { useMarketPairs } from '../../features/market/hooks/use-market-data';
 import { useMarketTickers } from '../../features/market/hooks/use-market-tickers';
 import {
@@ -20,16 +19,6 @@ import {
   usePlanCount,
 } from '../../features/trading-plan/hooks/use-plans';
 import { useWatchlist } from '../../features/watchlist/hooks/use-watchlist';
-
-/** "3 / 5" with a plan limit, "3" without; `none` until the count is known. */
-function counted(
-  count: number | undefined,
-  max: number | null | undefined,
-  none: string,
-) {
-  if (count === undefined) return none;
-  return typeof max === 'number' ? `${count} / ${max}` : String(count);
-}
 
 /**
  * SCR-08 Trader Dashboard (T-112), the Trader's home after sign-in, from
@@ -64,6 +53,22 @@ export function DashboardPage() {
   const positions = useOpenPositionCount();
   const watchlist = useWatchlist();
   const watched = watchlist.data?.items.length;
+  // The chart shows the pair picked in the rail; before that the first
+  // watched Spot pair, once the watchlist is known (one candle request).
+  const [picked, setPicked] = useState<string | null>(null);
+  const spot = pairs.data ?? [];
+  const firstWatched = watchlist.data?.items.find(
+    (item) =>
+      item.spotListed && spot.some((pair) => pair.symbol === item.symbol),
+  )?.symbol;
+  const shown =
+    picked ??
+    (watchlist.isPending ? null : (firstWatched ?? spot[0]?.symbol ?? null));
+  const chartPair = spot.find((pair) => pair.symbol === shown) ?? null;
+  const openCount =
+    positions.data === undefined
+      ? undefined
+      : positions.data.open + (positions.data.more ? '+' : '');
 
   const limitNote = (
     count: number | undefined,
@@ -94,9 +99,18 @@ export function DashboardPage() {
                         max: activeMax,
                       })
                     : formatCopy(d.activePlans, { count: active.data }),
+              positions: formatCopy(d.openPositions, {
+                count: openCount ?? none,
+              }),
             })}
           </p>
         </div>
+        <Link
+          to="/journal/new"
+          className={buttonClassName('secondary', 'md', 'no-underline')}
+        >
+          {d.manualTrade}
+        </Link>
         <Link
           to="/plans/new"
           className={buttonClassName('primary', 'md', 'no-underline')}
@@ -106,49 +120,44 @@ export function DashboardPage() {
         </Link>
       </header>
 
-      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <StatCard
-          label={d.kpiActive}
-          value={counted(active.data, activeMax, none)}
-          status={limitNote(active.data, activeMax)}
-          accent="warning"
+      <DashboardKpis
+        active={{
+          count: active.data,
+          max: activeMax,
+          note: limitNote(active.data, activeMax),
+        }}
+        positions={{ count: openCount, note: d.kpiExecutedNote }}
+        watchlist={{
+          count: watched,
+          max: watchMax,
+          note: limitNote(watched, watchMax),
+        }}
+      />
+
+      <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <MarketSnapshot
+          pair={chartPair}
+          ticker={chartPair ? board.tickers.get(chartPair.symbol) : undefined}
         />
-        <StatCard
-          label={d.kpiExecuted}
-          value={
-            positions.data === undefined
-              ? none
-              : positions.data.open + (positions.data.more ? '+' : '')
-          }
-          status={d.kpiExecutedNote}
-          accent="positive"
-        />
-        <StatCard
-          label={d.kpiWatchlist}
-          value={counted(watched, watchMax, none)}
-          status={limitNote(watched, watchMax)}
-          accent="primary"
+        <MarketRail
+          pairs={spot}
+          tickers={board.tickers}
+          selected={chartPair?.symbol ?? null}
+          onSelect={setPicked}
         />
       </div>
 
-      <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="flex min-w-0 flex-col gap-4">
-          {pairs.data && (
-            <MarketSnapshot pairs={pairs.data} tickers={board.tickers} />
-          )}
-          <PlanSnapshot />
-        </div>
-        <WatchlistSnapshot pairs={pairs.data ?? []} tickers={board.tickers} />
+      <div className="mb-4">
+        <PlanSnapshot tickers={board.tickers} />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <DashboardCard
           title={d.notificationsTitle}
           link={{ to: '/notifications', label: d.openPage }}
         >
           <RecentNotifications />
         </DashboardCard>
-        <PerformanceBlock />
         <NewsBlock />
       </div>
     </div>
