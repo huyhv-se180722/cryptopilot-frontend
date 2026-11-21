@@ -521,6 +521,11 @@ export const en = {
     liquidation: 'Est. liquidation price',
     lossAtStopLoss: 'Real loss at stop loss (USDT)',
     netRiskReward: 'Reward / risk after fees',
+    ladderTitle: 'Prices of the plan',
+    ladderLabel:
+      'Stop loss {stopLoss}, entry {entry}, take profit {takeProfit}',
+    ladderEntry: 'Entry',
+    ofCapital: '· {percent}% of capital',
     costsTitle: 'Fees and slippage (est.)',
     entryFee: 'Entry fee (USDT)',
     stopLossExitFee: 'Exit fee at stop loss (USDT)',

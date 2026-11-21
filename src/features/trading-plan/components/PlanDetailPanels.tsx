@@ -100,7 +100,14 @@ const when = (value: string) => (
  * the analysis timeframe and, once activated, the setup score taken then
  * under its preset ("—" when none could be read; never computed here).
  */
-export function PlanInputsPanel({ plan }: { plan: TradingPlan }) {
+export function PlanInputsPanel({
+  plan,
+  single = false,
+}: {
+  plan: TradingPlan;
+  /** One column, for the side column of SCR-18. */
+  single?: boolean;
+}) {
   const copy = useCopy();
   const p = copy.plan;
   const futures = plan.market === 'futures';
@@ -180,7 +187,7 @@ export function PlanInputsPanel({ plan }: { plan: TradingPlan }) {
   ];
   return (
     <Panel id="plan-inputs-title" title={p.inputsTitle}>
-      <Rows rows={rows} />
+      <Rows rows={rows} single={single} />
       {plan.note && (
         <p className="mt-3 text-xs text-fg-2">
           <span className="mr-1.5 text-[11px] text-muted-dim">{p.note}</span>
@@ -287,11 +294,17 @@ export function PlanSnapshotRows({
   );
 }
 
-export function PlanSnapshotPanel({ plan }: { plan: TradingPlan }) {
+export function PlanSnapshotPanel({
+  plan,
+  single = false,
+}: {
+  plan: TradingPlan;
+  single?: boolean;
+}) {
   const p = useCopy().plan;
   return (
     <Panel id="plan-snapshot-title" title={p.snapshotTitle}>
-      <PlanSnapshotRows snapshot={plan.snapshot} />
+      <PlanSnapshotRows snapshot={plan.snapshot} single={single} />
     </Panel>
   );
 }
