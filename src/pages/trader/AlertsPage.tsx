@@ -170,12 +170,25 @@ export function AlertsPage() {
           {a.newAlert}
         </Button>
       </header>
-      <div className="mb-4 flex flex-wrap items-end gap-4">
+      {/* One filter bar, the type first (T-142). */}
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2.5">
+        <SegmentedControl
+          label={a.filterType}
+          value={type}
+          onChange={(value) => update({ type: value === 'all' ? null : value })}
+          options={[
+            { value: 'all', label: a.allTypes },
+            { value: 'PRICE', label: a.typePRICE },
+            { value: 'INDICATOR', label: a.typeINDICATOR },
+          ]}
+        />
+        <span aria-hidden="true" className="hidden h-9 w-px bg-line sm:block" />
         <Select
+          inline
           label={a.filterStatus}
           value={status ?? ''}
           onChange={(event) => update({ status: event.target.value || null })}
-          className="w-44"
+          className="w-full sm:w-56"
         >
           <option value="">{a.allStatuses}</option>
           {STATUSES.map((value) => (
@@ -184,23 +197,6 @@ export function AlertsPage() {
             </option>
           ))}
         </Select>
-        <fieldset>
-          <legend className="mb-1.5 text-xs font-medium text-fg-2">
-            {a.filterType}
-          </legend>
-          <SegmentedControl
-            label={a.filterType}
-            value={type}
-            onChange={(value) =>
-              update({ type: value === 'all' ? null : value })
-            }
-            options={[
-              { value: 'all', label: a.allTypes },
-              { value: 'PRICE', label: a.typePRICE },
-              { value: 'INDICATOR', label: a.typeINDICATOR },
-            ]}
-          />
-        </fieldset>
       </div>
       {refusal !== null && (
         <Banner
