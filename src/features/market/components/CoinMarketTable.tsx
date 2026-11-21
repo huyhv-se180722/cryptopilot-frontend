@@ -42,49 +42,52 @@ export function CoinMarketTable({
   const navigate = useNavigate();
   const columns: readonly Column[] = [
     { key: 'rank', label: c.colRank, className: 'w-10 text-center' },
-    { key: 'name', label: c.colName, className: 'text-left' },
-    { key: 'price', label: c.colPrice, className: 'text-right' },
+    // Every column has a set width (table-fixed): left to the browser, the room to
+    // spare went to the widest content, so some columns sat far apart and others
+    // close. Widths fit their content; whatever is left is shared in proportion.
+    { key: 'name', label: c.colName, className: 'w-44 text-left' },
+    { key: 'price', label: c.colPrice, className: 'w-30 text-right' },
     {
       key: 'change1h',
       label: c.col1h,
-      className: 'hidden text-right md:table-cell',
+      className: 'hidden w-22 text-right md:table-cell',
     },
-    { key: 'change24h', label: c.col24h, className: 'text-right' },
+    { key: 'change24h', label: c.col24h, className: 'w-22 text-right' },
     {
       key: 'change7d',
       label: c.col7d,
-      className: 'hidden text-right md:table-cell',
+      className: 'hidden w-22 text-right md:table-cell',
     },
     {
       key: 'marketCap',
       label: c.colMarketCap,
-      className: 'hidden text-right lg:table-cell',
+      className: 'hidden w-28 text-right lg:table-cell',
     },
     {
       key: 'volume24h',
       label: c.colVolume,
-      className: 'hidden text-right lg:table-cell',
+      className: 'hidden w-28 text-right lg:table-cell',
     },
     {
       key: 'supply',
       label: c.colSupply,
-      className: 'hidden text-right xl:table-cell',
+      className: 'hidden w-36 text-right xl:table-cell',
     },
     {
       key: null,
       label: c.colSentiment,
-      className: 'hidden text-right xl:table-cell',
+      className: 'hidden w-28 text-right xl:table-cell',
     },
     {
       key: null,
       label: c.colChart,
-      className: 'hidden text-right sm:table-cell',
+      className: 'hidden w-36 text-right sm:table-cell',
     },
   ];
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
-      <table className="w-full min-w-[640px] border-collapse text-sm">
+      <table className="w-full min-w-[640px] table-fixed border-collapse text-sm">
         <caption className="sr-only">{c.tableCaption}</caption>
         <thead>
           <tr className="border-b border-line text-xs text-fg-2">
