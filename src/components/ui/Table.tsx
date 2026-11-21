@@ -12,7 +12,9 @@ export interface Column<T> {
 /**
  * Figma admin table: uppercase 10px headers, 44px rows, right-aligned mono
  * numbers. `dense` narrows the cell padding for a table that shares its row
- * with side panels (SCR-16).
+ * with side panels (SCR-16). `cards` turns each row into a card below 640 px
+ * (T-141): the header row hides and every cell shows its column name, so a
+ * phone reads the row without scrolling sideways.
  */
 export function Table<T>({
   caption,
@@ -22,6 +24,7 @@ export function Table<T>({
   emptyMessage,
   onRowClick,
   dense = false,
+  cards = false,
 }: {
   caption: string;
   columns: readonly Column<T>[];
@@ -30,9 +33,14 @@ export function Table<T>({
   emptyMessage?: string;
   onRowClick?: (row: T) => void;
   dense?: boolean;
+  cards?: boolean;
 }) {
   const copy = useCopy();
   const padX = dense ? 'px-3' : 'px-5';
+  const card = (classes: string) => (cards ? classes : false);
+  // A table drawn as blocks loses its semantics in some screen readers, so
+  // card mode names the roles itself.
+  const role = (name: string) => (cards ? name : undefined);
   return (
     <div
       className="overflow-x-auto rounded-xl border border-line"
@@ -40,14 +48,21 @@ export function Table<T>({
       aria-label={caption}
       tabIndex={0}
     >
-      <table className="w-full border-collapse">
+      <table
+        role={role('table')}
+        className={classNames('w-full border-collapse', card('max-sm:block'))}
+      >
         <caption className="sr-only">{caption}</caption>
-        <thead>
-          <tr className="border-b border-line bg-page-alt">
+        <thead
+          role={role('rowgroup')}
+          className={card('max-sm:hidden') || undefined}
+        >
+          <tr role={role('row')} className="border-b border-line bg-page-alt">
             {columns.map((column) => (
               <th
                 key={column.id}
                 scope="col"
+                role={role('columnheader')}
                 className={classNames(
                   padX,
                   'py-3 text-[10px] font-medium tracking-[0.07em] whitespace-nowrap text-muted-x uppercase',
@@ -59,24 +74,34 @@ export function Table<T>({
             ))}
           </tr>
         </thead>
-        <tbody className="bg-surface">
+        <tbody
+          role={role('rowgroup')}
+          className={classNames('bg-surface', card('max-sm:block'))}
+        >
           {rows.length ? (
             rows.map((row) => (
               <tr
                 key={rowKey(row)}
+                role={role('row')}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 className={classNames(
                   'border-b border-line last:border-b-0 hover:bg-raised',
                   onRowClick && 'cursor-pointer',
+                  card('max-sm:block max-sm:py-2'),
                 )}
               >
                 {columns.map((column) => (
                   <td
                     key={column.id}
+                    role={role('cell')}
+                    data-label={cards ? column.header : undefined}
                     className={classNames(
                       padX,
                       'py-3 text-xs whitespace-nowrap text-fg-2',
                       column.numeric && 'text-right font-mono',
+                      card(
+                        'max-sm:flex max-sm:items-center max-sm:justify-between max-sm:gap-3 max-sm:px-4 max-sm:py-1.5 max-sm:text-right max-sm:whitespace-normal max-sm:before:shrink-0 max-sm:before:text-left max-sm:before:font-sans max-sm:before:text-[10.5px] max-sm:before:font-medium max-sm:before:tracking-[0.06em] max-sm:before:text-muted-x max-sm:before:uppercase max-sm:before:content-[attr(data-label)]',
+                      ),
                     )}
                   >
                     {column.render(row)}
@@ -85,10 +110,17 @@ export function Table<T>({
               </tr>
             ))
           ) : (
-            <tr>
+            <tr
+              role={role('row')}
+              className={card('max-sm:block') || undefined}
+            >
               <td
+                role={role('cell')}
                 colSpan={Math.max(columns.length, 1)}
-                className="px-5 py-8 text-center text-xs text-muted-dim"
+                className={classNames(
+                  'px-5 py-8 text-center text-xs text-muted-dim',
+                  card('max-sm:block'),
+                )}
               >
                 {emptyMessage ?? copy.common.noRecords}
               </td>
