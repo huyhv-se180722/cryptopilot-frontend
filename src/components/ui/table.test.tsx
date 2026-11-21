@@ -13,7 +13,7 @@ const columns: Column<Row>[] = [
 ];
 const rows: Row[] = [{ id: '1', name: 'BTC' }];
 
-function draw(dense?: boolean) {
+function draw(dense = false) {
   render(
     <I18nProvider locale="en">
       <Table

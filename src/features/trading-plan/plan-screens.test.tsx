@@ -323,7 +323,7 @@ describe('SCR-16 plan list (T-041)', () => {
     expect(headers).toHaveLength(8);
     expect(headers).not.toContain('#');
     expect(headers).not.toContain('Market');
-    const pairCell = within(row).getAllByRole('cell')[0];
+    const pairCell = within(row).getAllByRole('cell')[0] as HTMLElement;
     expect(within(pairCell).getByText('Futures · 5x')).toBeTruthy();
     expect(within(pairCell).getByText('#0000a1b2')).toBeTruthy();
     expect(
