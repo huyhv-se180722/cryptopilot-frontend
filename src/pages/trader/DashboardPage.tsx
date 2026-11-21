@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { buttonClassName } from '../../components/ui/button-styles';
@@ -11,7 +11,7 @@ import { MarketSnapshot } from '../../features/dashboard/components/MarketSnapsh
 import { NewsBlock } from '../../features/dashboard/components/NewsBlock';
 import { RecentNotifications } from '../../features/notifications/components/RecentNotifications';
 import { PlanSnapshot } from '../../features/dashboard/components/PlanSnapshot';
-import { WatchlistSnapshot } from '../../features/dashboard/components/WatchlistSnapshot';
+import { MarketRail } from '../../features/dashboard/components/MarketRail';
 import { useMarketPairs } from '../../features/market/hooks/use-market-data';
 import { useMarketTickers } from '../../features/market/hooks/use-market-tickers';
 import {
@@ -53,6 +53,18 @@ export function DashboardPage() {
   const positions = useOpenPositionCount();
   const watchlist = useWatchlist();
   const watched = watchlist.data?.items.length;
+  // The chart shows the pair picked in the rail; before that the first
+  // watched Spot pair, once the watchlist is known (one candle request).
+  const [picked, setPicked] = useState<string | null>(null);
+  const spot = pairs.data ?? [];
+  const firstWatched = watchlist.data?.items.find(
+    (item) =>
+      item.spotListed && spot.some((pair) => pair.symbol === item.symbol),
+  )?.symbol;
+  const shown =
+    picked ??
+    (watchlist.isPending ? null : (firstWatched ?? spot[0]?.symbol ?? null));
+  const chartPair = spot.find((pair) => pair.symbol === shown) ?? null;
   const openCount =
     positions.data === undefined
       ? undefined
@@ -122,14 +134,21 @@ export function DashboardPage() {
         }}
       />
 
-      <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="flex min-w-0 flex-col gap-4">
-          {pairs.data && (
-            <MarketSnapshot pairs={pairs.data} tickers={board.tickers} />
-          )}
-          <PlanSnapshot />
-        </div>
-        <WatchlistSnapshot pairs={pairs.data ?? []} tickers={board.tickers} />
+      <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <MarketSnapshot
+          pair={chartPair}
+          ticker={chartPair ? board.tickers.get(chartPair.symbol) : undefined}
+        />
+        <MarketRail
+          pairs={spot}
+          tickers={board.tickers}
+          selected={chartPair?.symbol ?? null}
+          onSelect={setPicked}
+        />
+      </div>
+
+      <div className="mb-4">
+        <PlanSnapshot />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">

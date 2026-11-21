@@ -194,6 +194,7 @@ async function open(
     { market, marketFeed, tradingPlan, watchlist, ...extra },
   );
   return {
+    market,
     tradingPlan,
     pushOverview: (tickers: MarketTicker[]) =>
       act(() =>
@@ -272,24 +273,71 @@ describe('SCR-08 Trader dashboard (T-112, T-139)', () => {
     ).toBe('/plans?tab=EXECUTED');
   });
 
-  it('shows the watched pairs with live Spot prices, a dash for Futures only and a delisted pair', async () => {
+  it('lists the watched pairs: a Spot pair charts, a Futures-only one links, a delisted one stays', async () => {
     const { pushOverview } = await open();
-    const block = await screen.findByRole('region', { name: 'Watchlist' });
-    pushOverview([ticker('ETHUSDT', '2500.10', '-1.20')]);
-    const links = await within(block).findAllByRole('link', {
-      name: /USDT|XRPUSDT/,
+    const rail = await screen.findByRole('complementary', {
+      name: 'Watchlist and movers',
     });
-    await waitFor(() => expect(block.textContent).toContain('2,500.10'));
-    expect(block.textContent).toContain('-1.20%');
-    expect(links.map((link) => link.getAttribute('href'))).toEqual([
-      '/markets/spot/ETHUSDT',
-      '/markets/futures/XRPUSDT',
-    ]);
+    pushOverview([ticker('ETHUSDT', '2500.10', '-1.20')]);
+    await waitFor(() => expect(rail.textContent).toContain('2,500.10'));
+    expect(rail.textContent).toContain('-1.20%');
+    // The first watched Spot pair is charted and marked as picked.
+    const eth = within(rail).getByRole('button', { name: /ETH\/USDT/ });
+    expect(eth.getAttribute('aria-pressed')).toBe('true');
+    expect(
+      within(rail)
+        .getByRole('link', { name: /XRP\/USDT/ })
+        .getAttribute('href'),
+    ).toBe('/markets/futures/XRPUSDT');
     // The delisted pair keeps its name, says so, and opens nothing.
-    const delisted = within(block).getByText('Not listed').closest('li');
+    const delisted = within(rail).getByText('Not listed').closest('li');
     expect(delisted?.textContent).toContain('MATIC/USDT');
     expect(delisted?.textContent).toContain('no longer enabled');
     expect(within(delisted as HTMLElement).queryByRole('link')).toBeNull();
+    expect(within(delisted as HTMLElement).queryByRole('button')).toBeNull();
+  });
+
+  it('reads one candle list on load, of the first watched Spot pair, and one more per pick', async () => {
+    const user = userEvent.setup();
+    const { market, pushOverview } = await open();
+    const chart = await screen.findByRole('region', {
+      name: 'Market snapshot',
+    });
+    await waitFor(() => expect(market.getCandles).toHaveBeenCalledTimes(1));
+    expect(market.getCandles).toHaveBeenCalledWith(
+      expect.objectContaining({
+        market: 'spot',
+        symbol: 'ETHUSDT',
+        timeframe: '1h',
+      }),
+    );
+    expect(chart.textContent).toContain('Times in');
+    await user.click(within(chart).getByRole('radio', { name: '4h' }));
+    await waitFor(() => expect(market.getCandles).toHaveBeenCalledTimes(2));
+    expect(market.getCandles).toHaveBeenLastCalledWith(
+      expect.objectContaining({ symbol: 'ETHUSDT', timeframe: '4h' }),
+    );
+    // The movers come from the tickers the page already reads.
+    pushOverview([
+      ticker('BTCUSDT', '63000', '2.11'),
+      ticker('ETHUSDT', '2500', '-1.20'),
+      ticker('SOLUSDT', '144', '4.82'),
+    ]);
+    const rail = screen.getByRole('complementary', {
+      name: 'Watchlist and movers',
+    });
+    await user.click(within(rail).getByRole('button', { name: 'Top gainers' }));
+    const gainers = within(rail)
+      .getAllByRole('listitem')
+      .map((item) => item.textContent?.slice(0, 3));
+    expect(gainers).toEqual(['SOL', 'BTC', 'ETH']);
+    await user.click(within(rail).getByRole('button', { name: 'Top losers' }));
+    await user.click(within(rail).getByRole('button', { name: /BTC\/USDT/ }));
+    await waitFor(() => expect(market.getCandles).toHaveBeenCalledTimes(3));
+    expect(market.getCandles).toHaveBeenLastCalledWith(
+      expect.objectContaining({ symbol: 'BTCUSDT', timeframe: '4h' }),
+    );
+    expect(within(chart).getByRole('heading').textContent).toContain('BTC');
   });
 
   it('says which blocks are not connected yet instead of inventing data', async () => {

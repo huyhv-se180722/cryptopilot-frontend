@@ -1472,6 +1472,7 @@ export const vi: PartialCopy = {
     chartLow: 'Thấp 24h',
     chartVolume: 'KL 24h (USDT)',
     chartTimeframes: 'Khung nến',
+    chartLabel: 'Biểu đồ giá {symbol}, 90 nến {timeframe} đã đóng gần nhất',
     chartCandles: 'Nến {timeframe} đã đóng · giá realtime ở trên',
     railLabel: 'Watchlist và biến động',
     railTabs: 'Danh sách hiển thị',

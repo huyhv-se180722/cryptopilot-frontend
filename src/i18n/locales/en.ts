@@ -1482,6 +1482,7 @@ export const en = {
     chartLow: '24h low',
     chartVolume: '24h volume (USDT)',
     chartTimeframes: 'Candle timeframe',
+    chartLabel: 'Price chart of {symbol}, last 90 closed {timeframe} candles',
     chartCandles: 'Closed {timeframe} candles · live price above',
     railLabel: 'Watchlist and movers',
     railTabs: 'List shown',
