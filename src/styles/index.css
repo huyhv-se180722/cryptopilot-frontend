@@ -65,6 +65,25 @@
   --cp-brand-ink-deep: #050d20;
   --cp-brand-needle: #0a7cff;
 
+  /*
+   * Fixed dark panels and illustration colours, the same in both themes because
+   * they carry white text or sit on a photo (T-141): the assistant's header and
+   * avatar, the Academy hero and lesson covers, the pair mark, the bot drawing.
+   */
+  --cp-ink-panel: #17212f;
+  --cp-ink-panel-fg: #d9e0ea;
+  --cp-ink-panel-muted: #b8c4d4;
+  --cp-academy-ink: #0b1a3a;
+  --cp-academy-cover: #13284f;
+  --cp-coin-mark: #f7931a;
+  --cp-bot-eye: #22d3ee;
+  --cp-bot-mouth: #c4cfde;
+  --cp-bot-coin: #fbbf24;
+  --cp-bot-coin-edge: #b45309;
+  --cp-bot-coin-line: #7c2d12;
+  --cp-shadow-ai-bubble:
+    0 0 0 6px rgba(37, 99, 235, 0.18), 0 10px 24px rgba(37, 99, 235, 0.35);
+
   color-scheme: light;
 }
 
@@ -177,10 +196,17 @@
   --color-brand-ink: var(--cp-brand-ink);
   --color-brand-ink-deep: var(--cp-brand-ink-deep);
   --color-brand-needle: var(--cp-brand-needle);
+  --color-ink-panel: var(--cp-ink-panel);
+  --color-ink-panel-fg: var(--cp-ink-panel-fg);
+  --color-ink-panel-muted: var(--cp-ink-panel-muted);
+  --color-academy-ink: var(--cp-academy-ink);
+  --color-academy-cover: var(--cp-academy-cover);
+  --color-coin-mark: var(--cp-coin-mark);
 
   --shadow-panel: var(--cp-shadow-panel);
   --shadow-overlay: var(--cp-shadow-overlay);
   --shadow-glow-primary: var(--cp-glow-primary);
+  --shadow-ai-bubble: var(--cp-shadow-ai-bubble);
 }
 
 @layer base {

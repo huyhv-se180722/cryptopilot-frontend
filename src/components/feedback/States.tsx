@@ -77,17 +77,40 @@ export function Loading({ label }: { label?: string }) {
     </div>
   );
 }
+/**
+ * `block` fills a page or a main panel; `inline` is one line for a side
+ * block that failed or has nothing to show while the rest of the screen
+ * works (T-141), so it never outweighs the content around it.
+ */
+export type StateVariant = 'block' | 'inline';
+
 export function EmptyState({
   title,
   description,
   icon: Icon = Inbox,
   action,
+  variant = 'block',
 }: {
   title: string;
   description?: string;
   icon?: LucideIcon;
   action?: ReactNode;
+  variant?: StateVariant;
 }) {
+  if (variant === 'inline') {
+    return (
+      <div className="flex items-center gap-2.5 rounded-lg border border-line px-3 py-2.5 text-xs">
+        <Icon size={15} aria-hidden="true" className="shrink-0 text-muted-x" />
+        <p className="min-w-0 flex-1">
+          <span className="font-medium text-fg-2">{title}</span>
+          {description && (
+            <span className="text-muted-dim"> {description}</span>
+          )}
+        </p>
+        {action && <div className="shrink-0">{action}</div>}
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col items-center px-4 py-12 text-center">
       <Icon size={32} aria-hidden="true" className="mb-3 text-muted-x" />
@@ -103,12 +126,44 @@ export function ErrorState({
   title,
   message,
   onRetry,
+  variant = 'block',
 }: {
   title?: string;
   message: string;
   onRetry?: () => void;
+  variant?: StateVariant;
 }) {
   const copy = useCopy();
+  if (variant === 'inline') {
+    return (
+      <div
+        className="flex items-center gap-2.5 rounded-lg border border-negative-line bg-negative-soft px-3 py-2 text-xs"
+        role="alert"
+      >
+        <AlertTriangle
+          size={15}
+          aria-hidden="true"
+          className="shrink-0 text-negative"
+        />
+        <p className="min-w-0 flex-1">
+          <span className="font-medium text-fg">
+            {title ?? copy.common.somethingWrong}
+          </span>
+          <span className="text-muted-dim"> {message}</span>
+        </p>
+        {onRetry && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="shrink-0"
+            onClick={onRetry}
+          >
+            {copy.common.retry}
+          </Button>
+        )}
+      </div>
+    );
+  }
   return (
     <div
       className="flex flex-col items-center px-4 py-12 text-center"

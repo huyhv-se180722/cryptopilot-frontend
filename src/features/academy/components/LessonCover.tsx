@@ -24,7 +24,10 @@ export function LessonCover({
   return (
     <div
       aria-hidden={children ? undefined : true}
-      className={classNames('relative overflow-hidden bg-[#13284f]', className)}
+      className={classNames(
+        'relative overflow-hidden bg-academy-cover',
+        className,
+      )}
     >
       {imageUrl ? (
         <img

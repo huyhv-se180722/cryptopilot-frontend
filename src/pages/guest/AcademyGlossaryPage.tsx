@@ -64,10 +64,7 @@ function Glossary() {
         <ArrowLeft size={13} aria-hidden="true" />
         {a.backToAcademy}
       </Link>
-      <section
-        className="relative mb-4 overflow-hidden rounded-3xl p-6 text-white shadow-lg sm:p-8"
-        style={{ backgroundColor: '#0b1a3a' }}
-      >
+      <section className="relative mb-4 overflow-hidden rounded-3xl bg-academy-ink p-6 text-white shadow-lg sm:p-8">
         <img
           src={ACADEMY_HERO_IMAGE.url}
           alt=""
@@ -76,7 +73,7 @@ function Glossary() {
         />
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-gradient-to-r from-[#0b1a3a] via-[#0b1a3a]/85 to-[#0b1a3a]/40"
+          className="absolute inset-0 bg-gradient-to-r from-academy-ink via-academy-ink/85 to-academy-ink/40"
         />
         <div className="relative">
           <h1 className="flex items-center gap-2 text-2xl font-bold text-white sm:text-3xl">

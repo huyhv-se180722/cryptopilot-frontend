@@ -12,8 +12,8 @@ export function AiBotIcon({
   tone?: 'onColor' | 'onLight';
   className?: string;
 }) {
-  const head = tone === 'onColor' ? '#ffffff' : '#17212f';
-  const visor = tone === 'onColor' ? '#17212f' : '#ffffff';
+  const head = tone === 'onColor' ? 'white' : 'var(--cp-ink-panel)';
+  const visor = tone === 'onColor' ? 'var(--cp-ink-panel)' : 'white';
   return (
     <svg
       width={size}
@@ -31,33 +31,40 @@ export function AiBotIcon({
         strokeWidth="3"
         strokeLinecap="round"
       />
-      <circle cx="29" cy="7" r="4" fill="#fbbf24" />
+      <circle cx="29" cy="7" r="4" fill="var(--cp-bot-coin)" />
       <rect x="7" y="16" width="44" height="34" rx="11" fill={head} />
       {tone === 'onColor' ? (
         <>
           <rect x="13" y="24" width="32" height="15" rx="7.5" fill={visor} />
-          <circle cx="22" cy="31.5" r="3" fill="#22d3ee" />
-          <circle cx="36" cy="31.5" r="3" fill="#22d3ee" />
-          <rect x="22" y="43" width="14" height="3" rx="1.5" fill="#c4cfde" />
+          <circle cx="22" cy="31.5" r="3" fill="var(--cp-bot-eye)" />
+          <circle cx="36" cy="31.5" r="3" fill="var(--cp-bot-eye)" />
+          <rect
+            x="22"
+            y="43"
+            width="14"
+            height="3"
+            rx="1.5"
+            fill="var(--cp-bot-mouth)"
+          />
         </>
       ) : (
         <>
-          <circle cx="22" cy="31.5" r="4" fill="#22d3ee" />
-          <circle cx="36" cy="31.5" r="4" fill="#22d3ee" />
+          <circle cx="22" cy="31.5" r="4" fill="var(--cp-bot-eye)" />
+          <circle cx="36" cy="31.5" r="4" fill="var(--cp-bot-eye)" />
         </>
       )}
       <circle
         cx="49"
         cy="48"
         r="12"
-        fill="#fbbf24"
-        stroke="#b45309"
+        fill="var(--cp-bot-coin)"
+        stroke="var(--cp-bot-coin-edge)"
         strokeWidth="2.5"
       />
       <path
         d="M42.5 51.5 L46.5 47.5 L49.5 50 L54.5 45"
         fill="none"
-        stroke="#7c2d12"
+        stroke="var(--cp-bot-coin-line)"
         strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"

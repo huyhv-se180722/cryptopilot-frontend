@@ -56,10 +56,7 @@ export function AcademyHero({
   ];
 
   return (
-    <section
-      className="relative mb-8 overflow-hidden rounded-3xl p-6 text-white shadow-xl sm:p-8"
-      style={{ backgroundColor: '#0b1a3a' }}
-    >
+    <section className="relative mb-8 overflow-hidden rounded-3xl bg-academy-ink p-6 text-white shadow-xl sm:p-8">
       <img
         src={ACADEMY_HERO_IMAGE.url}
         alt=""
@@ -68,7 +65,7 @@ export function AcademyHero({
       />
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-gradient-to-r from-[#0b1a3a]/95 via-[#0b1a3a]/60 to-transparent"
+        className="absolute inset-0 bg-gradient-to-r from-academy-ink/95 via-academy-ink/60 to-transparent"
       />
       <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex flex-col justify-center">
