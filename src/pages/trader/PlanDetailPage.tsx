@@ -20,6 +20,7 @@ import {
   PlanWarningsPanel,
 } from '../../features/trading-plan/components/PlanDetailPanels';
 import { PlanPositionPanel } from '../../features/trading-plan/components/PlanPosition';
+import { PlanSummary } from '../../features/trading-plan/components/PlanSummary';
 import { PositionLevelsDialog } from '../../features/trading-plan/components/PositionLevelsDialog';
 import { ClosePositionDialog } from '../../features/trading-plan/components/ClosePositionDialog';
 import { shortPlanId } from '../../features/trading-plan/components/plan-format';
@@ -32,8 +33,9 @@ import { pairLabel } from '../../utils/pair-label';
 import { PlanChart } from './plan-chart';
 
 /**
- * SCR-18 Trading Plan Detail (SRS 3.5.3, UC-18, UC-19): the pair, named
- * from the market lists by the plan's pair id (FEQ-01), the chart of that
+ * SCR-18 Trading Plan Detail (SRS 3.5.3, UC-18, UC-19): a summary card
+ * (the pair, named from the market lists by the plan's pair id (FEQ-01),
+ * its status, the actions, the price ladder and key figures), the chart of that
  * market with the plan's entry, stop loss, take profit and estimated
  * liquidation, the inputs, calculation snapshot, warnings, status history
  * and the actions; an executed plan shows its position, drawn on the chart
@@ -82,25 +84,36 @@ export function PlanDetailPage() {
         />
       ) : (
         <>
-          <header className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-3">
-            <h1 className="text-lg font-semibold text-fg">
-              {pair && `${pairLabel(pair.symbol)} `}
-              <span className={pair ? 'font-normal text-muted' : undefined}>
-                {formatCopy(p.detailTitle, { id: shortPlanId(plan.id) })}
+          <section
+            aria-labelledby="plan-detail-title"
+            className="mb-4 flex flex-col gap-4 rounded-xl border border-line bg-surface p-4"
+          >
+            <header className="flex flex-wrap items-center gap-x-3 gap-y-3">
+              <h1
+                id="plan-detail-title"
+                className="text-lg font-semibold text-fg"
+              >
+                {pair && `${pairLabel(pair.symbol)} `}
+                <span className={pair ? 'font-normal text-muted' : undefined}>
+                  {formatCopy(p.detailTitle, { id: shortPlanId(plan.id) })}
+                </span>
+              </h1>
+              <span className="rounded border border-line px-1.5 text-[10.5px] font-semibold tracking-wider text-muted uppercase">
+                {plan.market === 'futures'
+                  ? `${copy.market.futures}${plan.leverage ? ` · ${plan.leverage}x` : ''}`
+                  : copy.market.spot}
               </span>
-            </h1>
-            <span className="rounded border border-line px-1.5 text-[10px] font-semibold tracking-wider text-muted uppercase">
-              {plan.market === 'futures'
-                ? `${copy.market.futures}${plan.leverage ? ` · ${plan.leverage}x` : ''}`
-                : copy.market.spot}
-            </span>
-            <DirectionText direction={plan.direction} />
-            <PlanStatusBadge status={plan.status} />
-          </header>
-          <div className="mb-4">
-            <PlanActions plan={plan} />
-          </div>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+              <DirectionText direction={plan.direction} />
+              <PlanStatusBadge status={plan.status} />
+              <div className="ml-auto">
+                <PlanActions plan={plan} />
+              </div>
+            </header>
+            <PlanSummary plan={plan} />
+          </section>
+          {/* Chart and position on the left, the figures, warnings and
+              history beside them (SCR-18, T-142). */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px]">
             <div className="flex min-w-0 flex-col gap-4">
               {charted ? (
                 <PlanChart
@@ -118,8 +131,6 @@ export function PlanDetailPage() {
                   {p.chartUnlisted}
                 </p>
               ) : null}
-              <PlanInputsPanel plan={plan} />
-              <PlanSnapshotPanel plan={plan} />
               {plan.status === 'EXECUTED' && (
                 <PlanPositionPanel
                   plan={plan}
@@ -146,12 +157,14 @@ export function PlanDetailPage() {
                 />
               )}
             </div>
-            <div className="flex flex-col gap-4">
+            <div className="flex min-w-0 flex-col gap-4">
               <PlanWarningsPanel
                 warnings={plan.warnings}
                 blocked={plan.blocksActivation && plan.status === 'DRAFT'}
                 feeShareOfRisk={plan.snapshot.feeShareOfRisk}
               />
+              <PlanInputsPanel plan={plan} single />
+              <PlanSnapshotPanel plan={plan} single />
               <PlanHistoryPanel plan={plan} />
             </div>
           </div>

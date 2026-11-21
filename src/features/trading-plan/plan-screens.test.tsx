@@ -455,6 +455,27 @@ describe('SCR-16 plan list (T-041)', () => {
 });
 
 describe('SCR-18 plan detail (T-041)', () => {
+  it('T-142: sums the plan up in its card: price ladder and four figures', async () => {
+    await open('/plans/' + PLAN.id);
+    const card = within(
+      await screen.findByRole('region', { name: 'BTC/USDT Plan 0000a1b2' }),
+    );
+    expect(
+      card.getByRole('img', {
+        name: 'Stop loss 63,000.00, entry 62,000.00, take profit 59,000.00',
+      }),
+    ).toBeTruthy();
+    const figure = (label: string) =>
+      card.getByText(label, { selector: 'dt' }).nextSibling?.textContent;
+    expect(figure('Reward / risk')).toBe('3.00');
+    expect(figure('Risk (USDT)')).toBe('−10.00· 1% of capital');
+    expect(figure('Reward (USDT)')).toBe('+30.00');
+    // Saved before the costs (D-116): a dash, never a figure made up here.
+    expect(figure('Reward / risk after fees')).toBe('—');
+    // The actions stay in the card.
+    expect(card.getByRole('button', { name: /Activate/ })).toBeTruthy();
+  });
+
   it('leaves the Futures-only rows out of a Spot snapshot', async () => {
     const spot: TradingPlan = {
       ...PLAN,
