@@ -229,6 +229,47 @@ describe('community feed as on CoinMarketCap (D-99)', () => {
     );
   });
 
+  it('lists every listed coin on the rail, not only the first fifteen', async () => {
+    const coins = Array.from(
+      { length: 20 },
+      (_, i) => 'C' + String(i).padStart(2, '0'),
+    );
+    await renderRoutes(
+      [page('/community', <CommunityPage />)],
+      '/community',
+      trader(),
+      {
+        community: community({}),
+        market: {
+          ...createPendingMarketService(),
+          listPairs: async () =>
+            coins.map((base, i): MarketPair => ({
+              pairId: 'pair-' + base,
+              symbol: base + 'USDT',
+              market: 'spot',
+              baseAsset: base,
+              quoteAsset: 'USDT',
+              baseAssetName: base,
+              logoUrl: null,
+              tickSize: '0.01',
+              stepSize: '0.001',
+              minNotional: '5',
+              displayOrder: i,
+            })),
+        },
+      },
+    );
+    const rail = await screen.findByRole('region', {
+      name: 'Coins to filter the feed by',
+    });
+    await within(rail).findByRole('button', { name: /C19/ });
+    expect(
+      within(rail)
+        .getAllByRole('button', { pressed: false })
+        .filter((row) => /^\d/.test(row.textContent ?? '')),
+    ).toHaveLength(20);
+  });
+
   it('pages the feed with numbered pages, starting again on page 1 for another tab', async () => {
     const user = userEvent.setup();
     const feed = vi.fn(async (query: FeedQuery) => ({
