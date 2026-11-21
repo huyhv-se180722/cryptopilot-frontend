@@ -34,6 +34,12 @@ const dockPaths = new Set(traderDock.map((item) => item.to));
 const moreItems = paletteItems.filter((item) => !dockPaths.has(item.to));
 // The trading screens use the whole width, as an exchange's do.
 const FULL_WIDTH = /^\/trade\/(spot|futures)(\/|$)/;
+/**
+ * Room under the footer so the last line is never under a fixed control at
+ * the end of a page (T-141): below lg the dock and the AI button above it
+ * (96 px + 56 px from the bottom), from lg the AI button alone (24 px + 56 px).
+ */
+const BOTTOM_CLEARANCE = 'pb-36 lg:pb-20';
 
 /** Figma trader TopNav (52px, horizontal) with mobile dock below md. */
 export function TraderShell() {
@@ -225,7 +231,7 @@ export function TraderShell() {
           <Outlet />
         </div>
       </main>
-      <div className="pb-24 lg:pb-0">
+      <div className={BOTTOM_CLEARANCE}>
         <DisclaimerFooter />
       </div>
 
