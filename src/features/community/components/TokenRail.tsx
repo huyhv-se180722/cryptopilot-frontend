@@ -17,13 +17,12 @@ import { useCoinPrices, type CoinQuote } from './coin-prices';
 
 type RailTab = 'trending' | 'top' | 'watchlist';
 
-const ROWS = 15;
-
 /**
  * The left column of CoinMarketCap Community, "Showing Posts of:" (D-99):
  * the Spot pairs by 24h volume (the default, the longest list), the coins
  * the week's posts talk about, or the Trader's watchlist, each with its
- * live price and 24h change.
+ * live price and 24h change. Every coin of the tab is listed; the list
+ * scrolls inside the rail.
  * Choosing a coin filters the feed by it; choosing it again clears it.
  */
 export function TokenRail({
@@ -162,7 +161,7 @@ export function TokenRail({
             {tab === 'watchlist' ? c.railWatchlistEmpty : c.railEmpty}
           </li>
         ) : (
-          rows.slice(0, ROWS).map(({ quote, discussion }, index) => (
+          rows.map(({ quote, discussion }, index) => (
             <li key={quote.coin}>
               <RailRow
                 rank={index + 1}
