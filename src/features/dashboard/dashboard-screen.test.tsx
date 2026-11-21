@@ -8,6 +8,7 @@ import { DashboardPage } from '../../pages/trader/DashboardPage';
 import type {
   MarketFeed,
   MarketService,
+  NewsService,
   PerformanceService,
   TradingPlanService,
   WatchlistService,
@@ -125,7 +126,7 @@ const entitlements: PlanEntitlements = {
 
 async function open(
   locale: Locale = 'en',
-  extra: { performance?: PerformanceService } = {},
+  extra: { performance?: PerformanceService; news?: NewsService } = {},
 ) {
   let overview: ((value: MarketOverview) => void) | null = null;
   const market: MarketService = {
@@ -375,7 +376,7 @@ describe('SCR-08 Trader dashboard (T-112, T-139)', () => {
 
   it('says which blocks are not connected yet instead of inventing data', async () => {
     await open();
-    for (const name of ['Recent notifications', 'Key figures']) {
+    for (const name of ['Recent notifications', 'Key figures', 'Latest news']) {
       const block = await screen.findByRole('region', { name });
       await waitFor(() =>
         expect(block.textContent).toContain('not connected to the server yet'),
@@ -384,6 +385,28 @@ describe('SCR-08 Trader dashboard (T-112, T-139)', () => {
     expect(
       screen.getByRole('region', { name: 'Market snapshot' }),
     ).toBeTruthy();
+  });
+
+  it('says in one line that the news failed, with a retry, while the rest works', async () => {
+    const user = userEvent.setup();
+    const feed = vi.fn(async () => {
+      throw new Error('boom');
+    });
+    await open('en', {
+      news: { feed, article: vi.fn() } as unknown as NewsService,
+    });
+    const block = await screen.findByRole('region', { name: 'Latest news' });
+    const alert = await within(block).findByRole('alert');
+    expect(alert.textContent).toContain('News could not load.');
+    expect(
+      within(block).queryByRole('heading', { level: 2, name: /wrong/ }),
+    ).toBeNull();
+    await user.click(within(alert).getByRole('button', { name: 'Try again' }));
+    await waitFor(() => expect(feed.mock.calls.length).toBeGreaterThan(1));
+    expect(feed).toHaveBeenCalledWith(
+      { page: 1, pageSize: 5 },
+      expect.anything(),
+    );
   });
 
   describe('performance summary', () => {
