@@ -12,14 +12,20 @@ import type {
 } from '../../types/domain';
 import { page, renderRoutes, fakeAuth, testTrader } from '../../test/render';
 
-const line = vi.hoisted(() => ({ setData: vi.fn() }));
+const line = vi.hoisted(() => ({
+  setData: vi.fn(),
+  options: [] as Record<string, unknown>[],
+}));
 vi.mock('lightweight-charts', () => ({
   ColorType: { Solid: 'solid' },
   CrosshairMode: { Normal: 0 },
   LineStyle: { Dashed: 2, Solid: 0 },
   LineSeries: {},
   createChart: () => ({
-    addSeries: () => line,
+    addSeries: (_type: unknown, options: Record<string, unknown>) => {
+      line.options.push(options);
+      return line;
+    },
     timeScale: () => ({ fitContent: vi.fn() }),
     remove: vi.fn(),
   }),
@@ -190,6 +196,8 @@ describe('SCR-23 performance dashboard', () => {
       screen.getByText('Each point is a day with an exit · days in UTC+7'),
     ).toBeTruthy();
     expect(screen.queryByText('Times in UTC')).toBeNull();
+    // The two lines end on one value: no labels on the scale to overlap.
+    expect(line.options.at(-1)).toMatchObject({ lastValueVisible: false });
     expect(line.setData.mock.calls[0]?.[0]).toHaveLength(2);
     expect(line.setData.mock.calls[0]?.[0][0]).toMatchObject({ value: 0 });
   });

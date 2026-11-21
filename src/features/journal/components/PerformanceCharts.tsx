@@ -98,7 +98,7 @@ export function EquityCurveCard({
         <Legend color={DRAWDOWN} label={p.curveDrawdown} />
       </div>
       {curve.isPending ? (
-        <Skeleton className="h-[220px] w-full" />
+        <Skeleton className="h-[300px] w-full" />
       ) : curve.isError ? (
         <ErrorState
           message={errorText(copy, curve.error)}
@@ -112,6 +112,8 @@ export function EquityCurveCard({
           lines={lines}
           daily
           note={p.curveDays}
+          lastValues={false}
+          className="h-[300px] w-full"
         />
       ) : (
         <p className="py-8 text-center text-xs text-muted-dim">
