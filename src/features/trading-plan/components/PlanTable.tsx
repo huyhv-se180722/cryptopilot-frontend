@@ -24,19 +24,28 @@ import { planPrice, planRatio, shortPlanId } from './plan-format';
  * comes from the market lists by that id (FEQ-01); a pair no list has any
  * more shows a dash. The pair is the link to SCR-18, with the market and
  * the plan id under it; the position status sits under the plan status on
- * the Executed tab, so every column fits at 1440 px (T-140).
+ * the Executed tab, so every column fits at 1440 px (T-140). A caller may
+ * add columns before the status, drop the created time and turn rows into
+ * cards on a phone (the SCR-08 plans, T-139); SCR-16 uses none of these.
  */
 export function PlanTable({
   tab,
   rows,
   emptyMessage,
   pairOf,
+  extra = [],
+  showCreated = true,
+  cards = false,
 }: {
   tab: PlanTab;
   rows: readonly TradingPlanSummary[];
   emptyMessage: string;
   /** The row's pair from the market lists; undefined when not known. */
   pairOf: (row: TradingPlanSummary) => MarketPair | undefined;
+  /** Columns shown after reward/risk, before the status. */
+  extra?: readonly Column<TradingPlanSummary>[];
+  showCreated?: boolean;
+  cards?: boolean;
 }) {
   const copy = useCopy();
   const p = copy.plan;
@@ -108,6 +117,7 @@ export function PlanTable({
       numeric: true,
       render: (row) => <NumericText value={planRatio(row.riskRewardRatio)} />,
     },
+    ...extra,
     {
       id: 'status',
       header: p.colStatus,
@@ -135,7 +145,9 @@ export function PlanTable({
         </span>
       ),
     },
-    {
+  ];
+  if (showCreated)
+    columns.push({
       id: 'created',
       header: p.colCreated,
       render: (row) => (
@@ -143,8 +155,7 @@ export function PlanTable({
           {formatInstantLocal(row.createdAt)}
         </time>
       ),
-    },
-  ];
+    });
   return (
     <Table
       caption={formatCopy(p.tableCaption, { tab: p[`tab${tab}`] })}
@@ -154,6 +165,7 @@ export function PlanTable({
       emptyMessage={emptyMessage}
       onRowClick={(row) => navigate(`/plans/${row.id}`)}
       dense
+      cards={cards}
     />
   );
 }

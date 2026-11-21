@@ -84,7 +84,7 @@ const row = (
   status: 'ACTIVE' | 'EXECUTED',
 ): TradingPlanSummary => ({
   id,
-  pairId: 'p-1',
+  pairId: 'p-BTCUSDT',
   market: 'spot',
   direction: 'LONG',
   entryType: 'LIMIT',
@@ -146,7 +146,9 @@ async function open(
     subscribeKline: () => () => undefined,
   };
   const active = ['a1', 'a2', 'a3', 'a4', 'a5', 'a6'].map((id) =>
-    row(id, 'ACTIVE'),
+    id === 'a2'
+      ? { ...row(id, 'ACTIVE'), market: 'futures' as const, leverage: 5 }
+      : row(id, 'ACTIVE'),
   );
   const tradingPlan = {
     list: vi.fn<TradingPlanService['list']>(async (query) => {
@@ -271,6 +273,37 @@ describe('SCR-08 Trader dashboard (T-112, T-139)', () => {
         .getByRole('link', { name: /Manage/ })
         .getAttribute('href'),
     ).toBe('/plans?tab=EXECUTED');
+  });
+
+  it('draws each plan from stop loss to take profit, with the live Spot price and its distance from the entry', async () => {
+    const { pushOverview } = await open();
+    const block = await screen.findByRole('region', {
+      name: 'Active plans and open positions',
+    });
+    await waitFor(() =>
+      expect(within(block).getAllByRole('row')).toHaveLength(6),
+    );
+    pushOverview([ticker('BTCUSDT', '63000.00', '1.00')]);
+    const rows = within(block).getAllByRole('row').slice(1);
+    const spot = rows[0] as HTMLElement;
+    await waitFor(() =>
+      expect(
+        within(spot).getByRole('img', {
+          name: 'Stop loss 61,000.00, entry 62,000.00, take profit 65,000.00, current price 63,000.00',
+        }),
+      ).toBeTruthy(),
+    );
+    // (63,000 - 62,000) / 62,000 = 1.6129 %
+    expect(spot.textContent).toContain('+1.61%');
+    // The page reads no Futures price: the line has no current price.
+    const futures = rows[1] as HTMLElement;
+    expect(
+      within(futures).getByRole('img', {
+        name: 'Stop loss 61,000.00, entry 62,000.00, take profit 65,000.00',
+      }),
+    ).toBeTruthy();
+    expect(futures.textContent).toContain('Futures · 5x');
+    expect(within(block).queryByText('Created')).toBeNull();
   });
 
   it('lists the watched pairs: a Spot pair charts, a Futures-only one links, a delisted one stays', async () => {
