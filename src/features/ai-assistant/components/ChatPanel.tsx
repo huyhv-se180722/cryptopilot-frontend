@@ -55,7 +55,7 @@ function BotAvatar({ small = false }: { small?: boolean }) {
     <span
       aria-hidden="true"
       className={classNames(
-        'inline-flex shrink-0 items-center justify-center rounded-[10px] bg-[#17212f] dark:bg-raised',
+        'inline-flex shrink-0 items-center justify-center rounded-[10px] bg-ink-panel dark:bg-raised',
         small ? 'size-7' : 'size-8',
       )}
     >

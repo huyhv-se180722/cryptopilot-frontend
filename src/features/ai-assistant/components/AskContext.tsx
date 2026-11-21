@@ -88,7 +88,7 @@ export function MarketContextBar({
       <div className="relative inline-flex h-9 items-center gap-2 rounded-[10px] border border-line-strong bg-surface pr-8 pl-1.5 focus-within:ring-2 focus-within:ring-primary-soft">
         <span
           aria-hidden="true"
-          className="inline-flex size-6 items-center justify-center rounded-full bg-[#f7931a] text-[10px] font-bold text-white"
+          className="inline-flex size-6 items-center justify-center rounded-full bg-coin-mark text-[10px] font-bold text-white"
         >
           {symbol ? baseOf(symbol).slice(0, 1) : '·'}
         </span>

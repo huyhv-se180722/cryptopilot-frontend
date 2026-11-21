@@ -242,7 +242,7 @@ function FloatingChat() {
         onClick={onClick}
         style={position ?? undefined}
         className={classNames(
-          'fixed z-40 inline-flex touch-none items-center justify-center rounded-full bg-primary text-white shadow-[0_0_0_6px_rgba(37,99,235,0.18),0_10px_24px_rgba(37,99,235,0.35)] transition-transform select-none hover:scale-105 active:cursor-grabbing',
+          'fixed z-40 inline-flex touch-none items-center justify-center rounded-full bg-primary text-white shadow-ai-bubble transition-transform select-none hover:scale-105 active:cursor-grabbing',
           'size-14 cursor-grab',
           !position && 'right-4 bottom-24 lg:right-6 lg:bottom-6',
           open && small && 'hidden',
@@ -320,21 +320,21 @@ function ChatBody({ onClose }: { onClose: () => void }) {
     },
   ];
   const headerButton =
-    'inline-flex size-8 items-center justify-center rounded-[9px] text-[#d9e0ea] hover:bg-white/10 hover:text-white pointer-coarse:size-11';
+    'inline-flex size-8 items-center justify-center rounded-[9px] text-ink-panel-fg hover:bg-white/10 hover:text-white pointer-coarse:size-11';
 
   return (
     <>
-      <header className="flex items-center gap-2.5 bg-[#17212f] py-3 pr-2.5 pl-3.5 text-white">
+      <header className="flex items-center gap-2.5 bg-ink-panel py-3 pr-2.5 pl-3.5 text-white">
         <span
           aria-hidden="true"
           className="relative inline-flex size-9 shrink-0 items-center justify-center rounded-[11px] bg-primary"
         >
           <AiBotIcon size={26} />
-          <span className="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full border-2 border-[#17212f] bg-positive" />
+          <span className="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full border-2 border-ink-panel bg-positive" />
         </span>
         <div className="min-w-0 flex-1">
           <p className="m-0 text-sm font-semibold">{t.bubbleTitle}</p>
-          <p className="m-0 text-[11px] leading-snug text-[#b8c4d4]">
+          <p className="m-0 text-[11px] leading-snug text-ink-panel-muted">
             {t.bubbleSubtitle}
           </p>
         </div>
