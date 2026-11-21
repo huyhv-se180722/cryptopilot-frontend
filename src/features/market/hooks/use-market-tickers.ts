@@ -28,9 +28,38 @@ interface FeedState {
   startedAt: number;
 }
 
-const fresh = (market: MarketType): FeedState => ({
+/**
+ * The last tickers of each market, per feed, kept after the screens that
+ * read them are left: coming back to a board shows the last prices at once
+ * instead of an empty one until the next overview arrives.
+ */
+const remembered = new WeakMap<
+  object,
+  Map<MarketType, ReadonlyMap<string, MarketTicker>>
+>();
+
+const recall = (feed: object, market: MarketType) =>
+  remembered.get(feed)?.get(market) ?? new Map<string, MarketTicker>();
+
+const remember = (
+  feed: object,
+  market: MarketType,
+  tickers: ReadonlyMap<string, MarketTicker>,
+) => {
+  let markets = remembered.get(feed);
+  if (!markets) {
+    markets = new Map();
+    remembered.set(feed, markets);
+  }
+  markets.set(market, tickers);
+};
+
+const fresh = (
+  market: MarketType,
+  tickers: ReadonlyMap<string, MarketTicker> = new Map(),
+): FeedState => ({
   market,
-  tickers: new Map(),
+  tickers,
   lastMessageAt: null,
   startedAt: Date.now(),
 });
@@ -41,7 +70,8 @@ const newer = (current: MarketTicker | undefined, next: MarketTicker) =>
 /**
  * Latest tickers of a market from the overview topic, with the CR-09
  * Live / Delayed state. While Delayed, the stored snapshots of `symbols`
- * are polled in turn so prices keep moving without the socket.
+ * are polled in turn so prices keep moving without the socket. The last
+ * tickers outlive the screen: a screen opened again starts from them.
  */
 export function useMarketTickers(
   market: MarketType,
@@ -53,9 +83,12 @@ export function useMarketTickers(
     marketFeed.status,
     marketFeed.status,
   );
-  const [state, setState] = useState(() => fresh(market));
+  const [state, setState] = useState(() =>
+    fresh(market, recall(marketFeed, market)),
+  );
   // Switching tab starts over: no ticker of the other market is kept.
-  if (state.market !== market) setState(fresh(market));
+  if (state.market !== market)
+    setState(fresh(market, recall(marketFeed, market)));
   const [now, setNow] = useState(() => Date.now());
 
   const merge = useCallback(
@@ -88,11 +121,17 @@ export function useMarketTickers(
   );
 
   useEffect(() => {
+    if (state.market === market && state.tickers.size > 0)
+      remember(marketFeed, market, state.tickers);
+  }, [state, market, marketFeed]);
+
+  useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1_000);
     return () => clearInterval(timer);
   }, []);
 
-  const current = state.market === market ? state : fresh(market);
+  const current =
+    state.market === market ? state : fresh(market, recall(marketFeed, market));
   const sinceMessage = now - (current.lastMessageAt ?? current.startedAt);
   const freshness: FeedFreshness =
     status === 'open' &&

@@ -1,10 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { NavLink, useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
   BarChart3,
-  ChartCandlestick,
-  ClipboardList,
   Gauge,
   Layers,
   Percent,
@@ -82,10 +80,6 @@ const TOPIC: Record<Tab, AiConversationTopic> = {
   mine: 'MY_TRADING',
 };
 const ACCENT: Record<Tab, ChatAccent> = { market: 'primary', mine: 'purple' };
-const TILE: Record<Tab, string> = {
-  market: 'bg-primary-soft text-primary',
-  mine: 'bg-purple-soft text-purple',
-};
 
 /**
  * SCR-29 AI Assistant (SRS 3.9.1, UC-35, UC-36, T-076), split in two pages
@@ -161,7 +155,7 @@ function MarketLive({
   const rsi = analysis.data?.indicators.rsi14 ?? null;
   const score = analysis.data?.setupScore.score ?? null;
   const divider = (
-    <span aria-hidden="true" className="h-7 w-px bg-line-strong" />
+    <span aria-hidden="true" className="h-7 w-px bg-line-strong xl:hidden" />
   );
   return (
     <div className="flex flex-wrap items-center gap-4">
@@ -220,6 +214,11 @@ function TopicWorkspace({ tab }: { tab: Tab }) {
   const [renaming, setRenaming] = useState<AiConversation | null>(null);
   const [title, setTitle] = useState('');
   const [deleting, setDeleting] = useState<AiConversation | null>(null);
+  // An example picked in the side panel goes into the chat's box.
+  const [draftRequest, setDraftRequest] = useState<{
+    text: string;
+    serial: number;
+  } | null>(null);
 
   const conversations = useAiConversations(topic);
   const quota = useAiQuota();
@@ -467,70 +466,94 @@ function TopicWorkspace({ tab }: { tab: Tab }) {
       show({ tone: 'error', message: aiErrorText(copy, result.error) });
   }
 
+  const mode = tab === 'market' ? t.modePair : t.modeMine;
+  const hasMessages = (messages.data?.items.length ?? 0) > 0;
+  const topicLink = (to: string, label: string, mine: boolean) => (
+    <NavLink
+      to={to}
+      className={classNames(
+        'inline-flex h-8 items-center rounded-lg px-3.5 text-[13px] font-semibold no-underline',
+        tab === (mine ? 'mine' : 'market')
+          ? 'bg-surface text-fg shadow-panel'
+          : 'text-muted hover:text-fg',
+      )}
+    >
+      {label}
+    </NavLink>
+  );
+
   return (
     <div className="w-full">
-      <div className="grid gap-4 lg:h-[calc(100dvh-136px)] lg:min-h-[640px] lg:grid-cols-[280px_minmax(0,1fr)]">
-        <ConversationList
-          heading={tab === 'market' ? t.conversationsPair : t.conversationsMine}
-          emptyHint={
-            tab === 'market'
-              ? t.noConversationsPairHint
-              : t.noConversationsMineHint
-          }
-          conversations={items}
-          loading={conversations.isPending}
-          selectedId={selectedId}
-          canStart={onPlan}
-          starting={start.pending}
-          accent={accent}
-          badgeOf={(conversation) =>
-            conversation.pairId
-              ? baseOf(symbolOf(conversation.pairId) ?? '').slice(0, 4) || null
-              : null
-          }
-          onSelect={select}
-          onStart={() => void newConversation()}
-          onRename={(conversation) => {
-            setRenaming(conversation);
-            setTitle(conversation.title ?? '');
-          }}
-          onDelete={setDeleting}
-        />
-        <main className="flex min-h-[640px] min-w-0 flex-col overflow-hidden rounded-2xl border border-line bg-surface lg:min-h-0">
-          <header className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3.5 sm:px-5">
-            <span
-              aria-hidden="true"
-              className={classNames(
-                'inline-flex size-9 shrink-0 items-center justify-center rounded-[10px]',
-                TILE[tab],
-              )}
-            >
-              {tab === 'market' ? (
-                <ChartCandlestick size={19} />
-              ) : (
-                <ClipboardList size={19} />
-              )}
-            </span>
-            <div className="min-w-[200px] flex-1">
-              <p className="m-0 text-[10.5px] font-semibold tracking-wider text-muted-dim uppercase">
-                {t.title}
-              </p>
-              <h1 className="m-0 text-base font-semibold text-fg">
-                {tab === 'market' ? t.modePair : t.modeMine}
-              </h1>
-              <p className="m-0 mt-0.5 text-xs text-muted">
-                {(tab === 'market' ? t.modePairHint : t.modeMineHint) +
-                  ' ' +
-                  t.noAdvice}
-              </p>
-            </div>
-            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-              {onPlan && <StyleChip />}
-              <QuotaBadge quota={quota.data} />
-            </div>
-          </header>
-          {onPlan &&
-            (tab === 'market' ? (
+      <header className="mb-3 flex flex-wrap items-center gap-3">
+        <h1 className="sr-only">{mode}</h1>
+        <p aria-hidden="true" className="m-0 text-xl font-semibold text-fg">
+          {t.title}
+        </p>
+        <nav
+          aria-label={t.title}
+          className="inline-flex rounded-[10px] bg-raised p-0.5"
+        >
+          {topicLink('/ai/market', t.modePair, false)}
+          {topicLink('/ai/my-trading', t.modeMine, true)}
+        </nav>
+        <p className="m-0 min-w-[200px] flex-1 text-xs text-muted">
+          {(tab === 'market' ? t.modePairHint : t.modeMineHint) +
+            ' ' +
+            t.noAdvice}
+        </p>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {onPlan && <StyleChip />}
+          <QuotaBadge quota={quota.data} />
+        </div>
+      </header>
+      {/* Conversations, chat and context: three columns from 1280 px, the
+          context above the chat below that (T-139). */}
+      <div
+        className={classNames(
+          'grid gap-4 lg:h-[calc(100dvh-196px)] lg:min-h-[640px] lg:grid-cols-[280px_minmax(0,1fr)]',
+          onPlan &&
+            'lg:grid-rows-[auto_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)_320px] xl:grid-rows-1',
+        )}
+      >
+        <div
+          className={classNames(
+            'min-h-0',
+            onPlan && 'lg:row-span-2 xl:row-span-1',
+          )}
+        >
+          <ConversationList
+            heading={
+              tab === 'market' ? t.conversationsPair : t.conversationsMine
+            }
+            emptyHint={
+              tab === 'market'
+                ? t.noConversationsPairHint
+                : t.noConversationsMineHint
+            }
+            conversations={items}
+            loading={conversations.isPending}
+            selectedId={selectedId}
+            canStart={onPlan}
+            starting={start.pending}
+            accent={accent}
+            badgeOf={(conversation) =>
+              conversation.pairId
+                ? baseOf(symbolOf(conversation.pairId) ?? '').slice(0, 4) ||
+                  null
+                : null
+            }
+            onSelect={select}
+            onStart={() => void newConversation()}
+            onRename={(conversation) => {
+              setRenaming(conversation);
+              setTitle(conversation.title ?? '');
+            }}
+            onDelete={setDeleting}
+          />
+        </div>
+        {onPlan && (
+          <div className="flex min-w-0 flex-col gap-3 lg:col-start-2 xl:col-start-3 xl:row-start-1 xl:min-h-0 xl:overflow-y-auto">
+            {tab === 'market' ? (
               <MarketContextBar
                 value={chosen}
                 pairs={marketPairs}
@@ -555,7 +578,50 @@ function TopicWorkspace({ tab }: { tab: Tab }) {
                 performanceAllowed={performanceAllowed}
                 onChange={change}
               />
-            ))}
+            )}
+            {hasMessages && (
+              <section
+                aria-labelledby="ai-panel-suggestions"
+                className="hidden rounded-2xl border border-line bg-surface p-3.5 xl:block"
+              >
+                <h2
+                  id="ai-panel-suggestions"
+                  className="mb-2 text-[13px] font-semibold text-fg"
+                >
+                  {t.suggestionsTitle}
+                </h2>
+                <ul className="m-0 grid list-none gap-2 p-0">
+                  {suggestions.map((suggestion) => (
+                    <li key={suggestion.key}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          suggestion.onPick?.();
+                          setDraftRequest((last) => ({
+                            text: suggestion.text,
+                            serial: (last?.serial ?? 0) + 1,
+                          }));
+                        }}
+                        className="flex w-full items-center gap-2.5 rounded-xl border border-line px-2.5 py-2 text-left text-[12.5px] font-medium text-fg hover:border-line-strong hover:bg-raised"
+                      >
+                        {suggestion.icon}
+                        <span className="min-w-0 flex-1">
+                          {suggestion.text}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </div>
+        )}
+        <main
+          className={classNames(
+            'flex min-h-[640px] min-w-0 flex-col overflow-hidden rounded-2xl border border-line bg-surface lg:min-h-0',
+            onPlan && 'lg:col-start-2 lg:row-start-2 xl:row-start-1',
+          )}
+        >
           <ChatPanel
             messages={messages.data?.items ?? []}
             loading={messages.isPending && selectedId !== null}
@@ -588,6 +654,7 @@ function TopicWorkspace({ tab }: { tab: Tab }) {
                 </button>
               </>
             }
+            draftRequest={draftRequest}
             onAsk={askQuestion}
           />
         </main>

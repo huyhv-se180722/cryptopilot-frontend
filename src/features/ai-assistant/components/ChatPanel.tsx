@@ -387,6 +387,7 @@ export function ChatPanel({
   welcome,
   suggestions,
   footer,
+  draftRequest = null,
   onAsk,
 }: {
   messages: readonly AiMessage[];
@@ -406,11 +407,21 @@ export function ChatPanel({
   suggestions: readonly AskSuggestion[];
   /** A line under the box (privacy, a link). */
   footer?: ReactNode;
+  /**
+   * A question to put in the box from outside it (an example picked in the
+   * page's side panel); a new `serial` puts it again.
+   */
+  draftRequest?: { text: string; serial: number } | null;
   onAsk: (question: string) => Promise<boolean>;
 }) {
   const t = useCopy().aiAssistant;
   const boxId = useId();
   const [draft, setDraft] = useState('');
+  const [placed, setPlaced] = useState(draftRequest?.serial ?? 0);
+  if (draftRequest && draftRequest.serial !== placed) {
+    setPlaced(draftRequest.serial);
+    setDraft(draftRequest.text);
+  }
   const end = useRef<HTMLDivElement>(null);
   const ordered = [...messages].reverse();
   const pending = messages.some((message) => message.status === 'PENDING');

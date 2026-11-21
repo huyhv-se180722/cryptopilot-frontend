@@ -627,6 +627,80 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
     expect(await screen.findByText('BTCUSDT · Spot · 4h')).toBeTruthy();
   });
 
+  it('T-139: the chosen plan shows its prices on one ladder', async () => {
+    const user = userEvent.setup();
+    const withPlan = {
+      list: async ({ tab }: { tab: string }) => ({
+        items:
+          tab === 'ACTIVE'
+            ? [
+                {
+                  id: 'plan-1',
+                  pairId: 'p-btc',
+                  market: 'spot',
+                  direction: 'LONG',
+                  entryPrice: '75000',
+                  stopLoss: '73800',
+                  takeProfit: '78600',
+                  riskRewardRatio: '3.00',
+                  status: 'ACTIVE',
+                },
+              ]
+            : [],
+        page: 1,
+        pageSize: 50,
+        total: tab === 'ACTIVE' ? 1 : 0,
+      }),
+      get: async () => ({ id: 'plan-1', analysisTimeframe: '4h' }),
+    } as unknown as TradingPlanService;
+    await openAssistant(
+      aiService(PRO, { items: [] }),
+      '/ai/my-trading',
+      withPlan,
+    );
+
+    await screen.findByRole('option', { name: /BTCUSDT · LONG/ });
+    await user.selectOptions(
+      screen.getByLabelText('Một plan của tôi'),
+      'plan-1',
+    );
+
+    expect(
+      await screen.findByRole('img', {
+        name: 'Cắt lỗ 73,800, giá vào 75,000, chốt lời 78,600',
+      }),
+    ).toBeTruthy();
+  });
+
+  it('T-139: an example in the side panel fills the box and asks nothing', async () => {
+    const user = userEvent.setup();
+    let asks = 0;
+    await openAssistant(
+      aiService(
+        PRO,
+        { items: [message('q1', 'USER', 'RSI 72 nghĩa là gì?')] },
+        {
+          ask: async () => {
+            asks += 1;
+            throw new Error('not used');
+          },
+        },
+      ),
+    );
+
+    const panel = await screen.findByRole('region', { name: 'Gợi ý câu hỏi' });
+    await user.click(
+      within(panel).getByRole('button', { name: /Setup score hiện tại/ }),
+    );
+
+    await waitFor(() =>
+      expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe(
+        'Setup score hiện tại nói gì?',
+      ),
+    );
+    expect(asks).toBe(0);
+  });
+
   it('shows MSG31 under a question whose answer failed', async () => {
     await openAssistant(
       aiService(PRO, { items: [message('q1', 'USER', 'Câu hỏi', 'FAILED')] }),

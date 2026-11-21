@@ -1,12 +1,14 @@
 import type { ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useCopy } from '../../../hooks/use-copy';
+import { formatCopy } from '../../../i18n/copy';
 import { classNames } from '../../../utils/class-names';
 import {
   groupThousands,
   toFixedDecimal,
   trimDecimal,
 } from '../../../utils/decimal-format';
+import { PriceLadder } from '../../trading-plan/components/PriceLadder';
 import { AI_TIMEFRAMES, baseOf, type AiContextValue } from '../ai-context';
 import type {
   MarketPair,
@@ -57,6 +59,14 @@ function Segmented<T extends string>({
   );
 }
 
+/**
+ * The context of a question as a card (T-139): a bar above the chat below
+ * 1280 px, the right panel of the three-column page from there.
+ */
+const PANEL =
+  'flex flex-wrap items-center gap-2.5 rounded-2xl border border-line bg-surface p-3.5 xl:flex-col xl:flex-nowrap xl:items-stretch';
+const PANEL_TITLE = 'w-full text-[13px] font-semibold text-fg';
+
 const MARKETS: readonly { value: MarketType; label: string }[] = [
   { value: 'spot', label: 'Spot' },
   { value: 'futures', label: 'Futures' },
@@ -84,7 +94,10 @@ export function MarketContextBar({
 }) {
   const t = useCopy().aiAssistant;
   return (
-    <div className="flex flex-wrap items-center gap-2.5 border-b border-line bg-surface-alt px-4 py-2.5 sm:px-5">
+    <section aria-labelledby="ai-context-title" className={PANEL}>
+      <h2 id="ai-context-title" className={PANEL_TITLE}>
+        {t.contextPairTitle}
+      </h2>
       <div className="relative inline-flex h-9 items-center gap-2 rounded-[10px] border border-line-strong bg-surface pr-8 pl-1.5 focus-within:ring-2 focus-within:ring-primary-soft">
         <span
           aria-hidden="true"
@@ -136,9 +149,9 @@ export function MarketContextBar({
         value={value.timeframe}
         onPick={(timeframe) => onChange({ ...value, timeframe })}
       />
-      <span className="hidden flex-1 md:block" />
+      <span className="hidden flex-1 md:block xl:hidden" />
       {live}
-    </div>
+    </section>
   );
 }
 
@@ -190,10 +203,13 @@ export function MineContextBar({
   const plan = plans.find((item) => item.id === value.planId);
   const symbol = plan ? (symbolOf(plan.pairId) ?? '') : '';
   return (
-    <div className="flex flex-wrap items-stretch gap-2.5 border-b border-line bg-surface-alt px-4 py-3 sm:px-5">
+    <section aria-labelledby="ai-context-title" className={PANEL}>
+      <h2 id="ai-context-title" className={PANEL_TITLE}>
+        {t.contextMineTitle}
+      </h2>
       <div
         className={classNames(
-          'relative flex min-h-[58px] min-w-0 flex-[1_1_360px] items-center gap-3 rounded-xl border bg-surface px-3 py-2.5 focus-within:ring-2 focus-within:ring-purple-soft',
+          'relative flex min-h-[58px] min-w-0 flex-[1_1_360px] items-center xl:flex-none gap-3 rounded-xl border bg-surface px-3 py-2.5 focus-within:ring-2 focus-within:ring-purple-soft',
           plan ? 'border-[1.5px] border-purple' : 'border-line-strong',
         )}
       >
@@ -230,7 +246,7 @@ export function MineContextBar({
               {plan.direction}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[13px] font-semibold text-fg">
+              <span className="block truncate text-[13px] font-semibold text-fg xl:whitespace-normal">
                 {baseOf(symbol) +
                   '/' +
                   symbol.slice(baseOf(symbol).length) +
@@ -238,7 +254,7 @@ export function MineContextBar({
                   (plan.market === 'futures' ? 'Futures' : 'Spot') +
                   (planTimeframe ? ' · ' + planTimeframe : '')}
               </span>
-              <span className="mt-0.5 block truncate font-mono text-[11px] text-muted">
+              <span className="mt-0.5 block truncate font-mono text-[11px] text-muted xl:whitespace-normal">
                 {'Entry ' +
                   number(plan.entryPrice) +
                   ' · SL ' +
@@ -248,6 +264,17 @@ export function MineContextBar({
                   ' · R:R ' +
                   toFixedDecimal(plan.riskRewardRatio, 2)}
               </span>
+              <PriceLadder
+                stopLoss={plan.stopLoss}
+                entry={plan.entryPrice}
+                takeProfit={plan.takeProfit}
+                label={formatCopy(t.planLadder, {
+                  stopLoss: number(plan.stopLoss),
+                  entry: number(plan.entryPrice),
+                  takeProfit: number(plan.takeProfit),
+                })}
+                className="mt-1.5 h-4 w-full"
+              />
             </span>
             <span className="hidden rounded-full bg-purple-soft px-2 py-0.5 text-[11px] font-semibold text-purple sm:inline">
               {plan.status}
@@ -274,7 +301,7 @@ export function MineContextBar({
       </div>
       <label
         className={classNames(
-          'flex min-w-0 flex-[1_1_260px] cursor-pointer items-center gap-3 rounded-xl border border-line-strong bg-surface px-3 py-2.5',
+          'flex min-w-0 flex-[1_1_260px] cursor-pointer items-center gap-3 xl:flex-none rounded-xl border border-line-strong bg-surface px-3 py-2.5',
           !performanceAllowed && 'cursor-not-allowed opacity-60',
         )}
       >
@@ -296,6 +323,6 @@ export function MineContextBar({
           </span>
         </span>
       </label>
-    </div>
+    </section>
   );
 }

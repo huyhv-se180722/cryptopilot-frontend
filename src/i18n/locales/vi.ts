@@ -3192,6 +3192,7 @@ export const vi: PartialCopy = {
     noAdvice: 'Trợ lý chỉ giải thích, không bao giờ khuyên mua hay bán.',
     contextPairTitle: 'Coin cần phân tích',
     contextMineTitle: 'Trợ lý sẽ xem gì của bạn',
+    planLadder: 'Cắt lỗ {stopLoss}, giá vào {entry}, chốt lời {takeProfit}',
     conversationsPair: 'Hội thoại phân tích',
     conversationsMine: 'Hội thoại về plan & hiệu suất',
     noConversationsPairHint: 'Chọn một coin rồi đặt câu hỏi đầu tiên.',
@@ -3264,7 +3265,7 @@ export const vi: PartialCopy = {
     groupOlder: 'Cũ hơn',
     welcomePairTitle: 'Hôm nay bạn muốn phân tích coin nào?',
     welcomePairBody:
-      'Chọn coin, thị trường và khung thời gian ở thanh phía trên. Trợ lý đọc giá, chỉ báo và setup score hiện tại để giải thích cho bạn.',
+      'Chọn coin, thị trường và khung thời gian ở mục "Coin cần phân tích". Trợ lý đọc giá, chỉ báo và setup score hiện tại để giải thích cho bạn.',
     welcomeMineTitle: 'Cùng xem lại plan của bạn nhé',
     welcomeMineBody:
       'Trợ lý đọc entry, SL, TP và cảnh báo rủi ro của plan, so với giá và setup score hiện tại của coin. Chọn một gợi ý hoặc tự đặt câu hỏi.',
