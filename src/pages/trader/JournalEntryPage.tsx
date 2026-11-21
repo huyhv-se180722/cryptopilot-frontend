@@ -6,7 +6,6 @@ import { Dialog } from '../../components/ui/Dialog';
 import { buttonClassName } from '../../components/ui/button-styles';
 import { ErrorState } from '../../components/feedback/States';
 import { Card } from '../../components/ui/Card';
-import { SectionTitle } from '../../components/ui/SectionTitle';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useCopy } from '../../hooks/use-copy';
 import { formatCopy } from '../../i18n/copy';
@@ -17,18 +16,25 @@ import { AmountValue } from '../../features/journal/components/PerformanceValues
 import { ReviewCard } from '../../features/journal/components/ReviewCard';
 import { TradeFacts } from '../../features/journal/components/TradeFacts';
 import {
+  emptyLearningFacts,
+  emptyTradeFacts,
+} from '../../features/journal/components/empty-facts';
+import {
   useDeleteManualTrade,
   useJournalEntry,
 } from '../../features/journal/hooks/use-journal-entry';
 import { tradeResult } from '../../features/journal/model/trade-result';
 import { DirectionText } from '../../features/trading-plan/components/PlanBadges';
+import { planRatio } from '../../features/trading-plan/components/plan-format';
+import { NumericText } from '../../components/ui/NumericText';
 import { classNames } from '../../utils/class-names';
 import { formatInstantLocal } from '../../utils/instant-format';
 import { pairLabel } from '../../utils/pair-label';
 
 /**
- * SCR-21 Journal entry (UC-23): the facts of one trade, what a simulated
- * trade teaches (BR-70, D-111) and its review. From the Figma journal's
+ * SCR-21 Journal entry (UC-23): the result of one trade in a summary card,
+ * its review first, then its facts in groups and what a simulated trade
+ * teaches (BR-70, D-111), the facts not recorded behind "show all". From the Figma journal's
  * detail panel, as a page of its own so it can be linked to (the
  * notifications of a trade open it).
  */
@@ -46,6 +52,12 @@ export function JournalEntryPage() {
   const navigate = useNavigate();
   const remove = useDeleteManualTrade(entryId);
   const [confirming, setConfirming] = useState(false);
+  // Facts the server did not record stay hidden until asked for.
+  const [showAll, setShowAll] = useState(false);
+  const hidden = entry
+    ? emptyTradeFacts(entry.trade) +
+      (entry.learning ? emptyLearningFacts(entry.learning) : 0)
+    : 0;
 
   return (
     <div className="w-full">
@@ -72,70 +84,124 @@ export function JournalEntryPage() {
         />
       ) : (
         <>
-          <header className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
-            <h1 className="text-lg font-semibold text-fg">
-              {formatCopy(j.entryTitle, {
-                symbol,
-                market: copy.market[entry.trade.market],
-              })}
-            </h1>
-            <DirectionText direction={entry.trade.direction} />
-            <span className="rounded border border-line px-1.5 text-[10px] font-semibold tracking-wider text-muted uppercase">
-              {copy.performance[`source${entry.trade.source}`]}
-            </span>
-            <span className="text-xs text-muted-dim">
-              {formatInstantLocal(entry.trade.entryTime)}
-            </span>
-            {entry.trade.planId && (
-              <Link
-                to={`/plans/${entry.trade.planId}`}
-                className="ml-auto text-xs font-medium"
-              >
-                {j.openPlan}
-              </Link>
-            )}
-            {entry.trade.source === 'MANUAL' && (
-              <div className="ml-auto flex gap-2">
+          <section
+            aria-labelledby="journal-entry-title"
+            className="mb-4 flex flex-wrap items-center gap-x-8 gap-y-4 rounded-xl border border-line bg-surface p-4"
+          >
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <h1
+                  id="journal-entry-title"
+                  className="text-lg font-semibold text-fg"
+                >
+                  {formatCopy(j.entryTitle, {
+                    symbol,
+                    market: copy.market[entry.trade.market],
+                  })}
+                </h1>
+                <DirectionText direction={entry.trade.direction} />
+                <span
+                  className={classNames(
+                    'rounded-full px-2 py-0.5 text-[11.5px] font-semibold',
+                    result === 'WIN'
+                      ? 'bg-positive-soft text-positive'
+                      : result === 'LOSS'
+                        ? 'bg-negative-soft text-negative'
+                        : 'bg-raised text-fg-2',
+                  )}
+                >
+                  {result ? j[`result${result}`] : j.resultOPEN}
+                </span>
+              </div>
+              <p className="m-0 text-xs text-muted">
+                {[
+                  entry.trade.leverage !== null
+                    ? `${entry.trade.leverage}x`
+                    : null,
+                  copy.performance[`source${entry.trade.source}`],
+                  copy.plan[`position${entry.trade.status}`],
+                  formatInstantLocal(entry.trade.entryTime) +
+                    (entry.trade.exitTime
+                      ? ' → ' + formatInstantLocal(entry.trade.exitTime)
+                      : ''),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+            </div>
+            <dl className="m-0 flex flex-wrap gap-x-8 gap-y-3">
+              <div>
+                <dt className="text-[10.5px] font-semibold tracking-[0.06em] text-muted uppercase">
+                  {j.netPnl}
+                </dt>
+                <dd className="m-0 font-mono text-xl font-semibold">
+                  <AmountValue value={entry.trade.netPnl} />
+                </dd>
+              </div>
+              {entry.learning?.rMultiple != null && (
+                <div>
+                  <dt className="text-[10.5px] font-semibold tracking-[0.06em] text-muted uppercase">
+                    {j.realizedR}
+                  </dt>
+                  <dd className="m-0 font-mono text-xl font-semibold text-fg">
+                    <NumericText
+                      value={planRatio(entry.learning.rMultiple)}
+                      signed
+                      suffix=" R"
+                    />
+                  </dd>
+                </div>
+              )}
+              {entry.trade.closeReason && (
+                <div>
+                  <dt className="text-[10.5px] font-semibold tracking-[0.06em] text-muted uppercase">
+                    {j.closeReason}
+                  </dt>
+                  <dd className="m-0 text-[15px] font-semibold text-fg">
+                    {copy.plan[`close${entry.trade.closeReason}`]}
+                  </dd>
+                </div>
+              )}
+            </dl>
+            <div className="ml-auto flex flex-wrap gap-2">
+              {entry.trade.planId && (
                 <Link
-                  to={`/journal/new?edit=${entry.trade.id}`}
+                  to={`/plans/${entry.trade.planId}`}
                   className={buttonClassName('secondary', 'sm', 'no-underline')}
                 >
-                  <Pencil size={13} aria-hidden="true" />
-                  {j.editTrade}
+                  {j.openPlan}
                 </Link>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => setConfirming(true)}
-                >
-                  <Trash2 size={13} aria-hidden="true" />
-                  {j.deleteTrade}
-                </Button>
-              </div>
+              )}
+              {entry.trade.source === 'MANUAL' && (
+                <>
+                  <Link
+                    to={`/journal/new?edit=${entry.trade.id}`}
+                    className={buttonClassName(
+                      'secondary',
+                      'sm',
+                      'no-underline',
+                    )}
+                  >
+                    <Pencil size={13} aria-hidden="true" />
+                    {j.editTrade}
+                  </Link>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => setConfirming(true)}
+                  >
+                    <Trash2 size={13} aria-hidden="true" />
+                    {j.deleteTrade}
+                  </Button>
+                </>
+              )}
+            </div>
+            {entry.trade.provisional && (
+              <p className="m-0 w-full text-[11.5px] text-warning">
+                {copy.plan.journalProvisional}
+              </p>
             )}
-          </header>
-          <div
-            className={classNames(
-              'mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3',
-              result === 'WIN'
-                ? 'border-positive-line bg-positive-soft'
-                : result === 'LOSS'
-                  ? 'border-negative-line bg-negative-soft'
-                  : 'border-line bg-surface',
-            )}
-          >
-            <span className="text-xs font-semibold text-fg">
-              {result ? j[`result${result}`] : j.resultOPEN}
-            </span>
-            <span className="text-base font-bold">
-              <AmountValue value={entry.trade.netPnl} />
-            </span>
-          </div>
-          {entry.trade.provisional && (
-            <p className="mb-4 text-[11px] text-warning">
-              {copy.plan.journalProvisional}
-            </p>
-          )}
+          </section>
           <Dialog
             open={confirming}
             onOpenChange={(open) => {
@@ -177,26 +243,47 @@ export function JournalEntryPage() {
               </p>
             )}
           </Dialog>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            <div className="flex min-w-0 flex-col gap-4">
-              <Card>
-                <SectionTitle>{j.tradeTitle}</SectionTitle>
-                <TradeFacts trade={entry.trade} />
-              </Card>
-              {entry.learning && (
-                <Card>
-                  <SectionTitle>{j.learningTitle}</SectionTitle>
-                  <LearningCard
-                    learning={entry.learning}
-                    symbol={symbol}
-                    entryPrice={entry.trade.entryPrice}
-                  />
-                </Card>
-              )}
-            </div>
+          {/* The review first, the facts beside it (SCR-21, T-142). */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[minmax(0,1fr)_440px]">
             <Card className="self-start">
               <ReviewCard entry={entry} symbol={symbol} />
             </Card>
+            <div className="flex min-w-0 flex-col gap-4">
+              <TradeFacts trade={entry.trade} showAll={showAll} />
+              {entry.learning && (
+                <section
+                  aria-labelledby="trade-learning-title"
+                  className="overflow-hidden rounded-xl border border-line bg-surface"
+                >
+                  <h2
+                    id="trade-learning-title"
+                    className="m-0 border-b border-line px-4 py-2.5 text-[13px] font-semibold text-fg"
+                  >
+                    {j.learningTitle}
+                  </h2>
+                  <div className="px-4 py-3">
+                    <LearningCard
+                      learning={entry.learning}
+                      symbol={symbol}
+                      entryPrice={entry.trade.entryPrice}
+                      showAll={showAll}
+                    />
+                  </div>
+                </section>
+              )}
+              {hidden > 0 && (
+                <button
+                  type="button"
+                  aria-expanded={showAll}
+                  onClick={() => setShowAll((value) => !value)}
+                  className="h-9 rounded-lg border border-dashed border-line-strong text-xs text-muted hover:text-fg"
+                >
+                  {showAll
+                    ? j.hideEmpty
+                    : formatCopy(j.showEmpty, { count: String(hidden) })}
+                </button>
+              )}
+            </div>
           </div>
         </>
       )}

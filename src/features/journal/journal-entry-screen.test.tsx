@@ -12,6 +12,40 @@ import {
 } from '../../test/journal';
 
 describe('SCR-21 journal entry (T-052)', () => {
+  it('T-142: keeps the facts the server did not record behind "show all"', async () => {
+    const user = userEvent.setup();
+    await openEntry(
+      fakeJournal({
+        ...SIMULATED_ENTRY,
+        trade: {
+          ...ENTRY_TRADE,
+          source: 'MANUAL',
+          planId: null,
+          stopLoss: null,
+          takeProfit: null,
+        },
+        learning: null,
+      }),
+    );
+    await screen.findByRole('heading', { name: 'BTC/USDT · Futures' });
+    const entry = () => within(screen.getByRole('region', { name: 'Entry' }));
+    expect(entry().queryByText('Stop loss')).toBeNull();
+    expect(entry().getByText('Entry fee')).toBeTruthy();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Show 2 fields without data' }),
+    );
+
+    expect(entry().getByText('Stop loss').parentElement?.textContent).toBe(
+      'Stop loss—',
+    );
+    expect(
+      screen
+        .getByRole('button', { name: 'Hide the fields without data' })
+        .getAttribute('aria-expanded'),
+    ).toBe('true');
+  });
+
   it('shows the facts, what the trade teaches with the MSG55 warning, and the review', async () => {
     const journal = fakeJournal();
     await openEntry(journal);

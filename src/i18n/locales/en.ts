@@ -1636,6 +1636,12 @@ export const en = {
     resultOPEN: 'Open',
     tradeTitle: 'Trade',
     learningTitle: 'What the trade teaches',
+    entryGroup: 'Entry',
+    realizedR: 'Realised R',
+    exitGroup: 'Exit and result',
+    summaryLabel: 'Result of the trade',
+    showEmpty: 'Show {count} fields without data',
+    hideEmpty: 'Hide the fields without data',
     learningHint:
       'From the plan and the fill of this simulated trade. A dash is a value not recorded.',
     plannedEntry: 'Planned entry',
