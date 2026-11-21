@@ -3151,6 +3151,8 @@ export const vi: PartialCopy = {
     typeFUTURES: 'Futures',
     typeMARKET: 'Thị trường',
     ageNow: 'vừa xong',
+    dayToday: 'Hôm nay',
+    dayYesterday: 'Hôm qua',
     ageMinutes: '{n} phút trước',
     ageHours: '{n} giờ trước',
     ageDays: '{n} ngày trước',

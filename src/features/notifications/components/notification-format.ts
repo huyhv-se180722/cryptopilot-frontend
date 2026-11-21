@@ -52,6 +52,29 @@ export function notificationAge(
   return formatInstantLocal(iso).slice(0, 10);
 }
 
+/**
+ * The day a notification belongs to on SCR-15 (T-142): its local date
+ * ("YYYY-MM-DD", never the browser's locale) as the key, worded Today or
+ * Yesterday for the two latest days.
+ */
+export function notificationDay(
+  copy: Copy,
+  iso: string,
+  now = Date.now(),
+): { key: string; label: string } {
+  const key = formatInstantLocal(iso).slice(0, 10);
+  const today = formatInstantLocal(new Date(now).toISOString()).slice(0, 10);
+  const yesterday = formatInstantLocal(
+    new Date(now - 24 * 60 * MINUTE).toISOString(),
+  ).slice(0, 10);
+  const n = copy.notifications;
+  return {
+    key,
+    label:
+      key === today ? n.dayToday : key === yesterday ? n.dayYesterday : key,
+  };
+}
+
 /** The bell's badge: the count, 99+ above that. */
 export function badgeText(count: number): string {
   return count > 99 ? '99+' : String(count);

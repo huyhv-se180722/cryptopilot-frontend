@@ -7,6 +7,7 @@ import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { Tabs } from '../../components/ui/Tabs';
 import { NotificationItem } from '../../features/notifications/components/NotificationItem';
+import { notificationDay } from '../../features/notifications/components/notification-format';
 import { useOpenNotification } from '../../features/notifications/components/use-open-notification';
 import {
   useMarkAllRead,
@@ -44,6 +45,21 @@ export function NotificationsPage() {
       show({ tone: 'error', message: errorText(copy, result.error) });
   }
 
+  function days(list: typeof items) {
+    const groups: {
+      key: string;
+      label: string;
+      items: typeof items;
+    }[] = [];
+    for (const item of list) {
+      const day = notificationDay(copy, item.createdAt);
+      const last = groups.at(-1);
+      if (last?.key === day.key) last.items.push(item);
+      else groups.push({ ...day, items: [item] });
+    }
+    return groups;
+  }
+
   const body = list.isPending ? (
     <div className="grid gap-2 p-3">
       {[0, 1, 2, 3].map((k) => (
@@ -62,13 +78,26 @@ export function NotificationsPage() {
       {...(view === 'all' ? { description: n.emptyHint } : {})}
     />
   ) : (
-    <ul className="divide-y divide-line p-1.5">
-      {items.map((item) => (
-        <li key={item.id} className="py-0.5">
-          <NotificationItem notification={item} onOpen={open} />
-        </li>
+    // Newest first, under the day they arrived (T-142).
+    <div className="p-1.5">
+      {days(items).map((day) => (
+        <section key={day.key} aria-labelledby={'notifications-' + day.key}>
+          <h2
+            id={'notifications-' + day.key}
+            className="m-0 px-2.5 pt-3 pb-1.5 text-[11px] font-semibold tracking-[0.06em] text-muted uppercase"
+          >
+            {day.label}
+          </h2>
+          <ul className="m-0 list-none divide-y divide-line p-0">
+            {day.items.map((item) => (
+              <li key={item.id} className="py-0.5">
+                <NotificationItem notification={item} onOpen={open} />
+              </li>
+            ))}
+          </ul>
+        </section>
       ))}
-    </ul>
+    </div>
   );
 
   const panel = (
