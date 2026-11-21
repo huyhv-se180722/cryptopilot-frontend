@@ -78,9 +78,13 @@ export const screenPages: Readonly<Record<string, PageModule>> = {
   '/journal': async () => ({
     Component: (await import('../../pages/trader/JournalPage')).JournalPage,
   }),
+  '/journal/new': async () => ({
+    Component: (await import('../../pages/trader/JournalManualPage'))
+      .JournalManualPage,
+  }),
   '/journal/:entryId': async () => ({
-    Component: (await import('../../pages/trader/JournalRedirectPage'))
-      .JournalRedirectPage,
+    Component: (await import('../../pages/trader/JournalEntryPage'))
+      .JournalEntryPage,
   }),
   '/performance': async () => ({
     Component: (await import('../../pages/trader/PerformancePage'))

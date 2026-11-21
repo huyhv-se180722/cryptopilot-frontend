@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { BarChart2 } from 'lucide-react';
+import { useMemo } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { BarChart2, Plus } from 'lucide-react';
 import { ErrorState } from '../../components/feedback/States';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Badge, type Tone } from '../../components/ui/Badge';
@@ -10,7 +10,6 @@ import { Select } from '../../components/ui/Select';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { Table, type Column } from '../../components/ui/Table';
 import { AmountValue } from '../../features/journal/components/PerformanceValues';
-import { TradeDetailDialog } from '../../features/journal/components/TradeDetailDialog';
 import {
   JOURNAL_PAGE_SIZE,
   useJournal,
@@ -67,7 +66,7 @@ export function JournalPage() {
   });
   const pairs = usePairOptions(market);
   const pairOf = usePairLookup();
-  const [openId, setOpenId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const symbolOf = useMemo(
     () => (trade: JournalTrade) => {
@@ -93,14 +92,13 @@ export function JournalPage() {
         render: (trade) => {
           const symbol = symbolOf(trade);
           return (
-            <button
-              type="button"
+            <Link
+              to={`/journal/${trade.id}`}
               aria-label={formatCopy(j.openTrade, { symbol })}
-              onClick={() => setOpenId(trade.id)}
-              className="font-semibold text-fg hover:text-primary"
+              className="font-semibold text-fg no-underline hover:text-primary"
             >
               {symbol}
-            </button>
+            </Link>
           );
         },
       },
@@ -171,7 +169,6 @@ export function JournalPage() {
     [copy, j, p, symbolOf],
   );
 
-  const open = journal.data?.items.find((trade) => trade.id === openId);
   const performanceQuery = new URLSearchParams();
   if (market !== 'all') performanceQuery.set('market', market);
   if (pairId) performanceQuery.set('pair', pairId);
@@ -184,16 +181,25 @@ export function JournalPage() {
         title={j.title}
         description={j.subtitle}
         actions={
-          <Link
-            to={
-              '/performance' +
-              (performanceSearch ? '?' + performanceSearch : '')
-            }
-            className={buttonClassName('secondary', 'sm', 'no-underline')}
-          >
-            <BarChart2 size={13} aria-hidden="true" />
-            {j.openPerformance}
-          </Link>
+          <>
+            <Link
+              to={
+                '/performance' +
+                (performanceSearch ? '?' + performanceSearch : '')
+              }
+              className={buttonClassName('secondary', 'sm', 'no-underline')}
+            >
+              <BarChart2 size={13} aria-hidden="true" />
+              {j.openPerformance}
+            </Link>
+            <Link
+              to="/journal/new"
+              className={buttonClassName('primary', 'sm', 'no-underline')}
+            >
+              <Plus size={13} aria-hidden="true" />
+              {j.recordTrade}
+            </Link>
+          </>
         }
       />
       <section
@@ -262,7 +268,7 @@ export function JournalPage() {
             columns={columns}
             rows={journal.data.items}
             rowKey={(trade) => trade.id}
-            onRowClick={(trade) => setOpenId(trade.id)}
+            onRowClick={(trade) => navigate(`/journal/${trade.id}`)}
             emptyMessage={messageText(copy, 'MSG41')}
           />
           <div className="mt-3">
@@ -276,13 +282,6 @@ export function JournalPage() {
             />
           </div>
         </>
-      )}
-      {open && (
-        <TradeDetailDialog
-          trade={open}
-          symbol={symbolOf(open)}
-          onClose={() => setOpenId(null)}
-        />
       )}
     </div>
   );

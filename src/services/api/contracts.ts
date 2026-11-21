@@ -68,7 +68,11 @@ import type {
   ModerationResult,
   NotificationPage,
   EquityPoint,
+  JournalEntry,
   JournalPage,
+  JournalReview,
+  ManualTradeInput,
+  Strategy,
   PerformanceBreakdownKind,
   PerformanceBreakdownRow,
   PerformanceFilter,
@@ -424,6 +428,29 @@ export interface JournalListRequest {
 /** The Trader's journal (`/journal`, Trader only). */
 export interface JournalService {
   list(request: JournalListRequest, signal?: AbortSignal): Promise<JournalPage>;
+  /** SCR-21; 404 MSG41 when the trade is not the caller's. */
+  get(id: string, signal?: AbortSignal): Promise<JournalEntry>;
+  /** SCR-22, UC-24: records a manual trade. */
+  record(input: ManualTradeInput): Promise<JournalEntry>;
+  /** Replaces a manual trade; 409 MSG43 on a simulated one (BR-40). */
+  edit(id: string, input: ManualTradeInput): Promise<JournalEntry>;
+  /** Deletes a manual trade with its image; 409 MSG43 on a simulated one. */
+  remove(id: string): Promise<void>;
+  /** UC-23: replaces the whole review (a null clears its field). */
+  review(id: string, review: JournalReview): Promise<JournalEntry>;
+  /**
+   * Uploads a chart image for the trade's review with a signed form and
+   * resolves with its storage key, to be sent with the review (MSG32 when
+   * the file or the storage refuses it).
+   */
+  uploadChartImage(
+    id: string,
+    file: File,
+    onProgress?: (share: number) => void,
+    signal?: AbortSignal,
+  ): Promise<string>;
+  /** `GET /strategies`: the strategies a trade can be tagged with. */
+  strategies(signal?: AbortSignal): Promise<readonly Strategy[]>;
 }
 /** `/journal/performance/*` (SCR-23, Trader only). */
 export interface PerformanceService {

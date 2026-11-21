@@ -2172,6 +2172,13 @@ const fakeJournal = (
     pageSize: request.pageSize,
     total: items.length,
   })),
+  get: vi.fn(),
+  record: vi.fn(),
+  edit: vi.fn(),
+  remove: vi.fn(),
+  review: vi.fn(),
+  uploadChartImage: vi.fn(),
+  strategies: vi.fn(async () => []),
 });
 
 describe('SCR-16 journal and coin columns (SCR-20 folded in)', () => {
