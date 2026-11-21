@@ -168,6 +168,7 @@ export function AlertTable({
   ];
   return (
     <Table
+      cards
       caption={a.tableCaption}
       columns={columns}
       rows={rows}

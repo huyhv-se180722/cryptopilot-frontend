@@ -3159,6 +3159,8 @@ export const en = {
     typeFUTURES: 'Futures',
     typeMARKET: 'Market',
     ageNow: 'just now',
+    dayToday: 'Today',
+    dayYesterday: 'Yesterday',
     ageMinutes: '{n}m ago',
     ageHours: '{n}h ago',
     ageDays: '{n}d ago',

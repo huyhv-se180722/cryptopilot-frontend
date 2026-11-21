@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NotificationsPage } from '../../pages/trader/NotificationsPage';
 import type { NotificationService } from '../../services/api/contracts';
@@ -24,6 +24,45 @@ const note = (over: Partial<AppNotification>): AppNotification => ({
 });
 
 describe('notification screens', () => {
+  it('T-142: lists notifications under the day they arrived', async () => {
+    const day = 24 * 60 * 60 * 1000;
+    const notifications: NotificationService = {
+      ...createPendingNotificationService(),
+      unreadCount: async () => 0,
+      list: async () => ({
+        items: [
+          note({ id: 'a', title: 'First today' }),
+          note({ id: 'b', title: 'Second today' }),
+          note({
+            id: 'c',
+            title: 'From yesterday',
+            createdAt: new Date(Date.now() - day).toISOString(),
+          }),
+          note({
+            id: 'd',
+            title: 'Older one',
+            createdAt: '2026-01-05T12:00:00Z',
+          }),
+        ],
+        page: 1,
+        pageSize: 20,
+        total: 4,
+      }),
+    };
+    await renderRoutes(
+      [page('/notifications', <NotificationsPage />)],
+      '/notifications',
+      signedIn,
+      { notifications },
+    );
+    const today = await screen.findByRole('region', { name: 'Today' });
+    expect(within(today).getAllByRole('listitem')).toHaveLength(2);
+    const yesterday = screen.getByRole('region', { name: 'Yesterday' });
+    expect(within(yesterday).getByText('From yesterday')).toBeTruthy();
+    // An older day is named by its date, never by the browser's locale.
+    expect(screen.getByRole('region', { name: '2026-01-05' })).toBeTruthy();
+  });
+
   it('says the feature is not connected while the backend API is pending', async () => {
     await renderRoutes(
       [page('/notifications', <NotificationsPage />)],

@@ -204,9 +204,11 @@ export function JournalPage() {
       />
       <section
         aria-label={j.filtersLabel}
-        className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-line bg-surface p-4 sm:grid-cols-3"
+        className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2.5"
       >
         <Select
+          inline
+          className="w-full sm:w-56"
           label={j.status}
           value={status ?? ''}
           onChange={(event) => update({ status: event.target.value, page: '' })}
@@ -219,6 +221,8 @@ export function JournalPage() {
           ))}
         </Select>
         <Select
+          inline
+          className="w-full sm:w-56"
           label={p.market}
           value={market}
           onChange={(event) =>
@@ -239,6 +243,8 @@ export function JournalPage() {
           ))}
         </Select>
         <Select
+          inline
+          className="w-full sm:w-56"
           label={p.pair}
           value={pairId}
           onChange={(event) => update({ pair: event.target.value, page: '' })}
@@ -264,6 +270,7 @@ export function JournalPage() {
       ) : (
         <>
           <Table
+            cards
             caption={j.tableCaption}
             columns={columns}
             rows={journal.data.items}
