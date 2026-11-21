@@ -3199,6 +3199,7 @@ export const en = {
     noAdvice:
       'The assistant only explains; it never advises buying or selling.',
     contextPairTitle: 'Coin to analyse',
+    planLadder: 'Stop loss {stopLoss}, entry {entry}, take profit {takeProfit}',
     contextMineTitle: 'What the assistant reads of yours',
     conversationsPair: 'Analysis conversations',
     conversationsMine: 'Plan & performance conversations',
@@ -3272,7 +3273,7 @@ export const en = {
     groupOlder: 'Older',
     welcomePairTitle: 'Which coin shall we look at today?',
     welcomePairBody:
-      'Pick the coin, market and timeframe in the bar above. The assistant reads the current price, indicators and setup score to explain them.',
+      'Pick the coin, market and timeframe under "Coin to analyse". The assistant reads the current price, indicators and setup score to explain them.',
     welcomeMineTitle: 'Let us review your plan',
     welcomeMineBody:
       "The assistant reads the entry, SL, TP and risk warnings of your plan against the coin's current price and setup score. Pick an example or ask your own question.",
