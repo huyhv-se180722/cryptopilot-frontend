@@ -6,12 +6,10 @@ import { buttonClassName } from '../../components/ui/button-styles';
 import { useCopy, useLocale } from '../../hooks/use-copy';
 import { usePlanLimit, usePlanTier } from '../../hooks/use-entitlement';
 import { formatCopy } from '../../i18n/copy';
-import {
-  DashboardCard,
-  PendingBlock,
-} from '../../features/dashboard/components/DashboardCard';
+import { DashboardCard } from '../../features/dashboard/components/DashboardCard';
 import { MarketSnapshot } from '../../features/dashboard/components/MarketSnapshot';
 import { NewsBlock } from '../../features/dashboard/components/NewsBlock';
+import { PerformanceBlock } from '../../features/dashboard/components/PerformanceBlock';
 import { RecentNotifications } from '../../features/notifications/components/RecentNotifications';
 import { PlanSnapshot } from '../../features/dashboard/components/PlanSnapshot';
 import { WatchlistSnapshot } from '../../features/dashboard/components/WatchlistSnapshot';
@@ -38,9 +36,9 @@ function counted(
  * the Figma "Trading Overview" frame with the SRS content: watchlist
  * snapshot, active plans and open positions, recent notifications,
  * performance summary and latest news, plus a market snapshot. Only
- * values the backend provides are shown: blocks whose API is not merged
- * (performance T-051, news T-079) say so; recent notifications come from
- * the notification center (T-059). Plans,
+ * values the backend provides are shown; recent notifications come from
+ * the notification center (T-059), the performance summary from the
+ * journal statistics (T-051). Plans,
  * watchlist, analysis and journal are one click away (SRS 4).
  */
 export function DashboardPage() {
@@ -150,12 +148,7 @@ export function DashboardPage() {
         >
           <RecentNotifications />
         </DashboardCard>
-        <DashboardCard
-          title={d.performanceTitle}
-          link={{ to: '/performance', label: d.openPage }}
-        >
-          <PendingBlock message={copy.errors.notConfigured} />
-        </DashboardCard>
+        <PerformanceBlock />
         <NewsBlock />
       </div>
     </div>
