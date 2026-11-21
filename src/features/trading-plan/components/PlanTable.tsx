@@ -22,8 +22,9 @@ import { planPrice, planRatio, shortPlanId } from './plan-format';
  * take profit, reward/risk, status and created time; the Executed tab adds
  * position status and P/L. The API names the pair by id only, so the pair
  * comes from the market lists by that id (FEQ-01); a pair no list has any
- * more shows a dash. The plan id is the link to SCR-18; the position
- * columns wait for simulated execution (M-10).
+ * more shows a dash. The pair is the link to SCR-18, with the market and
+ * the plan id under it; the position status sits under the plan status on
+ * the Executed tab, so every column fits at 1440 px (T-140).
  */
 export function PlanTable({
   tab,
@@ -46,40 +47,37 @@ export function PlanTable({
     </span>
   );
   const price = (value: string) => <NumericText value={planPrice(value)} />;
+  const marketText = (row: TradingPlanSummary) =>
+    row.market === 'futures'
+      ? `${copy.market.futures}${row.leverage ? ` · ${row.leverage}x` : ''}`
+      : copy.market.spot;
+  // The plan id and the market sit under the pair (T-140): the table shares
+  // its row with the journal and the coin rail, and ten columns pushed the
+  // status out of view at 1440 px.
   const columns: Column<TradingPlanSummary>[] = [
-    {
-      id: 'plan',
-      header: '#',
-      render: (row) => (
-        <Link
-          to={`/plans/${row.id}`}
-          aria-label={formatCopy(p.openPlan, { id: shortPlanId(row.id) })}
-          className="font-mono text-[11px] font-medium"
-          onClick={(event) => event.stopPropagation()}
-        >
-          {shortPlanId(row.id)}
-        </Link>
-      ),
-    },
     {
       id: 'pair',
       header: p.colPair,
       render: (row) => {
         const pair = pairOf(row);
-        return pair ? (
-          <span className="font-medium text-fg">{pairLabel(pair.symbol)}</span>
-        ) : (
-          none
+        return (
+          <span className="flex flex-col gap-0.5">
+            <Link
+              to={`/plans/${row.id}`}
+              aria-label={formatCopy(p.openPlan, { id: shortPlanId(row.id) })}
+              className="font-medium text-fg"
+              onClick={(event) => event.stopPropagation()}
+            >
+              {pair ? pairLabel(pair.symbol) : none}
+            </Link>
+            <span className="text-[11px] text-muted-dim">
+              <span>{marketText(row)}</span>
+              {' · '}
+              <span className="font-mono">#{shortPlanId(row.id)}</span>
+            </span>
+          </span>
         );
       },
-    },
-    {
-      id: 'market',
-      header: p.colMarket,
-      render: (row) =>
-        row.market === 'futures'
-          ? `${copy.market.futures}${row.leverage ? ` · ${row.leverage}x` : ''}`
-          : copy.market.spot,
     },
     {
       id: 'direction',
@@ -113,37 +111,30 @@ export function PlanTable({
     {
       id: 'status',
       header: p.colStatus,
-      // An INVALIDATED row says why in the Cancelled / Expired tab (BR-68).
+      // An INVALIDATED row says why in the Cancelled / Expired tab (BR-68);
+      // on the Executed tab the position status sits under the plan status.
       render: (row) => (
-        <span className="inline-flex flex-col items-start gap-0.5">
+        <span className="inline-flex flex-col items-start gap-1">
           <PlanStatusBadge status={row.status} />
           {row.invalidationReason && (
-            <span className="text-[11px] text-muted-dim">
+            <span className="max-w-40 text-[11px] whitespace-normal text-muted-dim">
               {p[`reason${row.invalidationReason}`]}
             </span>
           )}
+          {tab === 'EXECUTED' &&
+            (row.positionStatus ? (
+              <Badge
+                tone={row.positionStatus === 'OPEN' ? 'info' : 'neutral'}
+                withDot
+              >
+                {p[`position${row.positionStatus}`]}
+              </Badge>
+            ) : (
+              none
+            ))}
         </span>
       ),
     },
-    ...(tab === 'EXECUTED'
-      ? [
-          {
-            id: 'position',
-            header: p.colPosition,
-            render: (row: TradingPlanSummary) =>
-              row.positionStatus ? (
-                <Badge
-                  tone={row.positionStatus === 'OPEN' ? 'info' : 'neutral'}
-                  withDot
-                >
-                  {p[`position${row.positionStatus}`]}
-                </Badge>
-              ) : (
-                none
-              ),
-          },
-        ]
-      : []),
     {
       id: 'created',
       header: p.colCreated,
@@ -162,6 +153,7 @@ export function PlanTable({
       rowKey={(row) => row.id}
       emptyMessage={emptyMessage}
       onRowClick={(row) => navigate(`/plans/${row.id}`)}
+      dense
     />
   );
 }

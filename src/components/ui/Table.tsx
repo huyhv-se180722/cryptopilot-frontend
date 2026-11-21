@@ -9,7 +9,11 @@ export interface Column<T> {
   numeric?: boolean;
 }
 
-/** Figma admin table: uppercase 10px headers, 44px rows, right-aligned mono numbers. */
+/**
+ * Figma admin table: uppercase 10px headers, 44px rows, right-aligned mono
+ * numbers. `dense` narrows the cell padding for a table that shares its row
+ * with side panels (SCR-16).
+ */
 export function Table<T>({
   caption,
   columns,
@@ -17,6 +21,7 @@ export function Table<T>({
   rowKey,
   emptyMessage,
   onRowClick,
+  dense = false,
 }: {
   caption: string;
   columns: readonly Column<T>[];
@@ -24,8 +29,10 @@ export function Table<T>({
   rowKey: (row: T) => string;
   emptyMessage?: string;
   onRowClick?: (row: T) => void;
+  dense?: boolean;
 }) {
   const copy = useCopy();
+  const padX = dense ? 'px-3' : 'px-5';
   return (
     <div
       className="overflow-x-auto rounded-xl border border-line"
@@ -42,7 +49,8 @@ export function Table<T>({
                 key={column.id}
                 scope="col"
                 className={classNames(
-                  'px-5 py-3 text-[10px] font-medium tracking-[0.07em] whitespace-nowrap text-muted-x uppercase',
+                  padX,
+                  'py-3 text-[10px] font-medium tracking-[0.07em] whitespace-nowrap text-muted-x uppercase',
                   column.numeric ? 'text-right' : 'text-left',
                 )}
               >
@@ -66,7 +74,8 @@ export function Table<T>({
                   <td
                     key={column.id}
                     className={classNames(
-                      'px-5 py-3 text-xs whitespace-nowrap text-fg-2',
+                      padX,
+                      'py-3 text-xs whitespace-nowrap text-fg-2',
                       column.numeric && 'text-right font-mono',
                     )}
                   >
