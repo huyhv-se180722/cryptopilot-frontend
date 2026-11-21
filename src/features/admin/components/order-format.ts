@@ -1,4 +1,8 @@
-import type { OrderStatus } from '../../../types/domain';
+import type {
+  OrderStatus,
+  OrderType,
+  PaymentGatewayCode,
+} from '../../../types/domain';
 
 /**
  * Asking the gateway again can still change a PENDING order (paid, or past
@@ -21,3 +25,33 @@ export function prettyPayload(payload: string | null): string | null {
 /** `YYYY-MM-DD` days compare as text; an open end never conflicts. */
 export const rangeInvalid = (from: string, to: string) =>
   from !== '' && to !== '' && from > to;
+
+/** The choices of the SCR-40 Filters panel; '' is any. */
+export interface OrderFilter {
+  status: OrderStatus | '';
+  orderType: OrderType | '';
+  gateway: PaymentGatewayCode | '';
+  from: string;
+  to: string;
+  manual: boolean;
+}
+
+export const NO_FILTER: OrderFilter = {
+  status: '',
+  orderType: '',
+  gateway: '',
+  from: '',
+  to: '',
+  manual: false,
+};
+
+/** How many filters are set; the day range counts once. */
+export function filterCount(filter: OrderFilter): number {
+  return (
+    Number(filter.status !== '') +
+    Number(filter.orderType !== '') +
+    Number(filter.gateway !== '') +
+    Number(filter.from !== '' || filter.to !== '') +
+    Number(filter.manual)
+  );
+}

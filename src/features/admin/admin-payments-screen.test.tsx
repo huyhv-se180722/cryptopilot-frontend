@@ -134,29 +134,62 @@ const dialog = (code: string) =>
   within(screen.getByRole('dialog', { name: 'Order ' + code }));
 
 describe('SCR-40 payments (UC-48)', () => {
-  it('lists 20 orders a page with the total and pages on', async () => {
+  it('lists 20 orders a page with the total and numbered pages', async () => {
     await open(fakeOrders().service);
     expect(await screen.findByText('25 orders')).toBeTruthy();
     expect(rows()).toHaveLength(20);
-    expect(screen.getByText('Page 1 of 2')).toBeTruthy();
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Next' }));
-    expect(await screen.findByText('Page 2 of 2')).toBeTruthy();
+    expect(screen.getByText('1–20 of 25')).toBeTruthy();
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: 'Page 2' }));
+    expect(await screen.findByText('21–25 of 25')).toBeTruthy();
     expect(rows()).toHaveLength(5);
   });
 
-  it('filters on the server, back on the first page, and clears', async () => {
+  it('applies the filters of the panel together, from the first page', async () => {
     const { service, calls } = fakeOrders();
     await open(service);
     const user = userEvent.setup();
     await screen.findByText('25 orders');
-    await user.click(screen.getByRole('button', { name: 'Next' }));
-    await screen.findByText('Page 2 of 2');
-    await user.click(screen.getByLabelText('Only flagged orders'));
+    await user.click(screen.getByRole('button', { name: 'Page 2' }));
+    await screen.findByText('21–25 of 25');
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    const panel = within(screen.getByRole('group', { name: 'Filters' }));
+    await user.selectOptions(panel.getByLabelText('Gateway'), 'MOMO');
+    await user.click(panel.getByLabelText('Only flagged orders'));
+    await user.click(panel.getByRole('button', { name: 'Apply' }));
     expect(await screen.findByText('1 order')).toBeTruthy();
-    expect(calls.at(-1)).toMatchObject({ page: 1, manual: true });
+    expect(calls.at(-1)).toMatchObject({
+      page: 1,
+      gateway: 'MOMO',
+      manual: true,
+    });
+    expect(screen.queryByRole('group', { name: 'Filters' })).toBe(null);
     expect(within(rows()[0]!).getByText('Needs handling')).toBeTruthy();
+    expect(
+      within(screen.getByRole('button', { name: /Filters/ })).getByText('2'),
+    ).toBeTruthy();
+  });
 
-    await user.click(screen.getByRole('button', { name: 'Clear filters' }));
+  it('removes one filter by its chip, or all at once', async () => {
+    const { service, calls } = fakeOrders();
+    await open(service);
+    const user = userEvent.setup();
+    await screen.findByText('25 orders');
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    const panel = within(screen.getByRole('group', { name: 'Filters' }));
+    await user.selectOptions(panel.getByLabelText('Gateway'), 'MOMO');
+    await user.click(panel.getByLabelText('Only flagged orders'));
+    await user.click(panel.getByRole('button', { name: 'Apply' }));
+    await screen.findByText('1 order');
+    await user.click(
+      screen.getByRole('button', { name: 'Remove filter Gateway: MOMO' }),
+    );
+    expect(calls.at(-1)?.gateway).toBeUndefined();
+    expect(calls.at(-1)?.manual).toBe(true);
+    await user.click(
+      screen.getByRole('button', { name: 'Remove filter Only flagged orders' }),
+    );
     expect(await screen.findByText('25 orders')).toBeTruthy();
     await user.type(screen.getByLabelText('Order code'), 'CP9');
     expect(
@@ -164,19 +197,41 @@ describe('SCR-40 payments (UC-48)', () => {
     ).toBeTruthy();
   });
 
-  it('does not send a reversed day range', async () => {
+  it('keeps a reversed day range from being applied', async () => {
     const { service, calls } = fakeOrders();
     await open(service);
     const user = userEvent.setup();
     await screen.findByText('25 orders');
-    await user.type(screen.getByLabelText('Created from'), '2026-11-10');
-    await user.type(screen.getByLabelText('Created to'), '2026-11-01');
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    const panel = within(screen.getByRole('group', { name: 'Filters' }));
+    await user.type(panel.getByLabelText('Created from'), '2026-11-10');
+    await user.type(panel.getByLabelText('Created to'), '2026-11-01');
     expect(
-      await screen.findByText('The first day is after the last day.'),
+      panel.getByText('The first day is after the last day.'),
     ).toBeTruthy();
-    const last = calls.at(-1)!;
-    expect(last.from).toBeUndefined();
-    expect(last.to).toBeUndefined();
+    expect(
+      (panel.getByRole('button', { name: 'Apply' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+    expect(calls.every((q) => q.from === undefined)).toBe(true);
+  });
+
+  it('drops what was not applied when the panel closes', async () => {
+    const { service, calls } = fakeOrders();
+    await open(service);
+    const user = userEvent.setup();
+    await screen.findByText('25 orders');
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    let panel = within(screen.getByRole('group', { name: 'Filters' }));
+    await user.selectOptions(panel.getByLabelText('Status'), 'PAID');
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('group', { name: 'Filters' })).toBe(null);
+    expect(calls.every((q) => q.status === undefined)).toBe(true);
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    panel = within(screen.getByRole('group', { name: 'Filters' }));
+    expect((panel.getByLabelText('Status') as HTMLSelectElement).value).toBe(
+      '',
+    );
   });
 
   it('opens an order with its gateway answer and subscription', async () => {
