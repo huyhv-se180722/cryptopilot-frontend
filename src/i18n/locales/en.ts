@@ -1069,6 +1069,8 @@ export const en = {
     closeMarketTitle: 'Close {symbol} at market',
     closeLimitTitle: 'Close {symbol} with a limit order',
     closeSize: 'Position size: {size}',
+    closeShare: 'Share of the position to close',
+    closeSharePresets: 'Quick shares of the position',
     closeSent: '{symbol}: close order sent.',
     adjustMargin: 'Adjust margin',
     adjustMarginTitle: '{symbol} isolated margin',

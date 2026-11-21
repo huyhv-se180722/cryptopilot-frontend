@@ -175,7 +175,7 @@ export function FuturesBottomPanel({
             p.positionAmt.startsWith('-') ? 'text-negative' : 'text-positive',
           )}
         >
-          <NumericText value={groupThousands(p.positionAmt)} />
+          <NumericText value={groupThousands(trimDecimal(p.positionAmt, 0))} />
           <span className="text-[10px] text-muted">
             <NumericText
               value={groupThousands(
