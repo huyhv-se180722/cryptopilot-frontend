@@ -125,6 +125,16 @@ describe('SCR-23 performance dashboard', () => {
     expect(screen.getByText('+1,234.50 USDT')).toBeTruthy();
     expect(screen.getByText('66.67%')).toBeTruthy();
     expect(screen.getByText('Wins 2 · Losses 1 · Breakeven 1')).toBeTruthy();
+    const strip = screen.getByRole('region', { name: 'Key figures' });
+    expect(
+      within(strip).getByRole('img', {
+        name: '2 wins, 1 losses, 1 breakeven',
+      }),
+    ).toBeTruthy();
+    // BR-42: no PRO figure on the strip of FREE.
+    expect(within(strip).queryByText('Profit factor')).toBeNull();
+    expect(within(strip).queryByText('Max drawdown')).toBeNull();
+    expect(strip.textContent).toContain('Funding -0.75 (+ received, − paid)');
     expect(screen.getAllByRole('link', { name: 'View plans' })).toHaveLength(3);
     expect(screen.queryByLabelText('Strategy')).toBeNull();
     expect(performance.breakdown).not.toHaveBeenCalled();
@@ -148,6 +158,10 @@ describe('SCR-23 performance dashboard', () => {
     });
     await open(performance, PRO);
     expect(await screen.findByText('Advanced metrics')).toBeTruthy();
+    const strip = screen.getByRole('region', { name: 'Key figures' });
+    expect(within(strip).getByText('Profit factor')).toBeTruthy();
+    expect(within(strip).getByText('Max drawdown')).toBeTruthy();
+    expect(strip.textContent).toContain('Longest losing streak 1');
     const metrics = screen.getByRole('heading', { name: 'Advanced metrics' })
       .parentElement as HTMLElement;
     const factor = within(metrics).getByText('Profit factor');
