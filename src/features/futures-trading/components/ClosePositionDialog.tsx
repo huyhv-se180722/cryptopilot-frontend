@@ -11,6 +11,7 @@ import {
   decimalPlaces,
   groupThousands,
   toFixedDecimal,
+  trimDecimal,
 } from '../../../utils/decimal-format';
 import { isPlainDecimal, isPositive } from '../../../utils/decimal-math';
 import { ShareSlider } from '../../paper-trading/components/ShareSlider';
@@ -44,7 +45,7 @@ export function ClosePositionDialog({
       : '',
   );
   const [notice, setNotice] = useState<string | null>(null);
-  const size = position.positionAmt.replace('-', '');
+  const size = trimDecimal(position.positionAmt.replace('-', ''), 0);
   const confirm = async () => {
     if (type === 'LIMIT' && !(isPlainDecimal(price) && isPositive(price)))
       return setNotice(f.errInvalid);
@@ -102,6 +103,8 @@ export function ClosePositionDialog({
           value={percent}
           disabled={false}
           onChange={(value) => setPercent(value)}
+          label={f.closeShare}
+          presetsLabel={f.closeSharePresets}
         />
       </div>
       {notice && (

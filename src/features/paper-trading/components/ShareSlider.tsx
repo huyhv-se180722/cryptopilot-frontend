@@ -15,11 +15,16 @@ export function ShareSlider({
   value,
   disabled,
   onChange,
+  label,
+  presetsLabel,
 }: {
   /** Whole percent, 0 to 100. */
   value: number;
   disabled: boolean;
   onChange: (percent: number) => void;
+  /** What the share is of; the available balance unless given. */
+  label?: string;
+  presetsLabel?: string;
 }) {
   const p = useCopy().paper;
   const shown = formatCopy(p.sharePercent, { percent: value });
@@ -34,7 +39,7 @@ export function ShareSlider({
           step={1}
           value={value}
           disabled={disabled}
-          aria-label={p.shareLabel}
+          aria-label={label ?? p.shareLabel}
           aria-valuetext={shown}
           onChange={(event) => onChange(Number(event.target.value))}
           className="h-1.5 min-w-0 flex-1 cursor-pointer accent-(--cp-primary) disabled:cursor-not-allowed disabled:opacity-50 pointer-coarse:h-11"
@@ -48,7 +53,7 @@ export function ShareSlider({
       </div>
       <div
         role="group"
-        aria-label={p.sharePresets}
+        aria-label={presetsLabel ?? p.sharePresets}
         className="grid w-full grid-cols-4 gap-1 sm:w-auto"
       >
         {PRESETS.map((percent) => (

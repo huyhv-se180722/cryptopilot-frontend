@@ -10,9 +10,14 @@ import {
 } from '../../services/api/futures';
 import type { MarketService } from '../../services/api/contracts';
 import type { MarketPair } from '../../types/domain';
-import type { FuturesCalculation, FuturesOrder } from '../../types/futures';
+import type {
+  FuturesCalculation,
+  FuturesOrder,
+  FuturesPosition,
+} from '../../types/futures';
 import { fakeAuth, page, renderRoutes, testTrader } from '../../test/render';
 import { AmendOrderDialog } from './components/AmendOrderDialog';
+import { ClosePositionDialog } from './components/ClosePositionDialog';
 import { FuturesCalculatorDialog } from './components/FuturesCalculatorDialog';
 
 beforeAll(() => {
@@ -283,5 +288,61 @@ describe('demo orders page, Futures side', () => {
         .getByRole('radio', { name: 'Futures' })
         .getAttribute('aria-checked'),
     ).toBe('true');
+  });
+});
+
+const POSITION: FuturesPosition = {
+  symbol: 'BTCUSDT',
+  positionSide: 'BOTH',
+  positionAmt: '0.004000000000',
+  entryPrice: '56246.5',
+  breakEvenPrice: '56246.5',
+  markPrice: '56261.6',
+  unRealizedProfit: '0.06',
+  liquidationPrice: '0',
+  isolatedMargin: '0',
+  notional: '225.04',
+  isolatedWallet: '0',
+  initialMargin: '11.25',
+  maintMargin: '0.9',
+  positionInitialMargin: '11.25',
+  openOrderInitialMargin: '0',
+  marginType: 'CROSSED',
+  leverage: 20,
+  marginRatio: '0.0002',
+  updateTime: '2026-11-21T04:57:00Z',
+};
+
+describe('closing a Futures position (TR-17)', () => {
+  it('shows the size without trailing zeros and a share of the position', async () => {
+    const closePosition = vi.fn(async () => [ORDER] as const);
+    show(
+      <ClosePositionDialog
+        position={POSITION}
+        type="MARKET"
+        tickSize="0.1"
+        onClose={() => {}}
+      />,
+      futures({ closePosition }),
+    );
+    expect(await screen.findByText('Position size: 0.004')).toBeTruthy();
+    expect(
+      screen.getByRole('slider', { name: 'Share of the position to close' }),
+    ).toBeTruthy();
+    await userEvent.click(
+      screen
+        .getByRole('group', { name: 'Quick shares of the position' })
+        .querySelector('button') as HTMLButtonElement,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    await waitFor(() =>
+      expect(closePosition).toHaveBeenCalledWith(
+        expect.objectContaining({
+          symbol: 'BTCUSDT',
+          type: 'MARKET',
+          percent: '25',
+        }),
+      ),
+    );
   });
 });

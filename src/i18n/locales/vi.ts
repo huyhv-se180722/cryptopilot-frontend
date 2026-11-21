@@ -686,6 +686,8 @@ export const vi: PartialCopy = {
     closeMarketTitle: 'Đóng {symbol} theo giá thị trường',
     closeLimitTitle: 'Đóng {symbol} bằng lệnh giới hạn',
     closeSize: 'Khối lượng vị thế: {size}',
+    closeShare: 'Phần vị thế muốn đóng',
+    closeSharePresets: 'Chọn nhanh phần vị thế',
     closeSent: '{symbol}: đã gửi lệnh đóng.',
     adjustMargin: 'Điều chỉnh ký quỹ',
     adjustMarginTitle: 'Ký quỹ isolated {symbol}',
