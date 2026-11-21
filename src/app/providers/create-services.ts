@@ -116,6 +116,10 @@ import {
   createHttpAdminUserService,
   createPendingAdminUserService,
 } from '../../services/api/admin-users';
+import {
+  createHttpAdminOrderService,
+  createPendingAdminOrderService,
+} from '../../services/api/admin-orders';
 
 import {
   createHttpMarketStatusService,
@@ -235,6 +239,9 @@ export async function createServices(env: Environment): Promise<Services> {
     adminAudit: connected
       ? createHttpAdminAuditService(http)
       : createPendingAdminAuditService(),
+    adminOrders: connected
+      ? createHttpAdminOrderService(http)
+      : createPendingAdminOrderService(),
   };
   // Compile-time DEV guard removes the import and all fixtures from production.
   if (import.meta.env.DEV && env.useDevFixtures) {
