@@ -68,8 +68,10 @@ function controllableFeed(initial: FeedStatus) {
   };
 }
 
-function setup(initial: FeedStatus) {
-  const control = controllableFeed(initial);
+function setup(
+  initial: FeedStatus,
+  control: ReturnType<typeof controllableFeed> = controllableFeed(initial),
+) {
   const getTicker = vi.fn<MarketService['getTicker']>(async (_m, symbol) =>
     ticker(symbol, '1.00', new Date().toISOString()),
   );
@@ -144,5 +146,20 @@ describe('useMarketTickers (CR-09)', () => {
     expect(hook.result.current.freshness).toBe('live');
     await act(() => vi.advanceTimersByTimeAsync(9_000));
     expect(getTicker).toHaveBeenCalledTimes(6);
+  });
+
+  it('starts a screen opened again from the last tickers of the same feed', () => {
+    const first = setup('open');
+    act(() => first.publish([ticker('AUSDT', '2.00')]));
+    first.hook.unmount();
+
+    const again = setup('open', first);
+    expect(again.hook.result.current.tickers.get('AUSDT')?.lastPrice).toBe(
+      '2.00',
+    );
+    expect(again.hook.result.current.freshness).toBe('connecting');
+
+    const other = setup('open');
+    expect(other.hook.result.current.tickers.size).toBe(0);
   });
 });
