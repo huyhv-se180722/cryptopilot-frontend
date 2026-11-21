@@ -110,6 +110,7 @@ export function EquityCurveCard({
           })}
           lines={lines}
           daily
+          note={p.curveDays}
         />
       ) : (
         <p className="py-8 text-center text-xs text-muted-dim">

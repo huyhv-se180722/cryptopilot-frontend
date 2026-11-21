@@ -31,11 +31,17 @@ export function MetricChart({
   label,
   lines,
   daily = false,
+  note,
 }: {
   label: string;
   lines: readonly MetricLine[];
   /** Points at the start of UTC days: drawn in UTC, as daily candles. */
   daily?: boolean;
+  /**
+   * The line under the chart in place of its time zone, for points that
+   * are days counted in another zone (the equity curve's UTC+7 days).
+   */
+  note?: string;
 }) {
   const copy = useCopy();
   const locale = useLocale();
@@ -91,7 +97,7 @@ export function MetricChart({
         className="h-[220px] w-full"
       />
       <p className="mt-1 text-right text-[11px] text-muted-dim">
-        {formatCopy(copy.chart.timeZone, { zone: zoneLabel(offset) })}
+        {note ?? formatCopy(copy.chart.timeZone, { zone: zoneLabel(offset) })}
       </p>
     </>
   );

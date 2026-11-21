@@ -161,6 +161,11 @@ describe('SCR-23 performance dashboard', () => {
       ),
     ).toEqual(new Set(['coin', 'strategy', 'market']));
     await waitFor(() => expect(line.setData).toHaveBeenCalled());
+    // The curve's days are the backend's UTC+7 business days (D-138).
+    expect(
+      screen.getByText('Each point is a day with an exit · days in UTC+7'),
+    ).toBeTruthy();
+    expect(screen.queryByText('Times in UTC')).toBeNull();
     expect(line.setData.mock.calls[0]?.[0]).toHaveLength(2);
     expect(line.setData.mock.calls[0]?.[0][0]).toMatchObject({ value: 0 });
   });
