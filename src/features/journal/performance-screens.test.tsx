@@ -147,6 +147,8 @@ describe('SCR-23 performance dashboard', () => {
       breakdown: vi.fn(async () => [{ ...ROW, key: 'SPOT', label: 'SPOT' }]),
     });
     await open(performance, PRO);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('radio', { name: 'By market' }));
     const markets = await screen.findByRole('region', { name: 'By market' });
     expect(await within(markets).findByText('Spot')).toBeTruthy();
     expect(within(markets).queryByText('SPOT')).toBeNull();
@@ -166,14 +168,22 @@ describe('SCR-23 performance dashboard', () => {
       .parentElement as HTMLElement;
     const factor = within(metrics).getByText('Profit factor');
     expect(factor.parentElement?.textContent).toBe('Profit factor—');
-    const coins = await screen.findByRole('region', { name: 'By strategy' });
+    const coins = await screen.findByRole('region', { name: 'By coin' });
     expect(await within(coins).findByText('Unassigned')).toBeTruthy();
     expect(screen.queryByRole('link', { name: 'View plans' })).toBeNull();
-    expect(
+    // Only the group shown is read (T-139); the strategies also fill the
+    // strategy filter.
+    const kinds = () =>
       new Set(
         vi.mocked(performance.breakdown).mock.calls.map(([kind]) => kind),
-      ),
-    ).toEqual(new Set(['coin', 'strategy', 'market']));
+      );
+    expect(kinds()).toEqual(new Set(['coin', 'strategy']));
+    await userEvent
+      .setup()
+      .click(screen.getByRole('radio', { name: 'By market' }));
+    await waitFor(() =>
+      expect(kinds()).toEqual(new Set(['coin', 'strategy', 'market'])),
+    );
     await waitFor(() => expect(line.setData).toHaveBeenCalled());
     // The curve's days are the backend's UTC+7 business days (D-138).
     expect(
