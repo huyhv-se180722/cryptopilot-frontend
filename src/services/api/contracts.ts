@@ -1,4 +1,7 @@
 import type {
+  AdminOrderDetail,
+  AdminOrderPage,
+  AdminOrderQuery,
   AcademyArticle,
   AcademyArticlePage,
   AcademyArticleQuery,
@@ -700,6 +703,15 @@ export interface AdminDashboardService {
 }
 
 /** SCR-44 (UC-46): the audit log, the system log and the health panel. */
+/** SCR-40 payments: subscription orders (`/admin/orders/**`, Admin only). */
+export interface AdminOrderService {
+  list(query: AdminOrderQuery, signal?: AbortSignal): Promise<AdminOrderPage>;
+  get(orderCode: string, signal?: AbortSignal): Promise<AdminOrderDetail>;
+  /** Asks the gateway now (NSF-13, audited); 503 MSG43 when it cannot. */
+  reconcile(orderCode: string): Promise<AdminOrderDetail>;
+  /** Records how a flagged order was handled (1–1,000 characters, audited). */
+  markHandled(orderCode: string, note: string): Promise<AdminOrderDetail>;
+}
 export interface AdminAuditService {
   auditLog(query: AuditLogQuery, signal?: AbortSignal): Promise<AuditLogPage>;
   /** The same search as CSV text, at most 10,000 entries. */

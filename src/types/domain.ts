@@ -1356,6 +1356,65 @@ export interface PaymentGateway {
 /** NEW from FREE, RENEW on the same tier, UPGRADE to a higher one. */
 export type OrderType = 'NEW' | 'RENEW' | 'UPGRADE';
 export type OrderStatus = 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED';
+/** SCR-40 (admin): one subscription order of any Trader. */
+export interface AdminOrder {
+  orderCode: string;
+  userId: string;
+  packageCode: string;
+  packageName: string;
+  tier: PlanTier;
+  orderType: OrderType;
+  /** A whole amount in `currency` (VND). */
+  amount: Decimal;
+  currency: string;
+  gateway: PaymentGatewayCode;
+  status: OrderStatus;
+  createdAt: ISODateTime;
+  expiresAt: ISODateTime | null;
+  paidAt: ISODateTime | null;
+  /** Paid but changed no subscription: waits for an administrator (BR-63). */
+  manualHandling: boolean;
+  handledAt: ISODateTime | null;
+}
+export type AdminSubscriptionStatus =
+  'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'REPLACED';
+/** SCR-40: an order with what its gateway answered and what it opened. */
+export interface AdminOrderDetail {
+  order: AdminOrder;
+  gatewayTransactionNo: string | null;
+  gatewayResponseCode: string | null;
+  /** The gateway's last message as JSON text, shown as is. */
+  gatewayPayload: string | null;
+  ipnReceivedAt: ISODateTime | null;
+  handledBy: string | null;
+  handlingNote: string | null;
+  subscription: {
+    status: AdminSubscriptionStatus;
+    startAt: ISODateTime;
+    endAt: ISODateTime | null;
+    carriedValueVnd: Decimal | null;
+    bonusDays: number;
+  } | null;
+}
+export interface AdminOrderQuery {
+  status?: OrderStatus;
+  orderType?: OrderType;
+  gateway?: PaymentGatewayCode;
+  /** Days of creation in Asia/Ho_Chi_Minh, `yyyy-MM-dd`, both included. */
+  from?: string;
+  to?: string;
+  /** Only the orders waiting for, or handled by, an administrator. */
+  manual?: boolean;
+  /** The order code or its beginning. */
+  orderCode?: string;
+  page: number;
+}
+export interface AdminOrderPage {
+  items: readonly AdminOrder[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
 /** What buying a package would cost and give, before any order exists. */
 export interface OrderQuote {
   packageCode: string;
