@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { CryptoPilotLogo } from '../../components/brand/CryptoPilotLogo';
 import { DisclaimerFooter } from '../../components/layout/DisclaimerFooter';
+import { LanguageToggle } from '../../components/layout/LanguageToggle';
 import { ThemeToggle } from '../../components/layout/ThemeToggle';
 import { Menu } from '../../components/ui/Menu';
 import { buttonClassName } from '../../components/ui/button-styles';
@@ -111,7 +112,8 @@ export function GuestShell() {
         </nav>
 
         <div className="ml-auto flex shrink-0 items-center gap-2 md:ml-0">
-          <div className="hidden sm:block">
+          <div className="hidden items-center gap-2 sm:flex">
+            <LanguageToggle />
             <ThemeToggle />
           </div>
           <div className="hidden sm:block">
@@ -162,7 +164,12 @@ export function GuestShell() {
                   onSelect: () => navigate('/login'),
                 },
               ]}
-              header={<ThemeToggle />}
+              header={
+                <div className="flex items-center gap-2">
+                  <LanguageToggle />
+                  <ThemeToggle />
+                </div>
+              }
             />
           </div>
         </div>

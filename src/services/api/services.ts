@@ -28,6 +28,7 @@ import type {
   TradingPlanService,
   WatchlistService,
 } from './contracts';
+import type { AdminOrderService } from './admin-orders';
 import type { FuturesTradingService } from './futures';
 import type { MarketStatusService } from './market-status';
 import type { HttpClient } from './http-client';
@@ -66,4 +67,6 @@ export interface Services {
   adminUsers: AdminUserService;
   adminDashboard: AdminDashboardService;
   adminAudit: AdminAuditService;
+  /** SCR-40 (UC-48): the subscription orders. */
+  adminOrders: AdminOrderService;
 }

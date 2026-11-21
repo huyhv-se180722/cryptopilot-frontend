@@ -18,6 +18,7 @@ import { CryptoPilotLogo } from '../../components/brand/CryptoPilotLogo';
 import { AiChatBubble } from '../../features/ai-assistant/components/AiChatBubble';
 import { NotificationBell } from '../../features/notifications/components/NotificationBell';
 import { DisclaimerFooter } from '../../components/layout/DisclaimerFooter';
+import { LanguageToggle } from '../../components/layout/LanguageToggle';
 import { ThemeToggle } from '../../components/layout/ThemeToggle';
 import { Menu } from '../../components/ui/Menu';
 import { useAuth } from '../../hooks/use-auth';
@@ -143,7 +144,8 @@ export function TraderShell() {
             aria-hidden="true"
             className="hidden h-5 w-px bg-line sm:block"
           />
-          <div className="hidden sm:block">
+          <div className="hidden items-center gap-2 sm:flex">
+            <LanguageToggle />
             <ThemeToggle />
           </div>
 
@@ -172,7 +174,8 @@ export function TraderShell() {
                   <div className="truncate text-[11px] text-muted-dim">
                     {user.email}
                   </div>
-                  <div className="mt-2 sm:hidden">
+                  <div className="mt-2 flex items-center gap-2 sm:hidden">
+                    <LanguageToggle />
                     <ThemeToggle />
                   </div>
                 </div>

@@ -219,7 +219,7 @@ describe('news screen (SCR-28, UC-34)', () => {
       }),
     );
 
-    const retry = await screen.findByRole('button', { name: 'Try again' });
+    const retry = await screen.findByRole('button', { name: 'Thử lại' });
     expect(screen.queryByRole('article')).toBeNull();
     down = false;
     await user.click(retry);

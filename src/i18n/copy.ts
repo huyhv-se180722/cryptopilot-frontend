@@ -13,6 +13,12 @@ function merge<T>(base: T, override: unknown): T {
     ) as T;
   }
   if (typeof override !== 'object' || override === null) return base;
+  // Lists (the community rules' sections) stay lists, item by item.
+  if (Array.isArray(base)) {
+    return base.map((item: unknown, index) =>
+      merge(item, (override as Record<number, unknown>)[index]),
+    ) as T;
+  }
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(base as Record<string, unknown>)) {
     result[key] = merge(value, (override as Record<string, unknown>)[key]);

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LogOut, Menu as MenuIcon, ShieldAlert, X } from 'lucide-react';
 import { CryptoPilotLogo } from '../../components/brand/CryptoPilotLogo';
+import { LanguageToggle } from '../../components/layout/LanguageToggle';
 import { ThemeToggle } from '../../components/layout/ThemeToggle';
 import { IconButton } from '../../components/ui/IconButton';
 import { useAuth } from '../../hooks/use-auth';
@@ -85,8 +86,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         ))}
       </nav>
 
-      <div className="flex items-center justify-between gap-2 border-t border-line px-3 py-3">
-        <ThemeToggle />
+      <div className="border-t border-line px-3 py-3">
         <button
           type="button"
           onClick={() => void signOut()}
@@ -100,7 +100,10 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-/** Figma admin console: grouped sidebar (drawer below lg) + content. */
+/**
+ * Figma admin console: grouped sidebar (drawer below lg) + content, with
+ * the language and theme switches at the top right.
+ */
 export function AdminShell() {
   const copy = useCopy();
   const location = useLocation();
@@ -142,15 +145,22 @@ export function AdminShell() {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-[52px] items-center gap-3 border-b border-line bg-page-alt px-3 lg:hidden">
-          <IconButton
-            label={copy.nav.openMenu}
-            icon={<MenuIcon size={16} aria-hidden="true" />}
-            outlined
-            aria-expanded={drawerOpen}
-            onClick={() => setDrawerOpen(true)}
-          />
-          <CryptoPilotLogo size="xs" />
+        <header className="sticky top-0 z-30 flex h-[52px] items-center gap-3 border-b border-line bg-page-alt px-3 sm:px-8">
+          <div className="flex items-center gap-3 lg:hidden">
+            <IconButton
+              label={copy.nav.openMenu}
+              icon={<MenuIcon size={16} aria-hidden="true" />}
+              outlined
+              aria-expanded={drawerOpen}
+              onClick={() => setDrawerOpen(true)}
+            />
+            <CryptoPilotLogo size="xs" />
+          </div>
+          {/* Language and theme at the top right, as on the trader screens. */}
+          <div className="ml-auto flex items-center gap-2">
+            <LanguageToggle />
+            <ThemeToggle />
+          </div>
         </header>
         <main
           id="main-content"
