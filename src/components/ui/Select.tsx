@@ -5,7 +5,7 @@ import {
   fieldControlClass,
   fieldErrorClass,
   fieldInlineBoxClass,
-  fieldInlineControlClass,
+  fieldInlineSelectClass,
   fieldInlineLabelClass,
   fieldLabelClass,
 } from './field-styles';
@@ -13,7 +13,7 @@ import {
 type Props = SelectHTMLAttributes<HTMLSelectElement> & {
   label: string;
   error?: string | undefined;
-  /** The label inside the box at the left, the choice at the right. */
+  /** The label inside the box at the left, the choice right after it. */
   inline?: boolean;
 };
 
@@ -42,10 +42,7 @@ export function Select({
           <select
             {...props}
             id={selectId}
-            className={classNames(
-              fieldInlineControlClass,
-              'cursor-pointer appearance-none pr-5',
-            )}
+            className={fieldInlineSelectClass}
             aria-invalid={error ? true : props['aria-invalid']}
             aria-describedby={description}
           >

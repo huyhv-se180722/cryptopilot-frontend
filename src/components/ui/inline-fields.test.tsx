@@ -29,3 +29,21 @@ describe('inline fields', () => {
     ).toBe('GTC');
   });
 });
+
+describe('inline field alignment', () => {
+  it('puts a typed number at the right and a chosen option after its label', () => {
+    render(
+      <>
+        <Input inline label="Amount" />
+        <Select inline label="Status" defaultValue="ALL">
+          <option value="ALL">All statuses</option>
+        </Select>
+      </>,
+    );
+    const amount = screen.getByRole('textbox', { name: 'Amount' });
+    const status = screen.getByRole('combobox', { name: 'Status' });
+    expect(amount.className.split(' ')).toContain('text-right');
+    expect(status.className.split(' ')).toContain('text-left');
+    expect(status.className.split(' ')).not.toContain('text-right');
+  });
+});
