@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Download } from 'lucide-react';
 import { ErrorState } from '../../components/feedback/States';
 import { PageHeader } from '../../components/layout/PageHeader';
-import { StatCard } from '../../components/layout/StatCard';
+import { KpiStrip } from '../../components/layout/KpiStrip';
 import { Button } from '../../components/ui/Button';
 import { NumericText } from '../../components/ui/NumericText';
 import { Pagination } from '../../components/ui/Pagination';
@@ -153,71 +153,98 @@ function Indicators({ data }: { data: AdminDashboard }) {
     );
   return (
     <>
-      <p className="mb-2 text-xs text-muted-dim">{t.nowCaption}</p>
-      <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label={t.totalUsers} value={count(data.totalUsers, none)} />
-        <StatCard
-          label={t.activeUsers}
-          value={count(data.activeUsers, none)}
-          status={t.activeUsersHint}
-          accent="positive"
-        />
-        <StatCard
-          label={t.activeSubscriptions}
-          value={count(data.activeSubscriptions, none)}
-          accent="accent"
-        />
-        <StatCard
-          label={t.openReports}
-          value={count(data.openReports, none)}
-          accent="warning"
-          status={
-            data.openReports ? (
-              <Link to="/admin/reports">{t.reviewReports}</Link>
-            ) : undefined
-          }
-        />
-      </div>
-      <p className="mb-2 text-xs text-muted-dim">{t.periodCaption}</p>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label={t.newUsers} value={count(data.newUsers, none)} />
-        <StatCard
-          label={t.paidOrders}
-          value={count(data.paidOrders, none)}
-          accent="accent"
-        />
-        <StatCard
-          label={t.revenue}
-          value={
-            data.revenue === null ? (
-              none
-            ) : (
-              <NumericText value={vnd(data.revenue)} />
-            )
-          }
-          status="VND"
-          accent="positive"
-        />
-        <StatCard
-          label={t.aiQuestions}
-          value={count(data.aiQuestions, none)}
-          accent="purple"
-        />
-        <StatCard label={t.newPosts} value={count(data.newPosts, none)} />
-        <StatCard label={t.newComments} value={count(data.newComments, none)} />
-        <StatCard
-          label={t.latestSpot}
-          value={
-            <span className="text-sm">{candle(data.latestCandle.spot)}</span>
-          }
-        />
-        <StatCard
-          label={t.latestFutures}
-          value={
-            <span className="text-sm">{candle(data.latestCandle.futures)}</span>
-          }
-        />
-      </div>
+      <KpiStrip
+        label={t.nowCaption}
+        header={t.nowCaption}
+        className="mb-4"
+        items={[
+          {
+            id: 'total-users',
+            label: t.totalUsers,
+            value: count(data.totalUsers, none),
+          },
+          {
+            id: 'active-users',
+            label: t.activeUsers,
+            value: count(data.activeUsers, none),
+            note: t.activeUsersHint,
+          },
+          {
+            id: 'subscriptions',
+            label: t.activeSubscriptions,
+            value: count(data.activeSubscriptions, none),
+          },
+          {
+            id: 'reports',
+            label: t.openReports,
+            value: count(data.openReports, none),
+            ...(data.openReports
+              ? {
+                  tone: 'negative' as const,
+                  note: <Link to="/admin/reports">{t.reviewReports}</Link>,
+                }
+              : {}),
+          },
+        ]}
+      />
+      <KpiStrip
+        label={t.periodCaption}
+        header={t.periodCaption}
+        items={[
+          {
+            id: 'new-users',
+            label: t.newUsers,
+            value: count(data.newUsers, none),
+          },
+          {
+            id: 'paid-orders',
+            label: t.paidOrders,
+            value: count(data.paidOrders, none),
+          },
+          {
+            id: 'revenue',
+            label: t.revenue,
+            value:
+              data.revenue === null ? (
+                none
+              ) : (
+                <NumericText value={vnd(data.revenue)} />
+              ),
+            note: 'VND',
+          },
+          {
+            id: 'ai-questions',
+            label: t.aiQuestions,
+            value: count(data.aiQuestions, none),
+          },
+          {
+            id: 'new-posts',
+            label: t.newPosts,
+            value: count(data.newPosts, none),
+          },
+          {
+            id: 'new-comments',
+            label: t.newComments,
+            value: count(data.newComments, none),
+          },
+          {
+            id: 'latest-spot',
+            label: t.latestSpot,
+            value: (
+              <span className="text-sm">{candle(data.latestCandle.spot)}</span>
+            ),
+          },
+          {
+            id: 'latest-futures',
+            label: t.latestFutures,
+            value: (
+              <span className="text-sm">
+                {candle(data.latestCandle.futures)}
+              </span>
+            ),
+          },
+        ]}
+      />
       {data.revenueByPackage.length > 0 && (
         <div className="mt-4 rounded-xl border border-line bg-surface p-4">
           <SectionTitle>{t.byPackage}</SectionTitle>

@@ -21,6 +21,7 @@ import {
   checkDraft,
   groupSettings,
   isRate,
+  settingName,
   shownValue,
   type SettingError,
 } from './settings-form';
@@ -191,12 +192,23 @@ export function SettingsForm({
                   className="grid gap-3 px-4 py-4 sm:px-5 md:grid-cols-[minmax(0,1fr)_minmax(0,18rem)] md:gap-6"
                 >
                   <div className="min-w-0">
-                    <p className="font-mono text-xs font-semibold break-all text-fg">
+                    <p className="text-sm font-semibold text-fg">
+                      {settingName(t.names, setting.key)}
+                    </p>
+                    <p className="mt-0.5 font-mono text-xs break-all text-muted-dim">
                       {setting.key}
                     </p>
                     <p className="mt-1 text-xs text-fg-2">
                       {setting.description}
                     </p>
+                    {hint && (
+                      <p className="mt-1.5">
+                        <span className="inline-flex items-center gap-1 rounded-md border border-line bg-raised px-1.5 py-0.5 text-xs text-muted">
+                          {t.allowed}:
+                          <span className="font-mono text-fg-2">{hint}</span>
+                        </span>
+                      </p>
+                    )}
                     <p
                       className="mt-1 text-xs text-muted-x"
                       title={setting.updatedBy ?? undefined}
@@ -308,9 +320,12 @@ export function SettingsForm({
                 >
                   <th
                     scope="row"
-                    className="px-3 py-2 text-left font-mono font-semibold break-all text-fg"
+                    className="px-3 py-2 text-left font-semibold text-fg"
                   >
-                    {change.setting.key}
+                    {settingName(t.names, change.setting.key)}
+                    <span className="block font-mono text-xs font-normal break-all text-muted-dim">
+                      {change.setting.key}
+                    </span>
                   </th>
                   <td className="px-3 py-2 text-right font-mono text-fg-2 tabular-nums">
                     {shownValue(change.setting)}

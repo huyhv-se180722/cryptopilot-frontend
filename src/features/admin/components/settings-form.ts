@@ -73,6 +73,20 @@ export const shownValue = (setting: SystemSetting) =>
     ? trimDecimal(setting.value, 0)
     : setting.value;
 
+/**
+ * The readable name of a setting (T-144); a key the copy does not name is
+ * spelled out from its words, e.g. NEW_LIMIT_MB → "New limit mb".
+ */
+export function settingName(
+  names: Readonly<Record<string, string>>,
+  key: string,
+): string {
+  const named = names[key];
+  if (named) return named;
+  const words = key.toLowerCase().split('_').filter(Boolean).join(' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 /** A fee is a rate: its percent is shown beside it. */
 export const isRate = (key: string) => key.endsWith('_FEE');
 
