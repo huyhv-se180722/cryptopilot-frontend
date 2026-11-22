@@ -35,6 +35,7 @@ const PRICES: Record<string, string> = {
 async function setup(overrides: Partial<PaperTradingService> = {}) {
   const market: MarketService = {
     listPairs: vi.fn(async () => []),
+    getChartCandles: vi.fn(async () => ({ candles: [], forming: null })),
     getCandles: vi.fn(async () => []),
     getCoinMarket: vi.fn(),
     getFuturesMetrics: vi.fn(),

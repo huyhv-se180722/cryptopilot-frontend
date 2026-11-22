@@ -17,6 +17,10 @@ import type {
   OrderBook,
   OrderBookLevel,
 } from '../types/domain';
+import {
+  TIMEFRAME_MS as CHART_TIMEFRAME_MS,
+  isStoredTimeframe,
+} from '../utils/chart-timeframe';
 import { devPairs, devStartPrice, devTickSize } from './fixtures/market';
 
 /**
@@ -47,6 +51,7 @@ const TIMEFRAME_MS: Record<CandleTimeframe, number> = {
   '1d': DAY_MS,
 };
 const FUNDING_MS = 8 * 3_600_000;
+const TIMEFRAME_SPAN = CHART_TIMEFRAME_MS;
 const METRIC_MS = 300_000;
 /** Pairs whose metrics start two days ago, to show the available period. */
 const RECENT_METRICS = new Set(['SOLUSDT', 'XRPUSDT']);
@@ -253,6 +258,61 @@ export function createDevelopmentMarket(now: () => number = Date.now): {
         });
       }
       return candles;
+    },
+    /**
+     * Every chart timeframe from the same scripted walk: a stored one as
+     * `getCandles`, any other at its own length (a month as 30 days), the
+     * forming candle on the latest page.
+     */
+    async getChartCandles({
+      market: marketType,
+      symbol,
+      timeframe,
+      limit,
+      before,
+      signal,
+    }) {
+      signal?.throwIfAborted();
+      if (!enabled(marketType, symbol)) notEnabled();
+      if (isStoredTimeframe(timeframe)) {
+        const candles = await market.getCandles({
+          market: marketType,
+          symbol,
+          timeframe,
+          limit,
+          ...(before ? { before } : {}),
+        });
+        return { candles, forming: null };
+      }
+      const step = timeframe === '1M' ? 30 * DAY_MS : TIMEFRAME_SPAN[timeframe];
+      const places = decimalsOf(devTickSize(symbol.toUpperCase()));
+      const seed = symbol.length * 7919 + step;
+      const level = (k: number) =>
+        Math.exp(
+          0.1 * Math.sin(k / 31 + seed) + 0.01 * (generator(seed + k)() - 0.5),
+        );
+      const current = Math.floor(now() / step);
+      const scale = priceOf(symbol.toUpperCase()) / level(current);
+      const last = before ? Math.ceil(Date.parse(before) / step) - 1 : current;
+      const bar = (k: number): Candle => {
+        const open = level(k - 1) * scale;
+        const close = level(k) * scale;
+        const wick = generator(seed * 31 + k);
+        return {
+          openTime: new Date(k * step).toISOString(),
+          open: open.toFixed(places),
+          high: (Math.max(open, close) * (1 + wick() * 0.004)).toFixed(places),
+          low: (Math.min(open, close) * (1 - wick() * 0.004)).toFixed(places),
+          close: close.toFixed(places),
+          baseVolume: (500 * (0.6 + wick() * 0.8)).toFixed(4),
+          quoteVolume: (close * 500).toFixed(2),
+        };
+      };
+      const candles: Candle[] = [];
+      const closedLast = before ? last : current - 1;
+      for (let k = closedLast - limit + 1; k <= closedLast; k += 1)
+        candles.push(bar(k));
+      return { candles, forming: before ? null : bar(current) };
     },
     async getTicker(marketType, symbol, signal) {
       signal?.throwIfAborted();

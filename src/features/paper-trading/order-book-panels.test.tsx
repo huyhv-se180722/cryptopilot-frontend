@@ -105,6 +105,14 @@ describe('order book panel (TR-F2)', () => {
     expect(labels().every((label) => label?.startsWith('Bid'))).toBe(true);
     await user.click(within(panel).getByRole('radio', { name: 'Asks only' }));
     expect(labels().every((label) => label?.startsWith('Ask'))).toBe(true);
+    await user.click(within(panel).getByRole('radio', { name: 'Depth chart' }));
+    expect(
+      within(panel)
+        .getByRole('img', { name: /^Depth chart: / })
+        .getAttribute('aria-label'),
+    ).toBe(
+      'Depth chart: 2.00000 BTC bid and 0.50000 BTC asked over the levels shown',
+    );
   });
 
   it('hands a selected price to the order form when there is one', async () => {

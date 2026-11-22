@@ -104,6 +104,25 @@ export interface MarketOverview {
 
 export type CandleTimeframe = '15m' | '1h' | '4h' | '1d';
 
+/**
+ * The trading chart's sixteen intervals (TR-35): the four stored ones
+ * (BR-08) and twelve the backend reads from the exchange; 1s on Spot only.
+ */
+export type ChartTimeframe =
+  | '1s'
+  | '1m'
+  | '3m'
+  | '5m'
+  | CandleTimeframe
+  | '30m'
+  | '2h'
+  | '6h'
+  | '8h'
+  | '12h'
+  | '3d'
+  | '1w'
+  | '1M';
+
 /** A candle; prices stay decimal strings. */
 export interface Candle {
   openTime: ISODateTime;

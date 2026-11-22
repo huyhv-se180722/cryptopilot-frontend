@@ -131,6 +131,7 @@ async function open(
   let overview: ((value: MarketOverview) => void) | null = null;
   const market: MarketService = {
     listPairs: vi.fn(async () => PAIRS),
+    getChartCandles: vi.fn(async () => ({ candles: [], forming: null })),
     getCandles: vi.fn(async () => []),
     getCoinMarket: vi.fn(),
     getFuturesMetrics: vi.fn(),

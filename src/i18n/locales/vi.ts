@@ -1206,6 +1206,9 @@ export const vi: PartialCopy = {
     viewBoth: 'Mua và bán',
     viewBids: 'Chỉ lệnh mua',
     viewAsks: 'Chỉ lệnh bán',
+    viewDepth: 'Biểu đồ độ sâu',
+    depthLabel:
+      'Biểu đồ độ sâu: {bids} {asset} đặt mua và {asks} {asset} đặt bán trên các mức đang hiện',
     groupLabel: 'Nhóm giá',
     colPrice: 'Giá ({asset})',
     colAmount: 'Số lượng ({asset})',
@@ -1716,6 +1719,7 @@ export const vi: PartialCopy = {
   },
   chart: {
     timeframeLabel: 'Khung thời gian',
+    moreTimeframes: 'Khung khác',
     itemsLabel: 'Chỉ báo và bảng phụ',
     sma20: 'SMA 20',
     ema20: 'EMA 20',

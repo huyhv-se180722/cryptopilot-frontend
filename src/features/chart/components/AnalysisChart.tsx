@@ -16,7 +16,6 @@ import {
   type UTCTimestamp,
 } from 'lightweight-charts';
 import { ErrorState } from '../../../components/feedback/States';
-import { SegmentedControl } from '../../../components/ui/SegmentedControl';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { useCopy, useLocale } from '../../../hooks/use-copy';
 import { formatCopy } from '../../../i18n/copy';
@@ -24,6 +23,7 @@ import { errorText } from '../../../i18n/messages';
 import type {
   Candle,
   CandleTimeframe,
+  ChartTimeframe,
   Decimal,
   MarketType,
 } from '../../../types/domain';
@@ -49,6 +49,7 @@ import {
   type ChartTone,
 } from './chart-markers';
 import { labelsShown } from './chart-labels';
+import { TimeframePicker } from './TimeframePicker';
 
 export type { ChartMarker } from './chart-markers';
 
@@ -375,12 +376,13 @@ function build(
  * (a height class) fixes the drawing's height, the panels sharing it with
  * the price pane, where a screen lays the chart out beside other regions.
  */
-export function AnalysisChart({
+export function AnalysisChart<T extends ChartTimeframe = CandleTimeframe>({
   market,
   symbol,
   tickSize,
   timeframe,
   onTimeframeChange,
+  timeframes,
   levels,
   priceLines,
   markers,
@@ -393,8 +395,14 @@ export function AnalysisChart({
   market: MarketType;
   symbol: string;
   tickSize: string | null;
-  timeframe: CandleTimeframe;
-  onTimeframeChange: (timeframe: CandleTimeframe) => void;
+  timeframe: T;
+  onTimeframeChange: (timeframe: T) => void;
+  /**
+   * The timeframes offered; the four stored ones (BR-08) by default. A
+   * longer list (the trading chart's sixteen, TR-35) shows the common ones
+   * as buttons and the rest in a list beside them, as an exchange does.
+   */
+  timeframes?: readonly T[];
   levels?: PriceLevels;
   priceLines?: readonly ChartPriceLine[];
   markers?: readonly ChartMarker[];
@@ -745,11 +753,15 @@ export function AnalysisChart({
       className="rounded-xl border border-line bg-surface p-3 sm:p-4"
     >
       <div className="mb-3 flex flex-wrap items-center gap-3">
-        <SegmentedControl
+        <TimeframePicker
           label={c.timeframeLabel}
+          moreLabel={c.moreTimeframes}
           value={timeframe}
           onChange={onTimeframeChange}
-          options={TIMEFRAMES.map((value) => ({ value, label: value }))}
+          options={
+            timeframes ??
+            (TIMEFRAMES as readonly ChartTimeframe[] as readonly T[])
+          }
         />
         <div
           role="group"

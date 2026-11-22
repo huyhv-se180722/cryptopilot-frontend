@@ -1217,6 +1217,9 @@ export const en = {
     viewBoth: 'Bids and asks',
     viewBids: 'Bids only',
     viewAsks: 'Asks only',
+    viewDepth: 'Depth chart',
+    depthLabel:
+      'Depth chart: {bids} {asset} bid and {asks} {asset} asked over the levels shown',
     groupLabel: 'Price group',
     colPrice: 'Price ({asset})',
     colAmount: 'Amount ({asset})',
@@ -1726,6 +1729,7 @@ export const en = {
   },
   chart: {
     timeframeLabel: 'Timeframe',
+    moreTimeframes: 'More timeframes',
     itemsLabel: 'Overlays and panels',
     sma20: 'SMA 20',
     ema20: 'EMA 20',

@@ -189,6 +189,7 @@ function fakeMarket(): MarketService {
             listed(9, 'SOL', 'futures', 'Solana'),
           ],
     ),
+    getChartCandles: vi.fn(async () => ({ candles: [], forming: null })),
     getCandles: vi.fn(async () => []),
     getCoinMarket: vi.fn(),
     getFuturesMetrics: vi.fn(),
