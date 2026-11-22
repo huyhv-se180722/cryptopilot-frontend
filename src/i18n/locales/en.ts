@@ -1267,6 +1267,7 @@ export const en = {
     fieldTakeProfit: 'Take profit ({asset})',
     fieldStopLoss: 'Stop loss ({asset})',
     postOnly: 'Post only',
+    advanced: 'Advanced',
     tpsl: 'TP/SL',
     tpslNote:
       'Placed once the limit order fills: a take profit and a stop loss on what it brought in.',

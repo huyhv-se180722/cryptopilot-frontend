@@ -313,19 +313,44 @@ describe('Spot demo orders (TR-F3)', () => {
     );
   });
 
-  it('has no time in force or post only on the form, as on the exchange Spot panel', async () => {
-    const { form, user } = await open();
-    expect(within(form).getByRole('checkbox', { name: 'TP/SL' })).toBeTruthy();
+  it('keeps time in force and post only under Advanced, for a Limit only (TR-F3 F1)', async () => {
+    const { form, user, paperTrading } = await open();
+    const place = vi.spyOn(paperTrading, 'placeOrder');
+    const tif = within(form).getByRole('combobox', { name: 'Time in force' });
+    expect(tif.closest('details')?.open).toBe(false);
+    await user.click(within(form).getByText('Advanced'));
+    await user.selectOptions(tif, 'IOC');
+    // A LIMIT_MAKER has no time in force: Post only waits for GTC.
     expect(
-      within(form).queryByRole('combobox', { name: 'Time in force' }),
-    ).toBeNull();
-    expect(
-      within(form).queryByRole('checkbox', { name: 'Post only' }),
-    ).toBeNull();
+      (
+        within(form).getByRole('checkbox', {
+          name: 'Post only',
+        }) as HTMLInputElement
+      ).disabled,
+    ).toBe(true);
+    await user.type(field(form, /^Price/), '59000');
+    await user.type(field(form, /Amount/), '0.01');
+    await user.click(within(form).getByRole('button', { name: 'Buy BTC' }));
+    await waitFor(() =>
+      expect(place.mock.calls.at(-1)?.[0]).toMatchObject({
+        type: 'LIMIT',
+        timeInForce: 'IOC',
+      }),
+    );
+    await user.selectOptions(tif, 'GTC');
+    await user.click(within(form).getByRole('checkbox', { name: 'Post only' }));
+    expect((tif as HTMLSelectElement).disabled).toBe(true);
+    await user.clear(field(form, /^Price/));
+    await user.type(field(form, /^Price/), '59000');
+    await user.type(field(form, /Amount/), '0.01');
+    await user.click(within(form).getByRole('button', { name: 'Buy BTC' }));
+    await waitFor(() =>
+      expect(place.mock.calls.at(-1)?.[0]).toMatchObject({
+        type: 'LIMIT_MAKER',
+      }),
+    );
     await user.click(within(form).getByRole('radio', { name: 'Stop' }));
-    expect(
-      within(form).queryByRole('combobox', { name: 'Time in force' }),
-    ).toBeNull();
+    expect(within(form).queryByText('Advanced')).toBeNull();
   });
 
   it('shows a symbol filter refusal under its field and an open-order limit as a notice', async () => {
