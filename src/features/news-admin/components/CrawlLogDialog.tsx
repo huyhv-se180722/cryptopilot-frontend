@@ -78,7 +78,7 @@ export function CrawlLogDialog({
       id: 'error',
       header: n.colError,
       render: (log) => (
-        <span className="block max-w-[280px] text-[11px] whitespace-normal text-muted-dim">
+        <span className="block max-w-[280px] text-xs whitespace-normal text-muted-dim">
           {log.errorMessage ?? '--'}
         </span>
       ),

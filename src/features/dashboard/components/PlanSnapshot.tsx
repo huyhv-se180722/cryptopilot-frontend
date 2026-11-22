@@ -121,7 +121,7 @@ export function PlanSnapshot({
               { value: 'EXECUTED', label: p.tabEXECUTED },
             ]}
           />
-          <span className="hidden items-center gap-3 text-[11px] text-muted-dim md:inline-flex">
+          <span className="hidden items-center gap-3 text-xs text-muted-dim md:inline-flex">
             <Legend
               className="h-1 w-2.5 rounded-sm bg-negative"
               label={d.planLegendRisk}
@@ -157,7 +157,7 @@ export function PlanSnapshot({
             cards
           />
           {total > ROWS && (
-            <p className="border-t border-line px-4 py-2 text-[11px] text-muted-dim">
+            <p className="border-t border-line px-4 py-2 text-xs text-muted-dim">
               {formatCopy(d.plansMore, { shown: ROWS, total })}
             </p>
           )}

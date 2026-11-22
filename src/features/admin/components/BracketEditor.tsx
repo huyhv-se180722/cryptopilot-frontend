@@ -146,7 +146,7 @@ export function BracketEditor({
         {error && (
           <span
             id={id + '-error'}
-            className="mt-1 block text-right text-[10px] text-negative"
+            className="mt-1 block text-right text-xs text-negative"
           >
             {errorWords(copy, field, error, index)}
           </span>
@@ -155,8 +155,7 @@ export function BracketEditor({
     );
   };
 
-  const head =
-    'px-3 py-2 text-[10px] font-medium tracking-[0.07em] whitespace-nowrap text-muted-x uppercase';
+  const head = 'px-3 py-2 text-xs font-medium whitespace-nowrap text-muted-x';
   return (
     <form
       onSubmit={(event) => void submit(event)}
@@ -229,7 +228,7 @@ export function BracketEditor({
                         <NumericText value={groupThousands(floor)} />
                       )}
                       {floorError && (
-                        <span className="mt-1 block text-[10px] text-negative">
+                        <span className="mt-1 block text-xs text-negative">
                           {errorWords(copy, 'notionalFloor', floorError, index)}
                         </span>
                       )}
@@ -270,7 +269,7 @@ export function BracketEditor({
                           value={groupThousands(toFixedDecimal(amount, 2))}
                         />
                       ) : (
-                        <span className="text-[11px] text-muted-x">
+                        <span className="text-xs text-muted-x">
                           {b.amountPending}
                         </span>
                       )}
@@ -293,7 +292,7 @@ export function BracketEditor({
           </table>
         </div>
       )}
-      <p className="text-[11px] text-muted-dim">{b.rules}</p>
+      <p className="text-xs text-muted-dim">{b.rules}</p>
       <div className="flex flex-wrap items-center gap-2">
         <Button
           variant="secondary"
@@ -374,7 +373,7 @@ function TemplatePicker({
         id="bracket-template"
         value={chosen}
         onChange={(event) => setChosen(event.target.value)}
-        className="h-8 min-w-0 flex-1 rounded-lg border border-line-strong bg-raised px-2 text-[11px] text-fg-2 sm:flex-none"
+        className="h-8 min-w-0 flex-1 rounded-lg border border-line-strong bg-raised px-2 text-xs text-fg-2 sm:flex-none"
       >
         <option value="">{b.templateLabel}</option>
         {templates.data.map((template) => (

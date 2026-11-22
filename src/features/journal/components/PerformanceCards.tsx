@@ -153,11 +153,11 @@ function Metric({
 }) {
   return (
     <div className="min-w-0 border-b border-line px-4 py-2.5">
-      <dt className="text-[11.5px] text-muted-dim">{label}</dt>
-      <dd className="m-0 mt-0.5 font-mono text-[13.5px] font-semibold text-fg-2">
+      <dt className="text-xs text-muted-dim">{label}</dt>
+      <dd className="m-0 mt-0.5 font-mono text-sm font-semibold text-fg-2">
         {children}
       </dd>
-      {hint && <p className="mt-0.5 text-[10.5px] text-muted-x">{hint}</p>}
+      {hint && <p className="mt-0.5 text-xs text-muted-x">{hint}</p>}
     </div>
   );
 }

@@ -45,9 +45,7 @@ export function CommunityArticlesPage() {
       {() => (
         <>
           <div className="mb-4">
-            <h1 className="text-2xl font-bold tracking-tight text-fg">
-              {c.articlesTitle}
-            </h1>
+            <h1 className="text-xl font-bold text-fg">{c.articlesTitle}</h1>
             <p className="mt-1 text-xs text-muted-dim">{c.articlesSubtitle}</p>
           </div>
           <div role="tablist" className="mb-4 flex flex-wrap gap-2">

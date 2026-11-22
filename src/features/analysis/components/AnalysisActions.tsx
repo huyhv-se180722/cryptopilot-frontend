@@ -50,7 +50,7 @@ export function AnalysisActions({
     >
       <h2
         id="analysis-actions-title"
-        className="mb-2 text-[10px] font-semibold tracking-widest text-muted-x uppercase"
+        className="mb-2 text-xs font-semibold text-muted-x"
       >
         {a.actionsTitle}
       </h2>

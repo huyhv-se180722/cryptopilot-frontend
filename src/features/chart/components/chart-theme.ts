@@ -23,7 +23,7 @@ export function chartOptions(locale: Locale) {
       background: { type: ColorType.Solid, color: 'transparent' },
       textColor: token('--cp-muted'),
       fontFamily: 'JetBrains Mono, ui-monospace, monospace',
-      fontSize: 11,
+      fontSize: 12,
       // The licence's attribution and link are in the shell footer.
       attributionLogo: false,
       panes: { separatorColor: token('--cp-border') },

@@ -198,7 +198,7 @@ export function SettingsForm({
                       {setting.description}
                     </p>
                     <p
-                      className="mt-1 text-[11px] text-muted-x"
+                      className="mt-1 text-xs text-muted-x"
                       title={setting.updatedBy ?? undefined}
                     >
                       {setting.updatedBy === null
@@ -237,7 +237,7 @@ export function SettingsForm({
                         {...(hint ? { hint } : {})}
                       />
                       {isRate(setting.key) && !error && (
-                        <p className="mt-1 text-right font-mono text-[11px] text-muted-dim tabular-nums">
+                        <p className="mt-1 text-right font-mono text-xs text-muted-dim tabular-nums">
                           {formatCopy(t.ratePercent, {
                             value: trimDecimal(
                               fractionToPercent(value.trim() || '0', 6),
@@ -288,7 +288,7 @@ export function SettingsForm({
           <table className="w-full border-collapse text-xs">
             <caption className="sr-only">{t.confirmCaption}</caption>
             <thead>
-              <tr className="border-b border-line bg-page-alt text-[10px] tracking-[0.07em] text-muted-x uppercase">
+              <tr className="border-b border-line bg-page-alt text-xs text-muted-x">
                 <th scope="col" className="px-3 py-2 text-left font-medium">
                   {t.colKey}
                 </th>

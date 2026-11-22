@@ -156,7 +156,7 @@ export function FuturesBottomPanel({
       render: (p) => (
         <span className="flex flex-col">
           <span className="font-medium text-fg">{p.symbol}</span>
-          <span className="text-[10px] text-muted">
+          <span className="text-xs text-muted">
             {p.marginType === 'CROSSED' ? f.cross : f.isolated}{' '}
             {formatCopy(f.leverageShort, { n: p.leverage })}
             {p.positionSide !== 'BOTH' ? ' · ' + p.positionSide : ''}
@@ -176,7 +176,7 @@ export function FuturesBottomPanel({
           )}
         >
           <NumericText value={groupThousands(trimDecimal(p.positionAmt, 0))} />
-          <span className="text-[10px] text-muted">
+          <span className="text-xs text-muted">
             <NumericText
               value={groupThousands(
                 toFixedDecimal(p.notional.replace('-', ''), 2),
@@ -247,7 +247,7 @@ export function FuturesBottomPanel({
               )}
               suffix=" USDT"
             />
-            <span className="text-[10px] text-muted">
+            <span className="font-sans text-xs text-muted">
               {p.marginType === 'ISOLATED' ? f.isolatedMargin : f.crossMargin}
             </span>
           </span>
@@ -271,7 +271,7 @@ export function FuturesBottomPanel({
       render: (p) => (
         <span className="flex flex-col items-end">
           {usdt(p.unRealizedProfit)}
-          <span className="text-[10px]">
+          <span className="text-xs">
             <NumericText
               signed
               value={roePercent(p.unRealizedProfit, p.positionInitialMargin)}
@@ -407,7 +407,7 @@ export function FuturesBottomPanel({
             : o.priceRate
               ? o.priceRate + '%'
               : none}{' '}
-          <span className="text-[10px] text-muted">
+          <span className="text-xs text-muted">
             {o.workingType === 'MARK_PRICE' ? f.markShort : f.lastShort}
           </span>
         </span>
@@ -505,7 +505,7 @@ export function FuturesBottomPanel({
           <span className="font-medium text-fg">{c.symbol}</span>
           <span
             className={classNames(
-              'text-[10px]',
+              'text-xs',
               c.direction === 'LONG' ? 'text-positive' : 'text-negative',
             )}
           >
@@ -816,12 +816,10 @@ export function FuturesAssets({
   ];
   return (
     <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs sm:grid-cols-4">
-      <div className="col-span-full text-[11px] font-semibold text-fg">
-        USDT
-      </div>
+      <div className="col-span-full text-xs font-semibold text-fg">USDT</div>
       {rows.map(([label, value, signed]) => (
         <div key={label} className="flex flex-col gap-0.5">
-          <dt className="text-[10px] text-muted-dim">{label}</dt>
+          <dt className="text-xs text-muted-dim">{label}</dt>
           <dd className="text-fg-2">
             <NumericText
               signed={signed}

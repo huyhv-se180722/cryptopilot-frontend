@@ -29,7 +29,7 @@ export function LatestNews({ currentId }: { currentId: string }) {
     >
       <h2
         id="latest-news-title"
-        className="mb-3 text-[10px] font-semibold tracking-widest text-muted-x uppercase"
+        className="mb-3 text-xs font-semibold text-muted-x"
       >
         {n.latestTitle}
       </h2>
@@ -57,7 +57,7 @@ export function LatestNews({ currentId }: { currentId: string }) {
                   <span className="line-clamp-2 text-xs leading-snug font-semibold text-fg group-hover:text-primary">
                     {article.title}
                   </span>
-                  <span className="mt-1 block text-[11px] text-muted-dim">
+                  <span className="mt-1 block text-xs text-muted-dim">
                     {article.source} · {newsAge(copy, article.publishedAt)}
                   </span>
                 </span>

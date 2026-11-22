@@ -80,14 +80,14 @@ export function SystemHealthPanel({ health }: { health: SystemHealth }) {
         <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-2">
           <h2
             id="health-services"
-            className="text-[10px] font-semibold tracking-widest text-muted-x uppercase"
+            className="text-xs font-semibold text-muted-x"
           >
             {t.healthTitle}
             <span className="ml-2 font-mono tracking-normal text-muted-dim normal-case">
               {up}/{services.length}
             </span>
           </h2>
-          <p className="text-[11px] text-muted-dim">
+          <p className="text-xs text-muted-dim">
             {formatCopy(t.healthHint, { minutes: health.recentWindowMinutes })}
           </p>
         </div>
@@ -103,13 +103,10 @@ export function SystemHealthPanel({ health }: { health: SystemHealth }) {
       </section>
       <section aria-labelledby="health-feeds">
         <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-2">
-          <h2
-            id="health-feeds"
-            className="text-[10px] font-semibold tracking-widest text-muted-x uppercase"
-          >
+          <h2 id="health-feeds" className="text-xs font-semibold text-muted-x">
             {t.feedsTitle}
           </h2>
-          <p className="text-[11px] text-muted-dim">
+          <p className="text-xs text-muted-dim">
             {formatCopy(t.feedsHint, { minutes: health.staleAfterMinutes })}
           </p>
         </div>
@@ -206,7 +203,7 @@ function ServiceCard({
           {label}
         </Badge>
       </div>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
         <dt className="text-muted-dim">{t.lastAnswer}</dt>
         <dd className="m-0 text-right text-fg-2">
           {ago(service.lastSuccessAt, t.notSinceStart)}
@@ -226,7 +223,7 @@ function ServiceCard({
         </dd>
       </dl>
       {service.bannedUntil && (
-        <p className="mt-3 flex items-start gap-1.5 rounded-lg border border-negative-line bg-negative-soft px-2.5 py-2 text-[11px] text-negative">
+        <p className="mt-3 flex items-start gap-1.5 rounded-lg border border-negative-line bg-negative-soft px-2.5 py-2 text-xs text-negative">
           <ShieldAlert
             size={13}
             aria-hidden="true"
@@ -239,7 +236,7 @@ function ServiceCard({
       )}
       {service.lastError && service.status !== 'UP' && (
         <p
-          className="mt-3 line-clamp-2 rounded-lg bg-page-alt px-2.5 py-2 font-mono text-[10.5px] leading-snug break-words text-muted"
+          className="mt-3 line-clamp-2 rounded-lg bg-page-alt px-2.5 py-2 font-mono text-xs leading-snug break-words text-muted"
           title={service.lastError}
         >
           {service.lastError}
@@ -274,7 +271,7 @@ function FeedCard({ feed }: { feed: FeedHealth }) {
           </span>
           <span className="flex min-w-0 flex-col">
             <span className="text-xs font-semibold text-fg">{name}</span>
-            <span className="text-[11px] text-muted-dim">
+            <span className="text-xs text-muted-dim">
               {feed.latestCandleAt ? (
                 <>
                   {t.latestCandle}{' '}

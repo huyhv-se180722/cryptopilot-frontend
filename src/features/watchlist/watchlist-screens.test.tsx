@@ -19,7 +19,13 @@ import type {
   Session,
   WatchlistItem,
 } from '../../types/domain';
-import { fakeAuth, page, renderRoutes, testTrader } from '../../test/render';
+import {
+  fakeAuth,
+  mixedText,
+  page,
+  renderRoutes,
+  testTrader,
+} from '../../test/render';
 
 // jsdom has no modal dialog; the component only needs open/close.
 beforeAll(() => {
@@ -252,6 +258,41 @@ describe('SCR-12 watchlist (T-059)', () => {
     expect(bar?.className).toContain('bg-positive');
   });
 
+  it('T-142: shows the coin logo of the pair list, as the market list does', async () => {
+    const market = fakeMarket();
+    vi.mocked(market.listPairs).mockImplementation(async (kind) =>
+      kind === 'spot'
+        ? [
+            {
+              ...listed(2, 'BTC', 'spot', 'Bitcoin'),
+              logoUrl: 'https://static.example/btc.png',
+            },
+            listed(8, 'LINK', 'spot', 'Chainlink'),
+          ]
+        : [listed(2, 'BTC', 'futures', 'Bitcoin')],
+    );
+    await open('/watchlist', { market });
+    const btc = (await screen.findByRole('link', { name: 'BTC/USDT' })).closest(
+      'li',
+    ) as HTMLElement;
+    await waitFor(() =>
+      expect(
+        btc.querySelector('[data-testid="coin-logo"] img')?.getAttribute('src'),
+      ).toBe('https://static.example/btc.png'),
+    );
+    const eth = screen
+      .getByRole('link', { name: 'ETH/USDT' })
+      .closest('li') as HTMLElement;
+    expect(
+      eth
+        .querySelector('[data-testid="coin-logo"]')
+        ?.getAttribute('data-letters'),
+    ).toBe('ET');
+    // No request of its own: the logos come from the pair lists the page
+    // already reads for the tick sizes.
+    expect(vi.mocked(market.listPairs)).toHaveBeenCalledTimes(4);
+  });
+
   it('groups rows by label with unlabelled rows last and shows n / limit', async () => {
     await open('/watchlist');
     const groups = await screen.findAllByRole('region');
@@ -259,7 +300,7 @@ describe('SCR-12 watchlist (T-059)', () => {
       'Majors',
       'No label',
     ]);
-    expect(screen.getByText('4 / 5 pairs')).toBeTruthy();
+    expect(screen.getByText(mixedText('4 / 5 pairs'))).toBeTruthy();
     const majors = within(groups[0]!);
     expect(majors.getByRole('link', { name: 'BTC/USDT' })).toBeTruthy();
     expect(majors.getByText('Range high')).toBeTruthy();
@@ -598,11 +639,13 @@ describe('SCR-13 alert list (T-059)', () => {
     const table = within(
       await screen.findByRole('region', { name: 'Your alerts' }),
     );
-    expect(table.getByText('Crosses above 65,000.00')).toBeTruthy();
+    expect(table.getByText(mixedText('Crosses above 65,000.00'))).toBeTruthy();
     expect(
-      table.getByText('Open interest change (1h) · Greater than 5%'),
+      table.getByText(mixedText('Open interest change (1h) · Greater than 5%')),
     ).toBeTruthy();
-    expect(table.getByText('Funding rate · Less than -0.005%')).toBeTruthy();
+    expect(
+      table.getByText(mixedText('Funding rate · Less than -0.005%')),
+    ).toBeTruthy();
     expect(table.getByText('Paused')).toBeTruthy();
     await user.selectOptions(screen.getByLabelText('Status'), 'PAUSED');
     await waitFor(() =>

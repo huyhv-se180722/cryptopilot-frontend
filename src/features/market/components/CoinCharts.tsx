@@ -130,14 +130,14 @@ export function FearGreedGauge({
           x={cx}
           y={cy - 6}
           textAnchor="middle"
-          className="fill-fg text-[22px] font-bold"
+          className="fill-fg text-2xl font-bold"
         >
           {value}
         </text>
       </svg>
       <span
         className={classNames(
-          '-mt-1 rounded px-1.5 py-0.5 text-[10px] font-semibold',
+          '-mt-1 rounded px-1.5 py-0.5 text-xs font-semibold',
           tone,
         )}
       >
@@ -212,7 +212,7 @@ export function SentimentBar({
     <span className="flex flex-col items-end gap-1">
       <span
         className={classNames(
-          'text-[11px] font-semibold',
+          'text-xs font-semibold',
           share === null
             ? 'text-muted'
             : share >= 0.55

@@ -101,7 +101,7 @@ export function TraderShell() {
                     // Twelve entries with the demo Trade one: from 1400px the
                     // labels fit only with tighter padding (and the search
                     // trigger without its text) until 2xl gives room again.
-                    'relative flex h-[52px] shrink-0 items-center gap-1.5 px-2.5 text-[12px] font-medium whitespace-nowrap no-underline min-[1400px]:px-1.5 2xl:px-2',
+                    'relative flex h-[52px] shrink-0 items-center gap-1.5 px-2.5 text-xs font-medium whitespace-nowrap no-underline min-[1400px]:px-1.5 2xl:px-2',
                     isActive ? 'text-primary' : 'text-muted hover:text-fg-2',
                   )
                 }
@@ -138,10 +138,10 @@ export function TraderShell() {
             className="flex items-center gap-2 rounded-lg border border-line bg-raised px-2.5 py-1.5 text-muted-x hover:border-line-strong hover:text-muted-dim"
           >
             <Search size={11} aria-hidden="true" />
-            <span className="hidden text-[11px] sm:block min-[1400px]:max-2xl:sr-only">
+            <span className="hidden text-xs sm:block min-[1400px]:max-2xl:sr-only">
               {copy.palette.trigger}
             </span>
-            <kbd className="hidden items-center gap-0.5 rounded border border-line bg-surface px-1.5 font-mono text-[10px] sm:inline-flex">
+            <kbd className="hidden items-center gap-0.5 rounded border border-line bg-surface px-1.5 font-mono text-xs sm:inline-flex">
               <Command size={8} aria-hidden="true" />K
             </kbd>
           </button>
@@ -159,7 +159,7 @@ export function TraderShell() {
 
           <Link
             to="/subscription"
-            className="hidden rounded-full border border-primary-line bg-primary-soft px-2.5 py-1 text-[11px] font-semibold text-primary no-underline sm:inline-block"
+            className="hidden rounded-full border border-primary-line bg-primary-soft px-2.5 py-1 text-xs font-semibold text-primary no-underline sm:inline-block"
           >
             {copy.nav.plansChip}
           </Link>
@@ -177,7 +177,7 @@ export function TraderShell() {
                   <div className="truncate text-xs font-semibold text-fg">
                     {user.displayName}
                   </div>
-                  <div className="truncate text-[11px] text-muted-dim">
+                  <div className="truncate text-xs text-muted-dim">
                     {user.email}
                   </div>
                   <div className="mt-2 flex items-center gap-2 sm:hidden">

@@ -52,10 +52,10 @@ export function ArticleCard({
         className="aspect-[16/9] transition-transform duration-300 group-hover:scale-[1.02]"
       />
       <div className="flex flex-1 flex-col p-4">
-        <span className="text-[11px] font-semibold tracking-wider text-muted-x uppercase">
+        <span className="text-xs font-semibold text-muted-x">
           {article.topicName}
         </span>
-        <h3 className="mt-1 text-[15px] leading-snug font-semibold text-fg group-hover:text-primary">
+        <h3 className="mt-1 text-base leading-snug font-semibold text-fg group-hover:text-primary">
           {article.title}
         </h3>
         <p className="mt-1.5 line-clamp-2 flex-1 text-xs leading-5 text-muted-dim">

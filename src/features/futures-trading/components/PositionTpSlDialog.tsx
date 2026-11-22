@@ -72,7 +72,7 @@ export function PositionTpSlDialog({
   const estimate = (price: string) => {
     const pnl = pnlAt(price);
     return pnl ? (
-      <p className="mt-1 text-[11px] text-muted">
+      <p className="mt-1 text-xs text-muted">
         {f.expectedPnl}{' '}
         <NumericText signed value={toFixedDecimal(pnl, 2)} suffix=" USDT" />
       </p>

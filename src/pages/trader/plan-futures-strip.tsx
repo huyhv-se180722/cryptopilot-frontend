@@ -49,7 +49,7 @@ export function PlanFuturesStrip({ pair }: { pair: MarketPair }) {
     >
       {items.map(([label, value]) => (
         <div key={label}>
-          <dt className="text-[10px] text-muted-x">{label}</dt>
+          <dt className="text-xs text-muted-x">{label}</dt>
           <dd className="text-xs text-fg">{value}</dd>
         </div>
       ))}

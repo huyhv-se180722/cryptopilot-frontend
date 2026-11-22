@@ -163,7 +163,7 @@ function EditForm({
           placeholder={m.bioPlaceholder}
           className={classNames(fieldControlClass, 'resize-none')}
         />
-        <span className="mt-1 block text-right text-[11px] text-muted-dim">
+        <span className="mt-1 block text-right text-xs text-muted-dim">
           {formatCopy(m.bioCount, { n: bio.length, max: BIO_MAX })}
         </span>
       </div>
@@ -177,7 +177,7 @@ function EditForm({
         placeholder={m.websitePlaceholder}
         error={linkInvalid ? m.websiteInvalid : undefined}
       />
-      <p className="text-[11px] text-muted-dim">
+      <p className="text-xs text-muted-dim">
         {m.nameElsewhere}{' '}
         <Link to="/profile" className="font-semibold text-primary">
           {m.profileSettings}
@@ -305,7 +305,7 @@ function ImageField({
               {m.remove}
             </Button>
           )}
-          <span className="text-[11px] text-muted-dim">{m.imageFormats}</span>
+          <span className="text-xs text-muted-dim">{m.imageFormats}</span>
         </div>
       </div>
       {error && (

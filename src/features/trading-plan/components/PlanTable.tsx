@@ -79,7 +79,7 @@ export function PlanTable({
             >
               {pair ? pairLabel(pair.symbol) : none}
             </Link>
-            <span className="text-[11px] text-muted-dim">
+            <span className="text-xs text-muted-dim">
               <span>{marketText(row)}</span>
               {' · '}
               <span className="font-mono">#{shortPlanId(row.id)}</span>
@@ -127,7 +127,7 @@ export function PlanTable({
         <span className="inline-flex flex-col items-start gap-1">
           <PlanStatusBadge status={row.status} />
           {row.invalidationReason && (
-            <span className="max-w-40 text-[11px] whitespace-normal text-muted-dim">
+            <span className="max-w-40 text-xs whitespace-normal text-muted-dim">
               {p[`reason${row.invalidationReason}`]}
             </span>
           )}

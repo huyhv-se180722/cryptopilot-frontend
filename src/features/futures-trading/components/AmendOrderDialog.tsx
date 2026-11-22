@@ -128,7 +128,7 @@ export function AmendOrderDialog({
           }}
         />
       </div>
-      <p className="mt-3 text-[11px] text-muted-dim">{f.amendNote}</p>
+      <p className="mt-3 text-xs text-muted-dim">{f.amendNote}</p>
       {notice && (
         <div className="mt-3">
           <FormNotice tone="error">{notice}</FormNotice>

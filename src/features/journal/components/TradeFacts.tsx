@@ -7,6 +7,7 @@ import {
   planQuantity,
 } from '../../trading-plan/components/plan-format';
 import { AmountValue } from './PerformanceValues';
+import { MixedText } from '../../../components/ui/MixedText';
 
 export function Fact({
   label,
@@ -19,13 +20,19 @@ export function Fact({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-3 border-b border-line py-1.5 last:border-b-0">
-      <dt className="text-[11px] text-muted-dim">
+      <dt className="text-xs text-muted-dim">
         {label}
         {hint && (
-          <span className="mt-0.5 block text-[10px] text-muted-x">{hint}</span>
+          <span className="mt-0.5 block text-xs text-muted-x">{hint}</span>
         )}
       </dt>
-      <dd className="m-0 text-right font-mono text-xs text-fg-2">{children}</dd>
+      <dd className="m-0 text-right text-xs text-fg-2">
+        {typeof children === 'string' ? (
+          <MixedText text={children} />
+        ) : (
+          children
+        )}
+      </dd>
     </div>
   );
 }
@@ -54,7 +61,7 @@ function FactGroup({
     >
       <h2
         id={id}
-        className="m-0 border-b border-line px-4 py-2.5 text-[13px] font-semibold text-fg"
+        className="m-0 border-b border-line px-4 py-2.5 text-sm font-semibold text-fg"
       >
         {title}
       </h2>

@@ -80,7 +80,7 @@ export function EntryDeviationDialog({
               </dd>
             </div>
           </dl>
-          <p className="text-[11px] text-muted-dim">{p.deviationRiskKept}</p>
+          <p className="text-xs text-muted-dim">{p.deviationRiskKept}</p>
         </div>
       )}
     </Dialog>

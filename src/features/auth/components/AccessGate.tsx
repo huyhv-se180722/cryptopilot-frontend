@@ -57,7 +57,7 @@ export function AccessGate({
       <div className="mb-6 rounded-2xl border border-line bg-raised px-4 py-3.5">
         <div className="mb-3 flex items-center gap-1.5">
           <Sparkles size={11} aria-hidden="true" className="text-accent" />
-          <span className="text-[10px] font-semibold tracking-widest text-muted-x uppercase">
+          <span className="text-xs font-semibold text-muted-x">
             {copy.gate.includes}
           </span>
         </div>
@@ -89,7 +89,7 @@ export function AccessGate({
       >
         {copy.gate.login}
       </Link>
-      <p className="mt-4 text-center text-[11px] text-muted-x">
+      <p className="mt-4 text-center text-xs text-muted-x">
         {copy.gate.footnote}
       </p>
     </Dialog>

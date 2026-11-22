@@ -7,6 +7,7 @@ import { formatCopy } from '../../../i18n/copy';
 import type { PlanTier, SubscriptionPackage } from '../../../types/domain';
 import { classNames } from '../../../utils/class-names';
 import { packageAction, vnd } from './billing-format';
+import { MixedText } from '../../../components/ui/MixedText';
 
 export function PackageCard({
   pkg,
@@ -51,26 +52,26 @@ export function PackageCard({
         <h3 className="text-base font-semibold text-fg">{pkg.name}</h3>
         {highlighted && <Badge tone="info">{b.currentBadge}</Badge>}
       </div>
-      <p className="font-mono text-2xl font-semibold text-fg">
-        {pkg.tier === 'FREE' ? b.freePrice : vnd(pkg.price)}
+      <p className="text-2xl font-semibold text-fg">
+        <MixedText text={pkg.tier === 'FREE' ? b.freePrice : vnd(pkg.price)} />
         {pkg.durationDays !== null && (
-          <span className="ml-1 font-sans text-sm font-normal text-muted">
+          <span className="ml-1 text-sm font-normal text-muted">
             {formatCopy(b.perDays, { days: String(pkg.durationDays) })}
           </span>
         )}
       </p>
       <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-sm">
         <dt className="text-muted">{b.limitPlans}</dt>
-        <dd className="text-right font-mono text-fg">
-          {limit(pkg.activePlanMax)}
+        <dd className="text-right text-fg">
+          <MixedText text={limit(pkg.activePlanMax)} />
         </dd>
         <dt className="text-muted">{b.limitWatchlist}</dt>
-        <dd className="text-right font-mono text-fg">
-          {limit(pkg.watchlistMax)}
+        <dd className="text-right text-fg">
+          <MixedText text={limit(pkg.watchlistMax)} />
         </dd>
         <dt className="text-muted">{b.limitAlerts}</dt>
-        <dd className="text-right font-mono text-fg">
-          {limit(pkg.activeAlertMax)}
+        <dd className="text-right text-fg">
+          <MixedText text={limit(pkg.activeAlertMax)} />
         </dd>
         <dt className="text-muted">{b.aiQuota}</dt>
         <dd className="text-right font-mono text-fg">{pkg.aiDailyQuota}</dd>

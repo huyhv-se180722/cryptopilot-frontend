@@ -181,7 +181,7 @@ export function CoinMarketTable({
                         {row.coin.symbol}
                       </span>
                       {!row.coin.spotSymbol && row.coin.futuresSymbol && (
-                        <span className="rounded border border-line px-1 text-[9px] font-semibold tracking-wider text-muted uppercase">
+                        <span className="rounded border border-line px-1 text-xs font-semibold text-muted">
                           {c.perp}
                         </span>
                       )}

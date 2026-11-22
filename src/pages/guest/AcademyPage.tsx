@@ -122,7 +122,7 @@ function AcademyHome() {
 
       <section aria-labelledby="academy-lessons">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-          <h2 id="academy-lessons" className="text-lg font-semibold text-fg">
+          <h2 id="academy-lessons" className="text-xl font-semibold text-fg">
             {a.lessonsTitle}
           </h2>
           <div className="flex flex-wrap items-center gap-3">

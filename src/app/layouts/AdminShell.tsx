@@ -35,7 +35,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             aria-hidden="true"
             className="shrink-0 text-negative"
           />
-          <span className="text-[10px] font-bold tracking-[0.12em] text-negative">
+          <span className="text-xs font-bold text-negative">
             {copy.admin.console}
           </span>
         </div>
@@ -48,7 +48,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         {adminNav.map((group, index) => (
           <div key={group.headingKey ?? index} className={index ? 'mt-5' : ''}>
             {group.headingKey && (
-              <div className="mb-2 px-2 text-[9px] font-bold tracking-[0.14em] text-muted-x">
+              <div className="mb-2 px-2 text-xs font-bold text-muted-x">
                 {copy.admin[group.headingKey]}
               </div>
             )}
@@ -62,7 +62,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                   onClick={onNavigate}
                   className={({ isActive }) =>
                     classNames(
-                      'mb-0.5 flex w-full items-center gap-2.5 rounded-lg border px-2.5 py-2 text-[12px] no-underline pointer-coarse:py-3',
+                      'mb-0.5 flex w-full items-center gap-2.5 rounded-lg border px-2.5 py-2 text-xs no-underline pointer-coarse:py-3',
                       isActive
                         ? 'border-primary-line bg-linear-135 from-primary-soft to-accent-soft font-semibold text-primary'
                         : 'border-transparent text-muted-dim hover:border-line hover:bg-raised hover:text-muted',

@@ -316,7 +316,7 @@ export function PlansPage() {
     <>
       <div className="w-full">
         <header className="mb-4 flex flex-wrap items-center gap-3">
-          <h1 className="mr-auto text-lg font-semibold text-fg">
+          <h1 className="mr-auto text-xl font-semibold text-fg">
             {p.listTitle}
           </h1>
           <Link

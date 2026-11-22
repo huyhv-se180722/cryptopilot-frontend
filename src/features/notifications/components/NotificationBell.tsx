@@ -80,7 +80,7 @@ export function NotificationBell() {
         {unread > 0 && (
           <span
             aria-hidden="true"
-            className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-negative px-1 font-mono text-[9px] leading-none font-bold text-white"
+            className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-negative px-1 font-mono text-xs leading-none font-bold text-white"
           >
             {badgeText(unread)}
           </span>
@@ -119,7 +119,7 @@ function BellPanel({ id, onClose }: { id: string; onClose: () => void }) {
                 show({ tone: 'error', message: errorText(copy, result.error) });
             })
           }
-          className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline disabled:cursor-not-allowed disabled:text-muted-x disabled:no-underline"
+          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline disabled:cursor-not-allowed disabled:text-muted-x disabled:no-underline"
         >
           <CheckCheck size={12} aria-hidden="true" />
           {n.markAllRead}

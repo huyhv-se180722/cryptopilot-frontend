@@ -174,7 +174,7 @@ function MarginModeDialog({
       <p className="mt-3 text-xs text-muted">
         {chosen === 'CROSSED' ? f.crossHint : f.isolatedHint}
       </p>
-      <p className="mt-2 text-[11px] text-muted-dim">{f.marginModeNote}</p>
+      <p className="mt-2 text-xs text-muted-dim">{f.marginModeNote}</p>
       {notice && (
         <div className="mt-3">
           <FormNotice tone="error">{notice}</FormNotice>
@@ -344,7 +344,7 @@ function PositionModeDialog({
       <p className="mt-3 text-xs text-muted">
         {hedge ? f.hedgeHint : f.oneWayHint}
       </p>
-      <p className="mt-2 text-[11px] text-muted-dim">{f.positionModeNote}</p>
+      <p className="mt-2 text-xs text-muted-dim">{f.positionModeNote}</p>
       {notice && (
         <div className="mt-3">
           <FormNotice tone="error">{notice}</FormNotice>

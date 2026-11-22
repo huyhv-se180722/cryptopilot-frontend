@@ -35,6 +35,7 @@ import {
 } from '../../features/watchlist/hooks/use-watchlist';
 import type { WatchlistItem, WatchlistItemUpdate } from '../../types/domain';
 import { pairLabel } from '../../utils/pair-label';
+import { MixedText } from '../../components/ui/MixedText';
 
 /**
  * SCR-12 Watchlist (SRS 3.4.1, UC-12): the Trader's pairs grouped by label
@@ -68,15 +69,20 @@ export function WatchlistPage() {
   const scores = useWatchlistScores(spotSymbols);
   const prices: WatchlistPrices = useMemo(() => {
     const ticks = new Map<string, string | null>();
+    const logos = new Map<string, string>();
     for (const pair of [
       ...(spotPairs.data ?? []),
       ...(futuresPairs.data ?? []),
-    ])
+    ]) {
       ticks.set(pair.market + ':' + pair.symbol, pair.tickSize);
+      if (pair.logoUrl && !logos.has(pair.symbol))
+        logos.set(pair.symbol, pair.logoUrl);
+    }
     return {
       spot: spot.tickers,
       futures: futures.tickers,
       tick: (market, symbol) => ticks.get(market + ':' + symbol) ?? null,
+      logo: (symbol) => logos.get(symbol) ?? null,
     };
   }, [spot.tickers, futures.tickers, spotPairs.data, futuresPairs.data]);
 
@@ -221,14 +227,18 @@ export function WatchlistPage() {
     <div className="w-full">
       <header className="mb-6 flex flex-wrap items-center gap-3">
         <div className="mr-auto">
-          <h1 className="text-lg font-semibold text-fg">{w.title}</h1>
+          <h1 className="text-xl font-semibold text-fg">{w.title}</h1>
           <p className="mt-0.5 text-xs text-muted-dim">{w.subtitle}</p>
         </div>
         {list.data && (
-          <span className="font-mono text-xs text-muted" aria-live="polite">
-            {limit === null || limit === undefined
-              ? formatCopy(w.countUnlimited, { count: items.length })
-              : formatCopy(w.count, { count: items.length, limit })}
+          <span className="text-xs text-muted" aria-live="polite">
+            <MixedText
+              text={
+                limit === null || limit === undefined
+                  ? formatCopy(w.countUnlimited, { count: items.length })
+                  : formatCopy(w.count, { count: items.length, limit })
+              }
+            />
           </span>
         )}
         <Button

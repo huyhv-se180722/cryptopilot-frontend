@@ -148,7 +148,7 @@ export function AlertsPage() {
           </Button>
         </nav>
       )}
-      <p className="mt-3 flex items-start gap-1.5 text-[11px] text-muted-dim">
+      <p className="mt-3 flex items-start gap-1.5 text-xs text-muted-dim">
         <Info size={12} aria-hidden="true" className="mt-0.5 shrink-0" />
         {a.historyPending}
       </p>
@@ -159,7 +159,7 @@ export function AlertsPage() {
     <div className="w-full">
       <header className="mb-4 flex flex-wrap items-center gap-3">
         <div className="mr-auto">
-          <h1 className="text-lg font-semibold text-fg">{a.title}</h1>
+          <h1 className="text-xl font-semibold text-fg">{a.title}</h1>
           <p className="mt-0.5 text-xs text-muted-dim">{a.subtitle}</p>
         </div>
         <Button
@@ -171,7 +171,7 @@ export function AlertsPage() {
         </Button>
       </header>
       {/* One filter bar, the type first (T-142). */}
-      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2.5">
+      <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-line bg-surface px-4 py-2.5">
         <SegmentedControl
           label={a.filterType}
           value={type}
@@ -182,13 +182,12 @@ export function AlertsPage() {
             { value: 'INDICATOR', label: a.typeINDICATOR },
           ]}
         />
-        <span aria-hidden="true" className="hidden h-9 w-px bg-line sm:block" />
+        <span aria-hidden="true" className="hidden h-6 w-px bg-line sm:block" />
         <Select
-          inline
+          filter
           label={a.filterStatus}
           value={status ?? ''}
           onChange={(event) => update({ status: event.target.value || null })}
-          className="w-full sm:w-56"
         >
           <option value="">{a.allStatuses}</option>
           {STATUSES.map((value) => (

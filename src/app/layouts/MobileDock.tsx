@@ -44,7 +44,7 @@ export function MobileDock({
               }
             >
               <Icon size={20} aria-hidden="true" />
-              <span className="text-[9px] font-semibold tracking-wide">
+              <span className="text-xs font-semibold">
                 {copy.nav[item.labelKey]}
               </span>
             </NavLink>
@@ -61,9 +61,7 @@ export function MobileDock({
               )}
             >
               <MoreHorizontal size={20} aria-hidden="true" />
-              <span className="text-[9px] font-semibold tracking-wide">
-                {copy.nav.more}
-              </span>
+              <span className="text-xs font-semibold">{copy.nav.more}</span>
             </span>
           }
           items={more.map((item) => {

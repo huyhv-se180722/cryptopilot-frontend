@@ -102,7 +102,7 @@ export function ConversationList({
       className="flex min-h-0 flex-col gap-3 rounded-2xl border border-line bg-surface px-2.5 py-3.5"
     >
       <div className="flex items-center justify-between gap-2 px-1">
-        <h2 className="m-0 text-[13px] font-semibold text-fg">{heading}</h2>
+        <h2 className="m-0 text-sm font-semibold text-fg">{heading}</h2>
         {/* Only the "+" fits beside the heading; hovering or focusing it names it. */}
         <div className="group relative shrink-0">
           <button
@@ -119,7 +119,7 @@ export function ConversationList({
           </button>
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute top-full right-0 z-20 mt-1.5 hidden rounded-md bg-fg px-2 py-1 text-[11px] font-medium whitespace-nowrap text-surface shadow-overlay group-hover:block group-has-[:focus-visible]:block"
+            className="pointer-events-none absolute top-full right-0 z-20 mt-1.5 hidden rounded-md bg-fg px-2 py-1 text-xs font-medium whitespace-nowrap text-surface shadow-overlay group-hover:block group-has-[:focus-visible]:block"
           >
             {t.newConversation}
           </span>
@@ -152,7 +152,7 @@ export function ConversationList({
           >
             <MessageSquare size={18} />
           </span>
-          <p className="m-0 text-[13px] font-semibold text-fg">
+          <p className="m-0 text-sm font-semibold text-fg">
             {t.noConversations}
           </p>
           <p className="m-0 text-xs leading-relaxed text-muted">{emptyHint}</p>
@@ -174,7 +174,7 @@ export function ConversationList({
                 aria-label={label[group]}
                 className="min-w-0"
               >
-                <h3 className="m-0 mt-2 mb-1 px-1.5 text-[10.5px] font-semibold tracking-wider text-muted-dim uppercase first:mt-0">
+                <h3 className="m-0 mt-2 mb-1 px-1.5 text-xs font-semibold text-muted-dim first:mt-0">
                   {label[group]}
                 </h3>
                 <ul className="m-0 grid min-w-0 grid-cols-[minmax(0,1fr)] list-none gap-0.5 p-0">
@@ -199,7 +199,7 @@ export function ConversationList({
                           <span
                             aria-hidden="true"
                             className={classNames(
-                              'inline-flex size-7 shrink-0 items-center justify-center rounded-lg border text-[9.5px] font-bold',
+                              'inline-flex size-7 shrink-0 items-center justify-center rounded-lg border text-xs font-bold',
                               selected
                                 ? classNames('bg-surface', BADGE[accent])
                                 : 'border-transparent bg-surface-alt text-muted',
@@ -210,13 +210,13 @@ export function ConversationList({
                           <span className="min-w-0 flex-1">
                             <span
                               className={classNames(
-                                'block truncate text-[12.5px] text-fg',
+                                'block truncate text-xs text-fg',
                                 selected ? 'font-semibold' : 'font-medium',
                               )}
                             >
                               {title}
                             </span>
-                            <span className="block text-[11px] text-muted-dim">
+                            <span className="block text-xs text-muted-dim">
                               {group === 'today' || group === 'yesterday'
                                 ? timeOf(conversation.updatedAt)
                                 : dayOf(conversation.updatedAt)}

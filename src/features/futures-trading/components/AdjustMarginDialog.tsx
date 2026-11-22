@@ -98,7 +98,7 @@ export function AdjustMarginDialog({
           onValueChange={setAmount}
         />
       </div>
-      <p className="mt-2 flex justify-between text-[11px] text-muted">
+      <p className="mt-2 flex justify-between text-xs text-muted">
         <span>{mode === 'add' ? f.maxAdd : f.maxRemove}</span>
         {max ? (
           <button
@@ -112,7 +112,7 @@ export function AdjustMarginDialog({
           copy.market.noValue
         )}
       </p>
-      <p className="mt-1 flex justify-between text-[11px] text-muted">
+      <p className="mt-1 flex justify-between text-xs text-muted">
         <span>{f.currentMargin}</span>
         <NumericText
           value={groupThousands(toFixedDecimal(position.isolatedWallet, 2))}

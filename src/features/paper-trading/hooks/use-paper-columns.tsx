@@ -136,7 +136,7 @@ export function usePaperColumns(pairs: readonly MarketPair[]) {
           render: (row) =>
             row.status === 'PENDING_NEW' ? (
               <span className="inline-flex items-center gap-2">
-                <span className="text-[11px] text-muted-dim">
+                <span className="text-xs text-muted-dim">
                   {p.statusPENDING_NEW}
                 </span>
                 {action(row)}

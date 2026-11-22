@@ -136,8 +136,8 @@ function Loaded({ detail }: { detail: AdminOrderDetail }) {
         )}
         {payload && (
           <div className="col-span-full">
-            <div className="mb-1 text-[11px] text-muted-dim">{t.payload}</div>
-            <pre className="max-h-48 overflow-auto rounded-lg border border-line bg-raised p-3 font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-all text-fg-2">
+            <div className="mb-1 text-xs text-muted-dim">{t.payload}</div>
+            <pre className="max-h-48 overflow-auto rounded-lg border border-line bg-raised p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap break-all text-fg-2">
               {payload}
             </pre>
           </div>
@@ -194,7 +194,7 @@ function Loaded({ detail }: { detail: AdminOrderDetail }) {
                 )}
               </Field>
               <div className="col-span-full">
-                <div className="mb-1 text-[11px] text-muted-dim">{t.note}</div>
+                <div className="mb-1 text-xs text-muted-dim">{t.note}</div>
                 <p className="text-xs whitespace-pre-wrap text-fg-2">
                   {detail.handlingNote ?? '—'}
                 </p>
@@ -210,9 +210,7 @@ function Loaded({ detail }: { detail: AdminOrderDetail }) {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section>
-      <h3 className="mb-2 text-xs font-semibold tracking-wide text-muted uppercase">
-        {title}
-      </h3>
+      <h3 className="mb-2 text-xs font-semibold text-muted">{title}</h3>
       <dl className="grid gap-x-4 gap-y-2 sm:grid-cols-3">{children}</dl>
     </section>
   );
@@ -221,7 +219,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[11px] text-muted-dim">{label}</dt>
+      <dt className="text-xs text-muted-dim">{label}</dt>
       <dd className="truncate text-xs text-fg">{children}</dd>
     </div>
   );
@@ -261,7 +259,7 @@ function Reconcile({ orderCode }: { orderCode: string }) {
         >
           {t.reconcile}
         </Button>
-        <span className="text-[11px] text-muted-dim">{t.reconcileHint}</span>
+        <span className="text-xs text-muted-dim">{t.reconcileHint}</span>
       </div>
     </div>
   );
@@ -332,7 +330,7 @@ function HandleForm({ orderCode }: { orderCode: string }) {
         />
         <div
           id={noteId + '-hint'}
-          className="mt-1 flex justify-between gap-2 text-[11px]"
+          className="mt-1 flex justify-between gap-2 text-xs"
         >
           <span
             className={classNames(

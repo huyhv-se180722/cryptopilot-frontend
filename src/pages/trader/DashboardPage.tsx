@@ -86,7 +86,7 @@ export function DashboardPage() {
     <div className="w-full">
       <header className="mb-5 flex flex-wrap items-center gap-3">
         <div className="mr-auto">
-          <h1 className="text-lg font-semibold text-fg">{d.title}</h1>
+          <h1 className="text-xl font-semibold text-fg">{d.title}</h1>
           <p className="mt-0.5 text-xs text-muted-dim">
             {formatCopy(d.subtitle, {
               date: today.format(new Date()),

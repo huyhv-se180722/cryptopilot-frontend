@@ -153,7 +153,7 @@ function Indicators({ data }: { data: AdminDashboard }) {
     );
   return (
     <>
-      <p className="mb-2 text-[11px] text-muted-dim">{t.nowCaption}</p>
+      <p className="mb-2 text-xs text-muted-dim">{t.nowCaption}</p>
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label={t.totalUsers} value={count(data.totalUsers, none)} />
         <StatCard
@@ -178,7 +178,7 @@ function Indicators({ data }: { data: AdminDashboard }) {
           }
         />
       </div>
-      <p className="mb-2 text-[11px] text-muted-dim">{t.periodCaption}</p>
+      <p className="mb-2 text-xs text-muted-dim">{t.periodCaption}</p>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label={t.newUsers} value={count(data.newUsers, none)} />
         <StatCard
@@ -227,9 +227,7 @@ function Indicators({ data }: { data: AdminDashboard }) {
                 key={row.code}
                 className="flex justify-between gap-3 border-b border-line pb-1.5"
               >
-                <dt className="font-mono text-[11px] text-muted-dim">
-                  {row.code}
-                </dt>
+                <dt className="font-mono text-xs text-muted-dim">{row.code}</dt>
                 <dd className="m-0">
                   <NumericText value={vnd(row.revenue)} suffix=" VND" />
                 </dd>
@@ -263,7 +261,7 @@ function ReportTable({ report }: { report: AdminReport }) {
           {row.period}
           {/* A week or month cut by the period counts fewer days. */}
           {report.groupBy !== 'DAY' && (
-            <span className="block text-[10px] text-muted-dim">
+            <span className="block text-xs text-muted-dim">
               {formatCopy(t.covered, {
                 from: row.coveredFrom,
                 to: row.coveredTo,
@@ -296,7 +294,7 @@ function ReportTable({ report }: { report: AdminReport }) {
       />
       {total > REPORT_PAGE_SIZE && (
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-          <span className="text-[11px] text-muted-dim">
+          <span className="text-xs text-muted-dim">
             {formatCopy(t.reportRange, {
               from: first + 1,
               to: first + rows.length,

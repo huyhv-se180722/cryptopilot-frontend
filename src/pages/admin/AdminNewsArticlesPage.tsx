@@ -187,7 +187,7 @@ export function AdminNewsArticlesPage() {
           ))}
         </select>
         {busy && action.pending && (
-          <span className="text-[11px] text-muted-dim" role="status">
+          <span className="text-xs text-muted-dim" role="status">
             {n.summarizing}
           </span>
         )}

@@ -8,7 +8,7 @@ import { memberPath } from './post-format';
 
 const tab = ({ isActive }: { isActive: boolean }) =>
   classNames(
-    'relative inline-flex h-12 items-center px-1 text-lg font-semibold whitespace-nowrap no-underline transition-colors duration-150 sm:text-xl',
+    'relative inline-flex h-12 items-center px-1 text-base font-semibold whitespace-nowrap no-underline transition-colors duration-150 sm:text-xl',
     isActive
       ? 'text-fg after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-primary'
       : 'text-muted-x hover:text-fg-2',
@@ -68,7 +68,7 @@ export function CommunityNav({ trader }: { trader: boolean }) {
             },
           ]}
           trigger={
-            <span className="inline-flex h-12 items-center gap-1 px-1 text-lg font-semibold text-muted-x hover:text-fg-2 sm:text-xl">
+            <span className="inline-flex h-12 items-center gap-1 px-1 text-base font-semibold text-muted-x hover:text-fg-2 sm:text-xl">
               {c.navMore}
               <ChevronDown size={16} aria-hidden="true" />
             </span>

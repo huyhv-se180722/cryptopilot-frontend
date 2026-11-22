@@ -24,7 +24,7 @@ export const Switch = forwardRef<HTMLInputElement, Props>(function Switch(
         <span className="block text-sm text-fg-2">{label}</span>
         {description && (
           <span
-            className="mt-0.5 block text-[11px] text-muted-x"
+            className="mt-0.5 block text-xs text-muted-x"
             id={inputId + '-description'}
           >
             {description}

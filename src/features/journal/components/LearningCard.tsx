@@ -47,7 +47,7 @@ export function LearningCard({
   const indicators = learning.indicators;
   return (
     <>
-      <p className="mb-2 text-[11px] text-muted-dim">{j.learningHint}</p>
+      <p className="mb-2 text-xs text-muted-dim">{j.learningHint}</p>
       {learning.setupScoreDropWarned && (
         <p
           role="status"
@@ -135,7 +135,7 @@ export function LearningCard({
       </dl>
       {indicators && (
         <>
-          <h3 className="mb-1 mt-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-dim">
+          <h3 className="mb-1 mt-4 text-xs font-semibold text-muted-dim">
             {formatCopy(j.indicatorsTitle, {
               timeframe: indicators.timeframe ?? none,
               time:

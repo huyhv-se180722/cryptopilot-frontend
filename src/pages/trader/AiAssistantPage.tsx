@@ -164,7 +164,7 @@ function MarketLive({
         {change !== null && (
           <span
             className={classNames(
-              'ml-1.5 text-[11.5px]',
+              'ml-1.5 text-xs',
               change.startsWith('-') ? 'text-negative' : 'text-positive',
             )}
           >
@@ -180,7 +180,7 @@ function MarketLive({
       </LiveFigure>
       {divider}
       <span className="inline-flex items-center gap-2">
-        <span className="text-[10.5px] leading-tight text-muted-dim">
+        <span className="text-xs leading-tight text-muted-dim">
           {t.setupScore}
         </span>
         <span
@@ -472,7 +472,7 @@ function TopicWorkspace({ tab }: { tab: Tab }) {
     <NavLink
       to={to}
       className={classNames(
-        'inline-flex h-8 items-center rounded-lg px-3.5 text-[13px] font-semibold no-underline',
+        'inline-flex h-8 items-center rounded-lg px-3.5 text-sm font-semibold no-underline',
         tab === (mine ? 'mine' : 'market')
           ? 'bg-surface text-fg shadow-panel'
           : 'text-muted hover:text-fg',
@@ -586,7 +586,7 @@ function TopicWorkspace({ tab }: { tab: Tab }) {
               >
                 <h2
                   id="ai-panel-suggestions"
-                  className="mb-2 text-[13px] font-semibold text-fg"
+                  className="mb-2 text-sm font-semibold text-fg"
                 >
                   {t.suggestionsTitle}
                 </h2>
@@ -602,7 +602,7 @@ function TopicWorkspace({ tab }: { tab: Tab }) {
                             serial: (last?.serial ?? 0) + 1,
                           }));
                         }}
-                        className="flex w-full items-center gap-2.5 rounded-xl border border-line px-2.5 py-2 text-left text-[12.5px] font-medium text-fg hover:border-line-strong hover:bg-raised"
+                        className="flex w-full items-center gap-2.5 rounded-xl border border-line px-2.5 py-2 text-left text-xs font-medium text-fg hover:border-line-strong hover:bg-raised"
                       >
                         {suggestion.icon}
                         <span className="min-w-0 flex-1">

@@ -34,7 +34,7 @@ function cite(
               target="_blank"
               rel="noopener noreferrer"
               title={source.headline ?? source.outlet ?? source.url}
-              className="mr-0.5 rounded bg-primary-soft px-1 text-[10px] font-semibold text-primary no-underline hover:underline"
+              className="mr-0.5 rounded bg-primary-soft px-1 text-xs font-semibold text-primary no-underline hover:underline"
             >
               {ref}
             </a>
@@ -160,7 +160,7 @@ export function SourceList({
             .join(' · ');
           return (
             <li key={source.ref} className="flex gap-1.5">
-              <span className="shrink-0 rounded bg-primary-soft px-1 text-[10px] font-semibold leading-4 text-primary">
+              <span className="shrink-0 rounded bg-primary-soft px-1 text-xs font-semibold leading-4 text-primary">
                 {source.ref}
               </span>
               <a
@@ -173,14 +173,14 @@ export function SourceList({
                   {source.headline ?? source.url}
                 </span>
                 {meta !== '' && (
-                  <span className="block text-[11px] text-muted">{meta}</span>
+                  <span className="block text-xs text-muted">{meta}</span>
                 )}
               </a>
             </li>
           );
         })}
       </ol>
-      <p className="m-0 mt-1 text-[11px] text-muted">{hint}</p>
+      <p className="m-0 mt-1 text-xs text-muted">{hint}</p>
     </section>
   );
 }

@@ -20,9 +20,7 @@ import { useTickDirection } from '../../paper-trading/hooks/use-tick-direction';
 function Stat({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5 xl:shrink-0">
-      <dt className="text-[10px] text-muted-dim xl:whitespace-nowrap">
-        {label}
-      </dt>
+      <dt className="text-xs text-muted-dim xl:whitespace-nowrap">{label}</dt>
       <dd className="text-xs whitespace-nowrap text-fg-2">{children}</dd>
     </div>
   );
@@ -77,7 +75,7 @@ export function FuturesTickerStrip({
       <div className="flex flex-1 items-center gap-3 xl:flex-none">
         <div
           className={classNames(
-            'flex shrink-0 items-center gap-1 text-lg font-semibold',
+            'flex shrink-0 items-center gap-1 text-xl font-semibold',
             direction === 'up' && 'text-positive',
             direction === 'down' && 'text-negative',
             direction === null && 'text-fg',
@@ -104,7 +102,7 @@ export function FuturesTickerStrip({
         </span>
       </div>
       <div className="flex w-full items-center gap-x-6 xl:w-auto xl:min-w-0 xl:flex-1">
-        <dl className="grid flex-1 grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4 md:grid-cols-8 xl:flex xl:flex-none xl:items-center xl:gap-x-6">
+        <dl className="grid flex-1 grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4 md:grid-cols-8 xl:flex xl:min-w-0 xl:items-center xl:gap-x-6 xl:overflow-x-auto">
           <Stat label={f.mark}>{price(ticker?.markPrice)}</Stat>
           <Stat label={f.index}>{price(ticker?.indexPrice)}</Stat>
           <Stat label={f.fundingCountdown}>

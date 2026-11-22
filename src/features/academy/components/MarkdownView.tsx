@@ -23,7 +23,7 @@ function Inlines({ content }: { content: readonly Inline[] }) {
         return (
           <code
             key={index}
-            className="rounded bg-surface-alt px-1 py-0.5 font-mono text-[0.9em]"
+            className="rounded bg-surface-alt px-1 py-0.5 font-mono text-sm"
           >
             {part.text}
           </code>
@@ -57,7 +57,7 @@ const headingClass = {
 /** A lesson body parsed by `parseMarkdown`, as React elements only. */
 export function MarkdownView({ blocks }: { blocks: readonly Block[] }) {
   return (
-    <div className="text-[15px] leading-7 text-fg-2">
+    <div className="text-base leading-7 text-fg-2">
       {blocks.map((block, index) => {
         switch (block.kind) {
           case 'heading': {

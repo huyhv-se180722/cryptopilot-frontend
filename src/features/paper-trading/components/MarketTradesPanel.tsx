@@ -72,7 +72,7 @@ export function MarketTradesPanel({
         </p>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="grid grid-cols-3 gap-2 px-1 pb-1 text-[10px] text-muted-dim">
+          <div className="grid grid-cols-3 gap-2 px-1 pb-1 text-xs text-muted-dim">
             <span>
               {formatCopy(p.colPrice, { asset: pair.quoteAsset ?? '' })}
             </span>

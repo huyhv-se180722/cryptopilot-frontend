@@ -64,7 +64,7 @@ export function UserTable({
             </Link>
             {account.userId === me && <Badge tone="info">{t.you}</Badge>}
           </span>
-          <span className="truncate text-[11px] text-muted-dim">
+          <span className="truncate text-xs text-muted-dim">
             {account.email}
           </span>
         </span>

@@ -10,7 +10,7 @@ export interface Column<T> {
 }
 
 /**
- * Figma admin table: uppercase 10px headers, 44px rows, right-aligned mono
+ * Figma admin table: 12px sentence-case headers (D-161), 44px rows, right-aligned mono
  * numbers. `dense` narrows the cell padding for a table that shares its row
  * with side panels (SCR-16). `cards` turns each row into a card below 640 px
  * (T-141): the header row hides and every cell shows its column name, so a
@@ -65,7 +65,7 @@ export function Table<T>({
                 role={role('columnheader')}
                 className={classNames(
                   padX,
-                  'py-3 text-[10px] font-medium tracking-[0.07em] whitespace-nowrap text-muted-x uppercase',
+                  'py-3 text-xs font-medium whitespace-nowrap text-muted-x',
                   column.numeric ? 'text-right' : 'text-left',
                 )}
               >
@@ -100,7 +100,7 @@ export function Table<T>({
                       'py-3 text-xs whitespace-nowrap text-fg-2',
                       column.numeric && 'text-right font-mono',
                       card(
-                        'max-sm:flex max-sm:items-center max-sm:justify-between max-sm:gap-3 max-sm:px-4 max-sm:py-1.5 max-sm:text-right max-sm:whitespace-normal max-sm:before:shrink-0 max-sm:before:text-left max-sm:before:font-sans max-sm:before:text-[10.5px] max-sm:before:font-medium max-sm:before:tracking-[0.06em] max-sm:before:text-muted-x max-sm:before:uppercase max-sm:before:content-[attr(data-label)]',
+                        'max-sm:flex max-sm:items-center max-sm:justify-between max-sm:gap-3 max-sm:px-4 max-sm:py-1.5 max-sm:text-right max-sm:whitespace-normal max-sm:before:shrink-0 max-sm:before:text-left max-sm:before:font-sans max-sm:before:text-xs max-sm:before:font-medium max-sm:before:text-muted-x max-sm:before:content-[attr(data-label)]',
                       ),
                     )}
                   >

@@ -2,6 +2,8 @@ import { useId, type ComponentPropsWithRef } from 'react';
 import {
   fieldControlClass,
   fieldErrorClass,
+  fieldFilterInputClass,
+  fieldFilterLabelClass,
   fieldHintClass,
   fieldInlineBoxClass,
   fieldInlineControlClass,
@@ -15,6 +17,8 @@ type Props = ComponentPropsWithRef<'input'> & {
   hint?: string;
   /** The label inside the box at the left, the value at the right. */
   inline?: boolean;
+  /** A filter of a list: the label outside at the left, a compact box. */
+  filter?: boolean;
 };
 
 export function Input({
@@ -22,6 +26,7 @@ export function Input({
   error,
   hint,
   inline = false,
+  filter = false,
   id,
   className,
   ...props
@@ -40,14 +45,27 @@ export function Input({
     <input
       {...props}
       id={inputId}
-      className={inline ? fieldInlineControlClass : fieldControlClass}
+      className={
+        filter
+          ? fieldFilterInputClass
+          : inline
+            ? fieldInlineControlClass
+            : fieldControlClass
+      }
       aria-invalid={error ? true : props['aria-invalid']}
       aria-describedby={description}
     />
   );
   return (
     <div className={className}>
-      {inline ? (
+      {filter ? (
+        <div className="flex min-w-0 items-center gap-2">
+          <label htmlFor={inputId} className={fieldFilterLabelClass}>
+            {label}
+          </label>
+          {input}
+        </div>
+      ) : inline ? (
         <div className={fieldInlineBoxClass}>
           <label htmlFor={inputId} className={fieldInlineLabelClass}>
             {label}

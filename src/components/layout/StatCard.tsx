@@ -13,7 +13,7 @@ const accents: Record<Accent, string> = {
   purple: 'border-t-purple',
 };
 
-/** Figma StatCard: 2px accent top border, 10px uppercase label, mono value. */
+/** Figma StatCard: 2px accent top border, 12px label (D-161), mono value. */
 export function StatCard({
   label,
   value,
@@ -33,16 +33,12 @@ export function StatCard({
       )}
     >
       <dl>
-        <dt className="mb-2 text-[10px] font-medium tracking-widest text-muted-x uppercase">
-          {label}
-        </dt>
-        <dd className="m-0 font-mono text-lg leading-none font-semibold text-fg">
+        <dt className="mb-2 text-xs font-medium text-muted-x">{label}</dt>
+        <dd className="m-0 font-mono text-xl leading-none font-semibold text-fg">
           {value}
         </dd>
       </dl>
-      {status && (
-        <div className="mt-1.5 text-[11px] text-muted-dim">{status}</div>
-      )}
+      {status && <div className="mt-1.5 text-xs text-muted-dim">{status}</div>}
     </div>
   );
 }

@@ -30,7 +30,7 @@ function Rows({ rows }: { rows: readonly [string, ReactNode][] }) {
           key={label}
           className="flex items-baseline justify-between gap-3 border-b border-line pb-1.5"
         >
-          <dt className="text-[11px] text-muted-dim">{label}</dt>
+          <dt className="text-xs text-muted-dim">{label}</dt>
           <dd className="text-right text-xs text-fg">{value}</dd>
         </div>
       ))}
@@ -153,9 +153,7 @@ function OpenPosition({
         <span>
           <NumericText value={planPrice(position.breakevenPrice)} />
           {position.breakevenProvisional && (
-            <span className="ml-1 text-[10px] text-muted-dim">
-              {p.provisional}
-            </span>
+            <span className="ml-1 text-xs text-muted-dim">{p.provisional}</span>
           )}
         </span>
       ),
@@ -164,11 +162,9 @@ function OpenPosition({
   return (
     <>
       <Rows rows={rows} />
-      <p className="mt-2 text-[11px] text-muted-dim">
-        {p.positionUnrealizedHint}
-      </p>
+      <p className="mt-2 text-xs text-muted-dim">{p.positionUnrealizedHint}</p>
       {position.levelsEffectiveFrom && (
-        <p className="mt-1 text-[11px] text-muted-dim">
+        <p className="mt-1 text-xs text-muted-dim">
           {formatCopy(p.positionLevelsFrom, {
             time: formatInstantLocal(position.levelsEffectiveFrom),
           })}
@@ -219,16 +215,16 @@ function ClosedPosition({
   return (
     <>
       <div className="mb-3 flex flex-wrap items-baseline gap-2">
-        <span className="text-[11px] text-muted-dim">{p.positionNet}</span>
-        <span className="text-lg font-semibold">
+        <span className="text-xs text-muted-dim">{p.positionNet}</span>
+        <span className="text-xl font-semibold">
           {amount(position.netPnl, true)}
         </span>
-        <span className="text-[11px] text-muted-dim">USDT</span>
+        <span className="text-xs text-muted-dim">USDT</span>
         {position.provisional && <Badge tone="warning">{p.provisional}</Badge>}
       </div>
       <Rows rows={rows} />
       {position.provisional && (
-        <p className="mt-2 text-[11px] text-muted-dim">{p.provisionalHint}</p>
+        <p className="mt-2 text-xs text-muted-dim">{p.provisionalHint}</p>
       )}
     </>
   );
@@ -248,10 +244,10 @@ function LevelHistory({
       : `${from === null ? none : planPrice(from)} → ${planPrice(to)}`;
   return (
     <div className="mt-4">
-      <h3 className="mb-2 text-[10px] font-semibold tracking-widest text-muted-x uppercase">
+      <h3 className="mb-2 text-xs font-semibold text-muted-x">
         {p.positionLevelHistory}
       </h3>
-      <ol className="grid gap-1.5 text-[11px] text-fg-2">
+      <ol className="grid gap-1.5 text-xs text-fg-2">
         {changes.map((change) => {
           const stop = pair(change.oldStopLoss, change.newStopLoss);
           const take = pair(change.oldTakeProfit, change.newTakeProfit);

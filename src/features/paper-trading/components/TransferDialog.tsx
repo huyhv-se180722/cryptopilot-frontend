@@ -110,7 +110,7 @@ export function TransferDialog({
       <form noValidate onSubmit={(event) => void submit(event)}>
         <div className="mb-4 flex items-end gap-2">
           <div className="flex-1">
-            <span className="mb-1 block text-[11px] text-muted-dim">
+            <span className="mb-1 block text-xs text-muted-dim">
               {p.transferFrom}
             </span>
             <span className="block rounded-lg border border-line bg-raised px-3 py-2 text-sm text-fg">
@@ -126,7 +126,7 @@ export function TransferDialog({
             }}
           />
           <div className="flex-1">
-            <span className="mb-1 block text-[11px] text-muted-dim">
+            <span className="mb-1 block text-xs text-muted-dim">
               {p.transferTo}
             </span>
             <span className="block rounded-lg border border-line bg-raised px-3 py-2 text-sm text-fg">

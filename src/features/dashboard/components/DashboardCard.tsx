@@ -28,7 +28,7 @@ export function DashboardCard({
       )}
     >
       <div className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 border-b border-line px-4 py-2">
-        <h2 className="mr-auto text-[13px] font-semibold text-fg">{title}</h2>
+        <h2 className="mr-auto text-sm font-semibold text-fg">{title}</h2>
         {actions}
         {link && (
           <Link

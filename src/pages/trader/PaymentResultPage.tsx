@@ -136,7 +136,7 @@ export function PaymentResultPage() {
         className="flex flex-col items-center gap-3 text-center"
       >
         {view.icon}
-        <h2 className="text-lg font-semibold text-fg" role="status">
+        <h2 className="text-xl font-semibold text-fg" role="status">
           {view.title}
         </h2>
         {view.body && <p className="max-w-md text-sm text-fg-2">{view.body}</p>}

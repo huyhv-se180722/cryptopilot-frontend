@@ -763,7 +763,7 @@ export function AnalysisChart({
               aria-pressed={toggles[item]}
               onClick={() => toggle(item)}
               className={classNames(
-                'h-7 rounded-full border px-2.5 text-[11px] font-medium pointer-coarse:h-9',
+                'h-7 rounded-full border px-2.5 text-xs font-medium pointer-coarse:h-9',
                 toggles[item]
                   ? 'border-primary-line bg-primary-soft text-primary'
                   : 'border-line text-muted hover:text-fg-2',
@@ -779,7 +779,7 @@ export function AnalysisChart({
               aria-pressed={item.pressed}
               onClick={item.onToggle}
               className={classNames(
-                'h-7 rounded-full border px-2.5 text-[11px] font-medium pointer-coarse:h-9',
+                'h-7 rounded-full border px-2.5 text-xs font-medium pointer-coarse:h-9',
                 item.pressed
                   ? 'border-primary-line bg-primary-soft text-primary'
                   : 'border-line text-muted hover:text-fg-2',
@@ -792,17 +792,17 @@ export function AnalysisChart({
         {referenceLabel && (referenceBars?.length ?? 0) > 0 && (
           <span
             data-testid="chart-reference-label"
-            className="rounded-full border border-(--cp-purple) px-2 text-[11px] font-medium text-(--cp-purple)"
+            className="rounded-full border border-(--cp-purple) px-2 text-xs font-medium text-(--cp-purple)"
           >
             {referenceLabel}
           </span>
         )}
         {series.loadingOlder && (
-          <span role="status" className="text-[11px] text-muted">
+          <span role="status" className="text-xs text-muted">
             {c.loadingOlder}
           </span>
         )}
-        <span className="ml-auto inline-flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-[11px] text-muted">
+        <span className="ml-auto inline-flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-xs text-muted">
           {series.forming && (
             <span className="inline-flex items-center gap-1.5">
               <span
@@ -847,7 +847,7 @@ export function AnalysisChart({
                   key={anchor.id}
                   style={{ top: anchor.y }}
                   className={classNames(
-                    'absolute left-2 z-10 inline-flex -translate-y-1/2 items-center gap-1 rounded border bg-surface pl-1.5 font-mono text-[11px] leading-none',
+                    'absolute left-2 z-10 inline-flex -translate-y-1/2 items-center gap-1 rounded border bg-surface pl-1.5 font-mono text-xs leading-none',
                     CHIP_TONES[line.tone],
                   )}
                 >
@@ -867,7 +867,7 @@ export function AnalysisChart({
             })}
           </div>
           {series.candles.length < 200 && toggles.ema200 && (
-            <p className="mt-2 text-[11px] text-muted-dim">{c.insufficient}</p>
+            <p className="mt-2 text-xs text-muted-dim">{c.insufficient}</p>
           )}
         </>
       )}

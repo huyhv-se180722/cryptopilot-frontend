@@ -59,7 +59,7 @@ export function PostCard({
             }
           : {})}
       />
-      <h3 className="mt-3 flex items-start gap-2 text-[15px] leading-snug font-semibold text-fg">
+      <h3 className="mt-3 flex items-start gap-2 text-base leading-snug font-semibold text-fg">
         <Link
           id={'post-' + post.id}
           to={to}

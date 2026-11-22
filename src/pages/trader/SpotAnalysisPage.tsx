@@ -54,19 +54,19 @@ function SpotAnalysis({ pair }: { pair: MarketPair }) {
   return (
     <>
       <header className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-2">
-        <h1 className="text-lg font-semibold text-fg">
+        <h1 className="text-xl font-semibold text-fg">
           {pair.baseAsset ?? pair.symbol}
           <span className="font-normal text-muted-dim">
             /{pair.quoteAsset ?? ''}
           </span>
-          <span className="ml-2 rounded border border-line px-1.5 align-middle text-[10px] font-semibold tracking-wider text-muted uppercase">
+          <span className="ml-2 rounded border border-line px-1.5 align-middle text-xs font-semibold text-muted">
             {copy.market.spot}
           </span>
         </h1>
         {ticker?.lastPrice && (
           <span className="flex items-baseline gap-2">
             <NumericText
-              className="text-lg font-semibold text-fg"
+              className="text-xl font-semibold text-fg"
               value={formatPrice(ticker.lastPrice, pair.tickSize)}
             />
             {ticker.changePercent24h && (

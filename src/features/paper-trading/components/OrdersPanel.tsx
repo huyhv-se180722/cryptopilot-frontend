@@ -222,7 +222,7 @@ export function OrdersPanel({
                       </button>
                     </div>
                     {wallet.data && !wallet.data.complete && (
-                      <p className="mb-2 text-[11px] text-warning">
+                      <p className="mb-2 text-xs text-warning">
                         {p.incompleteValue}
                       </p>
                     )}

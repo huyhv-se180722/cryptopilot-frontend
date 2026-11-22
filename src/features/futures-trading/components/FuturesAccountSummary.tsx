@@ -82,7 +82,7 @@ export function FuturesPnlSection({ days }: { days: number }) {
           <span className="font-medium text-fg">{c.symbol}</span>
           <span
             className={classNames(
-              'text-[10px]',
+              'text-xs',
               c.direction === 'LONG' ? 'text-positive' : 'text-negative',
             )}
           >

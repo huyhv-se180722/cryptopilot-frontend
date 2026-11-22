@@ -40,7 +40,7 @@ export function AuthShell() {
           <div className="rounded-2xl border border-line bg-surface p-5 shadow-overlay sm:p-6">
             <Outlet />
           </div>
-          <p className="mx-auto mt-6 max-w-[380px] text-center text-[11px] leading-relaxed text-white/60">
+          <p className="mx-auto mt-6 max-w-[380px] text-center text-xs leading-relaxed text-white/60">
             {copy.messages.MSG42}
           </p>
         </div>

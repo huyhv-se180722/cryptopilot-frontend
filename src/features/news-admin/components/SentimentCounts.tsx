@@ -41,12 +41,8 @@ export function SentimentCounts() {
       aria-label={n.sentimentTitle}
       className="mb-4 rounded-xl border border-line bg-surface p-4"
     >
-      <h2 className="text-[10px] font-semibold tracking-widest text-muted-x uppercase">
-        {n.sentimentTitle}
-      </h2>
-      <p className="mt-0.5 mb-3 text-[11px] text-muted-dim">
-        {n.sentimentHint}
-      </p>
+      <h2 className="text-xs font-semibold text-muted-x">{n.sentimentTitle}</h2>
+      <p className="mt-0.5 mb-3 text-xs text-muted-dim">{n.sentimentHint}</p>
       {query.isPending ? (
         <Skeleton className="h-16 w-full rounded-lg" />
       ) : query.isError ? (
@@ -75,16 +71,16 @@ export function SentimentCounts() {
               <dl className="grid grid-cols-3 gap-3">
                 {SENTIMENTS.map((s) => (
                   <div key={s.key}>
-                    <dt className="text-[11px] text-muted-dim">{n[s.label]}</dt>
+                    <dt className="text-xs text-muted-dim">{n[s.label]}</dt>
                     <dd
                       className={classNames(
-                        'text-lg font-bold tabular-nums',
+                        'text-xl font-bold tabular-nums',
                         s.text,
                       )}
                     >
                       {counts[s.key]}
                     </dd>
-                    <dd className="text-[11px] text-muted-dim">
+                    <dd className="text-xs text-muted-dim">
                       {formatCopy(n.sentimentShare, {
                         n: counts[s.key],
                         share: share(counts[s.key]),

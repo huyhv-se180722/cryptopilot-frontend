@@ -21,7 +21,7 @@ const tones = {
 
 /**
  * One panel of key figures split into cells (T-141), in place of a row of
- * separate cards: a short uppercase label, the figure in mono and an
+ * separate cards: a short label (12 px, D-161), the figure in mono and an
  * optional note. Two cells a row on a phone, as many as fit from 640 px.
  * An optional header line sits above the cells (a scope, a link).
  */
@@ -46,7 +46,7 @@ export function KpiStrip({
       )}
     >
       {header && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-2.5 text-[11.5px] text-muted-dim">
+        <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-2.5 text-xs text-muted-dim">
           {header}
         </div>
       )}
@@ -56,9 +56,7 @@ export function KpiStrip({
             key={item.id}
             className="flex min-w-0 flex-col gap-1.5 bg-surface px-4 py-3.5"
           >
-            <dt className="text-[10.5px] font-semibold tracking-[0.06em] text-muted uppercase">
-              {item.label}
-            </dt>
+            <dt className="text-xs font-semibold text-muted">{item.label}</dt>
             <dd
               className={classNames(
                 'm-0 font-mono text-xl leading-tight font-semibold',
@@ -69,7 +67,7 @@ export function KpiStrip({
             </dd>
             {item.extra}
             {item.note && (
-              <dd className="m-0 text-[11.5px] text-muted-dim">{item.note}</dd>
+              <dd className="m-0 text-xs text-muted-dim">{item.note}</dd>
             )}
           </div>
         ))}

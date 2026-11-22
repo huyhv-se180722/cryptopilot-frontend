@@ -30,7 +30,7 @@ export function KeyLevels({
     >
       <h2
         id="key-levels-title"
-        className="mb-2 text-[10px] font-semibold tracking-widest text-muted-x uppercase"
+        className="mb-2 text-xs font-semibold text-muted-x"
       >
         {a.levelsTitle}
       </h2>

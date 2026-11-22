@@ -49,7 +49,7 @@ export function NewsSourceTable({
           <span className="line-clamp-1 font-medium text-fg">
             {s.sourceName}
           </span>
-          <span className="line-clamp-1 font-mono text-[11px] text-muted-dim">
+          <span className="line-clamp-1 font-mono text-xs text-muted-dim">
             {s.feedUrl}
           </span>
         </span>
@@ -81,7 +81,7 @@ export function NewsSourceTable({
                 {n[`crawl${s.lastCrawl.status}`]}
               </Badge>
               {s.lastCrawl.articlesFound !== null && (
-                <span className="text-[11px] text-muted-dim">
+                <span className="text-xs text-muted-dim">
                   {formatCopy(n.crawlCounts, {
                     inserted: s.lastCrawl.articlesInserted ?? 0,
                     found: s.lastCrawl.articlesFound,

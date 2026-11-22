@@ -1865,8 +1865,6 @@ export const en = {
     radarFeedLive: 'Market data · live',
     radarFeedDelayed: 'Market data · delayed',
     radarFeedConnecting: 'Market data · connecting',
-    radarCenterTop: 'CRYPTOPILOT',
-    radarCenterBottom: 'SPOT · 24H',
     radarNode: '{pair} {change}% in 24h. Open its chart.',
     breadthTitle: 'Market breadth',
     breadthRising: 'Rising',

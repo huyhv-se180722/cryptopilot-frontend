@@ -336,7 +336,7 @@ function AlertForm({
               )}
             </p>
             {target.mode === 'create' && target.addsToWatchlist && (
-              <p className="mt-0.5 text-[11px] text-muted-dim">
+              <p className="mt-0.5 text-xs text-muted-dim">
                 {a.addsToWatchlist}
               </p>
             )}
@@ -390,10 +390,10 @@ function AlertForm({
           </fieldset>
         </div>
         {errors.market && (
-          <p className="-mt-2 text-[11px] text-negative">{a.notListed}</p>
+          <p className="-mt-2 text-xs text-negative">{a.notListed}</p>
         )}
         {!listedOn(item, draft.market) && (
-          <p className="-mt-2 text-[11px] text-negative">{a.notListed}</p>
+          <p className="-mt-2 text-xs text-negative">{a.notListed}</p>
         )}
 
         {upsell && (
@@ -494,7 +494,7 @@ function AlertForm({
               label: a[`mode${mode}`],
             }))}
           />
-          <p className="mt-1 text-[11px] text-muted-dim">{a.modeHint}</p>
+          <p className="mt-1 text-xs text-muted-dim">{a.modeHint}</p>
         </fieldset>
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
@@ -558,9 +558,7 @@ function AlertForm({
         </fieldset>
 
         {draft.type === 'INDICATOR' && (
-          <p className="text-[11px] text-muted-dim">
-            {a.indicatorNotEvaluated}
-          </p>
+          <p className="text-xs text-muted-dim">{a.indicatorNotEvaluated}</p>
         )}
 
         {problem && !fieldsRefused && save.state.status === 'error' && (

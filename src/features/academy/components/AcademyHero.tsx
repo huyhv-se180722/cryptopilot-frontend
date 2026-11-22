@@ -69,7 +69,7 @@ export function AcademyHero({
       />
       <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex flex-col justify-center">
-          <p className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold tracking-wider uppercase">
+          <p className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">
             <Sparkles size={12} aria-hidden="true" />
             {a.heroEyebrow}
           </p>
@@ -135,7 +135,7 @@ export function AcademyHero({
           aria-label={a.glossaryTitle}
           className="rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-md"
         >
-          <p className="flex items-center gap-2 text-xs font-semibold tracking-wider text-white/80 uppercase">
+          <p className="flex items-center gap-2 text-xs font-semibold text-white/80">
             <BookOpenText size={14} aria-hidden="true" />
             {a.termOfDay}
           </p>
@@ -144,7 +144,7 @@ export function AcademyHero({
               to={'/academy/glossary#' + featured.slug}
               className="mt-3 block text-white no-underline"
             >
-              <span className="text-lg font-semibold">{featured.term}</span>
+              <span className="text-xl font-semibold">{featured.term}</span>
               <span className="mt-1 block text-sm leading-6 text-white/80">
                 {featured.definition}
               </span>
@@ -154,7 +154,7 @@ export function AcademyHero({
           )}
           {quick.length > 0 && (
             <>
-              <p className="mt-5 text-[11px] font-semibold tracking-wider text-white/60 uppercase">
+              <p className="mt-5 text-xs font-semibold text-white/60">
                 {a.quickTerms}
               </p>
               <ul className="mt-2 flex flex-wrap gap-1.5">

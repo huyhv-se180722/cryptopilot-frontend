@@ -6,6 +6,7 @@ import type { TradingPlan } from '../../../types/domain';
 import { trimDecimal } from '../../../utils/decimal-format';
 import { planAmount, planPrice, planRatio } from './plan-format';
 import { PriceLadder } from './PriceLadder';
+import { MixedText } from '../../../components/ui/MixedText';
 
 function Figure({
   label,
@@ -20,12 +21,10 @@ function Figure({
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-1">
-      <dt className="text-[10.5px] font-semibold tracking-[0.06em] text-muted uppercase">
-        {label}
-      </dt>
+      <dt className="text-xs font-semibold text-muted">{label}</dt>
       <dd
         className={
-          'm-0 font-mono text-lg leading-tight font-semibold ' +
+          'm-0 font-mono text-xl leading-tight font-semibold ' +
           (tone === 'positive'
             ? 'text-positive'
             : tone === 'negative'
@@ -35,7 +34,7 @@ function Figure({
       >
         {children}
         {note && (
-          <span className="ml-1 font-sans text-[11.5px] font-normal text-muted-dim">
+          <span className="ml-1 font-sans text-xs font-normal text-muted-dim">
             {note}
           </span>
         )}
@@ -75,14 +74,16 @@ export function PlanSummary({ plan }: { plan: TradingPlan }) {
           />
           <span
             aria-hidden="true"
-            className="mt-1 flex justify-between gap-2 font-mono text-[11px] text-muted"
+            className="mt-1 flex justify-between gap-2 text-xs text-muted"
           >
             <span className="text-negative">
-              {'SL ' + price(plan.stopLoss)}
+              <MixedText text={'SL ' + price(plan.stopLoss)} />
             </span>
-            <span>{p.ladderEntry + ' ' + price(plan.entryPrice)}</span>
+            <span>
+              <MixedText text={p.ladderEntry + ' ' + price(plan.entryPrice)} />
+            </span>
             <span className="text-positive">
-              {'TP ' + price(plan.takeProfit)}
+              <MixedText text={'TP ' + price(plan.takeProfit)} />
             </span>
           </span>
         </dd>

@@ -137,7 +137,7 @@ export function ClosePositionDialog({
                   <span>
                     <NumericText value={planAmount(data.fundingSoFar)} signed />
                     {data.fundingProvisional && (
-                      <span className="ml-1 text-[10px] text-muted-dim">
+                      <span className="ml-1 text-xs text-muted-dim">
                         {p.provisional}
                       </span>
                     )}
@@ -152,7 +152,7 @@ export function ClosePositionDialog({
                 />,
               )}
             </dl>
-            <p className="text-[11px] text-muted-dim">
+            <p className="text-xs text-muted-dim">
               {formatCopy(p.closeEstimateAt, {
                 time: formatInstantLocal(data.at),
               })}

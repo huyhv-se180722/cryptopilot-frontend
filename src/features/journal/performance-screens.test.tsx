@@ -147,6 +147,19 @@ describe('SCR-23 performance dashboard', () => {
     expect(performance.equityCurve).not.toHaveBeenCalled();
   });
 
+  it('T-142: names a coin row as a pair, BTC/USDT', async () => {
+    const performance = service({
+      summary: vi.fn(async () => ({ ...SUMMARY, advanced: ADVANCED })),
+      breakdown: vi.fn(async () => [
+        { ...ROW, key: 'BTCUSDT', label: 'BTCUSDT' },
+      ]),
+    });
+    await open(performance, PRO);
+    const coins = await screen.findByRole('region', { name: 'By coin' });
+    expect(await within(coins).findByText('BTC/USDT')).toBeTruthy();
+    expect(within(coins).queryByText('BTCUSDT')).toBeNull();
+  });
+
   it('names the market rows from the copy, not the API', async () => {
     const performance = service({
       summary: vi.fn(async () => ({ ...SUMMARY, advanced: ADVANCED })),

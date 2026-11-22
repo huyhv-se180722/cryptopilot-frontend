@@ -29,3 +29,26 @@ describe('inline fields', () => {
     ).toBe('GTC');
   });
 });
+
+describe('filter fields (T-142)', () => {
+  it('put the label outside at the left and the choice at the left of a compact box', () => {
+    render(
+      <>
+        <Select filter label="Status" defaultValue="ALL">
+          <option value="ALL">All statuses</option>
+        </Select>
+        <Input filter label="From" type="date" />
+      </>,
+    );
+    const status = screen.getByRole('combobox', { name: 'Status' });
+    const label = screen.getByText('Status');
+    expect(label.tagName).toBe('LABEL');
+    expect(status.parentElement?.contains(label)).toBe(false);
+    expect(status.className.split(' ')).toEqual(
+      expect.arrayContaining(['text-left', 'h-8']),
+    );
+    expect(status.className.split(' ')).not.toContain('text-right');
+    const from = screen.getByLabelText('From');
+    expect(from.className.split(' ')).toContain('h-8');
+  });
+});

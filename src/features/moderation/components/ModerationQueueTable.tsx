@@ -42,7 +42,7 @@ export function ModerationQueueTable({
           <span className="line-clamp-1 font-medium text-fg">
             {item.post.title}
           </span>
-          <span className="line-clamp-1 text-[11px] text-muted-dim">
+          <span className="line-clamp-1 text-xs text-muted-dim">
             {item.post.excerpt}
           </span>
         </span>

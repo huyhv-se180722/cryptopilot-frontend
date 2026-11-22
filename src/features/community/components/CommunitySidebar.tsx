@@ -4,8 +4,7 @@ import { buttonClassName } from '../../../components/ui/button-styles';
 import { useCopy } from '../../../hooks/use-copy';
 
 const panel = 'rounded-2xl border border-line bg-surface p-4';
-const heading =
-  'mb-3 text-[10px] font-semibold tracking-widest text-muted-x uppercase';
+const heading = 'mb-3 text-xs font-semibold text-muted-x';
 
 export function RulesCard() {
   const c = useCopy().community;
@@ -18,12 +17,10 @@ export function RulesCard() {
         <ShieldCheck size={12} aria-hidden="true" className="text-primary" />
         {c.rulesTitle}
       </h2>
-      <p className="text-[11px] leading-relaxed text-muted-dim">
-        {c.rulesBody}
-      </p>
+      <p className="text-xs leading-relaxed text-muted-dim">{c.rulesBody}</p>
       <Link
         to="/community/rules"
-        className="mt-2 inline-block text-[11px] font-semibold text-primary no-underline hover:underline"
+        className="mt-2 inline-block text-xs font-semibold text-primary no-underline hover:underline"
       >
         {c.rulesReadAll}
       </Link>
@@ -40,7 +37,7 @@ export function JoinCard() {
         <Zap size={13} aria-hidden="true" className="text-accent" />
         {c.signInTitle}
       </h2>
-      <p className="mb-4 text-[11px] leading-relaxed text-muted-dim">
+      <p className="mb-4 text-xs leading-relaxed text-muted-dim">
         {c.signInBody}
       </p>
       <Link

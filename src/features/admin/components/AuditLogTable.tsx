@@ -44,7 +44,7 @@ export function ActorCell({
     <span className="flex min-w-0 items-center gap-2">
       <span
         aria-hidden="true"
-        className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-soft text-[10px] font-bold text-primary"
+        className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs font-bold text-primary"
       >
         {initials(actor.displayName, actor.email)}
       </span>
@@ -55,12 +55,12 @@ export function ActorCell({
           </span>
           {actor.id === me && <Badge tone="info">{t.you}</Badge>}
           {actor.role === 'ADMIN' && actor.id !== me && (
-            <span className="rounded border border-line px-1 text-[9px] font-semibold tracking-wide text-muted-dim uppercase">
+            <span className="rounded border border-line px-1 text-xs font-semibold text-muted-dim">
               Admin
             </span>
           )}
         </span>
-        <span className="max-w-52 truncate text-[11px] text-muted-dim">
+        <span className="max-w-52 truncate text-xs text-muted-dim">
           {actor.email ?? shortId(actor.id)}
         </span>
       </span>
@@ -116,7 +116,7 @@ export function AuditLogTable({
           </span>
           {entry.entityId && (
             <span
-              className="font-mono text-[10.5px] text-muted-dim"
+              className="font-mono text-xs text-muted-dim"
               title={entry.entityId}
             >
               {shortId(entry.entityId)}
@@ -134,7 +134,7 @@ export function AuditLogTable({
       id: 'ip',
       header: t.colIp,
       render: (entry) => (
-        <span className="font-mono text-[11px] text-muted-dim">
+        <span className="font-mono text-xs text-muted-dim">
           {entry.ipAddress ?? t.none}
         </span>
       ),
@@ -157,9 +157,9 @@ function ChangeSummary({ entry }: { entry: AuditLogEntry }) {
   const fields = summaryFields(entry);
   const reason = reasonOf(entry);
   if (!fields.length && !reason)
-    return <span className="text-[11px] text-muted-x">{t.noValues}</span>;
+    return <span className="text-xs text-muted-x">{t.noValues}</span>;
   return (
-    <span className="flex max-w-md flex-col gap-0.5 text-[11px] whitespace-normal">
+    <span className="flex max-w-md flex-col gap-0.5 text-xs whitespace-normal">
       {fields.slice(0, SUMMARY_FIELDS).map((field) => (
         <span key={field.field} className="truncate font-mono text-fg-2">
           <span className="text-muted-dim">{field.field}</span>{' '}

@@ -2,8 +2,8 @@
 export const fieldLabelClass = 'mb-1.5 block text-xs font-medium text-fg-2';
 export const fieldControlClass =
   'w-full rounded-lg border border-line-strong bg-surface px-3.5 py-2.5 text-sm text-fg outline-none placeholder:text-muted-x focus-visible:border-primary focus-visible:outline-none aria-[invalid=true]:border-negative disabled:cursor-not-allowed disabled:opacity-60';
-export const fieldErrorClass = 'mt-1 block text-[11px] text-negative';
-export const fieldHintClass = 'mt-1 block text-[11px] text-muted-dim';
+export const fieldErrorClass = 'mt-1 block text-xs text-negative';
+export const fieldHintClass = 'mt-1 block text-xs text-muted-dim';
 /**
  * Inline field of a dense panel (an exchange's order form): the label at
  * the left inside a 36px box, the value at the right.
@@ -14,3 +14,15 @@ export const fieldInlineLabelClass =
   'shrink-0 text-xs whitespace-nowrap text-muted';
 export const fieldInlineControlClass =
   'h-full min-w-0 flex-1 bg-transparent text-right text-sm text-fg outline-none placeholder:text-muted-x focus-visible:outline-none disabled:cursor-not-allowed';
+/**
+ * Filter of a list (an exchange's order history): the label outside at the
+ * left, then a compact 32px box as wide as its options, the choice and the
+ * list it opens aligned at the left.
+ */
+export const fieldFilterLabelClass =
+  'shrink-0 text-xs whitespace-nowrap text-muted';
+const fieldFilterBoxClass =
+  'h-8 max-w-full rounded-md border border-line-strong bg-surface py-0 pl-3 text-left text-sm text-fg outline-none hover:border-primary-line focus-visible:border-primary focus-visible:outline-none aria-[invalid=true]:border-negative disabled:cursor-not-allowed disabled:opacity-60';
+export const fieldFilterControlClass =
+  fieldFilterBoxClass + ' cursor-pointer appearance-none pr-8';
+export const fieldFilterInputClass = fieldFilterBoxClass + ' pr-3';

@@ -120,11 +120,11 @@ export function SpotOrderTicket({
       )}
 
       {unavailable && (
-        <p id={reasonId} className="text-[11px] text-warning">
+        <p id={reasonId} className="text-xs text-warning">
           {unavailable}
         </p>
       )}
-      <p className="text-[10px] text-muted-dim">
+      <p className="text-xs text-muted-dim">
         {type === 'STOP_LIMIT' || type === 'STOP_MARKET'
           ? p.stopNote + ' '
           : ''}

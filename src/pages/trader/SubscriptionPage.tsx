@@ -117,9 +117,7 @@ export function SubscriptionPage() {
           className="mb-5 flex flex-wrap items-center justify-between gap-3"
         >
           <div>
-            <p className="text-xs uppercase tracking-wide text-muted">
-              {b.currentTitle}
-            </p>
+            <p className="text-xs text-muted">{b.currentTitle}</p>
             <p className="text-sm font-medium text-fg">
               {sub.tier === 'FREE' || !sub.endAt
                 ? b.currentFree

@@ -350,7 +350,7 @@ export function FuturesOrderForm({
         </label>
       </div>
 
-      <p className="flex justify-between text-[11px] text-muted">
+      <p className="flex justify-between text-xs text-muted">
         <span>{f.available}</span>
         <span className="text-fg-2">
           {account ? (
@@ -472,7 +472,7 @@ export function FuturesOrderForm({
         </label>
       </div>
       {draft.sizeUnit === 'QUOTE' && quantity && (
-        <p className="-mt-1 text-[10px] text-muted-dim">
+        <p className="-mt-1 text-xs text-muted-dim">
           ≈ <NumericText value={groupThousands(quantity)} suffix={' ' + base} />
         </p>
       )}
@@ -503,7 +503,7 @@ export function FuturesOrderForm({
         )}
         {(draft.type === 'LIMIT' || draft.type === 'STOP_LIMIT') && (
           // Compact on the row of the checkboxes, as the exchange's "TIF GTC".
-          <label className="relative ml-auto inline-flex items-center gap-1 text-[11px] text-muted">
+          <label className="relative ml-auto inline-flex items-center gap-1 text-xs text-muted">
             <abbr title={f.tif} className="no-underline">
               TIF
             </abbr>
@@ -516,7 +516,7 @@ export function FuturesOrderForm({
                     .value as FuturesDraft['timeInForce'],
                 })
               }
-              className="cursor-pointer appearance-none bg-transparent pr-3.5 text-[11px] font-medium text-fg-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+              className="cursor-pointer appearance-none bg-transparent pr-3.5 text-xs font-medium text-fg-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
             >
               <option value="GTC">GTC</option>
               <option value="IOC">IOC</option>
@@ -558,7 +558,7 @@ export function FuturesOrderForm({
       )}
 
       {notice && <FormNotice tone="error">{notice}</FormNotice>}
-      {unavailable && <p className="text-[11px] text-warning">{unavailable}</p>}
+      {unavailable && <p className="text-xs text-warning">{unavailable}</p>}
 
       <div className="grid grid-cols-2 gap-2">
         {actions.map((action, index) => {
@@ -616,7 +616,7 @@ export function FuturesOrderForm({
       </div>
 
       <Warnings checks={shown} f={f} />
-      <p className="text-[10px] text-muted-dim">{f.formNote}</p>
+      <p className="text-xs text-muted-dim">{f.formNote}</p>
     </form>
   );
 }
@@ -667,7 +667,7 @@ function Figure({
   return (
     <p
       className={classNames(
-        'flex gap-1 text-[11px] text-muted',
+        'flex gap-1 text-xs text-muted',
         align === 'end' ? 'justify-end' : 'justify-start',
       )}
     >
@@ -712,7 +712,7 @@ function Warnings({
         <li
           key={warning.type + (warning.side ?? '')}
           className={classNames(
-            'rounded-md px-2 py-1 text-[11px]',
+            'rounded-md px-2 py-1 text-xs',
             warning.severity === 'BLOCKING'
               ? 'bg-negative-soft text-negative'
               : warning.severity === 'WARNING'

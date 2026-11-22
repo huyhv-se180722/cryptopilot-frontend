@@ -75,10 +75,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <fieldset className="rounded-xl border border-line bg-surface p-4">
       <legend className="sr-only">{title}</legend>
-      <p
-        aria-hidden="true"
-        className="mb-3 text-[10px] font-semibold tracking-widest text-muted-x uppercase"
-      >
+      <p aria-hidden="true" className="mb-3 text-xs font-semibold text-muted-x">
         {title}
       </p>
       <div className="grid gap-4 sm:grid-cols-2">{children}</div>
@@ -520,7 +517,7 @@ export function PlanEditor({
               <span className={fieldHintClass}>{p.marketEntryNote}</span>
               {expectedFill && (
                 <p className="mt-2 text-xs text-fg-2">
-                  <span className="mr-1.5 text-[11px] text-muted-dim">
+                  <span className="mr-1.5 text-xs text-muted-dim">
                     {p.expectedFill}
                   </span>
                   <NumericText value={planPrice(expectedFill)} />
@@ -679,7 +676,7 @@ export function PlanEditor({
           title={p.riskTitle}
           aside={
             calculation.updating && result ? (
-              <span className="inline-flex items-center gap-1 text-[10px] text-muted-dim">
+              <span className="inline-flex items-center gap-1 text-xs text-muted-dim">
                 <Loader2
                   size={10}
                   aria-hidden="true"
@@ -701,13 +698,13 @@ export function PlanEditor({
               !calcFailed && <p className="text-xs text-muted">{p.riskIdle}</p>
             )}
             {panelProblem && (
-              <p className="mt-3 text-[11px] text-negative">{panelProblem}</p>
+              <p className="mt-3 text-xs text-negative">{panelProblem}</p>
             )}
             {!checked.ok && result && (
-              <p className="mt-3 text-[11px] text-muted-dim">{p.riskStale}</p>
+              <p className="mt-3 text-xs text-muted-dim">{p.riskStale}</p>
             )}
             {calcFailed && (
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-negative">
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-negative">
                 {problemOf(calculation.error)?.code ===
                 'MARKET_PRICE_UNAVAILABLE'
                   ? p.priceUnavailable
@@ -722,7 +719,7 @@ export function PlanEditor({
               </div>
             )}
           </div>
-          <p className="mt-3 border-t border-line pt-2 text-[10px] leading-relaxed text-muted-dim">
+          <p className="mt-3 border-t border-line pt-2 text-xs leading-relaxed text-muted-dim">
             {messageText(copy, 'MSG42')}
           </p>
         </Panel>
@@ -779,7 +776,7 @@ export function PlanEditor({
             {p.saveActivate}
           </Button>
           {blocked && (
-            <p id="plan-activate-blocked" className="text-[11px] text-negative">
+            <p id="plan-activate-blocked" className="text-xs text-negative">
               {messageText(copy, 'MSG18')}
             </p>
           )}
@@ -823,7 +820,7 @@ function AccountCapital({
           <NumericText value={planAmount(capital)} />
         </p>
       )}
-      <Link to="/profile" className="mt-1 inline-block text-[11px]">
+      <Link to="/profile" className="mt-1 inline-block text-xs">
         {missing ? p.capitalSet : p.capitalChange}
       </Link>
     </div>

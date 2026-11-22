@@ -46,11 +46,11 @@ export function NewsArticleTable({
             {a.aiTitle ?? a.title}
           </a>
           {a.aiTitle && (
-            <span className="line-clamp-1 text-[11px] text-muted-dim">
+            <span className="line-clamp-1 text-xs text-muted-dim">
               {a.title}
             </span>
           )}
-          <span className="text-[11px] text-muted-dim">{a.source}</span>
+          <span className="text-xs text-muted-dim">{a.source}</span>
         </span>
       ),
     },
@@ -76,12 +76,12 @@ export function NewsArticleTable({
             {n[`status${a.status}`]}
           </Badge>
           {a.summaryAttempts > 0 && (
-            <span className="text-[11px] text-muted-dim">
+            <span className="text-xs text-muted-dim">
               {formatCopy(n.attempts, { n: a.summaryAttempts })}
             </span>
           )}
           {a.summaryError && (
-            <span className="line-clamp-2 text-[11px] text-negative">
+            <span className="line-clamp-2 text-xs text-negative">
               {a.summaryError}
             </span>
           )}
@@ -92,7 +92,7 @@ export function NewsArticleTable({
       id: 'summary',
       header: n.colSummary,
       render: (a) => (
-        <span className="line-clamp-3 block max-w-[320px] text-[11px] whitespace-normal text-fg-2">
+        <span className="line-clamp-3 block max-w-[320px] text-xs whitespace-normal text-fg-2">
           {a.aiSummary ?? <span className="text-muted-dim">{n.noSummary}</span>}
         </span>
       ),

@@ -34,7 +34,7 @@ export function PostCover({
         </span>
       )}
       {extra > 0 && (
-        <span className="absolute right-2 bottom-2 rounded-md bg-black/60 px-2 py-0.5 font-mono text-[11px] font-semibold text-white">
+        <span className="absolute right-2 bottom-2 rounded-md bg-black/60 px-2 py-0.5 font-mono text-xs font-semibold text-white">
           {formatCopy(copy.community.moreImages, { n: extra })}
         </span>
       )}

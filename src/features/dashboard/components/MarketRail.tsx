@@ -17,6 +17,7 @@ import {
 } from '../../../utils/decimal-format';
 import { signOf } from '../../../utils/decimal-sign';
 import { pairLabel } from '../../../utils/pair-label';
+import { CoinLogo } from '../../../components/ui/CoinLogo';
 import { useWatchlist } from '../../watchlist/hooks/use-watchlist';
 
 type Tab = 'watch' | 'gainers' | 'losers';
@@ -50,7 +51,7 @@ function Name({ symbol, pair }: { symbol: string; pair?: MarketPair }) {
     ? [pair.baseAsset ?? symbol, pair.quoteAsset]
     : pairLabel(symbol).split('/');
   return (
-    <span className="text-[13px] font-semibold text-fg">
+    <span className="text-sm font-semibold text-fg">
       {base}
       {quote && <span className="font-medium text-muted-dim">/{quote}</span>}
     </span>
@@ -95,11 +96,19 @@ export function MarketRail({
     const ticker = action === 'none' ? undefined : tickers.get(symbol);
     const cells = (
       <>
-        <span className="flex min-w-0 flex-col gap-0.5">
-          <Name symbol={symbol} {...(pair ? { pair } : {})} />
-          <span className="truncate text-[11px] text-muted-dim">{meta}</span>
+        <span className="flex min-w-0 items-center gap-2.5">
+          <CoinLogo
+            src={pair?.logoUrl}
+            symbol={
+              pair?.baseAsset ?? pairLabel(symbol).split('/')[0] ?? symbol
+            }
+          />
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <Name symbol={symbol} {...(pair ? { pair } : {})} />
+            <span className="truncate text-xs text-muted-dim">{meta}</span>
+          </span>
         </span>
-        <span className="text-right font-mono text-[12.5px] text-fg">
+        <span className="text-right font-mono text-xs text-fg">
           {ticker?.lastPrice ? (
             <NumericText
               value={formatPrice(ticker.lastPrice, pair?.tickSize ?? null)}
@@ -284,17 +293,14 @@ export function MarketRail({
       </div>
       <div
         aria-hidden="true"
-        className={classNames(
-          GRID,
-          'py-2 text-[10.5px] font-semibold tracking-[0.06em] text-muted uppercase',
-        )}
+        className={classNames(GRID, 'py-2 text-xs font-semibold text-muted')}
       >
         <span>{d.railPair}</span>
         <span className="text-right">{d.railPrice}</span>
         <span className="text-right">{d.railChange}</span>
       </div>
       <div className="max-h-[26rem] flex-1 overflow-y-auto">{body}</div>
-      <p className="border-t border-line px-3.5 py-2.5 text-[11px] text-muted-dim">
+      <p className="border-t border-line px-3.5 py-2.5 text-xs text-muted-dim">
         {tab === 'watch' ? d.railFootWatch : d.railFootMovers}
       </p>
     </aside>

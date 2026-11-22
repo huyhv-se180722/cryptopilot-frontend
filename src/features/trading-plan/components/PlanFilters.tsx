@@ -41,12 +41,12 @@ export function PlanFilters({
     all: p.periodAll,
   };
   return (
-    <div className="mb-3 flex flex-wrap items-end gap-3">
+    <div className="mb-3 flex flex-wrap items-center gap-x-6 gap-y-2">
       <Select
         label={p.filterPair}
         value={pairId}
         onChange={(event) => onPairChange(event.target.value)}
-        className="w-44"
+        filter
       >
         <option value="">{p.filterAllPairs}</option>
         {pairs.map((pair) => (
@@ -61,15 +61,15 @@ export function PlanFilters({
         onChange={(event) =>
           onMarketChange(event.target.value as MarketType | 'all')
         }
-        className="w-44"
+        filter
       >
         <option value="all">{p.filterAllMarkets}</option>
         <option value="spot">{copy.market.spot}</option>
         <option value="futures">{copy.market.futures}</option>
       </Select>
-      <div>
+      <div className="flex items-center gap-2">
         <span
-          className="mb-1.5 block text-xs font-medium text-fg-2"
+          className="shrink-0 text-xs whitespace-nowrap text-muted"
           aria-hidden="true"
         >
           {p.filterPeriod}

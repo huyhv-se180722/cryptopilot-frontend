@@ -47,7 +47,7 @@ export function AccountAudit({
       id: 'by',
       header: t.colBy,
       render: (entry) => (
-        <span className="font-mono text-[11px] text-muted-dim">
+        <span className="font-mono text-xs text-muted-dim">
           {entry.actorId === null
             ? t.bySystem
             : entry.actorId === me
@@ -62,7 +62,7 @@ export function AccountAudit({
       render: (entry) => {
         const { fields, reason } = describeChange(entry);
         return (
-          <span className="flex max-w-md flex-col gap-0.5 text-[11px]">
+          <span className="flex max-w-md flex-col gap-0.5 text-xs">
             {fields.map((field) => (
               <span key={field.name} className="font-mono text-fg-2">
                 {field.name}: {field.from} → {field.to}
@@ -81,7 +81,7 @@ export function AccountAudit({
       id: 'ip',
       header: t.colIp,
       render: (entry) => (
-        <span className="font-mono text-[11px] text-muted-dim">
+        <span className="font-mono text-xs text-muted-dim">
           {entry.ipAddress ?? '—'}
         </span>
       ),

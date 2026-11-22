@@ -25,7 +25,7 @@ export function TradePanel({
       )}
     >
       <div className="mb-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-        <h2 className="text-[10px] font-semibold tracking-widest whitespace-nowrap text-muted-x uppercase">
+        <h2 className="text-xs font-semibold whitespace-nowrap text-muted-x">
           {title}
         </h2>
         {actions && <div className="flex items-center gap-1.5">{actions}</div>}

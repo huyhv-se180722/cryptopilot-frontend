@@ -94,7 +94,7 @@ export function NavDropdown({ item }: { item: NavItem }) {
           }
         }}
         className={classNames(
-          'relative flex h-[52px] shrink-0 items-center gap-1.5 px-2.5 text-[12px] font-medium whitespace-nowrap min-[1400px]:px-2 2xl:px-3',
+          'relative flex h-[52px] shrink-0 items-center gap-1.5 px-2.5 text-xs font-medium whitespace-nowrap min-[1400px]:px-2 2xl:px-3',
           active ? 'text-primary' : 'text-muted hover:text-fg-2',
         )}
       >

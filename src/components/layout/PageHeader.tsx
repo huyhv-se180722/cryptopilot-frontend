@@ -20,7 +20,7 @@ export function PageHeader({
         <h1
           className={classNames(
             'font-semibold text-fg',
-            size === 'lg' ? 'text-lg' : 'text-sm',
+            size === 'lg' ? 'text-xl' : 'text-sm',
           )}
         >
           {title}

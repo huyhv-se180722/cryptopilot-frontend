@@ -118,7 +118,7 @@ export function AddPairDialog({
                       {label}
                     </span>
                     {pair.baseAssetName && (
-                      <span className="block truncate text-[11px] text-muted-dim">
+                      <span className="block truncate text-xs text-muted-dim">
                         {pair.baseAssetName}
                       </span>
                     )}
