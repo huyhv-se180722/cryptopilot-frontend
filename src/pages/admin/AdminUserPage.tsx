@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Ban, Lock, ShieldCheck, Unlock, User } from 'lucide-react';
 import { Alert, ErrorState } from '../../components/feedback/States';
-import { StatCard } from '../../components/layout/StatCard';
+import { KpiStrip } from '../../components/layout/KpiStrip';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -86,7 +86,7 @@ function Account({ detail }: { detail: AdminUserDetail }) {
 
   return (
     <>
-      <header className="mb-5 flex flex-wrap items-start justify-between gap-4">
+      <header className="mb-4 flex flex-wrap items-start justify-between gap-4 rounded-xl border border-line bg-surface p-4">
         <div className="flex min-w-0 items-center gap-3">
           <span
             aria-hidden="true"
@@ -160,28 +160,29 @@ function Account({ detail }: { detail: AdminUserDetail }) {
       </header>
       {own && <Alert tone="info" title={t.ownAccount} className="mb-5" />}
 
-      <section aria-label={t.statsCaption} className="mb-5">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard
-            label={t.currentPlan}
-            value={
+      <KpiStrip
+        label={t.statsCaption}
+        className="mb-5"
+        items={[
+          {
+            id: 'plan',
+            label: t.currentPlan,
+            value: (
               <Badge tone={planTone[account.plan]}>
                 {t[`plan${account.plan}`]}
               </Badge>
-            }
-            accent="accent"
-          />
-          {activity.map(([name, count]) => (
-            <StatCard
-              key={name}
-              label={isKnown(name) ? t[`activity${name}`] : name}
-              value={String(count)}
-            />
-          ))}
-        </div>
-      </section>
+            ),
+          },
+          ...activity.map(([name, count]) => ({
+            id: name,
+            label: isKnown(name) ? t[`activity${name}`] : name,
+            value: String(count),
+          })),
+        ]}
+      />
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+      {/* Two balanced columns from 1024 px: the profile, then its audit trail. */}
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
         <Card>
           <SectionTitle>{t.profileTitle}</SectionTitle>
           <dl className="grid gap-3 text-xs">
@@ -216,11 +217,13 @@ function Account({ detail }: { detail: AdminUserDetail }) {
             </Row>
           </dl>
         </Card>
-        <section className="min-w-0">
-          <SectionTitle>{t.auditTitle}</SectionTitle>
-          <p className="-mt-3 mb-3 text-xs text-muted-dim">{t.auditHint}</p>
-          <AccountAudit entries={detail.recentAudit} me={me} />
-        </section>
+        <Card className="min-w-0">
+          <section aria-label={t.auditTitle}>
+            <SectionTitle>{t.auditTitle}</SectionTitle>
+            <p className="-mt-3 mb-3 text-xs text-muted-dim">{t.auditHint}</p>
+            <AccountAudit entries={detail.recentAudit} me={me} />
+          </section>
+        </Card>
       </div>
 
       <AccountActionDialog

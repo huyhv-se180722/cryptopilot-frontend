@@ -75,6 +75,13 @@ describe('SCR-43 system settings (UC-51)', () => {
     expect(screen.queryByRole('dialog')).toBe(null);
   });
 
+  it('names each setting in words above its key, with its allowed range', async () => {
+    await open();
+    const row = (await screen.findByText('Images per post')).closest('li')!;
+    expect(within(row).getByText('MAX_IMAGES_PER_POST')).toBeTruthy();
+    expect(within(row).getByText(/^Allowed/)).toBeTruthy();
+  });
+
   it('lists the changes old → new, saves them in turn and says MSG14', async () => {
     await open();
     const user = userEvent.setup();
@@ -97,9 +104,9 @@ describe('SCR-43 system settings (UC-51)', () => {
     );
     const rows = dialog.getAllByRole('row').slice(1);
     expect(rows.map((row) => row.textContent)).toEqual([
-      'ENTRY_DEVIATION_CONFIRM_R0.250.9',
-      'ENTRY_DEVIATION_BLOCK_R0.751.2',
-      'MAX_IMAGES_PER_POST46',
+      'Entry deviation to confirm (R)ENTRY_DEVIATION_CONFIRM_R0.250.9',
+      'Entry deviation to refuse (R)ENTRY_DEVIATION_BLOCK_R0.751.2',
+      'Images per postMAX_IMAGES_PER_POST46',
     ]);
     await user.click(dialog.getByRole('button', { name: 'Save changes' }));
     expect(await screen.findByText('Saved successfully.')).toBeTruthy();
