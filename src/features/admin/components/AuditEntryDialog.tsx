@@ -28,7 +28,7 @@ export function CopyValue({ value, what }: { value: string; what: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <span className="inline-flex max-w-full items-center gap-1.5">
-      <span className="truncate font-mono text-[11px] text-fg-2">{value}</span>
+      <span className="truncate font-mono text-xs text-fg-2">{value}</span>
       <button
         type="button"
         aria-label={formatCopy(t.copy, { what })}
@@ -60,9 +60,7 @@ export function Meta({
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-1">
-      <dt className="text-[10px] font-medium tracking-widest text-muted-x uppercase">
-        {label}
-      </dt>
+      <dt className="text-xs font-medium text-muted-x">{label}</dt>
       <dd className="m-0 min-w-0 text-xs text-fg-2">{children}</dd>
     </div>
   );
@@ -154,13 +152,13 @@ export function AuditEntryDialog({
           <time dateTime={entry.recordedAt} className="font-mono">
             {formatInstantLocal(entry.recordedAt)}
           </time>
-          <span className="ml-2 font-mono text-[11px] text-muted-dim">
+          <span className="ml-2 font-mono text-xs text-muted-dim">
             {formatInstantUtc(entry.recordedAt)}
           </span>
         </Meta>
         <Meta label={t.detailAction}>
           <Badge tone={tone}>{labels.action(entry.action)}</Badge>
-          <span className="ml-2 font-mono text-[10.5px] text-muted-x">
+          <span className="ml-2 font-mono text-xs text-muted-x">
             {entry.action}
           </span>
         </Meta>
@@ -174,7 +172,7 @@ export function AuditEntryDialog({
               {path && (
                 <Link
                   to={path}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-link no-underline hover:underline"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-link no-underline hover:underline"
                 >
                   {t.open}
                   <ExternalLink size={11} aria-hidden="true" />
@@ -204,12 +202,12 @@ export function AuditEntryDialog({
         </blockquote>
       )}
 
-      <h3 className="mt-5 mb-2 text-[10px] font-semibold tracking-widest text-muted-x uppercase">
+      <h3 className="mt-5 mb-2 text-xs font-semibold text-muted-x">
         {t.detailChanges}
       </h3>
       {fields.length ? (
         <div className="overflow-x-auto rounded-xl border border-line">
-          <table className="w-full border-collapse text-[11px]">
+          <table className="w-full border-collapse text-xs">
             <thead>
               <tr className="border-b border-line bg-page-alt text-left">
                 <th scope="col" className="px-3 py-2 font-medium text-muted-x">
@@ -238,7 +236,7 @@ export function AuditEntryDialog({
                   >
                     {field.field}
                     {!field.changed && (
-                      <span className="ml-1.5 font-sans text-[10px] font-normal text-muted-x">
+                      <span className="ml-1.5 font-sans text-xs font-normal text-muted-x">
                         {t.unchanged}
                       </span>
                     )}
@@ -286,10 +284,10 @@ export function AuditEntryDialog({
 
       {(entry.oldValue !== null || entry.newValue !== null) && (
         <details className="group mt-4 rounded-xl border border-line">
-          <summary className="cursor-pointer px-3 py-2 text-[11px] font-semibold text-muted select-none">
+          <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-muted select-none">
             {t.rawJson}
           </summary>
-          <pre className="max-h-64 overflow-auto border-t border-line bg-page-alt p-3 font-mono text-[10.5px] leading-relaxed text-fg-2">
+          <pre className="max-h-64 overflow-auto border-t border-line bg-page-alt p-3 font-mono text-xs leading-relaxed text-fg-2">
             {JSON.stringify(
               { oldValue: entry.oldValue, newValue: entry.newValue },
               null,

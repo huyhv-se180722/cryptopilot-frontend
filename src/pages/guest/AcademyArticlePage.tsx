@@ -107,7 +107,7 @@ function Lesson({ article }: { article: AcademyArticle }) {
         <header className="flex min-h-72 flex-col justify-end p-6 text-white sm:p-8">
           <Link
             to={'/academy?topic=' + encodeURIComponent(article.topicSlug)}
-            className="w-fit rounded-full bg-white/20 px-3 py-1 text-[11px] font-semibold tracking-wider text-white uppercase no-underline backdrop-blur hover:bg-white/30"
+            className="w-fit rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white no-underline backdrop-blur hover:bg-white/30"
           >
             {article.topicName}
           </Link>
@@ -133,7 +133,7 @@ function Lesson({ article }: { article: AcademyArticle }) {
             </time>
           </div>
           {article.coverCredit && (
-            <p className="mt-4 text-[11px] text-white/60">
+            <p className="mt-4 text-xs text-white/60">
               {formatCopy(a.photoCredit, { credit: article.coverCredit })}
             </p>
           )}
@@ -146,7 +146,7 @@ function Lesson({ article }: { article: AcademyArticle }) {
             aria-label={a.summaryTitle}
             className="rounded-2xl border border-primary-line bg-primary-soft p-4"
           >
-            <p className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-primary uppercase">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-primary">
               <Lightbulb size={14} aria-hidden="true" />
               {a.summaryTitle}
             </p>
@@ -176,9 +176,7 @@ function Lesson({ article }: { article: AcademyArticle }) {
         {contents.length > 0 && (
           <nav aria-label={a.contents} className="hidden lg:block">
             <div className="sticky top-24">
-              <p className="text-[11px] font-semibold tracking-wider text-muted-x uppercase">
-                {a.contents}
-              </p>
+              <p className="text-xs font-semibold text-muted-x">{a.contents}</p>
               <ol className="mt-2 grid gap-1.5 border-l border-line pl-3 text-xs">
                 {contents.map((entry) => (
                   <li key={entry.id}>
@@ -229,7 +227,7 @@ function Neighbours({
     <nav className="mt-8 grid gap-3 sm:grid-cols-2">
       {previous ? (
         <Link to={'/academy/' + previous.slug} className={card} rel="prev">
-          <span className="flex items-center gap-1 text-[11px] font-semibold text-muted-x uppercase">
+          <span className="flex items-center gap-1 text-xs font-semibold text-muted-x">
             <ChevronLeft size={12} aria-hidden="true" />
             {copy.academy.previous}
           </span>
@@ -246,7 +244,7 @@ function Neighbours({
           className={card + ' text-right sm:items-end'}
           rel="next"
         >
-          <span className="flex items-center gap-1 text-[11px] font-semibold text-muted-x uppercase">
+          <span className="flex items-center gap-1 text-xs font-semibold text-muted-x">
             {copy.academy.next}
             <ChevronRight size={12} aria-hidden="true" />
           </span>

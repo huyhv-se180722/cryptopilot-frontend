@@ -36,7 +36,7 @@ function themeOptions() {
       background: { type: ColorType.Solid, color: 'transparent' },
       textColor: token('--cp-muted'),
       fontFamily: 'JetBrains Mono, ui-monospace, monospace',
-      fontSize: 10,
+      fontSize: 12,
       // The licence's attribution and link are in the shell footer.
       attributionLogo: false,
     },

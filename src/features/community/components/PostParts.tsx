@@ -40,8 +40,8 @@ export function AuthorAvatar({
   size?: 24 | 30 | 40 | 56 | 84;
 }) {
   const box = {
-    24: 'size-6 text-[9px]',
-    30: 'size-[30px] text-[10px]',
+    24: 'size-6 text-xs',
+    30: 'size-[30px] text-xs',
     40: 'size-10 text-xs',
     56: 'size-14 text-base',
     84: 'size-[84px] text-2xl',
@@ -95,7 +95,7 @@ export function FollowButton({
       onClick={() => onToggle(!following)}
       className={classNames(
         'inline-flex shrink-0 items-center justify-center gap-1 rounded-lg font-semibold transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-60',
-        size === 'md' ? 'h-8 px-3.5 text-xs' : 'h-7 px-2.5 text-[11px]',
+        size === 'md' ? 'h-8 px-3.5 text-xs' : 'h-7 px-2.5 text-xs',
         following
           ? 'border border-line-strong bg-raised text-fg-2 hover:border-negative-line hover:text-negative'
           : 'bg-primary text-white hover:enabled:opacity-90',
@@ -119,7 +119,7 @@ export function SentimentTag({ sentiment }: { sentiment: PostSentiment }) {
   return (
     <span
       className={classNames(
-        'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold',
+        'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-semibold',
         bullish
           ? 'bg-positive-soft text-positive'
           : 'bg-negative-soft text-negative',
@@ -202,7 +202,7 @@ export function PostByline({
           </time>
           {wasEdited(post.createdAt, post.updatedAt) && (
             <span
-              className="shrink-0 text-[11px] text-muted-dim"
+              className="shrink-0 text-xs text-muted-dim"
               title={formatInstantUtc(post.updatedAt)}
             >
               · {c.edited}
@@ -227,7 +227,7 @@ export function PostByline({
             </span>
           )}
           {pinned && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold tracking-wider text-accent uppercase">
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-accent">
               <Pin size={10} aria-hidden="true" />
               {c.pinned}
             </span>
@@ -300,7 +300,7 @@ export function CoinTags({
           <li key={coin}>
             <Link
               to={'/community?coin=' + encodeURIComponent(coin)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-line bg-raised px-2.5 py-1 text-[11px] font-semibold text-fg-2 no-underline hover:border-primary-line"
+              className="inline-flex items-center gap-1.5 rounded-full border border-line bg-raised px-2.5 py-1 text-xs font-semibold text-fg-2 no-underline hover:border-primary-line"
             >
               {quote?.pair.logoUrl ? (
                 <img

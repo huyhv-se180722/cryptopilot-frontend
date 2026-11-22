@@ -100,7 +100,7 @@ export function MarketBoard({
         </label>
         <span className="ml-auto flex items-center gap-3">
           {pairs.data && (
-            <span className="hidden text-[11px] text-muted-dim sm:inline">
+            <span className="hidden text-xs text-muted-dim sm:inline">
               {formatCopy(m.pairCount, { count: all.length })}
             </span>
           )}

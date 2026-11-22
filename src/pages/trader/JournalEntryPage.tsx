@@ -92,7 +92,7 @@ export function JournalEntryPage() {
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                 <h1
                   id="journal-entry-title"
-                  className="text-lg font-semibold text-fg"
+                  className="text-xl font-semibold text-fg"
                 >
                   {formatCopy(j.entryTitle, {
                     symbol,
@@ -102,7 +102,7 @@ export function JournalEntryPage() {
                 <DirectionText direction={entry.trade.direction} />
                 <span
                   className={classNames(
-                    'rounded-full px-2 py-0.5 text-[11.5px] font-semibold',
+                    'rounded-full px-2 py-0.5 text-xs font-semibold',
                     result === 'WIN'
                       ? 'bg-positive-soft text-positive'
                       : result === 'LOSS'
@@ -131,16 +131,14 @@ export function JournalEntryPage() {
             </div>
             <dl className="m-0 flex flex-wrap gap-x-8 gap-y-3">
               <div>
-                <dt className="text-[10.5px] font-semibold tracking-[0.06em] text-muted uppercase">
-                  {j.netPnl}
-                </dt>
+                <dt className="text-xs font-semibold text-muted">{j.netPnl}</dt>
                 <dd className="m-0 font-mono text-xl font-semibold">
                   <AmountValue value={entry.trade.netPnl} />
                 </dd>
               </div>
               {entry.learning?.rMultiple != null && (
                 <div>
-                  <dt className="text-[10.5px] font-semibold tracking-[0.06em] text-muted uppercase">
+                  <dt className="text-xs font-semibold text-muted">
                     {j.realizedR}
                   </dt>
                   <dd className="m-0 font-mono text-xl font-semibold text-fg">
@@ -154,10 +152,10 @@ export function JournalEntryPage() {
               )}
               {entry.trade.closeReason && (
                 <div>
-                  <dt className="text-[10.5px] font-semibold tracking-[0.06em] text-muted uppercase">
+                  <dt className="text-xs font-semibold text-muted">
                     {j.closeReason}
                   </dt>
-                  <dd className="m-0 text-[15px] font-semibold text-fg">
+                  <dd className="m-0 text-base font-semibold text-fg">
                     {copy.plan[`close${entry.trade.closeReason}`]}
                   </dd>
                 </div>
@@ -197,7 +195,7 @@ export function JournalEntryPage() {
               )}
             </div>
             {entry.trade.provisional && (
-              <p className="m-0 w-full text-[11.5px] text-warning">
+              <p className="m-0 w-full text-xs text-warning">
                 {copy.plan.journalProvisional}
               </p>
             )}
@@ -257,7 +255,7 @@ export function JournalEntryPage() {
                 >
                   <h2
                     id="trade-learning-title"
-                    className="m-0 border-b border-line px-4 py-2.5 text-[13px] font-semibold text-fg"
+                    className="m-0 border-b border-line px-4 py-2.5 text-sm font-semibold text-fg"
                   >
                     {j.learningTitle}
                   </h2>

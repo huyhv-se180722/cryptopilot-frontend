@@ -215,7 +215,7 @@ function LevelsForm({
           >
             {p.breakevenMove}
           </Button>
-          <p className="mt-2 text-[11px] text-muted-dim">
+          <p className="mt-2 text-xs text-muted-dim">
             {reachable
               ? formatCopy(p.breakevenAt, {
                   price: trimDecimal(position.breakevenPrice, 2),
@@ -225,7 +225,7 @@ function LevelsForm({
           </p>
         </div>
       )}
-      <p className="text-[11px] text-muted-dim">{p.levelsNextCandle}</p>
+      <p className="text-xs text-muted-dim">{p.levelsNextCandle}</p>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="secondary" onClick={onClose}>
           {copy.common.cancel}

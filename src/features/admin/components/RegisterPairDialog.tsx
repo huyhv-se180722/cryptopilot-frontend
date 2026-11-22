@@ -114,7 +114,7 @@ function RegisterForm({ onDone }: { onDone: () => void }) {
                 <span className="block text-sm font-medium text-fg">
                   {pairLabel(item.symbol)}
                 </span>
-                <span className="text-[11px] text-muted-dim">
+                <span className="text-xs text-muted-dim">
                   {[
                     item.spotTrading ? copy.market.spot : null,
                     item.futuresTrading ? copy.market.futures : null,

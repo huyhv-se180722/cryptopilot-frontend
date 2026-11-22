@@ -84,7 +84,7 @@ export function NotificationsPage() {
         <section key={day.key} aria-labelledby={'notifications-' + day.key}>
           <h2
             id={'notifications-' + day.key}
-            className="m-0 px-2.5 pt-3 pb-1.5 text-[11px] font-semibold tracking-[0.06em] text-muted uppercase"
+            className="m-0 px-2.5 pt-3 pb-1.5 text-xs font-semibold text-muted"
           >
             {day.label}
           </h2>

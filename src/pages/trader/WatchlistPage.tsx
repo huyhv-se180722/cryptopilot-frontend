@@ -221,7 +221,7 @@ export function WatchlistPage() {
     <div className="w-full">
       <header className="mb-6 flex flex-wrap items-center gap-3">
         <div className="mr-auto">
-          <h1 className="text-lg font-semibold text-fg">{w.title}</h1>
+          <h1 className="text-xl font-semibold text-fg">{w.title}</h1>
           <p className="mt-0.5 text-xs text-muted-dim">{w.subtitle}</p>
         </div>
         {list.data && (

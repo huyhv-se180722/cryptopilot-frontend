@@ -402,14 +402,14 @@ export function SpotOrderForm({
             error={fieldError('stopLoss')}
             onValueChange={(stopLoss) => update({ stopLoss })}
           />
-          <p className="text-[10px] text-muted-dim">{p.tpslNote}</p>
+          <p className="text-xs text-muted-dim">{p.tpslNote}</p>
         </>
       )}
 
       {notice && <FormNotice tone="error">{notice}</FormNotice>}
 
       <div className="flex flex-col gap-1">
-        <p className="flex items-baseline justify-between gap-2 text-[11px] text-muted-dim">
+        <p className="flex items-baseline justify-between gap-2 text-xs text-muted-dim">
           {p.available}
           <span className="text-fg-2">
             {funds ? (
@@ -433,7 +433,7 @@ export function SpotOrderForm({
             )}
           </span>
         </p>
-        <p className="flex items-baseline justify-between gap-2 text-[11px] text-muted-dim">
+        <p className="flex items-baseline justify-between gap-2 text-xs text-muted-dim">
           {buy ? p.maxBuy : p.maxSell}
           <span className="text-fg-2">
             {max ? (

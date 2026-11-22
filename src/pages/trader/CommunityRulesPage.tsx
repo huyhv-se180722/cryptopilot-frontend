@@ -41,7 +41,7 @@ export function CommunityRulesPage() {
             aria-label={r.contentsLabel}
             className="sticky top-16 rounded-2xl border border-line bg-surface p-4"
           >
-            <h2 className="mb-2 text-[10px] font-semibold tracking-widest text-muted-x uppercase">
+            <h2 className="mb-2 text-xs font-semibold text-muted-x">
               {r.contentsLabel}
             </h2>
             <ol className="flex flex-col gap-0.5 text-xs">
@@ -72,9 +72,7 @@ export function CommunityRulesPage() {
               <ShieldCheck size={14} aria-hidden="true" />
               CryptoPilot
             </span>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-fg">
-              {r.title}
-            </h1>
+            <h1 className="mt-2 text-xl font-bold text-fg">{r.title}</h1>
             <p className="mt-1 text-xs text-muted-dim">{r.updated}</p>
           </header>
           <p className="mt-5 text-sm leading-relaxed text-fg-2">{r.intro}</p>
@@ -91,7 +89,7 @@ export function CommunityRulesPage() {
             >
               <h2
                 id={section.id + '-title'}
-                className="text-lg font-semibold text-fg"
+                className="text-xl font-semibold text-fg"
               >
                 {section.title}
               </h2>
@@ -154,7 +152,7 @@ export function CommunityRulesPage() {
           >
             <h2
               id="rules-related"
-              className="mb-2 text-[10px] font-semibold tracking-widest text-muted-x uppercase"
+              className="mb-2 text-xs font-semibold text-muted-x"
             >
               {r.relatedTitle}
             </h2>

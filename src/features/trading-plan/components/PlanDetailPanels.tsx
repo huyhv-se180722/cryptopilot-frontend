@@ -46,10 +46,7 @@ export function Panel({
       className="rounded-xl border border-line bg-surface p-4"
     >
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h2
-          id={id}
-          className="text-[10px] font-semibold tracking-widest text-muted-x uppercase"
-        >
+        <h2 id={id} className="text-xs font-semibold text-muted-x">
           {title}
         </h2>
         {aside}
@@ -80,7 +77,7 @@ function Rows({
           key={label}
           className="flex items-baseline justify-between gap-3 border-b border-line pb-1.5"
         >
-          <dt className="text-[11px] text-muted-dim">{label}</dt>
+          <dt className="text-xs text-muted-dim">{label}</dt>
           <dd className="text-right text-xs text-fg">{value}</dd>
         </div>
       ))}
@@ -190,7 +187,7 @@ export function PlanInputsPanel({
       <Rows rows={rows} single={single} />
       {plan.note && (
         <p className="mt-3 text-xs text-fg-2">
-          <span className="mr-1.5 text-[11px] text-muted-dim">{p.note}</span>
+          <span className="mr-1.5 text-xs text-muted-dim">{p.note}</span>
           {plan.note}
         </p>
       )}
@@ -281,11 +278,11 @@ export function PlanSnapshotRows({
       <Rows rows={rows} single={single} />
       {s.lossAtStopLoss !== null && (
         <div className="mt-4">
-          <h3 className="mb-2 text-[10px] font-semibold tracking-widest text-muted-x uppercase">
+          <h3 className="mb-2 text-xs font-semibold text-muted-x">
             {p.costsTitle}
           </h3>
           <Rows rows={costs} single={single} />
-          <p className="mt-2 text-[10px] leading-relaxed text-muted-dim">
+          <p className="mt-2 text-xs leading-relaxed text-muted-dim">
             {p.costsNote}
           </p>
         </div>
@@ -353,7 +350,7 @@ export function PlanWarningsPanel({
         </ul>
       )}
       {blocked && (
-        <p className="mt-3 flex items-start gap-1.5 text-[11px] text-negative">
+        <p className="mt-3 flex items-start gap-1.5 text-xs text-negative">
           <AlertTriangle
             size={12}
             aria-hidden="true"
@@ -380,9 +377,7 @@ export function PlanHistoryPanel({ plan }: { plan: TradingPlan }) {
             />
             <div className="flex flex-wrap items-center gap-2">
               <PlanStatusBadge status={change.status} />
-              <span className="text-[11px] text-muted-dim">
-                {when(change.at)}
-              </span>
+              <span className="text-xs text-muted-dim">{when(change.at)}</span>
             </div>
             {change.status === 'INVALIDATED' && plan.invalidationReason && (
               <p className="mt-1 text-xs text-fg-2">

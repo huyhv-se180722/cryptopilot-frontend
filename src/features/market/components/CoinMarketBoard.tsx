@@ -128,7 +128,7 @@ export function CoinMarketBoard() {
       ) : (
         <CoinMarketTable rows={shown} sort={sort} onSort={onSort} />
       )}
-      <p className="text-[11px] text-muted-x">{c.sources}</p>
+      <p className="text-xs text-muted-x">{c.sources}</p>
     </div>
   );
 }

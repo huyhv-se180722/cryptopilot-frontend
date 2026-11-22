@@ -238,7 +238,7 @@ export function FuturesCalculatorDialog({
             none={copy.market.noValue}
           />
         )}
-        <p className="text-[10px] text-muted-dim">{f.calcNote}</p>
+        <p className="text-xs text-muted-dim">{f.calcNote}</p>
       </div>
     </Dialog>
   );
@@ -295,7 +295,7 @@ function Lots({
           </button>
         </div>
       ))}
-      {error && <p className="text-[11px] text-negative">{error}</p>}
+      {error && <p className="text-xs text-negative">{error}</p>}
       <div>
         <Button
           variant="ghost"

@@ -353,7 +353,7 @@ export function PostForm({
         />
         <div
           id={listId + '-title-note'}
-          className="mt-1 flex justify-between gap-2 text-[11px]"
+          className="mt-1 flex justify-between gap-2 text-xs"
         >
           {errors.title ? (
             <span className={classNames(fieldErrorClass, 'mt-0')}>
@@ -383,7 +383,7 @@ export function PostForm({
         />
         <div
           id={listId + '-content-note'}
-          className="mt-1 flex justify-between gap-2 text-[11px]"
+          className="mt-1 flex justify-between gap-2 text-xs"
         >
           {errors.content ? (
             <span className={classNames(fieldErrorClass, 'mt-0')}>
@@ -413,7 +413,7 @@ export function PostForm({
             {coins.map((coin) => (
               <span
                 key={coin}
-                className="inline-flex items-center gap-1 rounded-full border border-line bg-raised py-0.5 pr-1 pl-2 font-mono text-[11px] font-semibold text-primary"
+                className="inline-flex items-center gap-1 rounded-full border border-line bg-raised py-0.5 pr-1 pl-2 font-mono text-xs font-semibold text-primary"
               >
                 ${coin}
                 <button
@@ -442,7 +442,7 @@ export function PostForm({
               onBlur={() => coinText && addCoin(coinText)}
               aria-invalid={errors.coins ? true : undefined}
               aria-describedby={listId + '-coin-note'}
-              className="min-w-24 flex-1 bg-transparent text-sm uppercase outline-none placeholder:text-muted-x placeholder:normal-case"
+              className="min-w-24 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-x placeholder:normal-case"
             />
             <datalist id={listId + '-coins'}>
               {coinSuggestions
@@ -515,7 +515,7 @@ export function PostForm({
                       />
                     )}
                   </div>
-                  <div className="flex items-center gap-1.5 border-t border-line px-2 py-1.5 text-[11px]">
+                  <div className="flex items-center gap-1.5 border-t border-line px-2 py-1.5 text-xs">
                     {item.status === 'uploading' && (
                       <Loader2
                         size={11}
@@ -560,7 +560,7 @@ export function PostForm({
                   {item.error && (
                     <p
                       role="alert"
-                      className="px-2 pb-1.5 text-[11px] text-negative"
+                      className="px-2 pb-1.5 text-xs text-negative"
                     >
                       {item.error}
                     </p>
@@ -592,7 +592,7 @@ export function PostForm({
             ) : (
               <Link
                 to="/subscription"
-                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line bg-raised px-3 text-[11px] font-semibold text-muted-x no-underline hover:text-fg-2"
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line bg-raised px-3 text-xs font-semibold text-muted-x no-underline hover:text-fg-2"
                 title={f.videoLocked}
               >
                 <Lock size={11} aria-hidden="true" />
@@ -601,9 +601,7 @@ export function PostForm({
               </Link>
             )}
             {!videoAllowed && (
-              <span className="text-[11px] text-muted-dim">
-                {f.videoLocked}
-              </span>
+              <span className="text-xs text-muted-dim">{f.videoLocked}</span>
             )}
           </div>
           <input

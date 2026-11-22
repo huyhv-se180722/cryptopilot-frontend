@@ -65,14 +65,14 @@ export function MarketStatsPanel({
     >
       <h2
         id="market-stats-title"
-        className="mb-2 text-[10px] font-semibold tracking-widest text-muted-x uppercase"
+        className="mb-2 text-xs font-semibold text-muted-x"
       >
         {a.statsTitle}
       </h2>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
         {rows.map(([label, value]) => (
           <div key={label}>
-            <dt className="text-[10px] text-muted-x">{label}</dt>
+            <dt className="text-xs text-muted-x">{label}</dt>
             <dd className="text-xs text-fg">{value}</dd>
           </div>
         ))}

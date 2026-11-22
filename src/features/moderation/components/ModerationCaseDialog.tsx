@@ -197,7 +197,7 @@ function CaseBody({
         />
         <div
           id={noteId + '-hint'}
-          className="mt-1 flex justify-between gap-2 text-[11px]"
+          className="mt-1 flex justify-between gap-2 text-xs"
         >
           <span
             className={classNames(
@@ -255,7 +255,7 @@ function CaseBody({
                 >
                   {m[action]}
                 </span>
-                <span className="block text-[11px] text-muted-dim">
+                <span className="block text-xs text-muted-dim">
                   {m[`${action}Hint`]}
                 </span>
               </span>
@@ -304,7 +304,7 @@ function PostPreview({ data }: { data: ModerationCase }) {
   const post = data.post;
   return (
     <article className="rounded-xl border border-line bg-page-alt p-4">
-      <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-dim">
+      <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-muted-dim">
         <span>
           {formatCopy(m.by, {
             name: post.author.displayName ?? copy.community.noName,
@@ -327,7 +327,7 @@ function PostPreview({ data }: { data: ModerationCase }) {
         {post.content}
       </p>
       {(post.media.length > 0 || post.coins.length > 0) && (
-        <p className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-dim">
+        <p className="mt-2 flex flex-wrap gap-2 text-xs text-muted-dim">
           {post.coins.map((coin) => (
             <span key={coin} className="font-mono font-semibold text-primary">
               ${coin}
@@ -348,10 +348,7 @@ function ReportList({ data }: { data: ModerationCase }) {
   const reasons = copy.community.reportDialog;
   return (
     <section aria-labelledby="case-reports">
-      <h3
-        id="case-reports"
-        className="mb-2 text-[10px] font-semibold tracking-widest text-muted-x uppercase"
-      >
+      <h3 id="case-reports" className="mb-2 text-xs font-semibold text-muted-x">
         {formatCopy(m.reportsTitle, { n: data.reports.length })}
       </h3>
       <ul className="grid gap-2">
@@ -372,7 +369,7 @@ function ReportList({ data }: { data: ModerationCase }) {
               <time
                 dateTime={report.createdAt}
                 title={formatInstantUtc(report.createdAt)}
-                className="ml-auto font-mono text-[11px] text-muted-x"
+                className="ml-auto font-mono text-xs text-muted-x"
               >
                 {formatInstantLocal(report.createdAt)}
               </time>

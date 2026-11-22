@@ -130,7 +130,7 @@ export function FuturesMetricsPanel({
       <div className="mb-3 flex flex-wrap items-center gap-3">
         <h2
           id="futures-metrics-title"
-          className="mr-auto text-[10px] font-semibold tracking-widest text-muted-x uppercase"
+          className="mr-auto text-xs font-semibold text-muted-x"
         >
           {a.metricsTitle}
         </h2>
@@ -228,7 +228,7 @@ export function FuturesMetricsPanel({
         </>
       )}
       {(partial || latest) && (
-        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-dim">
+        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-dim">
           {partial && availableFrom && (
             <p role="note" className="text-warning">
               {formatCopy(a.metricsPartial, {

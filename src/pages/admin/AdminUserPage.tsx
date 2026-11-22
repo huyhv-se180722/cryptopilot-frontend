@@ -210,7 +210,7 @@ function Account({ detail }: { detail: AdminUserDetail }) {
               <Instant value={account.lastLoginAt} />
             </Row>
             <Row label={t.accountId}>
-              <span className="font-mono text-[11px] break-all text-muted-dim">
+              <span className="font-mono text-xs break-all text-muted-dim">
                 {account.userId}
               </span>
             </Row>
@@ -218,7 +218,7 @@ function Account({ detail }: { detail: AdminUserDetail }) {
         </Card>
         <section className="min-w-0">
           <SectionTitle>{t.auditTitle}</SectionTitle>
-          <p className="-mt-3 mb-3 text-[11px] text-muted-dim">{t.auditHint}</p>
+          <p className="-mt-3 mb-3 text-xs text-muted-dim">{t.auditHint}</p>
           <AccountAudit entries={detail.recentAudit} me={me} />
         </section>
       </div>

@@ -50,7 +50,7 @@ export function TickerTape({
       {rows.map(({ pair, ticker, price }) => (
         <li
           key={pair.symbol}
-          className="flex items-center gap-2 text-[11px] whitespace-nowrap"
+          className="flex items-center gap-2 text-xs whitespace-nowrap"
         >
           <span className="font-semibold text-fg-2">
             {pair.baseAsset ?? pair.symbol}
@@ -83,7 +83,7 @@ export function TickerTape({
       )}
     >
       {label && (
-        <span className="flex shrink-0 items-center gap-1.5 border-r border-line pr-3 font-mono text-[10px] font-bold tracking-widest text-muted-dim uppercase">
+        <span className="flex shrink-0 items-center gap-1.5 border-r border-line pr-3 font-mono text-xs font-bold text-muted-dim">
           <span
             aria-hidden="true"
             className="size-1.5 rounded-full bg-primary motion-safe:animate-[pulse-led_1.8s_ease-in-out_infinite]"

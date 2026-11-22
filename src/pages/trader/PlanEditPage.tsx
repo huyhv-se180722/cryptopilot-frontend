@@ -41,7 +41,7 @@ export function PlanEditPage() {
         {formatCopy(p.backToPlan, { id })}
       </Link>
       <header className="mb-4 flex flex-wrap items-center gap-3">
-        <h1 className="text-lg font-semibold text-fg">
+        <h1 className="text-xl font-semibold text-fg">
           {formatCopy(p.editTitle, { id })}
         </h1>
         {plan && <PlanStatusBadge status={plan.status} />}

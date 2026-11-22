@@ -121,7 +121,7 @@ export function OrderFilters({
           <SlidersHorizontal size={14} aria-hidden="true" />
           {t.filters}
           {count > 0 && (
-            <span className="ml-0.5 inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-white">
+            <span className="ml-0.5 inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-white">
               {count}
             </span>
           )}
@@ -196,10 +196,7 @@ export function OrderFilters({
                 onChange={(event) => set('to', event.target.value)}
               />
               {badRange && (
-                <p
-                  role="alert"
-                  className="text-[11px] text-negative sm:col-span-2"
-                >
+                <p role="alert" className="text-xs text-negative sm:col-span-2">
                   {t.rangeInvalid}
                 </p>
               )}
@@ -228,7 +225,7 @@ export function OrderFilters({
       {chips.map((chip) => (
         <span
           key={chip.id}
-          className="inline-flex items-center gap-1 rounded-full border border-line bg-raised py-1 pr-1 pl-2.5 text-[11px] text-fg-2"
+          className="inline-flex items-center gap-1 rounded-full border border-line bg-raised py-1 pr-1 pl-2.5 text-xs text-fg-2"
         >
           {chip.label}
           <button

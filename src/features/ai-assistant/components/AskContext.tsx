@@ -65,7 +65,7 @@ function Segmented<T extends string>({
  */
 const PANEL =
   'flex flex-wrap items-center gap-2.5 rounded-2xl border border-line bg-surface p-3.5 xl:flex-col xl:flex-nowrap xl:items-stretch';
-const PANEL_TITLE = 'w-full text-[13px] font-semibold text-fg';
+const PANEL_TITLE = 'w-full text-sm font-semibold text-fg';
 
 const MARKETS: readonly { value: MarketType; label: string }[] = [
   { value: 'spot', label: 'Spot' },
@@ -101,7 +101,7 @@ export function MarketContextBar({
       <div className="relative inline-flex h-9 items-center gap-2 rounded-[10px] border border-line-strong bg-surface pr-8 pl-1.5 focus-within:ring-2 focus-within:ring-primary-soft">
         <span
           aria-hidden="true"
-          className="inline-flex size-6 items-center justify-center rounded-full bg-coin-mark text-[10px] font-bold text-white"
+          className="inline-flex size-6 items-center justify-center rounded-full bg-coin-mark text-xs font-bold text-white"
         >
           {symbol ? baseOf(symbol).slice(0, 1) : '·'}
         </span>
@@ -119,7 +119,7 @@ export function MarketContextBar({
             </option>
           ))}
         </select>
-        <span aria-hidden="true" className="text-[13px] font-semibold text-fg">
+        <span aria-hidden="true" className="text-sm font-semibold text-fg">
           {symbol ? baseOf(symbol) : '…'}
           {symbol && symbol !== baseOf(symbol) && (
             <span className="font-medium text-muted-dim">
@@ -165,7 +165,7 @@ export function LiveFigure({
 }) {
   return (
     <span className="flex flex-col">
-      <span className="text-[10.5px] text-muted-dim">{label}</span>
+      <span className="text-xs text-muted-dim">{label}</span>
       <span className="font-mono text-sm font-semibold text-fg">
         {children}
       </span>
@@ -237,7 +237,7 @@ export function MineContextBar({
           <>
             <span
               className={classNames(
-                'rounded-md px-2 py-0.5 font-mono text-[11px] font-bold',
+                'rounded-md px-2 py-0.5 font-mono text-xs font-bold',
                 plan.direction === 'LONG'
                   ? 'bg-positive-soft text-positive'
                   : 'bg-negative-soft text-negative',
@@ -246,7 +246,7 @@ export function MineContextBar({
               {plan.direction}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[13px] font-semibold text-fg xl:whitespace-normal">
+              <span className="block truncate text-sm font-semibold text-fg xl:whitespace-normal">
                 {baseOf(symbol) +
                   '/' +
                   symbol.slice(baseOf(symbol).length) +
@@ -254,7 +254,7 @@ export function MineContextBar({
                   (plan.market === 'futures' ? 'Futures' : 'Spot') +
                   (planTimeframe ? ' · ' + planTimeframe : '')}
               </span>
-              <span className="mt-0.5 block truncate font-mono text-[11px] text-muted xl:whitespace-normal">
+              <span className="mt-0.5 block truncate font-mono text-xs text-muted xl:whitespace-normal">
                 {'Entry ' +
                   number(plan.entryPrice) +
                   ' · SL ' +
@@ -276,19 +276,16 @@ export function MineContextBar({
                 className="mt-1.5 h-4 w-full"
               />
             </span>
-            <span className="hidden rounded-full bg-purple-soft px-2 py-0.5 text-[11px] font-semibold text-purple sm:inline">
+            <span className="hidden rounded-full bg-purple-soft px-2 py-0.5 text-xs font-semibold text-purple sm:inline">
               {plan.status}
             </span>
           </>
         ) : (
           <span className="min-w-0 flex-1">
-            <span className="block text-[13px] font-semibold text-fg">
+            <span className="block text-sm font-semibold text-fg">
               {t.choosePlan}
             </span>
-            <span
-              id="ai-plan-hint"
-              className="mt-0.5 block text-[11px] text-muted"
-            >
+            <span id="ai-plan-hint" className="mt-0.5 block text-xs text-muted">
               {plans.length === 0 ? t.noPlans : t.planHint}
             </span>
           </span>
@@ -315,10 +312,10 @@ export function MineContextBar({
           className="size-4 shrink-0 accent-purple"
         />
         <span className="min-w-0">
-          <span className="block text-[13px] font-semibold text-fg">
+          <span className="block text-sm font-semibold text-fg">
             {performanceAllowed ? t.performance : t.performanceLocked}
           </span>
-          <span className="mt-0.5 block text-[11px] text-muted">
+          <span className="mt-0.5 block text-xs text-muted">
             {t.performanceHint}
           </span>
         </span>

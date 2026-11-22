@@ -80,7 +80,7 @@ export function Tabs({
                 'relative flex h-9 shrink-0 items-center gap-1.5 px-3 text-xs font-medium whitespace-nowrap pointer-coarse:h-11',
                 selected ? 'text-primary' : 'text-muted hover:text-fg-2',
                 vertical &&
-                  'md:w-full md:gap-2.5 md:rounded-md md:border-l-2 md:px-2.5 md:text-left md:text-[13px]',
+                  'md:w-full md:gap-2.5 md:rounded-md md:border-l-2 md:px-2.5 md:text-left md:text-sm',
                 vertical &&
                   (selected
                     ? 'md:border-primary md:bg-raised-hover'
@@ -101,7 +101,7 @@ export function Tabs({
               )}
               {item.label}
               {item.count !== undefined && (
-                <span className="rounded-full bg-raised px-1.5 font-mono text-[10px] text-muted-dim">
+                <span className="rounded-full bg-raised px-1.5 font-mono text-xs text-muted-dim">
                   {item.count}
                 </span>
               )}

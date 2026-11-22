@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { classNames } from '../../utils/class-names';
 
 const sizes = {
-  xs: 'size-3.5 text-[7px]',
-  sm: 'size-5 text-[8px]',
-  md: 'size-7 text-[10px]',
+  xs: 'size-3.5 text-xs',
+  sm: 'size-5 text-xs',
+  md: 'size-7 text-xs',
   lg: 'size-9 text-xs',
 } as const;
 
@@ -31,7 +31,9 @@ export function CoinLogo({
     <span
       aria-hidden="true"
       data-testid="coin-logo"
-      data-letters={showImage ? undefined : symbol.slice(0, 2)}
+      data-letters={
+        showImage ? undefined : symbol.slice(0, size === 'xs' ? 1 : 2)
+      }
       className={classNames(
         'flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-line-strong bg-raised font-bold text-fg-2 before:content-[attr(data-letters)]',
         sizes[size],

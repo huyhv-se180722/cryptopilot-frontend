@@ -41,7 +41,7 @@ export function ReferencePriceNote({
         <>
           <span className="font-semibold">{c.referencePrice}</span>
           <NumericText value={groupThousands(price.lastPrice)} />
-          <span className="rounded border border-warning-line px-1.5 text-[10px] font-semibold tracking-wide">
+          <span className="rounded border border-warning-line px-1.5 text-xs font-semibold">
             {c.sourceLabel}
           </span>
           {price.asOf && (

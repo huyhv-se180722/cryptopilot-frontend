@@ -140,26 +140,6 @@ export function MarketRadar({
           className="fill-surface text-line-strong"
           stroke="currentColor"
         />
-        <text
-          x={C}
-          y={C - 3}
-          textAnchor="middle"
-          className="fill-muted font-mono"
-          fontSize="6.5"
-          letterSpacing="1.5"
-        >
-          {m.radarCenterTop}
-        </text>
-        <text
-          x={C}
-          y={C + 7}
-          textAnchor="middle"
-          className="fill-primary font-mono"
-          fontSize="6"
-          letterSpacing="1"
-        >
-          {m.radarCenterBottom}
-        </text>
       </svg>
 
       {points.map((point) => {
@@ -210,13 +190,13 @@ export function MarketRadar({
             >
               <span
                 className={classNames(
-                  'text-[11px] font-bold group-hover:underline',
+                  'text-xs font-bold group-hover:underline',
                   rising ? 'text-positive' : 'text-negative',
                 )}
               >
                 {point.pair.baseAsset ?? point.pair.symbol}
               </span>
-              <span className="font-mono text-[10px] text-muted">
+              <span className="font-mono text-xs text-muted">
                 {withSign(change)}%
               </span>
             </span>

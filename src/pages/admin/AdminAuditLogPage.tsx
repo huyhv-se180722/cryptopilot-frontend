@@ -74,7 +74,7 @@ export function AdminAuditLogPage() {
         actions={
           <div className="flex items-center gap-3">
             {health.data && (
-              <span className="text-[11px] text-muted-dim">
+              <span className="text-xs text-muted-dim">
                 {formatCopy(t.checkedAt, {
                   time: formatInstantLocal(health.data.checkedAt),
                 })}
@@ -131,7 +131,7 @@ export function AdminAuditLogPage() {
           { id: 'events', label: t.tabEvents, panel: <SystemLog /> },
         ]}
       />
-      <p className="mt-4 text-[11px] text-muted-x">{t.retention}</p>
+      <p className="mt-4 text-xs text-muted-x">{t.retention}</p>
     </div>
   );
 }
@@ -370,7 +370,7 @@ function Chip({
   return (
     <span
       title={title}
-      className="inline-flex h-8 items-center gap-1 rounded-lg border border-primary-line bg-primary-soft pr-1 pl-2.5 text-[11px] font-semibold text-primary"
+      className="inline-flex h-8 items-center gap-1 rounded-lg border border-primary-line bg-primary-soft pr-1 pl-2.5 text-xs font-semibold text-primary"
     >
       <span className="font-mono">{label}</span>
       <button

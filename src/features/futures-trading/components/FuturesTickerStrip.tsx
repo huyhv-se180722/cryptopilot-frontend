@@ -20,9 +20,7 @@ import { useTickDirection } from '../../paper-trading/hooks/use-tick-direction';
 function Stat({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5 xl:shrink-0">
-      <dt className="text-[10px] text-muted-dim xl:whitespace-nowrap">
-        {label}
-      </dt>
+      <dt className="text-xs text-muted-dim xl:whitespace-nowrap">{label}</dt>
       <dd className="text-xs whitespace-nowrap text-fg-2">{children}</dd>
     </div>
   );
@@ -77,7 +75,7 @@ export function FuturesTickerStrip({
       <div className="flex flex-1 items-center gap-3 xl:flex-none">
         <div
           className={classNames(
-            'flex shrink-0 items-center gap-1 text-lg font-semibold',
+            'flex shrink-0 items-center gap-1 text-xl font-semibold',
             direction === 'up' && 'text-positive',
             direction === 'down' && 'text-negative',
             direction === null && 'text-fg',

@@ -131,7 +131,7 @@ export function TokenRail({
             aria-selected={tab === each.id}
             onClick={() => setTab(each.id)}
             className={classNames(
-              'h-6 rounded-md px-2 text-[11px] font-semibold transition-colors duration-150',
+              'h-6 rounded-md px-2 text-xs font-semibold transition-colors duration-150',
               tab === each.id
                 ? 'border border-primary-line bg-primary-soft text-primary'
                 : 'text-muted-x hover:text-fg-2',
@@ -141,7 +141,7 @@ export function TokenRail({
           </button>
         ))}
       </div>
-      <div className="flex items-center justify-between border-y border-line px-3 py-1.5 text-[10px] text-muted-x">
+      <div className="flex items-center justify-between border-y border-line px-3 py-1.5 text-xs text-muted-x">
         <span>{c.railToken}</span>
         <span>{c.railPrice}</span>
       </div>
@@ -180,7 +180,7 @@ export function TokenRail({
         <button
           type="button"
           onClick={() => onSelect('')}
-          className="border-t border-line px-3 py-2 text-left text-[11px] font-semibold text-primary hover:bg-raised"
+          className="border-t border-line px-3 py-2 text-left text-xs font-semibold text-primary hover:bg-raised"
         >
           {c.railClear}
         </button>
@@ -221,13 +221,13 @@ function RailRow({
         active ? 'bg-primary-soft' : 'hover:bg-raised',
       )}
     >
-      <span className="text-[11px] text-muted-x">{rank}</span>
+      <span className="text-xs text-muted-x">{rank}</span>
       {quote.pair.logoUrl ? (
         <img src={quote.pair.logoUrl} alt="" className="size-6 rounded-full" />
       ) : (
         <span
           aria-hidden="true"
-          className="flex size-6 items-center justify-center rounded-full bg-raised text-[9px] font-bold text-fg-2"
+          className="flex size-6 items-center justify-center rounded-full bg-raised text-xs font-bold text-fg-2"
         >
           {quote.coin.slice(0, 3)}
         </span>
@@ -239,7 +239,7 @@ function RailRow({
             <Flame size={11} aria-hidden="true" className="text-accent" />
           )}
         </span>
-        <span className="block truncate text-[10px] text-muted-x">
+        <span className="block truncate text-xs text-muted-x">
           {ticker?.quoteVolume24h
             ? '$' + compactDecimal(ticker.quoteVolume24h)
             : '—'}
@@ -254,7 +254,7 @@ function RailRow({
         {change !== null && (
           <span
             className={classNames(
-              'block font-mono text-[10px]',
+              'block font-mono text-xs',
               up ? 'text-positive' : 'text-negative',
             )}
           >

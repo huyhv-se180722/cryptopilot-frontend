@@ -116,7 +116,7 @@ export function BalancesTable({ wallet }: { wallet: PaperWallet }) {
         emptyMessage={copy.messages.MSG41}
       />
       {!wallet.complete && (
-        <p className="mt-2 text-[11px] text-warning">{p.incompleteValue}</p>
+        <p className="mt-2 text-xs text-warning">{p.incompleteValue}</p>
       )}
     </>
   );

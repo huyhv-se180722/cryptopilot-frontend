@@ -26,9 +26,7 @@ function ReviewText({ label, text }: { label: string; text: string | null }) {
   if (text === null) return null;
   return (
     <div>
-      <h3 className="mb-1 text-[10px] font-semibold tracking-widest text-muted-x uppercase">
-        {label}
-      </h3>
+      <h3 className="mb-1 text-xs font-semibold text-muted-x">{label}</h3>
       <p className="m-0 text-xs leading-relaxed whitespace-pre-line text-fg-2">
         {text}
       </p>
@@ -65,7 +63,7 @@ export function ReviewView({
       <ReviewText label={j.mistakes} text={entry.mistakes} />
       {entry.chartImageUrl && (
         <figure className="m-0">
-          <figcaption className="mb-1 text-[10px] font-semibold tracking-widest text-muted-x uppercase">
+          <figcaption className="mb-1 text-xs font-semibold text-muted-x">
             {j.chartImage}
           </figcaption>
           <a href={entry.chartImageUrl} target="_blank" rel="noreferrer">
@@ -155,7 +153,7 @@ export function ReviewCard({
   return (
     <>
       <div className="mb-4 flex items-center gap-2">
-        <h2 className="mr-auto text-[10px] font-semibold tracking-widest text-muted-x uppercase">
+        <h2 className="mr-auto text-xs font-semibold text-muted-x">
           {j.reviewTitle}
         </h2>
         {!editing && canKeepImage && (
@@ -170,7 +168,7 @@ export function ReviewCard({
         )}
       </div>
       {!canKeepImage && (
-        <p className="mb-3 text-[11px] text-muted-dim">{j.reviewImageLocked}</p>
+        <p className="mb-3 text-xs text-muted-dim">{j.reviewImageLocked}</p>
       )}
       {editing ? (
         <ReviewForm

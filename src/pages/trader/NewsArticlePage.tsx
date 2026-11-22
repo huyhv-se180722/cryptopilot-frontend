@@ -137,7 +137,7 @@ function NewsArticle() {
                 <li key={coin.symbol}>
                   <Link
                     to={'/news?coin=' + encodeURIComponent(coin.symbol)}
-                    className="rounded-full border border-line bg-raised px-2 py-0.5 font-mono text-[11px] text-fg-2 no-underline hover:border-primary-line hover:text-primary"
+                    className="rounded-full border border-line bg-raised px-2 py-0.5 font-mono text-xs text-fg-2 no-underline hover:border-primary-line hover:text-primary"
                   >
                     {coin.symbol}
                   </Link>
@@ -153,13 +153,13 @@ function NewsArticle() {
               className="aspect-[16/9] w-full rounded-xl"
             />
             {data.imageUrl && (
-              <figcaption className="mt-1.5 text-[11px] text-muted-dim">
+              <figcaption className="mt-1.5 text-xs text-muted-dim">
                 {formatCopy(n.imageCredit, { source: data.source })}
               </figcaption>
             )}
           </figure>
 
-          <div className="grid gap-4 text-[15px] leading-relaxed text-fg-2">
+          <div className="grid gap-4 text-base leading-relaxed text-fg-2">
             {paragraphs.length > 0 ? (
               paragraphs.map((paragraph, index) => (
                 <p key={index}>{paragraph}</p>
@@ -175,7 +175,7 @@ function NewsArticle() {
           </div>
 
           <footer className="mt-8 rounded-xl border border-line bg-surface p-4">
-            <p className="text-[11px] font-semibold tracking-wide text-muted-dim uppercase">
+            <p className="text-xs font-semibold text-muted-dim">
               {n.sourceLabel}
             </p>
             <p className="mt-1 text-sm font-semibold text-fg">{data.source}</p>
@@ -194,7 +194,7 @@ function NewsArticle() {
           </footer>
 
           {data.aiSummarized && (
-            <p className="mt-4 flex gap-1.5 text-[11px] leading-relaxed text-muted-dim">
+            <p className="mt-4 flex gap-1.5 text-xs leading-relaxed text-muted-dim">
               <Sparkles
                 size={12}
                 aria-hidden="true"

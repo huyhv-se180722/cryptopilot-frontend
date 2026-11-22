@@ -413,24 +413,24 @@ function CommentRow({ comment }: { comment: MemberComment }) {
   const m = copy.community.member;
   return (
     <article className="rounded-2xl border border-line bg-surface p-4">
-      <p className="text-[13px] leading-relaxed whitespace-pre-line text-fg">
+      <p className="text-sm leading-relaxed whitespace-pre-line text-fg">
         {comment.content}
       </p>
       <Link
         to={postPath(comment.postId)}
         className="mt-3 block rounded-xl border border-line bg-raised px-3 py-2.5 no-underline transition-colors duration-150 hover:border-line-strong"
       >
-        <span className="block text-[10px] font-semibold tracking-wide text-muted-x uppercase">
+        <span className="block text-xs font-semibold text-muted-x">
           {comment.reply ? m.repliedOn : m.commentedOn}
         </span>
         <span className="mt-0.5 block truncate text-xs font-semibold text-fg">
           {comment.postTitle}
         </span>
-        <span className="mt-0.5 line-clamp-2 block text-[11px] text-muted-dim">
+        <span className="mt-0.5 line-clamp-2 block text-xs text-muted-dim">
           {comment.postExcerpt}
         </span>
       </Link>
-      <div className="mt-2.5 flex items-center gap-3 text-[11px] text-muted-x">
+      <div className="mt-2.5 flex items-center gap-3 text-xs text-muted-x">
         <time
           dateTime={comment.createdAt}
           title={formatInstantUtc(comment.createdAt)}

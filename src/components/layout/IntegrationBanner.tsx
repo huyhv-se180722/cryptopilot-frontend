@@ -14,7 +14,7 @@ export function IntegrationBanner() {
   return (
     <div
       role="status"
-      className="flex h-(--cp-banner-h) items-center gap-2 overflow-hidden border-b border-warning-line bg-warning-soft px-4 text-[11px] text-warning sm:px-6"
+      className="flex h-(--cp-banner-h) items-center gap-2 overflow-hidden border-b border-warning-line bg-warning-soft px-4 text-xs text-warning sm:px-6"
     >
       <Icon size={12} aria-hidden="true" className="shrink-0" />
       <strong className="shrink-0 font-semibold whitespace-nowrap">
@@ -28,7 +28,7 @@ export function IntegrationBanner() {
           : copy.integration.pendingBody}
       </span>
       {fixtures && session && (
-        <span className="ml-auto min-w-0 truncate rounded-full border border-warning-line px-2 font-mono text-[10px] font-semibold tracking-wider">
+        <span className="ml-auto min-w-0 truncate rounded-full border border-warning-line px-2 font-mono text-xs font-semibold">
           {copy.integration.devSession}
           {/* The email needs the room of sm and up; the badge stays. */}
           <span className="hidden sm:inline"> · {session.user.email}</span>

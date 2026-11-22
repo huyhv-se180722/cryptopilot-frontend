@@ -181,7 +181,7 @@ export function CommunityPage() {
             </div>
           )}
           {tab === 'MOST_LIKED' && view === 'posts' && (
-            <p className="-mt-2 mb-3 text-[11px] text-muted-dim">
+            <p className="-mt-2 mb-3 text-xs text-muted-dim">
               {c.tabMostLikedHint}
             </p>
           )}

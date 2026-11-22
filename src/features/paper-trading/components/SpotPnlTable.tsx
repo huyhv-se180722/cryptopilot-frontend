@@ -66,7 +66,7 @@ export function SpotPnlTable({ pnl }: { pnl: SpotPnl }) {
                   {row.unrealizedPnlPercent && (
                     <NumericText
                       signed
-                      className="text-[10px]"
+                      className="text-xs"
                       value={row.unrealizedPnlPercent}
                       suffix="%"
                     />
@@ -82,7 +82,7 @@ export function SpotPnlTable({ pnl }: { pnl: SpotPnl }) {
         emptyMessage={p.pnlNoCoins}
       />
       {!pnl.complete && (
-        <p className="mt-2 text-[11px] text-muted-dim">{p.pnlIncomplete}</p>
+        <p className="mt-2 text-xs text-muted-dim">{p.pnlIncomplete}</p>
       )}
     </>
   );

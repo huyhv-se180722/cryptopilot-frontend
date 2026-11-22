@@ -282,7 +282,7 @@ function TradeFutures({
             {lost && (
               <p
                 data-testid="pnl-estimated"
-                className="mt-2 text-[11px] text-warning"
+                className="mt-2 text-xs text-warning"
               >
                 {formatCopy(copy.marketStatus.estimated, {
                   time: futuresHealth.since

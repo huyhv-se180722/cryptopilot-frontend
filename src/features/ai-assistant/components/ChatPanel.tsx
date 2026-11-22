@@ -109,7 +109,7 @@ function Message({
       <BotAvatar small={compact} />
       <div className="min-w-0 max-w-[90%] sm:max-w-[80%]">
         {!compact && (
-          <p className="m-0 mb-1 text-[11px] text-muted">
+          <p className="m-0 mb-1 text-xs text-muted">
             <span className="font-semibold text-fg">{t.assistantName}</span>
             {' · '}
             {timeOf(message.createdAt)}
@@ -127,7 +127,7 @@ function Message({
         <button
           type="button"
           onClick={() => void copyAnswer()}
-          className="mt-1 inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] text-muted hover:bg-raised hover:text-fg-2"
+          className="mt-1 inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-muted hover:bg-raised hover:text-fg-2"
         >
           <Copy size={12} aria-hidden="true" />
           {t.copy}
@@ -179,7 +179,7 @@ export function QuotaBadge({ quota }: { quota: AiQuota | undefined }) {
     <span
       title={quotaLine(t, quota)}
       className={classNames(
-        'inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[11px]',
+        'inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs',
         quota.canAsk
           ? 'bg-surface-alt text-fg-2'
           : 'bg-negative-soft text-negative',
@@ -247,7 +247,7 @@ function Welcome({
             {welcome.body}
           </p>
         </div>
-        <p className="m-0 text-[10.5px] font-semibold tracking-wider text-muted-dim uppercase">
+        <p className="m-0 text-xs font-semibold text-muted-dim">
           {t.suggestionsTitle}
         </p>
         <ul className="m-0 grid list-none gap-2 p-0">
@@ -256,7 +256,7 @@ function Welcome({
               <button
                 type="button"
                 onClick={() => onPick(suggestion)}
-                className="flex w-full items-center gap-2.5 rounded-xl border border-line bg-surface px-3 py-2.5 text-left text-[13px] font-medium text-fg hover:border-line-strong hover:bg-raised"
+                className="flex w-full items-center gap-2.5 rounded-xl border border-line bg-surface px-3 py-2.5 text-left text-sm font-medium text-fg hover:border-line-strong hover:bg-raised"
               >
                 {suggestion.icon}
                 <span className="flex-1">{suggestion.text}</span>
@@ -286,7 +286,7 @@ function Welcome({
         <p className="m-0 text-xl font-semibold tracking-tight text-fg">
           {welcome.title}
         </p>
-        <p className="m-0 max-w-md text-[13px] leading-relaxed text-muted">
+        <p className="m-0 max-w-md text-sm leading-relaxed text-muted">
           {welcome.body}
         </p>
       </div>
@@ -300,7 +300,7 @@ function Welcome({
             >
               {suggestion.icon}
               <span className="min-w-0">
-                <span className="block text-[13px] font-semibold text-fg">
+                <span className="block text-sm font-semibold text-fg">
                   {suggestion.text}
                 </span>
                 {suggestion.hint && (
@@ -328,7 +328,7 @@ function Attachments({
 }) {
   const t = useCopy().aiAssistant;
   return (
-    <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+    <div className="flex flex-wrap items-center gap-1.5 text-xs">
       <span className="text-muted">{t.sees}</span>
       {attachments.length === 0 ? (
         <span className="text-muted-dim">{emptyText}</span>
@@ -584,7 +584,7 @@ export function ChatPanel({
                 <ArrowRight size={compact ? 16 : 18} aria-hidden="true" />
               </button>
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-1 text-[11px]">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-1 text-xs">
               <span
                 className={classNames(
                   quota && !canAsk ? 'text-negative' : 'text-muted-dim',
@@ -607,7 +607,7 @@ export function ChatPanel({
           </form>
         )}
         {footer && (
-          <div className="mt-1.5 px-1 text-[11px] text-muted-dim">{footer}</div>
+          <div className="mt-1.5 px-1 text-xs text-muted-dim">{footer}</div>
         )}
       </div>
     </section>
@@ -626,7 +626,7 @@ export function SuggestionTag({
     <span
       aria-hidden="true"
       className={classNames(
-        'inline-flex size-7 shrink-0 items-center justify-center rounded-lg font-mono text-[10px] font-bold',
+        'inline-flex size-7 shrink-0 items-center justify-center rounded-lg font-mono text-xs font-bold',
         className,
       )}
     >

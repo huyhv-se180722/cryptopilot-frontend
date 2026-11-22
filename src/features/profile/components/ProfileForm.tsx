@@ -104,7 +104,7 @@ export function ProfileForm({
             >
               {initial}
             </div>
-            <span className="text-center text-[10px] text-muted-x">
+            <span className="text-center text-xs text-muted-x">
               {p.avatarPending}
             </span>
           </div>
@@ -184,7 +184,7 @@ export function ProfileForm({
           </Select>
           <p
             id="trading-style-hint"
-            className="self-end pb-3 text-[11px] text-muted-dim"
+            className="self-end pb-3 text-xs text-muted-dim"
           >
             {p.styleHint}
           </p>

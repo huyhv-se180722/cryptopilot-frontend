@@ -104,7 +104,7 @@ function Tile({
         className,
       )}
     >
-      <span className="text-[11px] text-muted">{label}</span>
+      <span className="text-xs text-muted">{label}</span>
       {children}
     </div>
   );
@@ -153,7 +153,7 @@ export function MarketStatusCard({ data }: { data: CoinMarket | undefined }) {
               </span>
               <Change
                 value={data.global.marketCapChange24hPercent}
-                className="text-[11px]"
+                className="text-xs"
               />
             </span>
           ) : (
@@ -189,7 +189,7 @@ export function MarketStatusCard({ data }: { data: CoinMarket | undefined }) {
                     style={{ left: `${season.index}%` }}
                   />
                 </span>
-                <span className="flex justify-between text-[10px] text-muted">
+                <span className="flex justify-between text-xs text-muted">
                   <span>{c.seasonBitcoin}</span>
                   <span>{c.seasonAltcoin}</span>
                 </span>
@@ -219,7 +219,7 @@ export function TrendingCard({
   return (
     <CardShell
       title={c.trending}
-      extra={<span className="text-[11px] text-muted">{c.trendingHint}</span>}
+      extra={<span className="text-xs text-muted">{c.trendingHint}</span>}
     >
       {top.length === 0 && !loading ? (
         <p className="text-xs text-muted">{c.empty}</p>
@@ -277,10 +277,10 @@ export function DerivativesCard({
     <CardShell
       title={c.derivatives}
       to={futuresSymbol ? `/markets/futures/${futuresSymbol}` : undefined}
-      extra={<span className="text-[11px] text-muted">{c.futuresNote}</span>}
+      extra={<span className="text-xs text-muted">{c.futuresNote}</span>}
     >
       <div className="mb-2 rounded-xl border border-line bg-page-alt p-3">
-        <span className="text-[11px] text-muted">{c.openInterestChart}</span>
+        <span className="text-xs text-muted">{c.openInterestChart}</span>
         {interest ? (
           <ChangeBars
             values={interest.lastDay.map((point) => Number(point.valueUsd))}
@@ -297,10 +297,7 @@ export function DerivativesCard({
               <span className="text-base font-bold text-fg">
                 {compactUsd(interest.valueUsd)}
               </span>
-              <Change
-                value={interest.change24hPercent}
-                className="text-[11px]"
-              />
+              <Change value={interest.change24hPercent} className="text-xs" />
             </span>
           ) : (
             <span className="text-muted-x">—</span>
@@ -326,7 +323,7 @@ function CommunityPost({ post, now }: { post: PostSummary; now: number }) {
       className="block rounded-xl border border-line bg-page-alt p-3 text-fg no-underline hover:border-line-strong"
     >
       <span className="flex items-center gap-2">
-        <span className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-raised text-[10px] font-bold text-fg-2">
+        <span className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-raised text-xs font-bold text-fg-2">
           {post.author.avatarUrl ? (
             <img
               src={post.author.avatarUrl}
@@ -358,14 +355,14 @@ function CommunityPost({ post, now }: { post: PostSummary; now: number }) {
               </span>
             )}
           </span>
-          <span className="block text-[11px] text-muted">
+          <span className="block text-xs text-muted">
             {formatCopy(c.influence, {
               score: post.authorStanding.influenceScore.toFixed(2),
             })}
           </span>
         </span>
       </span>
-      <span className="mt-2 line-clamp-2 text-xs font-semibold uppercase">
+      <span className="mt-2 line-clamp-2 text-xs font-semibold">
         {post.title || post.excerpt}
       </span>
     </Link>

@@ -26,7 +26,7 @@ export function StyleChip() {
     <Link
       to="/profile"
       title={t.styleNotSetHint}
-      className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] font-medium text-fg-2 hover:border-primary hover:text-primary"
+      className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-medium text-fg-2 hover:border-primary hover:text-primary"
     >
       <SlidersHorizontal size={12} aria-hidden="true" />
       <span className="truncate">{label}</span>

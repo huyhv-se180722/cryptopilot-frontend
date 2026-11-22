@@ -185,7 +185,7 @@ export function MarketOverview() {
       )}
       <Link
         to={market === 'futures' ? '/markets?market=futures' : '/markets'}
-        className="mt-3 inline-block text-[11px] no-underline"
+        className="mt-3 inline-block text-xs no-underline"
       >
         {o.allMarkets}
       </Link>
@@ -199,7 +199,7 @@ export function MarketOverview() {
     >
       <h2
         id="market-overview-title"
-        className="mb-2 text-[10px] font-semibold tracking-widest text-muted-x uppercase"
+        className="mb-2 text-xs font-semibold text-muted-x"
       >
         {o.title}
       </h2>

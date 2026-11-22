@@ -334,7 +334,7 @@ function ChatBody({ onClose }: { onClose: () => void }) {
         </span>
         <div className="min-w-0 flex-1">
           <p className="m-0 text-sm font-semibold">{t.bubbleTitle}</p>
-          <p className="m-0 text-[11px] leading-snug text-ink-panel-muted">
+          <p className="m-0 text-xs leading-snug text-ink-panel-muted">
             {t.bubbleSubtitle}
           </p>
         </div>

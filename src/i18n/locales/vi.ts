@@ -1853,8 +1853,6 @@ export const vi: PartialCopy = {
     radarFeedLive: 'Dữ liệu thị trường · trực tiếp',
     radarFeedDelayed: 'Dữ liệu thị trường · chậm',
     radarFeedConnecting: 'Dữ liệu thị trường · đang kết nối',
-    radarCenterTop: 'CRYPTOPILOT',
-    radarCenterBottom: 'SPOT · 24H',
     radarNode: '{pair} {change}% trong 24h. Mở biểu đồ.',
     breadthTitle: 'Độ rộng thị trường',
     breadthRising: 'Tăng',

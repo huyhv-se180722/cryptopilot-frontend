@@ -46,7 +46,7 @@ export function MarketBreadthCard({
       )}
     >
       <div className="mb-2.5 flex items-center justify-between">
-        <h2 className="font-mono text-[9px] font-semibold tracking-widest text-muted-dim uppercase">
+        <h2 className="font-mono text-xs font-semibold text-muted-dim">
           {m.breadthTitle}
         </h2>
         <Activity size={12} aria-hidden="true" className="text-warning" />
@@ -54,13 +54,10 @@ export function MarketBreadthCard({
       <dl className="flex flex-col gap-1.5">
         {rows.map((row) => (
           <div key={row.label} className="flex items-center justify-between">
-            <dt className="text-[10px] text-muted">{row.label}</dt>
+            <dt className="text-xs text-muted">{row.label}</dt>
             <dd
               data-numeric
-              className={classNames(
-                'font-mono text-[11px] font-bold',
-                row.tone,
-              )}
+              className={classNames('font-mono text-xs font-bold', row.tone)}
             >
               {row.value}
             </dd>
@@ -69,7 +66,7 @@ export function MarketBreadthCard({
       </dl>
       {breadth.risingShare !== null && (
         <div className="mt-2.5">
-          <div className="mb-1 flex items-center justify-between font-mono text-[8px] tracking-wide text-muted-dim uppercase">
+          <div className="mb-1 flex items-center justify-between font-mono text-xs text-muted-dim">
             <span>{m.breadthShare}</span>
             <span className="text-fg-2">{breadth.risingShare}%</span>
           </div>
@@ -86,7 +83,7 @@ export function MarketBreadthCard({
               style={{ width: `${breadth.risingShare}%` }}
             />
           </div>
-          <div className="mt-1 flex justify-between font-mono text-[8px] uppercase">
+          <div className="mt-1 flex justify-between font-mono text-xs">
             <span className="text-negative">{m.breadthFalling}</span>
             <span className="text-positive">{m.breadthRising}</span>
           </div>

@@ -59,7 +59,7 @@ export function PickRow({
   children: ReactNode;
 }) {
   const className =
-    'relative grid min-h-5 w-full grid-cols-3 items-center gap-2 px-1 text-[11px]';
+    'relative grid min-h-5 w-full grid-cols-3 items-center gap-2 px-1 text-xs';
   return onPick ? (
     <button
       type="button"
@@ -218,7 +218,7 @@ export function OrderBookPanel({
               aria-label={p.groupLabel}
               value={step ?? ''}
               onChange={(event) => setStep(event.target.value)}
-              className="h-6 rounded border border-line bg-raised px-1 font-mono text-[11px] text-fg-2"
+              className="h-6 rounded border border-line bg-raised px-1 font-mono text-xs text-fg-2"
             >
               {steps.map((value) => (
                 <option key={value} value={value}>
@@ -250,7 +250,7 @@ export function OrderBookPanel({
         </p>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="grid grid-cols-3 gap-2 px-1 pb-1 text-[10px] text-muted-dim">
+          <div className="grid grid-cols-3 gap-2 px-1 pb-1 text-xs text-muted-dim">
             <span>{formatCopy(p.colPrice, { asset: quote })}</span>
             <span className="text-right">
               {formatCopy(p.colAmount, { asset: base })}
@@ -295,7 +295,7 @@ export function OrderBookPanel({
               )}
             </span>
             {bestBid && bestAsk && (
-              <span className="text-[10px] text-muted-dim">
+              <span className="text-xs text-muted-dim">
                 {p.spread}{' '}
                 <NumericText
                   value={formatPrice(
@@ -327,7 +327,7 @@ export function OrderBookPanel({
                 buy: buy.toFixed(2),
                 sell: (100 - buy).toFixed(2),
               })}
-              className="mt-2 flex h-4 items-center gap-1 text-[10px] font-semibold"
+              className="mt-2 flex h-4 items-center gap-1 text-xs font-semibold"
             >
               <span className="text-positive">B {buy.toFixed(0)}%</span>
               <span className="flex h-1.5 flex-1 overflow-hidden rounded-full bg-negative-soft">

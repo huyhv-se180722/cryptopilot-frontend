@@ -93,7 +93,7 @@ export function NotificationItem({
           <time
             dateTime={notification.createdAt}
             title={formatInstantUtc(notification.createdAt)}
-            className="shrink-0 text-[11px] text-muted-x"
+            className="shrink-0 text-xs text-muted-x"
           >
             {notificationAge(copy, notification.createdAt)}
           </time>
@@ -101,14 +101,14 @@ export function NotificationItem({
         {notification.content && (
           <span
             className={classNames(
-              'mt-0.5 text-[11px] leading-relaxed text-muted-dim',
+              'mt-0.5 text-xs leading-relaxed text-muted-dim',
               compact ? 'line-clamp-1' : 'line-clamp-2',
             )}
           >
             {notification.content}
           </span>
         )}
-        <span className="mt-1 block text-[10px] font-semibold tracking-wider text-muted-x uppercase">
+        <span className="mt-1 block text-xs font-semibold text-muted-x">
           {n[`type${notification.type}`]}
         </span>
       </span>

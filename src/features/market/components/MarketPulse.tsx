@@ -34,7 +34,7 @@ export function MarketPulse({
         label={m.pulseTitle}
         className="border-b border-line"
       />
-      <h3 className="px-5 pt-3 text-[10px] font-semibold tracking-wider text-muted-dim uppercase">
+      <h3 className="px-5 pt-3 text-xs font-semibold text-muted-dim">
         {m.pulseMostTraded}
       </h3>
       <ul className="grid grid-cols-2 gap-2 p-4 pt-2 sm:grid-cols-4">
@@ -45,20 +45,20 @@ export function MarketPulse({
               onClick={() => onSelect(pair)}
               className="w-full rounded-xl border border-line bg-raised px-3 py-2.5 text-left transition-colors hover:border-primary-line hover:bg-raised-hover"
             >
-              <span className="mb-1 block text-[11px] font-semibold text-muted-dim">
+              <span className="mb-1 block text-xs font-semibold text-muted-dim">
                 {pair.baseAsset ?? pair.symbol}
                 <span className="font-normal">/{pair.quoteAsset ?? ''}</span>
               </span>
               {ticker.lastPrice && (
                 <NumericText
-                  className="mb-0.5 block text-[13px] font-bold text-fg"
+                  className="mb-0.5 block text-sm font-bold text-fg"
                   value={formatPrice(ticker.lastPrice, pair.tickSize)}
                 />
               )}
               {ticker.changePercent24h && (
                 <NumericText
                   signed
-                  className="block text-[10px] font-semibold"
+                  className="block text-xs font-semibold"
                   value={toFixedDecimal(ticker.changePercent24h, 2)}
                   suffix="%"
                 />

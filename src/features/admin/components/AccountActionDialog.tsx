@@ -167,7 +167,7 @@ function ChangeForm({
         />
         <div
           id={reasonId + '-hint'}
-          className="mt-1 flex justify-between gap-2 text-[11px]"
+          className="mt-1 flex justify-between gap-2 text-xs"
         >
           <span
             className={classNames(

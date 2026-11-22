@@ -63,13 +63,13 @@ export function RiskProfileSection({
 
       <dl className="mb-5 grid grid-cols-1 gap-3 rounded-lg border border-line bg-raised p-4 sm:grid-cols-4">
         <div>
-          <dt className="text-[11px] text-muted-x">{p.riskCurrent}</dt>
+          <dt className="text-xs text-muted-x">{p.riskCurrent}</dt>
           <dd className="text-sm font-semibold text-fg">
             {label(risk.riskProfile)}
           </dd>
         </div>
         <div>
-          <dt className="text-[11px] text-muted-x">{p.riskPerTrade}</dt>
+          <dt className="text-xs text-muted-x">{p.riskPerTrade}</dt>
           <dd className="font-mono text-sm text-fg-2">
             {formatCopy(p.percentValue, {
               value: toFixedDecimal(risk.riskPerTradePercent, 2),
@@ -77,13 +77,13 @@ export function RiskProfileSection({
           </dd>
         </div>
         <div>
-          <dt className="text-[11px] text-muted-x">{p.maxLeverage}</dt>
+          <dt className="text-xs text-muted-x">{p.maxLeverage}</dt>
           <dd className="font-mono text-sm text-fg-2">
             {formatCopy(p.leverageValue, { value: risk.maxFuturesLeverage })}
           </dd>
         </div>
         <div>
-          <dt className="text-[11px] text-muted-x">{p.maxOpenRisk}</dt>
+          <dt className="text-xs text-muted-x">{p.maxOpenRisk}</dt>
           <dd className="font-mono text-sm text-fg-2">
             {formatCopy(p.percentValue, {
               value: toFixedDecimal(risk.maxTotalOpenRiskPercent, 2),

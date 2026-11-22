@@ -56,8 +56,8 @@ export function RiskQuestionnaireDialog({
   else if (result)
     body = (
       <div className="rounded-lg border border-primary-line bg-primary-soft p-4">
-        <p className="text-[11px] text-muted-dim">{p.suggestionTitle}</p>
-        <p className="mt-1 text-lg font-semibold text-primary">
+        <p className="text-xs text-muted-dim">{p.suggestionTitle}</p>
+        <p className="mt-1 text-xl font-semibold text-primary">
           {p[`risk${result.suggestedProfile}`]}
         </p>
         <p className="mt-1 font-mono text-xs text-muted">
@@ -79,7 +79,7 @@ export function RiskQuestionnaireDialog({
         )}
         {GROUPS.map((group) => (
           <section key={group}>
-            <h3 className="mb-2 text-[10px] font-semibold tracking-widest text-muted-x uppercase">
+            <h3 className="mb-2 text-xs font-semibold text-muted-x">
               {p[`group${group}`]}
             </h3>
             {questions
@@ -146,7 +146,7 @@ export function RiskQuestionnaireDialog({
         ) : state.status === 'success' ? (
           <>
             {!complete && (
-              <span className="mr-auto text-[11px] text-muted-dim">
+              <span className="mr-auto text-xs text-muted-dim">
                 {p.questionnaireAnswerAll}
               </span>
             )}

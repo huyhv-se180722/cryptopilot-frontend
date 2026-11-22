@@ -45,21 +45,21 @@ export function PinnedCarousel() {
       >
         <h2
           id="community-pinned"
-          className="flex items-center gap-1.5 text-[11px] font-semibold text-white/80"
+          className="flex items-center gap-1.5 text-xs font-semibold text-white/80"
         >
           <Megaphone size={12} aria-hidden="true" className="text-white" />
           {c.announcementsTitle}
           <ChevronRight size={12} aria-hidden="true" />
         </h2>
-        <p className="mt-2 line-clamp-2 text-[15px] leading-snug font-semibold text-white">
+        <p className="mt-2 line-clamp-2 text-base leading-snug font-semibold text-white">
           {post.title}
         </p>
-        <p className="mt-2 text-[11px] text-white/70">
+        <p className="mt-2 text-xs text-white/70">
           {post.officialCategory && c[`category${post.officialCategory}`]} ·{' '}
           {postAge(copy, post.createdAt)}
         </p>
       </Link>
-      <div className="mt-2 flex items-center justify-between px-1 text-[11px] text-muted-x">
+      <div className="mt-2 flex items-center justify-between px-1 text-xs text-muted-x">
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -195,7 +195,7 @@ function InfluencerRow({
         >
           {name}
         </Link>
-        <span className="block text-[11px] text-muted-dim">
+        <span className="block text-xs text-muted-dim">
           {formatCopy(rank === 'DEPTH' ? c.depthScore : c.influenceScore, {
             score: formatScore(score),
           })}
@@ -227,7 +227,7 @@ export function Stance({
     <div className="w-16 shrink-0 text-right">
       <span
         className={classNames(
-          'inline-flex items-center gap-0.5 text-[11px] font-semibold',
+          'inline-flex items-center gap-0.5 text-xs font-semibold',
           side === 'bull'
             ? 'text-positive'
             : side === 'bear'

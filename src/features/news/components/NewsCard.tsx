@@ -36,7 +36,7 @@ export function NewsCard({ article }: { article: NewsArticle }) {
         />
       </Link>
       <div className="min-w-0 flex-1">
-        <h2 className="line-clamp-2 text-sm leading-snug font-semibold text-fg sm:text-[15px]">
+        <h2 className="line-clamp-2 text-sm leading-snug font-semibold text-fg sm:text-base">
           <Link to={to} className="text-fg no-underline hover:text-primary">
             {article.title}
           </Link>
@@ -46,7 +46,7 @@ export function NewsCard({ article }: { article: NewsArticle }) {
             {article.summary}
           </p>
         )}
-        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-dim">
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-dim">
           <span className="font-semibold text-fg-2">{article.source}</span>
           <span aria-hidden="true">·</span>
           <time
@@ -66,7 +66,7 @@ export function NewsCard({ article }: { article: NewsArticle }) {
                 <li key={coin.symbol}>
                   <Link
                     to={'/news?coin=' + encodeURIComponent(coin.symbol)}
-                    className="rounded-full border border-line bg-raised px-1.5 py-px font-mono text-[10px] text-fg-2 no-underline hover:border-primary-line hover:text-primary"
+                    className="rounded-full border border-line bg-raised px-1.5 py-px font-mono text-xs text-fg-2 no-underline hover:border-primary-line hover:text-primary"
                   >
                     {coin.symbol}
                   </Link>

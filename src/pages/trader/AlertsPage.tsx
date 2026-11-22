@@ -148,7 +148,7 @@ export function AlertsPage() {
           </Button>
         </nav>
       )}
-      <p className="mt-3 flex items-start gap-1.5 text-[11px] text-muted-dim">
+      <p className="mt-3 flex items-start gap-1.5 text-xs text-muted-dim">
         <Info size={12} aria-hidden="true" className="mt-0.5 shrink-0" />
         {a.historyPending}
       </p>
@@ -159,7 +159,7 @@ export function AlertsPage() {
     <div className="w-full">
       <header className="mb-4 flex flex-wrap items-center gap-3">
         <div className="mr-auto">
-          <h1 className="text-lg font-semibold text-fg">{a.title}</h1>
+          <h1 className="text-xl font-semibold text-fg">{a.title}</h1>
           <p className="mt-0.5 text-xs text-muted-dim">{a.subtitle}</p>
         </div>
         <Button

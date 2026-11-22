@@ -29,10 +29,10 @@ export function JournalManualPage() {
         {j.back}
       </Link>
       <header className="mb-4 flex flex-wrap items-center gap-3">
-        <h1 className="text-lg font-semibold text-fg">
+        <h1 className="text-xl font-semibold text-fg">
           {editId ? j.manualEditTitle : j.manualTitle}
         </h1>
-        <span className="rounded border border-line px-1.5 text-[10px] font-semibold tracking-wider text-muted uppercase">
+        <span className="rounded border border-line px-1.5 text-xs font-semibold text-muted">
           {copy.performance.sourceMANUAL}
         </span>
         <p className="w-full text-xs text-muted-dim">{j.manualSubtitle}</p>

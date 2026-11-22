@@ -43,7 +43,7 @@ export function PlanCreatePage() {
         {p.backToList}
       </Link>
       <header className="mb-4">
-        <h1 className="text-lg font-semibold text-fg">{p.createTitle}</h1>
+        <h1 className="text-xl font-semibold text-fg">{p.createTitle}</h1>
       </header>
       {pairs.isPending ||
       futuresPairs.isPending ||

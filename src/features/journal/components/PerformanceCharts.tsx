@@ -31,7 +31,7 @@ const DRAWDOWN = '--cp-negative';
 
 function Legend({ color, label }: { color: string; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] text-muted">
+    <span className="inline-flex items-center gap-1.5 text-xs text-muted">
       <span
         aria-hidden="true"
         className="h-0.5 w-3 rounded-full"

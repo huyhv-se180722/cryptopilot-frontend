@@ -50,7 +50,7 @@ export function AnnouncementTable({
       render: (post) => (
         <span className="block max-w-[360px] whitespace-normal">
           <span className="line-clamp-1 font-medium text-fg">{post.title}</span>
-          <span className="line-clamp-1 text-[11px] text-muted-dim">
+          <span className="line-clamp-1 text-xs text-muted-dim">
             {post.excerpt}
           </span>
         </span>

@@ -46,7 +46,7 @@ export function ShareSlider({
         />
         <span
           aria-hidden="true"
-          className="w-10 shrink-0 text-right font-mono text-[11px] text-fg-2"
+          className="w-10 shrink-0 text-right font-mono text-xs text-fg-2"
         >
           {shown}
         </span>
@@ -64,7 +64,7 @@ export function ShareSlider({
             aria-pressed={value === percent}
             onClick={() => onChange(percent)}
             className={classNames(
-              'h-6 rounded-md border px-2 text-[11px] font-medium disabled:opacity-50 pointer-coarse:h-9',
+              'h-6 rounded-md border px-2 text-xs font-medium disabled:opacity-50 pointer-coarse:h-9',
               value === percent
                 ? 'border-primary-line bg-primary-soft text-primary'
                 : 'border-line text-muted hover:border-primary-line hover:text-primary',

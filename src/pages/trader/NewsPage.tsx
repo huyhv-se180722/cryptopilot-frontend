@@ -146,7 +146,7 @@ function NewsFeed() {
         <div className="min-w-0">
           <NewsFilters value={filters} onChange={update} />
           {body}
-          <p className="mt-4 text-[11px] text-muted-dim">{n.disclaimer}</p>
+          <p className="mt-4 text-xs text-muted-dim">{n.disclaimer}</p>
         </div>
         <aside className="min-w-0 lg:sticky lg:top-4 lg:self-start">
           <MarketOverview />

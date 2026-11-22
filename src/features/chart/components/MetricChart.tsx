@@ -106,7 +106,7 @@ export function MetricChart({
         aria-label={label}
         className={className}
       />
-      <p className="mt-1 text-right text-[11px] text-muted-dim">
+      <p className="mt-1 text-right text-xs text-muted-dim">
         {note ?? formatCopy(copy.chart.timeZone, { zone: zoneLabel(offset) })}
       </p>
     </>

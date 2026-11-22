@@ -41,7 +41,7 @@ export function SocialInsightsCard({ profile }: { profile: MemberProfile }) {
       <dl className="grid grid-cols-2 gap-3 px-4 pt-3 pb-4">
         {scores.map((score) => (
           <div key={score.label} className="min-w-0">
-            <dt className="flex items-center gap-1 text-[11px] text-muted-x">
+            <dt className="flex items-center gap-1 text-xs text-muted-x">
               <span className="truncate">{score.label}</span>
               <span title={score.hint} className="shrink-0">
                 <Info size={11} aria-label={score.hint} />
@@ -79,7 +79,7 @@ export function TokenMentionsCard({ memberId }: { memberId: string }) {
           <Info size={12} aria-label={m.mentionsHint} />
         </span>
       </h2>
-      <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto_64px] gap-2 border-y border-line px-4 py-1.5 text-[10px] text-muted-x">
+      <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto_64px] gap-2 border-y border-line px-4 py-1.5 text-xs text-muted-x">
         <span>{m.mindshare}</span>
         <span className="text-right">{m.price}</span>
         <span className="text-right">{m.lean}</span>
@@ -130,7 +130,7 @@ function MentionRow({ mention }: { mention: TokenMention }) {
           <span className="block truncate text-xs font-semibold text-fg">
             {mention.symbol}
           </span>
-          <span className="flex items-center gap-1.5 text-[10px] text-muted-x">
+          <span className="flex items-center gap-1.5 text-xs text-muted-x">
             <span
               aria-hidden="true"
               className="h-1 w-10 overflow-hidden rounded-full bg-raised"
@@ -153,7 +153,7 @@ function MentionRow({ mention }: { mention: TokenMention }) {
         {change !== null && (
           <span
             className={classNames(
-              'block font-mono text-[10px]',
+              'block font-mono text-xs',
               up ? 'text-positive' : 'text-negative',
             )}
           >

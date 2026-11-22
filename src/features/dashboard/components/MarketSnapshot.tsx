@@ -81,11 +81,11 @@ export function MarketSnapshot({
                 <span className="font-medium text-muted-dim">
                   /{pair.quoteAsset}
                 </span>
-                <span className="ml-1.5 text-[11px] font-medium text-muted-dim">
+                <span className="ml-1.5 text-xs font-medium text-muted-dim">
                   {m.spot}
                 </span>
               </h2>
-              <p className="text-[11px] text-muted-dim">{d.chartPickHint}</p>
+              <p className="text-xs text-muted-dim">{d.chartPickHint}</p>
             </div>
           </div>
         ) : (
@@ -114,7 +114,7 @@ export function MarketSnapshot({
             </span>
           )}
         </div>
-        <dl className="m-0 flex flex-wrap gap-x-5 gap-y-1 text-[11px]">
+        <dl className="m-0 flex flex-wrap gap-x-5 gap-y-1 text-xs">
           {[
             { label: d.chartHigh, value: price(ticker?.high24h) },
             { label: d.chartLow, value: price(ticker?.low24h) },
@@ -143,7 +143,7 @@ export function MarketSnapshot({
           {pair && (
             <Link
               to={`/markets/spot/${pair.symbol}`}
-              className="text-[12.5px] font-semibold no-underline"
+              className="text-xs font-semibold no-underline"
             >
               {d.openAnalysis} →
             </Link>
@@ -176,7 +176,7 @@ export function MarketSnapshot({
           />
         )}
       </div>
-      <div className="flex flex-wrap justify-between gap-2 border-t border-line px-4 py-2 text-[11px] text-muted-dim">
+      <div className="flex flex-wrap justify-between gap-2 border-t border-line px-4 py-2 text-xs text-muted-dim">
         <span>{formatCopy(d.chartCandles, { timeframe: shownLabel })}</span>
         <span>
           {formatCopy(copy.chart.timeZone, {

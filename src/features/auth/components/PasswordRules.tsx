@@ -57,9 +57,7 @@ export function PasswordRules({ password }: { password: string }) {
           />
         ))}
       </div>
-      <div className={classNames('text-[11px]', labelTone[met])}>
-        {strength}
-      </div>
+      <div className={classNames('text-xs', labelTone[met])}>{strength}</div>
       <ul
         aria-label={copy.auth.rulesTitle}
         className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-0.5"
@@ -68,7 +66,7 @@ export function PasswordRules({ password }: { password: string }) {
           <li
             key={rule}
             className={classNames(
-              'flex items-center gap-1.5 text-[11px]',
+              'flex items-center gap-1.5 text-xs',
               results[rule] ? 'text-positive' : 'text-muted-dim',
             )}
           >

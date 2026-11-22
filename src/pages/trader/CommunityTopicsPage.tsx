@@ -31,9 +31,7 @@ function Topics() {
   return (
     <>
       <div className="mb-4">
-        <h1 className="text-2xl font-bold tracking-tight text-fg">
-          {c.topicsTitle}
-        </h1>
+        <h1 className="text-xl font-bold text-fg">{c.topicsTitle}</h1>
         <p className="mt-1 text-xs text-muted-dim">{c.topicsSubtitle}</p>
       </div>
       {trending.isPending ? (
@@ -85,7 +83,7 @@ function TopicCard({ coin, rank }: { coin: CoinDiscussion; rank: number }) {
         ) : (
           <span
             aria-hidden="true"
-            className="flex size-8 items-center justify-center rounded-full bg-raised text-[10px] font-bold text-fg-2"
+            className="flex size-8 items-center justify-center rounded-full bg-raised text-xs font-bold text-fg-2"
           >
             {coin.symbol.slice(0, 3)}
           </span>
@@ -94,7 +92,7 @@ function TopicCard({ coin, rank }: { coin: CoinDiscussion; rank: number }) {
           <p className="truncate text-sm font-semibold text-fg">
             ${coin.symbol}
           </p>
-          <p className="truncate text-[11px] text-muted-dim">{coin.name}</p>
+          <p className="truncate text-xs text-muted-dim">{coin.name}</p>
         </div>
         <div className="text-right">
           {quote?.ticker?.lastPrice && (
@@ -105,7 +103,7 @@ function TopicCard({ coin, rank }: { coin: CoinDiscussion; rank: number }) {
           {change !== null && (
             <p
               className={classNames(
-                'font-mono text-[11px]',
+                'font-mono text-xs',
                 up ? 'text-positive' : 'text-negative',
               )}
             >
@@ -116,19 +114,19 @@ function TopicCard({ coin, rank }: { coin: CoinDiscussion; rank: number }) {
       </div>
       <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
         <div className="rounded-lg bg-raised px-2 py-1.5">
-          <dt className="text-[10px] text-muted-x">{c.discussionDay}</dt>
+          <dt className="text-xs text-muted-x">{c.discussionDay}</dt>
           <dd className="font-mono text-sm font-semibold text-fg">
             {coin.postsLastDay}
           </dd>
         </div>
         <div className="rounded-lg bg-raised px-2 py-1.5">
-          <dt className="text-[10px] text-muted-x">{c.discussionWeek}</dt>
+          <dt className="text-xs text-muted-x">{c.discussionWeek}</dt>
           <dd className="font-mono text-sm font-semibold text-fg">
             {coin.postsLastWeek}
           </dd>
         </div>
         <div className="rounded-lg bg-raised px-2 py-1.5">
-          <dt className="text-[10px] text-muted-x">{c.discussionLast}</dt>
+          <dt className="text-xs text-muted-x">{c.discussionLast}</dt>
           <dd className="truncate text-xs font-semibold text-fg">
             {coin.lastPostAt ? postAge(copy, coin.lastPostAt) : '—'}
           </dd>

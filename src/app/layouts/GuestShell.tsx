@@ -24,7 +24,7 @@ import { useCopy } from '../../hooks/use-copy';
 import { classNames } from '../../utils/class-names';
 
 const navItemClass =
-  'relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-[13px] font-medium pointer-coarse:py-3';
+  'relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium pointer-coarse:py-3';
 
 /**
  * Figma GuestShell header, promo strip and footer. Guests read the
@@ -122,7 +122,7 @@ export function GuestShell() {
               className={buttonClassName(
                 'secondary',
                 'md',
-                'bg-transparent text-[13px] font-medium',
+                'bg-transparent text-sm font-medium',
               )}
             >
               {copy.nav.signIn}
@@ -130,11 +130,7 @@ export function GuestShell() {
           </div>
           <Link
             to="/register"
-            className={buttonClassName(
-              'primary',
-              'md',
-              'rounded-xl text-[13px]',
-            )}
+            className={buttonClassName('primary', 'md', 'rounded-xl text-sm')}
           >
             {copy.nav.getStarted}
             <ChevronRight size={14} aria-hidden="true" />
@@ -176,7 +172,7 @@ export function GuestShell() {
       </header>
 
       <div className="flex shrink-0 items-center gap-3 border-b border-line bg-linear-to-r from-primary-soft to-accent-soft px-4 py-2 sm:px-6">
-        <p className="flex min-w-0 items-center gap-1.5 text-[11px] text-fg-2">
+        <p className="flex min-w-0 items-center gap-1.5 text-xs text-fg-2">
           <Zap size={11} aria-hidden="true" className="shrink-0 text-accent" />
           <span className="truncate">
             {copy.guest.promo}{' '}

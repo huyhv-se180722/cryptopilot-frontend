@@ -49,7 +49,7 @@ export function CoinDiscussionCard({
     >
       <h2
         id="coin-discussion"
-        className="mb-3 text-[10px] font-semibold tracking-widest text-muted-x uppercase"
+        className="mb-3 text-xs font-semibold text-muted-x"
       >
         {formatCopy(c.discussionTitle, { coin: '$' + coin })}
       </h2>

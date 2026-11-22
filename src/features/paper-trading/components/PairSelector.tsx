@@ -119,7 +119,7 @@ export function PairSelector({
         aria-expanded={open}
         aria-label={formatCopy(p.choosePair, { pair: label })}
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2 text-lg font-semibold text-fg hover:bg-raised pointer-coarse:h-11"
+        className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2 text-xl font-semibold text-fg hover:bg-raised pointer-coarse:h-11"
       >
         <CoinLogo
           src={current.logoUrl}
@@ -352,7 +352,7 @@ function PairPanel({
       <div
         className={classNames(
           grid,
-          'border-b border-line px-2 py-1.5 text-[10px] font-semibold tracking-wider text-muted-x uppercase',
+          'border-b border-line px-2 py-1.5 text-xs font-semibold text-muted-x',
         )}
       >
         {columns.map((column) => {
@@ -366,7 +366,7 @@ function PairPanel({
               aria-label={formatCopy(p.sortBy, { column: column.label })}
               aria-pressed={sorted !== null}
               className={classNames(
-                'min-w-0 items-center gap-1 uppercase hover:text-fg-2',
+                'min-w-0 items-center gap-1 hover:text-fg-2',
                 column.key === 'volume'
                   ? 'hidden sm:inline-flex'
                   : 'inline-flex',

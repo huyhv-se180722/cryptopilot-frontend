@@ -113,7 +113,7 @@ export function CommandPalette({
         <Kbd>Esc</Kbd>
       </div>
       <div className="py-2">
-        <div className="px-4 py-1.5 text-[10px] font-semibold tracking-widest text-muted-x uppercase">
+        <div className="px-4 py-1.5 text-xs font-semibold text-muted-x">
           {copy.palette.section}
         </div>
         <ul id={listId} role="listbox" className="max-h-80 overflow-y-auto">
@@ -144,7 +144,7 @@ export function CommandPalette({
           )}
         </ul>
       </div>
-      <div className="border-t border-line px-4 py-3 text-[11px] text-muted-x">
+      <div className="border-t border-line px-4 py-3 text-xs text-muted-x">
         {copy.palette.hint}
       </div>
     </dialog>

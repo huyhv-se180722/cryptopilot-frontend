@@ -61,7 +61,7 @@ export function SystemEventTable({
       header: t.colOperation,
       render: (event) => (
         <span
-          className="block max-w-56 truncate font-mono text-[11px] text-fg-2"
+          className="block max-w-56 truncate font-mono text-xs text-fg-2"
           title={event.operation}
         >
           {event.operation}
@@ -73,11 +73,11 @@ export function SystemEventTable({
       header: t.colMessage,
       render: (event) => (
         <span className="flex max-w-sm flex-col">
-          <span className="font-mono text-[10.5px] text-muted-dim">
+          <span className="font-mono text-xs text-muted-dim">
             {errorClass(event.errorType)}
           </span>
           <span
-            className="truncate text-[11px] text-fg-2"
+            className="truncate text-xs text-fg-2"
             title={event.message ?? undefined}
           >
             {event.message ?? t.noMessage}
@@ -155,7 +155,7 @@ export function SystemEventDialog({
               <span className="font-mono font-semibold">
                 {event.occurrences}
               </span>
-              <span className="ml-2 text-[11px] text-muted-dim">
+              <span className="ml-2 text-xs text-muted-dim">
                 {t.mergedHint}
               </span>
             </Meta>
@@ -178,29 +178,29 @@ export function SystemEventDialog({
               </time>
             </Meta>
             <Meta label={t.operation}>
-              <span className="font-mono text-[11px] break-all">
+              <span className="font-mono text-xs break-all">
                 {event.operation}
               </span>
             </Meta>
             <Meta label={t.errorType}>
-              <span className="font-mono text-[11px] break-all">
+              <span className="font-mono text-xs break-all">
                 {event.errorType}
               </span>
             </Meta>
           </dl>
-          <h3 className="mt-5 mb-2 text-[10px] font-semibold tracking-widest text-muted-x uppercase">
+          <h3 className="mt-5 mb-2 text-xs font-semibold text-muted-x">
             {t.message}
           </h3>
-          <pre className="max-h-48 overflow-auto rounded-xl border border-line bg-page-alt p-3 font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-words text-fg-2">
+          <pre className="max-h-48 overflow-auto rounded-xl border border-line bg-page-alt p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap break-words text-fg-2">
             {event.message ?? t.noMessage}
           </pre>
           {event.reference && (
             <div className="mt-4 rounded-xl border border-primary-line bg-primary-soft p-3">
-              <p className="mb-1 text-[10px] font-semibold tracking-widest text-primary uppercase">
+              <p className="mb-1 text-xs font-semibold text-primary">
                 {t.reference}
               </p>
               <CopyValue value={event.reference} what={t.reference} />
-              <p className="mt-1 text-[11px] text-muted">{t.referenceHint}</p>
+              <p className="mt-1 text-xs text-muted">{t.referenceHint}</p>
             </div>
           )}
         </>

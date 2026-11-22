@@ -182,7 +182,7 @@ function Row({
       <div className="flex min-w-[150px] flex-1 items-center gap-2.5 lg:min-w-0">
         <span
           aria-hidden="true"
-          className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-line-strong bg-raised text-[10.5px] font-bold text-fg-2"
+          className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-line-strong bg-raised text-xs font-bold text-fg-2"
         >
           {base.slice(0, 3)}
         </span>
@@ -191,14 +191,12 @@ function Row({
             {listed ? (
               <Link
                 to={`/markets/${market}/${item.symbol}`}
-                className="text-[13.5px] font-semibold text-fg no-underline hover:text-primary"
+                className="text-sm font-semibold text-fg no-underline hover:text-primary"
               >
                 {label}
               </Link>
             ) : (
-              <span className="text-[13.5px] font-semibold text-fg">
-                {label}
-              </span>
+              <span className="text-sm font-semibold text-fg">{label}</span>
             )}
             {!listed && (
               <span title={w.delistedHint}>
@@ -207,20 +205,20 @@ function Row({
             )}
           </div>
           {markets && (
-            <span className="block text-[11px] text-muted-dim">{markets}</span>
+            <span className="block text-xs text-muted-dim">{markets}</span>
           )}
         </div>
       </div>
       <p
         className={classNames(
-          'order-last m-0 w-full min-w-0 text-[12px] text-fg-2 lg:order-none lg:w-auto lg:truncate',
+          'order-last m-0 w-full min-w-0 text-xs text-fg-2 lg:order-none lg:w-auto lg:truncate',
           !item.note && 'hidden lg:block lg:text-muted-x',
         )}
         title={item.note ?? undefined}
       >
         {item.note ?? <span aria-hidden="true">{copy.market.noValue}</span>}
       </p>
-      <div className="ml-auto text-right font-mono text-[13px] font-semibold text-fg lg:ml-0">
+      <div className="ml-auto text-right font-mono text-sm font-semibold text-fg lg:ml-0">
         {price ? (
           <NumericText
             value={formatPrice(price, prices.tick(market, item.symbol))}
@@ -246,7 +244,7 @@ function Row({
         )}
       </div>
       <div className="flex w-24 items-center gap-2 lg:w-auto">
-        <span className="text-[10.5px] font-semibold tracking-wider text-muted-x uppercase lg:sr-only">
+        <span className="text-xs font-semibold text-muted-x lg:sr-only">
           {w.score}
         </span>
         <ScoreCell
@@ -273,7 +271,7 @@ function Row({
         )}
       </div>
       <span
-        className="text-[11.5px] text-muted-dim"
+        className="text-xs text-muted-dim"
         title={formatCopy(w.activeAlertsLabel, { count: item.activeAlerts })}
       >
         {formatCopy(w.activeAlerts, { count: item.activeAlerts })}
@@ -355,7 +353,7 @@ export function WatchlistGroups({
       <div
         aria-hidden="true"
         className={classNames(
-          'hidden px-4 py-2.5 text-[10.5px] font-semibold tracking-[0.06em] text-muted uppercase',
+          'hidden px-4 py-2.5 text-xs font-semibold text-muted',
           COLUMNS,
         )}
       >
@@ -373,7 +371,7 @@ export function WatchlistGroups({
           key={group.label ?? ''}
           aria-label={group.label ?? w.unlabelled}
         >
-          <h2 className="m-0 border-t border-line bg-surface-alt px-4 py-2 text-[11px] font-semibold tracking-[0.06em] text-muted uppercase">
+          <h2 className="m-0 border-t border-line bg-surface-alt px-4 py-2 text-xs font-semibold text-muted">
             {formatCopy(w.groupCount, {
               label: group.label ?? w.unlabelled,
               count: group.items.length,

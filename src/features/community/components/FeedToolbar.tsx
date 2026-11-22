@@ -55,7 +55,7 @@ export function FeedToolbar({
   };
   return (
     <div className="mb-4 flex flex-wrap items-center gap-3">
-      <h1 className="mr-auto text-2xl font-bold tracking-tight text-fg">
+      <h1 className="mr-auto text-xl font-bold text-fg">
         {view === 'mindshare' ? c.mindshareTitle : c[`feedTitle${tab}`]}
       </h1>
       <div className="flex h-9 items-center rounded-lg border border-line bg-surface p-0.5">
@@ -186,13 +186,13 @@ function SearchBox({
       {open && (found.length > 0 || short) && (
         <div className="absolute inset-x-0 top-full z-20 mt-1 overflow-hidden rounded-xl border border-line-strong bg-surface shadow-(--cp-shadow-panel)">
           {short && (
-            <p className="px-3 py-2 text-[11px] text-muted-dim">
+            <p className="px-3 py-2 text-xs text-muted-dim">
               {c.searchTooShort}
             </p>
           )}
           {found.length > 0 && (
             <>
-              <p className="px-3 pt-2 text-[10px] font-semibold tracking-widest text-muted-x uppercase">
+              <p className="px-3 pt-2 text-xs font-semibold text-muted-x">
                 {c.searchMembers}
               </p>
               <ul className="py-1">

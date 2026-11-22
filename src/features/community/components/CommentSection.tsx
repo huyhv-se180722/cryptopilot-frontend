@@ -216,7 +216,7 @@ function CommentText({
         <span
           id={id + '-count'}
           className={classNames(
-            'font-mono text-[11px]',
+            'font-mono text-xs',
             value.length > MAX ? 'text-negative' : 'text-muted-x',
           )}
         >
@@ -263,7 +263,7 @@ function CommentBox({
   return (
     <form noValidate onSubmit={(e) => void submit(e)} className="grid gap-2">
       {replyTo && (
-        <div className="flex items-center justify-between rounded-lg bg-raised px-3 py-1.5 text-[11px] text-muted">
+        <div className="flex items-center justify-between rounded-lg bg-raised px-3 py-1.5 text-xs text-muted">
           {formatCopy(t.replyingTo, { name })}
           <button
             type="button"
@@ -349,7 +349,7 @@ function CommentItem({
           <time
             dateTime={comment.createdAt}
             title={formatInstantUtc(comment.createdAt)}
-            className="text-[11px] text-muted-x"
+            className="text-xs text-muted-x"
           >
             {postAge(copy, comment.createdAt)}
             {wasEdited(comment.createdAt, comment.updatedAt) &&
@@ -389,7 +389,7 @@ function CommentItem({
           </p>
         )}
         {!editing && (
-          <div className="mt-1.5 flex items-center gap-3 text-[11px]">
+          <div className="mt-1.5 flex items-center gap-3 text-xs">
             <button
               type="button"
               aria-pressed={comment.likedByMe}

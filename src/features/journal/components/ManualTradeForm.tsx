@@ -32,7 +32,7 @@ import { ReviewTextField } from './ReviewCard';
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <fieldset className="m-0 grid min-w-0 grid-cols-1 gap-4 border-0 p-0 sm:grid-cols-2">
-      <legend className="mb-3 p-0 text-[10px] font-semibold tracking-widest text-muted-x uppercase">
+      <legend className="mb-3 p-0 text-xs font-semibold text-muted-x">
         {title}
       </legend>
       {children}
@@ -238,7 +238,7 @@ export function ManualTradeForm({ entry }: { entry?: JournalEntry }) {
               onChange={(direction) => change({ direction })}
             />
             {errorOf('direction') && (
-              <span role="alert" className="text-[11px] text-negative">
+              <span role="alert" className="text-xs text-negative">
                 {errorOf('direction')}
               </span>
             )}
@@ -293,7 +293,7 @@ export function ManualTradeForm({ entry }: { entry?: JournalEntry }) {
           )}
         </Section>
         <fieldset className="m-0 flex min-w-0 flex-col gap-4 border-0 p-0">
-          <legend className="mb-3 p-0 text-[10px] font-semibold tracking-widest text-muted-x uppercase">
+          <legend className="mb-3 p-0 text-xs font-semibold text-muted-x">
             {j.reviewTitle}
           </legend>
           <Select

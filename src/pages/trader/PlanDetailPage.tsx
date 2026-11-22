@@ -91,14 +91,14 @@ export function PlanDetailPage() {
             <header className="flex flex-wrap items-center gap-x-3 gap-y-3">
               <h1
                 id="plan-detail-title"
-                className="text-lg font-semibold text-fg"
+                className="text-xl font-semibold text-fg"
               >
                 {pair && `${pairLabel(pair.symbol)} `}
                 <span className={pair ? 'font-normal text-muted' : undefined}>
                   {formatCopy(p.detailTitle, { id: shortPlanId(plan.id) })}
                 </span>
               </h1>
-              <span className="rounded border border-line px-1.5 text-[10.5px] font-semibold tracking-wider text-muted uppercase">
+              <span className="rounded border border-line px-1.5 text-xs font-semibold text-muted">
                 {plan.market === 'futures'
                   ? `${copy.market.futures}${plan.leverage ? ` · ${plan.leverage}x` : ''}`
                   : copy.market.spot}

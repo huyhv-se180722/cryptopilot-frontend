@@ -328,7 +328,7 @@ function Composer({ onDone }: { onDone: () => void }) {
           >
             {f.title}
           </label>
-          <span className="font-mono text-[11px] text-muted-x">
+          <span className="font-mono text-xs text-muted-x">
             {title.trim().length}/{TITLE.max}
           </span>
         </div>
@@ -414,7 +414,7 @@ function Composer({ onDone }: { onDone: () => void }) {
                   ) : (
                     <span
                       aria-hidden="true"
-                      className="flex size-5 items-center justify-center rounded-full bg-raised text-[8px] font-bold text-fg-2"
+                      className="flex size-5 items-center justify-center rounded-full bg-raised text-xs font-bold text-fg-2"
                     >
                       {q.coin.slice(0, 3)}
                     </span>
@@ -426,7 +426,7 @@ function Composer({ onDone }: { onDone: () => void }) {
                   {change !== null && (
                     <span
                       className={classNames(
-                        'font-mono text-[11px]',
+                        'font-mono text-xs',
                         up ? 'text-positive' : 'text-negative',
                       )}
                     >
@@ -453,7 +453,7 @@ function Composer({ onDone }: { onDone: () => void }) {
                 className="aspect-square w-full object-cover"
               />
               {!item.ref && !item.error && (
-                <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-[11px] text-white">
+                <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-xs text-white">
                   <Loader2
                     size={14}
                     aria-hidden="true"
@@ -463,7 +463,7 @@ function Composer({ onDone }: { onDone: () => void }) {
                 </span>
               )}
               {item.error && (
-                <span className="absolute inset-x-0 bottom-0 bg-negative/90 px-1 py-0.5 text-[10px] text-white">
+                <span className="absolute inset-x-0 bottom-0 bg-negative/90 px-1 py-0.5 text-xs text-white">
                   {item.error}
                 </span>
               )}
@@ -479,7 +479,7 @@ function Composer({ onDone }: { onDone: () => void }) {
           ))}
         </ul>
       )}
-      <p className="mt-2 min-h-4 text-[11px] text-muted-dim">
+      <p className="mt-2 min-h-4 text-xs text-muted-dim">
         {coins.length > 0
           ? formatCopy(c.composerCoins, {
               coins: coins.map((coin) => '$' + coin).join(' '),
@@ -576,7 +576,7 @@ function Composer({ onDone }: { onDone: () => void }) {
                     setContent((text) => text + each);
                     setEmoji(false);
                   }}
-                  className="rounded-md p-1 text-lg hover:bg-raised"
+                  className="rounded-md p-1 text-base hover:bg-raised"
                 >
                   {each}
                 </button>

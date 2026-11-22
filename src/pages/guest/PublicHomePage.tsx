@@ -70,8 +70,8 @@ export function PublicHomePage() {
       <section className="relative isolate mb-5 grid grid-cols-1 items-center gap-10 pt-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)] lg:gap-12 lg:pt-2">
         <div aria-hidden="true" className="hero-ambient" />
         <div className="flex flex-col">
-          <p className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-primary-line bg-primary-soft px-4 py-1.5 text-[11px] font-bold tracking-widest text-primary uppercase">
-            <span aria-hidden="true" className="text-[10px] text-positive">
+          <p className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-primary-line bg-primary-soft px-4 py-1.5 text-xs font-bold text-primary">
+            <span aria-hidden="true" className="text-xs text-positive">
               ✦
             </span>
             {m.heroBadge}
@@ -115,7 +115,7 @@ export function PublicHomePage() {
             {chips.map(({ label, icon: Icon, tone }) => (
               <li
                 key={label}
-                className="flex items-center gap-1.5 rounded-lg border border-line bg-raised px-2.5 py-1.5 text-[11px] font-medium text-muted"
+                className="flex items-center gap-1.5 rounded-lg border border-line bg-raised px-2.5 py-1.5 text-xs font-medium text-muted"
               >
                 <Icon size={11} aria-hidden="true" className={tone} />
                 {label}

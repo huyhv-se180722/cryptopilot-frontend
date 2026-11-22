@@ -28,15 +28,12 @@ export function PairNews({ coin }: { coin: string }) {
       className="rounded-xl border border-line bg-surface p-4"
     >
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h2
-          id="pair-news-title"
-          className="text-[10px] font-semibold tracking-widest text-muted-x uppercase"
-        >
+        <h2 id="pair-news-title" className="text-xs font-semibold text-muted-x">
           {formatCopy(copy.analysis.newsTitle, { coin })}
         </h2>
         <Link
           to={'/news?coin=' + encodeURIComponent(coin)}
-          className="text-[11px] no-underline"
+          className="text-xs no-underline"
         >
           {formatCopy(copy.news.allCoinNews, { coin })}
         </Link>
@@ -53,7 +50,7 @@ export function PairNews({ coin }: { coin: string }) {
               <Link to={'/news/' + encodeURIComponent(article.id)}>
                 {article.title}
               </Link>
-              <span className="ml-1.5 text-[11px] text-muted-dim">
+              <span className="ml-1.5 text-xs text-muted-dim">
                 {article.source}
               </span>
             </li>

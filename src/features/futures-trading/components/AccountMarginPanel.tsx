@@ -8,7 +8,7 @@ import { TransferDialog } from '../../paper-trading/components/TransferDialog';
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <p className="flex justify-between text-[11px] text-muted">
+    <p className="flex justify-between text-xs text-muted">
       <span>{label}</span>
       <span className="text-fg-2">{children}</span>
     </p>

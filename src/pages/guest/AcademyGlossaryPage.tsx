@@ -137,7 +137,7 @@ function Glossary() {
             >
               <h2
                 id={'letter-' + key}
-                className="mb-2 font-mono text-lg font-semibold text-primary"
+                className="mb-2 font-mono text-xl font-semibold text-primary"
               >
                 {key}
               </h2>

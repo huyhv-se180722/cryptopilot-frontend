@@ -88,7 +88,7 @@ export function CheckoutDialog({
             </span>
           )}
         </div>
-        <p className="mt-1 font-mono text-3xl font-semibold text-fg">
+        <p className="mt-1 font-mono text-2xl font-semibold text-fg">
           {vnd(quote.amount)}
         </p>
       </div>

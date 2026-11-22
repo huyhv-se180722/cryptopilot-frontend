@@ -51,7 +51,7 @@ export function FuturesPricePanel({
       left && next ? (
         <span className="flex flex-col">
           <NumericText value={left} />
-          <span className="text-[10px] text-muted-dim">
+          <span className="text-xs text-muted-dim">
             {formatCopy(a.statNextFundingAt, { time: formatInstantUtc(next) })}
           </span>
         </span>
@@ -67,14 +67,14 @@ export function FuturesPricePanel({
     >
       <h2
         id="futures-price-title"
-        className="mb-2 text-[10px] font-semibold tracking-widest text-muted-x uppercase"
+        className="mb-2 text-xs font-semibold text-muted-x"
       >
         {a.futuresTitle}
       </h2>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
         {rows.map(([label, value]) => (
           <div key={label}>
-            <dt className="text-[10px] text-muted-x">{label}</dt>
+            <dt className="text-xs text-muted-x">{label}</dt>
             <dd className="text-xs text-fg">{value}</dd>
           </div>
         ))}

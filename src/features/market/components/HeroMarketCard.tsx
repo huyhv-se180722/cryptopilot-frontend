@@ -41,7 +41,7 @@ export function HeroMarketCard({
       )}
     >
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="font-mono text-[9px] font-semibold tracking-widest text-muted-dim uppercase">
+        <h2 className="font-mono text-xs font-semibold text-muted-dim">
           {m.heroCardTitle}
         </h2>
         <FreshnessBadge freshness={board.freshness} />
@@ -94,7 +94,7 @@ export function HeroMarketCard({
           )}
           <Link
             to="/register"
-            className="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-primary-line bg-primary-soft py-2 text-[11px] font-semibold text-primary no-underline hover:bg-primary/15"
+            className="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-primary-line bg-primary-soft py-2 text-xs font-semibold text-primary no-underline hover:bg-primary/15"
           >
             {m.heroCardCta}
             <ChevronRight size={11} aria-hidden="true" />

@@ -92,10 +92,10 @@ export function MemberProfileCard({
             <AuthorAvatar author={profile} size={84} />
           </span>
         </div>
-        <h1 className="mt-2 flex min-w-0 items-center gap-2 text-lg leading-tight font-bold text-fg">
+        <h1 className="mt-2 flex min-w-0 items-center gap-2 text-xl leading-tight font-bold text-fg">
           <span className="truncate">{name}</span>
           {profile.me && (
-            <span className="shrink-0 rounded-md bg-primary-soft px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+            <span className="shrink-0 rounded-md bg-primary-soft px-1.5 py-0.5 text-xs font-semibold text-primary">
               {m.you}
             </span>
           )}
@@ -109,7 +109,7 @@ export function MemberProfileCard({
         </dl>
 
         {profile.bio && (
-          <p className="mt-3 text-[13px] leading-relaxed whitespace-pre-line text-fg-2">
+          <p className="mt-3 text-sm leading-relaxed whitespace-pre-line text-fg-2">
             {profile.bio}
           </p>
         )}

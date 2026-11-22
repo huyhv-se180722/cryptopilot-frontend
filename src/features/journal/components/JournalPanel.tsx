@@ -74,7 +74,7 @@ export function JournalPanel({
         <BookOpen size={15} aria-hidden="true" className="text-primary" />
         <h2 className="text-sm font-semibold text-fg">{p.journalTitle}</h2>
         {journal.data && (
-          <span className="ml-auto text-[11px] text-muted-x">
+          <span className="ml-auto text-xs text-muted-x">
             {journal.data.total}
           </span>
         )}
@@ -91,7 +91,7 @@ export function JournalPanel({
               setPage(1);
             }}
             className={classNames(
-              'h-6 rounded-md px-2 text-[11px] font-semibold transition-colors duration-150',
+              'h-6 rounded-md px-2 text-xs font-semibold transition-colors duration-150',
               filter === each
                 ? 'border border-primary-line bg-primary-soft text-primary'
                 : 'text-muted-x hover:text-fg-2',
@@ -135,7 +135,7 @@ export function JournalPanel({
       {journal.data && journal.data.total > JOURNAL_PAGE_SIZE && (
         <nav
           aria-label={formatCopy(p.pageOf, { page, pages })}
-          className="flex items-center justify-between border-t border-line px-3 py-1.5 text-[11px] text-muted"
+          className="flex items-center justify-between border-t border-line px-3 py-1.5 text-xs text-muted"
         >
           <button
             type="button"
@@ -179,7 +179,7 @@ function TradeRow({
     <>
       <span className="flex items-center gap-1.5">
         <span className="truncate text-xs font-semibold text-fg">{symbol}</span>
-        <span className="text-[10px] uppercase text-muted-x">
+        <span className="text-xs text-muted-x">
           {trade.market}
           {trade.leverage !== null ? ` ${trade.leverage}x` : ''}
         </span>
@@ -187,7 +187,7 @@ function TradeRow({
           <DirectionText direction={trade.direction} />
         </span>
       </span>
-      <span className="mt-0.5 flex items-center gap-2 font-mono text-[10px] text-muted">
+      <span className="mt-0.5 flex items-center gap-2 font-mono text-xs text-muted">
         <span>
           {formatCopy(p.journalEntryAt, { price: planPrice(trade.entryPrice) })}
         </span>
@@ -197,7 +197,7 @@ function TradeRow({
           </span>
         )}
       </span>
-      <span className="mt-0.5 flex items-center gap-2 text-[10px]">
+      <span className="mt-0.5 flex items-center gap-2 text-xs">
         <span
           className={classNames(
             'rounded px-1.5 py-px font-semibold',

@@ -57,7 +57,7 @@ const headingClass = {
 /** A lesson body parsed by `parseMarkdown`, as React elements only. */
 export function MarkdownView({ blocks }: { blocks: readonly Block[] }) {
   return (
-    <div className="text-[15px] leading-7 text-fg-2">
+    <div className="text-base leading-7 text-fg-2">
       {blocks.map((block, index) => {
         switch (block.kind) {
           case 'heading': {

@@ -58,7 +58,7 @@ export function NewsBlock() {
                 to={'/news/' + encodeURIComponent(article.id)}
                 className="block px-4 py-2.5 text-fg no-underline hover:bg-raised"
               >
-                <span className="flex gap-2 text-[11px] text-muted-dim">
+                <span className="flex gap-2 text-xs text-muted-dim">
                   <span className="font-semibold text-fg-2">
                     {article.source}
                   </span>
@@ -74,7 +74,7 @@ export function NewsBlock() {
                     </span>
                   )}
                 </span>
-                <span className="mt-0.5 line-clamp-2 block text-[13px] leading-snug">
+                <span className="mt-0.5 line-clamp-2 block text-sm leading-snug">
                   {article.title}
                 </span>
               </Link>

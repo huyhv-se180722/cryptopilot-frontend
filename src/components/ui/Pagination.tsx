@@ -85,7 +85,7 @@ export function Pagination({
       >
         <ChevronRight size={14} aria-hidden="true" />
       </button>
-      <span className="ml-2 text-[11px] text-muted-x">
+      <span className="ml-2 text-xs text-muted-x">
         {formatCopy(p.summary, { page: current, pages })}
       </span>
     </nav>

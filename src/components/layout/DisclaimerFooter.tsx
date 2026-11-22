@@ -9,7 +9,7 @@ import { useCopy } from '../../hooks/use-copy';
 export function DisclaimerFooter() {
   const copy = useCopy();
   return (
-    <footer className="border-t border-line px-4 py-4 text-center text-[11px] leading-relaxed text-muted-x">
+    <footer className="border-t border-line px-4 py-4 text-center text-xs leading-relaxed text-muted-x">
       <p>{copy.messages.MSG42}</p>
       <p className="mt-1">
         <a

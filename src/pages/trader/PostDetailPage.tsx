@@ -136,7 +136,7 @@ export function PostDetailPage() {
               </h1>
               <PostText
                 text={data.content}
-                className="mt-3 text-[15px] leading-relaxed break-words whitespace-pre-line text-fg-2"
+                className="mt-3 text-base leading-relaxed break-words whitespace-pre-line text-fg-2"
               />
               <PostGallery media={data.media} title={data.title} />
               {(data.coins.length > 0 || data.market) && (
