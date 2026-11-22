@@ -438,6 +438,7 @@ export function AnalysisChart<T extends ChartTimeframe = CandleTimeframe>({
   const places = decimalPlaces(tickSize);
   // Local time on intraday charts, UTC on daily ones (chart-time.ts).
   const offset = chartOffsetSeconds(timeframe);
+  const seconds = timeframe === '1s';
   const time = useCallback(
     (candle: Candle) => chartTime(candle.openTime, offset),
     [offset],
@@ -506,6 +507,8 @@ export function AnalysisChart<T extends ChartTimeframe = CandleTimeframe>({
   useEffect(() => {
     if (!ready || !container.current) return;
     const chart = createChart(container.current, chartOptions(locale));
+    // A 1s chart names its seconds on the time axis (TR-35).
+    if (seconds) chart.applyOptions({ timeScale: { secondsVisible: true } });
     const built = build(chart, toggles, places, time);
     write.current = built.write;
     updateForming.current = built.updateForming;
@@ -541,7 +544,7 @@ export function AnalysisChart<T extends ChartTimeframe = CandleTimeframe>({
       chart.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `toggles` is read through `togglesKey`.
-  }, [ready, togglesKey, places, theme, extendable, time, locale]);
+  }, [ready, togglesKey, places, theme, extendable, time, locale, seconds]);
 
   // D-159: the reference bars after the exchange's last one, apart from it.
   const lastOwn = series.forming?.openTime ?? series.candles.at(-1)?.openTime;
