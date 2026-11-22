@@ -46,7 +46,7 @@ export function MarketBreadthCard({
       )}
     >
       <div className="mb-2.5 flex items-center justify-between">
-        <h2 className="font-mono text-xs font-semibold text-muted-dim">
+        <h2 className="text-xs font-semibold text-muted-dim">
           {m.breadthTitle}
         </h2>
         <Activity size={12} aria-hidden="true" className="text-warning" />
@@ -66,9 +66,9 @@ export function MarketBreadthCard({
       </dl>
       {breadth.risingShare !== null && (
         <div className="mt-2.5">
-          <div className="mb-1 flex items-center justify-between font-mono text-xs text-muted-dim">
+          <div className="mb-1 flex items-center justify-between text-xs text-muted-dim">
             <span>{m.breadthShare}</span>
-            <span className="text-fg-2">{breadth.risingShare}%</span>
+            <span className="font-mono text-fg-2">{breadth.risingShare}%</span>
           </div>
           <div
             role="meter"
@@ -83,7 +83,7 @@ export function MarketBreadthCard({
               style={{ width: `${breadth.risingShare}%` }}
             />
           </div>
-          <div className="mt-1 flex justify-between font-mono text-xs">
+          <div className="mt-1 flex justify-between text-xs">
             <span className="text-negative">{m.breadthFalling}</span>
             <span className="text-positive">{m.breadthRising}</span>
           </div>

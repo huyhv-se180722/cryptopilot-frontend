@@ -24,7 +24,13 @@ import type {
   TradingPlan,
   TradingPlanSummary,
 } from '../../types/domain';
-import { fakeAuth, page, renderRoutes, testTrader } from '../../test/render';
+import {
+  fakeAuth,
+  mixedText,
+  page,
+  renderRoutes,
+  testTrader,
+} from '../../test/render';
 
 const priceLines: string[] = [];
 vi.mock('lightweight-charts', () => ({
@@ -2236,8 +2242,8 @@ describe('SCR-16 journal and coin columns (SCR-20 folded in)', () => {
     );
     expect(await column.findByText('BTC/USDT')).toBeTruthy();
     expect(column.getByText('Take profit')).toBeTruthy();
-    expect(column.getByText('Entry 62,000.00')).toBeTruthy();
-    expect(column.getByText('Exit 59,000.00')).toBeTruthy();
+    expect(column.getByText(mixedText('Entry 62,000.00'))).toBeTruthy();
+    expect(column.getByText(mixedText('Exit 59,000.00'))).toBeTruthy();
     expect(column.getByText('+292.40*')).toBeTruthy();
     expect(
       column

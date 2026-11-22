@@ -41,7 +41,7 @@ export function HeroMarketCard({
       )}
     >
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="font-mono text-xs font-semibold text-muted-dim">
+        <h2 className="text-xs font-semibold text-muted-dim">
           {m.heroCardTitle}
         </h2>
         <FreshnessBadge freshness={board.freshness} />

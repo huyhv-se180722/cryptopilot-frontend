@@ -7,6 +7,7 @@ import {
   planQuantity,
 } from '../../trading-plan/components/plan-format';
 import { AmountValue } from './PerformanceValues';
+import { MixedText } from '../../../components/ui/MixedText';
 
 export function Fact({
   label,
@@ -25,7 +26,13 @@ export function Fact({
           <span className="mt-0.5 block text-xs text-muted-x">{hint}</span>
         )}
       </dt>
-      <dd className="m-0 text-right font-mono text-xs text-fg-2">{children}</dd>
+      <dd className="m-0 text-right text-xs text-fg-2">
+        {typeof children === 'string' ? (
+          <MixedText text={children} />
+        ) : (
+          children
+        )}
+      </dd>
     </div>
   );
 }

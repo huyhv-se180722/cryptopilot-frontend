@@ -40,7 +40,7 @@ export function HeroRadar({
 
   return (
     <section aria-label={m.radarLabel} className="min-w-0">
-      <div className="mb-2 flex items-center justify-end gap-1.5 px-1 font-mono text-xs text-muted-dim">
+      <div className="mb-2 flex items-center justify-end gap-1.5 px-1 text-xs text-muted-dim">
         <span
           aria-hidden="true"
           className={classNames(

@@ -19,7 +19,13 @@ import type {
   Session,
   WatchlistItem,
 } from '../../types/domain';
-import { fakeAuth, page, renderRoutes, testTrader } from '../../test/render';
+import {
+  fakeAuth,
+  mixedText,
+  page,
+  renderRoutes,
+  testTrader,
+} from '../../test/render';
 
 // jsdom has no modal dialog; the component only needs open/close.
 beforeAll(() => {
@@ -259,7 +265,7 @@ describe('SCR-12 watchlist (T-059)', () => {
       'Majors',
       'No label',
     ]);
-    expect(screen.getByText('4 / 5 pairs')).toBeTruthy();
+    expect(screen.getByText(mixedText('4 / 5 pairs'))).toBeTruthy();
     const majors = within(groups[0]!);
     expect(majors.getByRole('link', { name: 'BTC/USDT' })).toBeTruthy();
     expect(majors.getByText('Range high')).toBeTruthy();
@@ -598,11 +604,13 @@ describe('SCR-13 alert list (T-059)', () => {
     const table = within(
       await screen.findByRole('region', { name: 'Your alerts' }),
     );
-    expect(table.getByText('Crosses above 65,000.00')).toBeTruthy();
+    expect(table.getByText(mixedText('Crosses above 65,000.00'))).toBeTruthy();
     expect(
-      table.getByText('Open interest change (1h) · Greater than 5%'),
+      table.getByText(mixedText('Open interest change (1h) · Greater than 5%')),
     ).toBeTruthy();
-    expect(table.getByText('Funding rate · Less than -0.005%')).toBeTruthy();
+    expect(
+      table.getByText(mixedText('Funding rate · Less than -0.005%')),
+    ).toBeTruthy();
     expect(table.getByText('Paused')).toBeTruthy();
     await user.selectOptions(screen.getByLabelText('Status'), 'PAUSED');
     await waitFor(() =>

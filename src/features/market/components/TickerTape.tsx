@@ -83,7 +83,7 @@ export function TickerTape({
       )}
     >
       {label && (
-        <span className="flex shrink-0 items-center gap-1.5 border-r border-line pr-3 font-mono text-xs font-bold text-muted-dim">
+        <span className="flex shrink-0 items-center gap-1.5 border-r border-line pr-3 text-xs font-bold text-muted-dim">
           <span
             aria-hidden="true"
             className="size-1.5 rounded-full bg-primary motion-safe:animate-[pulse-led_1.8s_ease-in-out_infinite]"

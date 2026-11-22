@@ -247,7 +247,7 @@ export function FuturesBottomPanel({
               )}
               suffix=" USDT"
             />
-            <span className="text-xs text-muted">
+            <span className="font-sans text-xs text-muted">
               {p.marginType === 'ISOLATED' ? f.isolatedMargin : f.crossMargin}
             </span>
           </span>

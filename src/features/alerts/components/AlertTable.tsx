@@ -12,6 +12,7 @@ import {
 } from '../../../utils/instant-format';
 import { pairLabel } from '../../../utils/pair-label';
 import { conditionText } from './alert-format';
+import { MixedText } from '../../../components/ui/MixedText';
 
 const STATUS_TONE: Record<AlertStatus, Tone> = {
   ACTIVE: 'success',
@@ -86,7 +87,9 @@ export function AlertTable({
       id: 'condition',
       header: a.colCondition,
       render: (row) => (
-        <span className="font-mono text-xs">{conditionText(copy, row)}</span>
+        <span className="text-xs">
+          <MixedText text={conditionText(copy, row)} />
+        </span>
       ),
     },
     {

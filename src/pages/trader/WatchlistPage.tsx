@@ -35,6 +35,7 @@ import {
 } from '../../features/watchlist/hooks/use-watchlist';
 import type { WatchlistItem, WatchlistItemUpdate } from '../../types/domain';
 import { pairLabel } from '../../utils/pair-label';
+import { MixedText } from '../../components/ui/MixedText';
 
 /**
  * SCR-12 Watchlist (SRS 3.4.1, UC-12): the Trader's pairs grouped by label
@@ -225,10 +226,14 @@ export function WatchlistPage() {
           <p className="mt-0.5 text-xs text-muted-dim">{w.subtitle}</p>
         </div>
         {list.data && (
-          <span className="font-mono text-xs text-muted" aria-live="polite">
-            {limit === null || limit === undefined
-              ? formatCopy(w.countUnlimited, { count: items.length })
-              : formatCopy(w.count, { count: items.length, limit })}
+          <span className="text-xs text-muted" aria-live="polite">
+            <MixedText
+              text={
+                limit === null || limit === undefined
+                  ? formatCopy(w.countUnlimited, { count: items.length })
+                  : formatCopy(w.count, { count: items.length, limit })
+              }
+            />
           </span>
         )}
         <Button

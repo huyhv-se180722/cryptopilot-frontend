@@ -25,6 +25,7 @@ import {
   pnlTone,
 } from '../../trading-plan/components/plan-format';
 import { JOURNAL_PAGE_SIZE, useJournal } from '../hooks/use-journal';
+import { MixedText } from '../../../components/ui/MixedText';
 
 type Filter = 'ALL' | PositionStatus;
 const FILTERS: readonly Filter[] = ['ALL', 'OPEN', 'CLOSED'];
@@ -187,13 +188,21 @@ function TradeRow({
           <DirectionText direction={trade.direction} />
         </span>
       </span>
-      <span className="mt-0.5 flex items-center gap-2 font-mono text-xs text-muted">
+      <span className="mt-0.5 flex items-center gap-2 text-xs text-muted">
         <span>
-          {formatCopy(p.journalEntryAt, { price: planPrice(trade.entryPrice) })}
+          <MixedText
+            text={formatCopy(p.journalEntryAt, {
+              price: planPrice(trade.entryPrice),
+            })}
+          />
         </span>
         {trade.exitPrice !== null && (
           <span>
-            {formatCopy(p.journalExitAt, { price: planPrice(trade.exitPrice) })}
+            <MixedText
+              text={formatCopy(p.journalExitAt, {
+                price: planPrice(trade.exitPrice),
+              })}
+            />
           </span>
         )}
       </span>

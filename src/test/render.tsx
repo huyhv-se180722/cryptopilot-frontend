@@ -79,3 +79,14 @@ export async function renderRoutes(
 export function page(path: string, element: ReactElement): RouteObject {
   return { path, element };
 }
+
+/**
+ * Matcher for `getByText` of a text whose numbers sit in their own
+ * monospace spans (`MixedText`, D-161): the element whose whole text is
+ * `text` and that holds those spans.
+ */
+export function mixedText(text: string) {
+  return (_: string, element: Element | null) =>
+    element?.textContent === text &&
+    element.querySelector(':scope > [data-numeric]') !== null;
+}
