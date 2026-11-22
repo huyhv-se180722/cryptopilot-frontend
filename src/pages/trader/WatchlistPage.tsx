@@ -69,15 +69,20 @@ export function WatchlistPage() {
   const scores = useWatchlistScores(spotSymbols);
   const prices: WatchlistPrices = useMemo(() => {
     const ticks = new Map<string, string | null>();
+    const logos = new Map<string, string>();
     for (const pair of [
       ...(spotPairs.data ?? []),
       ...(futuresPairs.data ?? []),
-    ])
+    ]) {
       ticks.set(pair.market + ':' + pair.symbol, pair.tickSize);
+      if (pair.logoUrl && !logos.has(pair.symbol))
+        logos.set(pair.symbol, pair.logoUrl);
+    }
     return {
       spot: spot.tickers,
       futures: futures.tickers,
       tick: (market, symbol) => ticks.get(market + ':' + symbol) ?? null,
+      logo: (symbol) => logos.get(symbol) ?? null,
     };
   }, [spot.tickers, futures.tickers, spotPairs.data, futuresPairs.data]);
 

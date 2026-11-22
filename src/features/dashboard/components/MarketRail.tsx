@@ -17,6 +17,7 @@ import {
 } from '../../../utils/decimal-format';
 import { signOf } from '../../../utils/decimal-sign';
 import { pairLabel } from '../../../utils/pair-label';
+import { CoinLogo } from '../../../components/ui/CoinLogo';
 import { useWatchlist } from '../../watchlist/hooks/use-watchlist';
 
 type Tab = 'watch' | 'gainers' | 'losers';
@@ -95,9 +96,17 @@ export function MarketRail({
     const ticker = action === 'none' ? undefined : tickers.get(symbol);
     const cells = (
       <>
-        <span className="flex min-w-0 flex-col gap-0.5">
-          <Name symbol={symbol} {...(pair ? { pair } : {})} />
-          <span className="truncate text-xs text-muted-dim">{meta}</span>
+        <span className="flex min-w-0 items-center gap-2.5">
+          <CoinLogo
+            src={pair?.logoUrl}
+            symbol={
+              pair?.baseAsset ?? pairLabel(symbol).split('/')[0] ?? symbol
+            }
+          />
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <Name symbol={symbol} {...(pair ? { pair } : {})} />
+            <span className="truncate text-xs text-muted-dim">{meta}</span>
+          </span>
         </span>
         <span className="text-right font-mono text-xs text-fg">
           {ticker?.lastPrice ? (

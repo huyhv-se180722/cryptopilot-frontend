@@ -258,6 +258,41 @@ describe('SCR-12 watchlist (T-059)', () => {
     expect(bar?.className).toContain('bg-positive');
   });
 
+  it('T-142: shows the coin logo of the pair list, as the market list does', async () => {
+    const market = fakeMarket();
+    vi.mocked(market.listPairs).mockImplementation(async (kind) =>
+      kind === 'spot'
+        ? [
+            {
+              ...listed(2, 'BTC', 'spot', 'Bitcoin'),
+              logoUrl: 'https://static.example/btc.png',
+            },
+            listed(8, 'LINK', 'spot', 'Chainlink'),
+          ]
+        : [listed(2, 'BTC', 'futures', 'Bitcoin')],
+    );
+    await open('/watchlist', { market });
+    const btc = (await screen.findByRole('link', { name: 'BTC/USDT' })).closest(
+      'li',
+    ) as HTMLElement;
+    await waitFor(() =>
+      expect(
+        btc.querySelector('[data-testid="coin-logo"] img')?.getAttribute('src'),
+      ).toBe('https://static.example/btc.png'),
+    );
+    const eth = screen
+      .getByRole('link', { name: 'ETH/USDT' })
+      .closest('li') as HTMLElement;
+    expect(
+      eth
+        .querySelector('[data-testid="coin-logo"]')
+        ?.getAttribute('data-letters'),
+    ).toBe('ET');
+    // No request of its own: the logos come from the pair lists the page
+    // already reads for the tick sizes.
+    expect(vi.mocked(market.listPairs)).toHaveBeenCalledTimes(4);
+  });
+
   it('groups rows by label with unlabelled rows last and shows n / limit', async () => {
     await open('/watchlist');
     const groups = await screen.findAllByRole('region');
