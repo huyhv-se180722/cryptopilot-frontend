@@ -67,3 +67,34 @@ export function foldTrades(
     ? state
     : { closed, forming };
 }
+
+const opensAt = (candle: Candle) => Date.parse(candle.openTime);
+
+/**
+ * The forming candle to draw from the one the trades built (`live`) and the
+ * one the page carried (`page`): the later one, or, when both open
+ * together, both merged. The trades may have opened theirs before the page
+ * arrived, at their first price, so the open is the exchange's; the high
+ * and low the widest of the two; the close the trades' (the stream is
+ * newer than a cached page); the volume the larger (the trades' when they
+ * were folded into the page's candle).
+ */
+export function newestForming(
+  live: Candle | null,
+  page: Candle | null,
+): Candle | null {
+  if (!live) return page;
+  if (!page) return live;
+  if (opensAt(page) !== opensAt(live))
+    return opensAt(page) > opensAt(live) ? page : live;
+  const larger = (a: string, b: string) => (compare(a, b) >= 0 ? a : b);
+  return {
+    openTime: page.openTime,
+    open: page.open,
+    high: larger(page.high, live.high),
+    low: compare(page.low, live.low) <= 0 ? page.low : live.low,
+    close: live.close,
+    baseVolume: larger(page.baseVolume, live.baseVolume),
+    quoteVolume: larger(page.quoteVolume, live.quoteVolume),
+  };
+}

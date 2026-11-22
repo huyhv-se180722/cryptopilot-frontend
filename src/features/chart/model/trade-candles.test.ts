@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { decodeChartCandles } from '../../../services/api/market-dto';
-import type { MarketTrade } from '../../../types/domain';
+import type { Candle, MarketTrade } from '../../../types/domain';
 import {
   candleOpen,
   chartTimeframesOf,
   isStoredTimeframe,
 } from '../../../utils/chart-timeframe';
-import { foldTrades } from './trade-candles';
+import { foldTrades, newestForming } from './trade-candles';
 
 const at = (iso: string) => Date.parse(iso);
 const iso = (ms: number) => new Date(ms).toISOString();
@@ -117,5 +117,42 @@ describe('chart candles decoder', () => {
       candles: [candle('2026-11-26T10:00:00Z', true)],
     });
     expect(page.forming).toBe(null);
+  });
+});
+
+describe('forming candle of the page and of the trades', () => {
+  const candle = (patch: Partial<Candle>): Candle => ({
+    openTime: '2026-11-01T00:00:00.000Z',
+    open: '78000',
+    high: '80000',
+    low: '60500',
+    close: '60700',
+    baseVolume: '100',
+    quoteVolume: '7000000',
+    ...patch,
+  });
+
+  it('keeps the exchange open when the trades opened the same candle first', () => {
+    const page = candle({});
+    const live = candle({
+      open: '60731',
+      high: '60740',
+      low: '60400',
+      close: '60735',
+      baseVolume: '2',
+      quoteVolume: '121000',
+    });
+    expect(newestForming(live, page)).toEqual({
+      ...page,
+      low: '60400',
+      close: '60735',
+    });
+  });
+
+  it('takes the later candle when they open apart', () => {
+    const page = candle({});
+    const live = candle({ openTime: '2026-12-01T00:00:00.000Z' });
+    expect(newestForming(live, page)).toBe(live);
+    expect(newestForming(null, page)).toBe(page);
   });
 });

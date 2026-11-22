@@ -10,7 +10,7 @@ import type {
   MarketType,
 } from '../../../types/domain';
 import { isStoredTimeframe } from '../../../utils/chart-timeframe';
-import { foldTrades } from '../model/trade-candles';
+import { foldTrades, newestForming as newest } from '../model/trade-candles';
 import {
   bollinger,
   ema,
@@ -64,13 +64,6 @@ const NO_CANDLES: readonly Candle[] = [];
 
 const after = (a: Candle, b: Candle | undefined) =>
   !b || Date.parse(a.openTime) > Date.parse(b.openTime);
-
-/** The later of two forming candles; the first one when they open together. */
-function newest(a: Candle | null, b: Candle | null): Candle | null {
-  if (!a) return b;
-  if (!b) return a;
-  return after(b, a) ? b : a;
-}
 
 interface Live {
   key: string;
