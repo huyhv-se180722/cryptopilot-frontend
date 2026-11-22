@@ -21,6 +21,7 @@ import {
   useEquityCurve,
   usePerformanceBreakdown,
 } from '../hooks/use-performance';
+import { pairLabel } from '../../../utils/pair-label';
 import { equityCurve } from '../model/equity-curve';
 import { PerformanceLock } from './PerformanceLock';
 import { AmountValue, PercentValue, RatioValue } from './PerformanceValues';
@@ -132,6 +133,8 @@ function rowName(
 ): string {
   const p = copy.performance;
   if (row.key === null) return p.unassigned;
+  // A coin row is named by its symbol; it reads BTC/USDT as everywhere else.
+  if (kind === 'coin') return pairLabel(row.label);
   if (kind !== 'market') return row.label;
   if (row.key === 'SPOT') return p.marketspot;
   return row.key === 'FUTURES' ? p.marketfutures : row.label;
