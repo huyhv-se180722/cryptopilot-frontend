@@ -171,7 +171,7 @@ export function AlertsPage() {
         </Button>
       </header>
       {/* One filter bar, the type first (T-142). */}
-      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2.5">
+      <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-line bg-surface px-4 py-2.5">
         <SegmentedControl
           label={a.filterType}
           value={type}
@@ -182,13 +182,12 @@ export function AlertsPage() {
             { value: 'INDICATOR', label: a.typeINDICATOR },
           ]}
         />
-        <span aria-hidden="true" className="hidden h-9 w-px bg-line sm:block" />
+        <span aria-hidden="true" className="hidden h-6 w-px bg-line sm:block" />
         <Select
-          inline
+          filter
           label={a.filterStatus}
           value={status ?? ''}
           onChange={(event) => update({ status: event.target.value || null })}
-          className="w-full sm:w-56"
         >
           <option value="">{a.allStatuses}</option>
           {STATUSES.map((value) => (
