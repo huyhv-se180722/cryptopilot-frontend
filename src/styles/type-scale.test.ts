@@ -49,8 +49,9 @@ describe('type scale of the web client (D-161)', () => {
   });
 
   it('has no uppercase or letter-spaced label', () => {
+    // Also with a variant prefix (`sm:`, `max-sm:before:`).
     const LABEL =
-      /(^|[\s'"`])(uppercase|tracking-(wide|wider|widest|\[[\d.]+em\]))(?=[\s'"`]|$)/;
+      /(^|[\s'"`:])(uppercase|tracking-(wide|wider|widest|\[[\d.]+em\]))(?=[\s'"`]|$)/;
     expect(offending((line) => LABEL.test(line), UPPERCASE_ALLOWED)).toEqual(
       [],
     );

@@ -100,7 +100,7 @@ export function Table<T>({
                       'py-3 text-xs whitespace-nowrap text-fg-2',
                       column.numeric && 'text-right font-mono',
                       card(
-                        'max-sm:flex max-sm:items-center max-sm:justify-between max-sm:gap-3 max-sm:px-4 max-sm:py-1.5 max-sm:text-right max-sm:whitespace-normal max-sm:before:shrink-0 max-sm:before:text-left max-sm:before:font-sans max-sm:before:text-xs max-sm:before:font-medium max-sm:before:tracking-[0.06em] max-sm:before:text-muted-x max-sm:before:uppercase max-sm:before:content-[attr(data-label)]',
+                        'max-sm:flex max-sm:items-center max-sm:justify-between max-sm:gap-3 max-sm:px-4 max-sm:py-1.5 max-sm:text-right max-sm:whitespace-normal max-sm:before:shrink-0 max-sm:before:text-left max-sm:before:font-sans max-sm:before:text-xs max-sm:before:font-medium max-sm:before:text-muted-x max-sm:before:content-[attr(data-label)]',
                       ),
                     )}
                   >
