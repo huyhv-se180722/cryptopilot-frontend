@@ -40,9 +40,11 @@ describe('type scale of the web client (D-161)', () => {
     expect(Object.keys(sources).length).toBeGreaterThan(300);
   });
 
-  it('uses only the size tokens: no arbitrary pixel size, no text-lg', () => {
+  it('uses only the size tokens: no arbitrary px or em size, no text-lg', () => {
     expect(
-      offending((line) => /\btext-\[\d+(\.\d+)?px\]|\btext-lg\b/.test(line)),
+      offending((line) =>
+        /\btext-\[\d*\.?\d+(px|r?em)\]|\btext-lg\b/.test(line),
+      ),
     ).toEqual([]);
   });
 

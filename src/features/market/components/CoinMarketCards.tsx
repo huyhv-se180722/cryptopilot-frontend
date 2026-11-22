@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Triangle } from 'lucide-react';
 import { CoinLogo } from '../../../components/ui/CoinLogo';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { useCopy, useLocale } from '../../../hooks/use-copy';
@@ -40,9 +40,13 @@ export function Change({
       )}
     >
       {!flat && (
-        <span aria-hidden="true" className="text-[0.7em]">
-          {down ? '▼' : '▲'}
-        </span>
+        <Triangle
+          aria-hidden="true"
+          size={8}
+          strokeWidth={0}
+          fill="currentColor"
+          className={down ? 'rotate-180' : undefined}
+        />
       )}
       {(down ? rounded.slice(1) : rounded) + '%'}
     </span>

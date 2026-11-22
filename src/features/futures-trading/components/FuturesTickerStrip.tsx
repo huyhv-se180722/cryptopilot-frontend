@@ -102,7 +102,7 @@ export function FuturesTickerStrip({
         </span>
       </div>
       <div className="flex w-full items-center gap-x-6 xl:w-auto xl:min-w-0 xl:flex-1">
-        <dl className="grid flex-1 grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4 md:grid-cols-8 xl:flex xl:flex-none xl:items-center xl:gap-x-6">
+        <dl className="grid flex-1 grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4 md:grid-cols-8 xl:flex xl:min-w-0 xl:items-center xl:gap-x-6 xl:overflow-x-auto">
           <Stat label={f.mark}>{price(ticker?.markPrice)}</Stat>
           <Stat label={f.index}>{price(ticker?.indexPrice)}</Stat>
           <Stat label={f.fundingCountdown}>

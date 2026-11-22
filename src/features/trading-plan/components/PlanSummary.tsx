@@ -6,6 +6,7 @@ import type { TradingPlan } from '../../../types/domain';
 import { trimDecimal } from '../../../utils/decimal-format';
 import { planAmount, planPrice, planRatio } from './plan-format';
 import { PriceLadder } from './PriceLadder';
+import { MixedText } from '../../../components/ui/MixedText';
 
 function Figure({
   label,
@@ -73,14 +74,16 @@ export function PlanSummary({ plan }: { plan: TradingPlan }) {
           />
           <span
             aria-hidden="true"
-            className="mt-1 flex justify-between gap-2 font-mono text-xs text-muted"
+            className="mt-1 flex justify-between gap-2 text-xs text-muted"
           >
             <span className="text-negative">
-              {'SL ' + price(plan.stopLoss)}
+              <MixedText text={'SL ' + price(plan.stopLoss)} />
             </span>
-            <span>{p.ladderEntry + ' ' + price(plan.entryPrice)}</span>
+            <span>
+              <MixedText text={p.ladderEntry + ' ' + price(plan.entryPrice)} />
+            </span>
             <span className="text-positive">
-              {'TP ' + price(plan.takeProfit)}
+              <MixedText text={'TP ' + price(plan.takeProfit)} />
             </span>
           </span>
         </dd>

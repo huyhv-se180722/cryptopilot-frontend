@@ -23,7 +23,7 @@ function Inlines({ content }: { content: readonly Inline[] }) {
         return (
           <code
             key={index}
-            className="rounded bg-surface-alt px-1 py-0.5 font-mono text-[0.9em]"
+            className="rounded bg-surface-alt px-1 py-0.5 font-mono text-sm"
           >
             {part.text}
           </code>
