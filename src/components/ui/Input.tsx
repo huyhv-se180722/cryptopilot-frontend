@@ -4,7 +4,7 @@ import {
   fieldErrorClass,
   fieldHintClass,
   fieldInlineBoxClass,
-  fieldInlineInputClass,
+  fieldInlineControlClass,
   fieldInlineLabelClass,
   fieldLabelClass,
 } from './field-styles';
@@ -40,7 +40,7 @@ export function Input({
     <input
       {...props}
       id={inputId}
-      className={inline ? fieldInlineInputClass : fieldControlClass}
+      className={inline ? fieldInlineControlClass : fieldControlClass}
       aria-invalid={error ? true : props['aria-invalid']}
       aria-describedby={description}
     />
