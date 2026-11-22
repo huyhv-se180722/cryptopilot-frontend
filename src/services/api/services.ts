@@ -29,6 +29,7 @@ import type {
   WatchlistService,
 } from './contracts';
 import type { AdminOrderService } from './admin-orders';
+import type { AdminPackageService } from './admin-packages';
 import type { FuturesTradingService } from './futures';
 import type { MarketStatusService } from './market-status';
 import type { HttpClient } from './http-client';
@@ -69,4 +70,6 @@ export interface Services {
   adminAudit: AdminAuditService;
   /** SCR-40 (UC-48): the subscription orders. */
   adminOrders: AdminOrderService;
+  /** SCR-39 (UC-42): the subscription packages and tier limits. */
+  adminPackages: AdminPackageService;
 }
