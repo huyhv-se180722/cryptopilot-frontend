@@ -246,7 +246,6 @@ export function SettingsForm({
                           edit(setting.key, event.target.value)
                         }
                         error={words}
-                        {...(hint ? { hint } : {})}
                       />
                       {isRate(setting.key) && !error && (
                         <p className="mt-1 text-right font-mono text-xs text-muted-dim tabular-nums">
