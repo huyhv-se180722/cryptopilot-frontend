@@ -1,32 +1,40 @@
 import { useCallback, useState } from 'react';
-import type { CandleTimeframe } from '../../../types/domain';
+import type { ChartTimeframe, MarketType } from '../../../types/domain';
+import { chartTimeframesOf } from '../../../utils/chart-timeframe';
 
 const STORAGE_KEY = 'cp-trade-timeframe';
-const TIMEFRAMES: readonly CandleTimeframe[] = ['15m', '1h', '4h', '1d'];
 
-function read(): CandleTimeframe {
+function read(): string | null {
   try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    return TIMEFRAMES.find((timeframe) => timeframe === stored) ?? '1h';
+    return window.localStorage.getItem(STORAGE_KEY);
   } catch {
-    return '1h';
+    return null;
   }
 }
 
 /**
  * The trading chart's timeframe, remembered on this device for every pair
- * as an exchange does (plan section 5). Without storage (private window,
+ * as an exchange does (plan section 5): any of the sixteen of TR-35, 1s on
+ * Spot only. Without storage (private window,
  * blocked site data) the choice lasts for the page only.
  */
-export function useTradeTimeframe() {
-  const [timeframe, setTimeframe] = useState<CandleTimeframe>(read);
-  const choose = useCallback((next: CandleTimeframe) => {
-    setTimeframe(next);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      // Not remembered; the chart still switches.
-    }
-  }, []);
-  return [timeframe, choose] as const;
+export function useTradeTimeframe(market: MarketType) {
+  const timeframes = chartTimeframesOf(market);
+  const [chosen, setTimeframe] = useState<string | null>(read);
+  // 1s is Spot only: a Futures chart opened after it shows 1m.
+  const timeframe: ChartTimeframe =
+    timeframes.find((each) => each === chosen) ??
+    (chosen === '1s' ? '1m' : '1h');
+  const choose = useCallback(
+    (next: ChartTimeframe) => {
+      setTimeframe(next);
+      try {
+        window.localStorage.setItem(STORAGE_KEY, next);
+      } catch {
+        // Not remembered; the chart still switches.
+      }
+    },
+    [setTimeframe],
+  );
+  return [timeframe, choose, timeframes] as const;
 }

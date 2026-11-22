@@ -4,10 +4,13 @@ import { useOnFeedOpen } from '../../../hooks/use-on-feed-open';
 import { useServices } from '../../../hooks/use-services';
 import type {
   Candle,
-  CandleTimeframe,
+  ChartTimeframe,
   KlineUpdate,
+  MarketTrade,
   MarketType,
 } from '../../../types/domain';
+import { isStoredTimeframe } from '../../../utils/chart-timeframe';
+import { foldTrades, newestForming as newest } from '../model/trade-candles';
 import {
   bollinger,
   ema,
@@ -106,22 +109,42 @@ function merge(...lists: (readonly Candle[])[]): Candle[] {
 export function useChartSeries(
   market: MarketType,
   symbol: string,
-  timeframe: CandleTimeframe,
+  timeframe: ChartTimeframe,
   { extendable = false }: { extendable?: boolean } = {},
 ): ChartSeries {
-  const { market: service, marketFeed } = useServices();
+  const { market: service, marketFeed, tradingMarket } = useServices();
   const key = `${market}.${symbol}.${timeframe}`;
+  // The four stored timeframes come from the database and their stream; the
+  // others of the trading chart from the exchange (TR-35), the forming
+  // candle then built here from the market trades.
+  const stored = isStoredTimeframe(timeframe);
   const history = useQuery({
-    queryKey: ['market', 'candles', market, symbol, timeframe, HISTORY_CANDLES],
-    queryFn: ({ signal }) =>
-      service.getCandles({
-        market,
-        symbol,
-        timeframe,
-        limit: HISTORY_CANDLES,
-        signal,
-      }),
+    queryKey: stored
+      ? ['market', 'candles', market, symbol, timeframe, HISTORY_CANDLES]
+      : ['market', 'chart-candles', market, symbol, timeframe, HISTORY_CANDLES],
+    queryFn: async ({ signal }) =>
+      isStoredTimeframe(timeframe)
+        ? {
+            candles: await service.getCandles({
+              market,
+              symbol,
+              timeframe,
+              limit: HISTORY_CANDLES,
+              signal,
+            }),
+            forming: null,
+          }
+        : service.getChartCandles({
+            market,
+            symbol,
+            timeframe,
+            limit: HISTORY_CANDLES,
+            signal,
+          }),
     staleTime: 60_000,
+    // The page also corrects the candles the trades built (volumes of
+    // trades the stream skipped); once a minute keeps within the rate rule.
+    refetchInterval: stored ? false : 60_000,
   });
 
   const [live, setLive] = useState<Live>({ key, closed: [], forming: null });
@@ -134,30 +157,69 @@ export function useChartSeries(
 
   useEffect(
     () =>
-      marketFeed.subscribeKline(
-        market,
-        symbol,
-        timeframe,
-        (update: KlineUpdate) =>
-          setLive((current) => {
-            if (current.key !== key) return current;
-            if (!update.closed)
-              return after(update.candle, current.forming ?? undefined) ||
-                current.forming?.openTime === update.candle.openTime
-                ? { ...current, forming: update.candle }
-                : current;
-            const closed = current.closed.filter(
-              (candle) => candle.openTime !== update.candle.openTime,
-            );
-            closed.push(update.candle);
-            const forming =
-              current.forming?.openTime === update.candle.openTime
-                ? null
-                : current.forming;
-            return { ...current, closed, forming };
-          }),
-      ),
+      !isStoredTimeframe(timeframe)
+        ? undefined
+        : marketFeed.subscribeKline(
+            market,
+            symbol,
+            timeframe,
+            (update: KlineUpdate) =>
+              setLive((current) => {
+                if (current.key !== key) return current;
+                if (!update.closed)
+                  return after(update.candle, current.forming ?? undefined) ||
+                    current.forming?.openTime === update.candle.openTime
+                    ? { ...current, forming: update.candle }
+                    : current;
+                const closed = current.closed.filter(
+                  (candle) => candle.openTime !== update.candle.openTime,
+                );
+                closed.push(update.candle);
+                const forming =
+                  current.forming?.openTime === update.candle.openTime
+                    ? null
+                    : current.forming;
+                return { ...current, closed, forming };
+              }),
+          ),
     [market, symbol, timeframe, key, marketFeed],
+  );
+
+  // A timeframe without a stream: the exchange's forming candle of the
+  // page, then the trades folded into it.
+  const pageForming = history.data?.forming ?? null;
+  const pageFormingRef = useRef(pageForming);
+  useEffect(() => {
+    pageFormingRef.current = pageForming;
+  }, [pageForming]);
+  useEffect(
+    () =>
+      isStoredTimeframe(timeframe)
+        ? undefined
+        : tradingMarket.subscribeTrades(
+            market,
+            symbol,
+            (trades: readonly MarketTrade[]) =>
+              setLive((current) =>
+                current.key !== key
+                  ? current
+                  : {
+                      key,
+                      ...foldTrades(
+                        {
+                          closed: current.closed,
+                          forming: newest(
+                            current.forming,
+                            pageFormingRef.current,
+                          ),
+                        },
+                        trades,
+                        timeframe,
+                      ),
+                    },
+              ),
+          ),
+    [market, symbol, timeframe, key, tradingMarket],
   );
 
   // A reconnect may have skipped closed candles: read the history again.
@@ -168,13 +230,13 @@ export function useChartSeries(
   // must not recompute the list, nor the indicator series drawn from it.
   const liveClosed = live.key === key ? live.closed : NO_CANDLES;
   const all = useMemo(() => {
-    const stored = history.data ?? [];
-    const last = stored[stored.length - 1];
+    const page = history.data?.candles ?? NO_CANDLES;
+    const last = page[page.length - 1];
     const newer = liveClosed.filter((candle) => after(candle, last));
     const earlier = older.key === key ? older.candles : [];
     return earlier.length > 0
-      ? merge(earlier, stored, newer)
-      : [...stored, ...newer];
+      ? merge(earlier, page, newer)
+      : [...page, ...newer];
   }, [history.data, liveClosed, older, key]);
 
   const first = all[0];
@@ -191,37 +253,40 @@ export function useChartSeries(
     olderRequest.current = controller;
     const base = all;
     setOlder((current) => ({ ...current, loading: true }));
-    service
-      .getCandles({
-        market,
-        symbol,
-        timeframe,
-        limit: OLDER_PAGE,
-        before: first.openTime,
-        signal: controller.signal,
-      })
-      .then(
-        (page) =>
-          setOlder((current) =>
-            current.key !== key || controller.signal.aborted
-              ? current
-              : {
-                  key,
-                  // The history read so far is kept, so a later re-read of
-                  // the latest candles leaves no gap behind the pages.
-                  candles: merge(page, base),
-                  loading: false,
-                  exhausted: page.length < OLDER_PAGE,
-                },
-          ),
-        () =>
-          // A failure leaves the chart as it is; the next drag tries again.
-          setOlder((current) =>
-            current.key !== key || controller.signal.aborted
-              ? current
-              : { ...current, loading: false },
-          ),
-      );
+    const request = {
+      market,
+      symbol,
+      limit: OLDER_PAGE,
+      before: first.openTime,
+      signal: controller.signal,
+    };
+    (isStoredTimeframe(timeframe)
+      ? service.getCandles({ ...request, timeframe })
+      : service
+          .getChartCandles({ ...request, timeframe })
+          .then((older) => older.candles)
+    ).then(
+      (page) =>
+        setOlder((current) =>
+          current.key !== key || controller.signal.aborted
+            ? current
+            : {
+                key,
+                // The history read so far is kept, so a later re-read of
+                // the latest candles leaves no gap behind the pages.
+                candles: merge(page, base),
+                loading: false,
+                exhausted: page.length < OLDER_PAGE,
+              },
+        ),
+      () =>
+        // A failure leaves the chart as it is; the next drag tries again.
+        setOlder((current) =>
+          current.key !== key || controller.signal.aborted
+            ? current
+            : { ...current, loading: false },
+        ),
+    );
   }, [canLoad, all, first, service, market, symbol, timeframe, key]);
 
   const indicators = useMemo((): ChartIndicators | null => {
@@ -253,10 +318,12 @@ export function useChartSeries(
   }, [all, extendable]);
 
   const lastClosed = all[all.length - 1];
+  const latestForming = newest(
+    live.key === key ? live.forming : null,
+    pageForming,
+  );
   const forming =
-    live.key === key && live.forming && after(live.forming, lastClosed)
-      ? live.forming
-      : null;
+    latestForming && after(latestForming, lastClosed) ? latestForming : null;
 
   const candles = useMemo(
     () => (extendable ? all : all.slice(-VISIBLE_CANDLES)),

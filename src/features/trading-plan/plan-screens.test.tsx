@@ -248,6 +248,7 @@ const fakeMarket = (): MarketService => ({
   listPairs: vi.fn(async (market: MarketType) =>
     market === 'spot' ? [btc('spot'), eth] : [btc('futures')],
   ),
+  getChartCandles: vi.fn(async () => ({ candles: [], forming: null })),
   getCandles: vi.fn(async () =>
     [0, 1, 2].map((i) => ({
       openTime: new Date(Date.UTC(2026, 9, 9, i)).toISOString(),

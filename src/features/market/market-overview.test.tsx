@@ -99,6 +99,7 @@ function fakeMarket(): MarketService {
           ]
         : [pair('BTC', 'futures', 1)],
     ),
+    getChartCandles: vi.fn(async () => ({ candles: [], forming: null })),
     getCandles: vi.fn(async () => CANDLES),
     getCoinMarket: vi.fn(),
     getFuturesMetrics: vi.fn(),

@@ -79,6 +79,7 @@ import type {
   PerformanceSummary,
   Candle,
   CandleTimeframe,
+  ChartTimeframe,
   FuturesMetrics,
   ISODateTime,
   KlineUpdate,
@@ -174,6 +175,22 @@ export interface CandlesRequest {
   before?: ISODateTime;
   signal?: AbortSignal;
 }
+/** A page of the trading chart (`/market/{market}/{symbol}/chart-candles`, TR-35). */
+export interface ChartCandlesRequest {
+  market: MarketType;
+  symbol: string;
+  timeframe: ChartTimeframe;
+  limit: number;
+  /** Only candles opened before this instant (the backend's `to`). */
+  before?: ISODateTime;
+  signal?: AbortSignal;
+}
+export interface ChartCandlesPage {
+  /** Closed candles, oldest first. */
+  candles: readonly Candle[];
+  /** The exchange's forming candle, on the latest page only. */
+  forming: Candle | null;
+}
 /** Public market data (`/market/**`, SRS 3.3.1); no token needed. */
 export interface MarketService {
   /** The market list of coins and the whole market's figures (SCR-09). */
@@ -185,6 +202,12 @@ export interface MarketService {
   ): Promise<readonly MarketPair[]>;
   /** Closed candles, oldest first. */
   getCandles(request: CandlesRequest): Promise<readonly Candle[]>;
+  /**
+   * The trading chart at any of its sixteen timeframes (TR-35): stored
+   * ones from the database, the others from the exchange. 503 while the
+   * exchange cannot be read.
+   */
+  getChartCandles(request: ChartCandlesRequest): Promise<ChartCandlesPage>;
   /**
    * Stored ticker snapshot (up to about a minute old) for the Delayed
    * fallback (CR-09); null until the backend has one.

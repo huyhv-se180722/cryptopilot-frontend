@@ -149,6 +149,7 @@ async function open({
         displayOrder: 1,
       },
     ]),
+    getChartCandles: vi.fn(async () => ({ candles: [], forming: null })),
     getCandles: vi.fn(async () =>
       [0, 1, 2].map((i) => ({
         openTime: new Date(Date.UTC(2026, 9, 9, i)).toISOString(),

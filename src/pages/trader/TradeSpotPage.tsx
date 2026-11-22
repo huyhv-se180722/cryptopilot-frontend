@@ -62,7 +62,7 @@ function TradeSpot({
   const copy = useCopy();
   const p = copy.paper;
   const navigate = useNavigate();
-  const [timeframe, setTimeframe] = useTradeTimeframe();
+  const [timeframe, setTimeframe, timeframes] = useTradeTimeframe('spot');
   useRememberSpotPair(pair.symbol);
   const [region, setRegion] = useState<PhoneRegion>('chart');
   const [picked, setPicked] = useState<PickedPrice | null>(null);
@@ -147,6 +147,7 @@ function TradeSpot({
             tickSize={pair.tickSize}
             timeframe={timeframe}
             onTimeframeChange={setTimeframe}
+            timeframes={timeframes}
             referenceBars={reference}
             referenceLabel={copy.marketStatus.sourceLabel}
             priceLines={chartOrders.lines}

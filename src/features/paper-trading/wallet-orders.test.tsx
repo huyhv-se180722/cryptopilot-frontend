@@ -54,6 +54,7 @@ async function setup(
 ) {
   const market: MarketService = {
     listPairs: vi.fn(async () => pairs),
+    getChartCandles: vi.fn(async () => ({ candles: [], forming: null })),
     getCandles: vi.fn(async () => []),
     getCoinMarket: vi.fn(),
     getFuturesMetrics: vi.fn(),

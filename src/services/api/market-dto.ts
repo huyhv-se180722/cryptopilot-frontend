@@ -28,6 +28,7 @@ import {
   record,
   text,
 } from './decode';
+import type { ChartCandlesPage } from './contracts';
 
 /**
  * Decoders for the `/market/**` responses and the overview topic
@@ -86,6 +87,25 @@ export function decodeCandles(body: unknown): readonly Candle[] {
   return list(value.candles, 'candles').map((item, index) =>
     decodeCandle(item, 'candles[' + index + ']'),
   );
+}
+
+/**
+ * `ChartCandlesResponse` (TR-35, backend PR #113): closed candles oldest
+ * first, the last one possibly forming (`closed: false`, latest page only).
+ */
+export function decodeChartCandles(body: unknown): ChartCandlesPage {
+  const value = record(body);
+  const items = list(value.candles, 'candles');
+  const candles: Candle[] = [];
+  let forming: Candle | null = null;
+  items.forEach((item, index) => {
+    const name = 'candles[' + index + ']';
+    const candle = decodeCandle(item, name);
+    const closed = record(item, name).closed;
+    if (closed === false && index === items.length - 1) forming = candle;
+    else candles.push(candle);
+  });
+  return { candles, forming };
 }
 
 const TIMEFRAMES: readonly CandleTimeframe[] = ['15m', '1h', '4h', '1d'];

@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCopy } from '../../../hooks/use-copy';
 import { useServices } from '../../../hooks/use-services';
 import { formatCopy } from '../../../i18n/copy';
-import type { Candle, CandleTimeframe } from '../../../types/domain';
+import type { Candle, ChartTimeframe } from '../../../types/domain';
 import { referenceBars } from '../model/reference-bars';
 import {
   ALL_LIVE,
@@ -123,7 +123,7 @@ const REFERENCE_MINUTES = 300;
 export function useReferenceBars(
   market: HealthMarket,
   symbol: string,
-  timeframe: CandleTimeframe,
+  timeframe: ChartTimeframe,
 ): readonly Candle[] {
   const { marketStatus } = useServices();
   const lost = isLost(useMarketHealth(market));

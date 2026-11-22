@@ -102,6 +102,7 @@ export function fakeJournal(
 export function fakeMarket(): MarketService {
   return {
     listPairs: vi.fn(async (market) => (market === 'futures' ? [PAIR] : [])),
+    getChartCandles: vi.fn(async () => ({ candles: [], forming: null })),
     getCandles: vi.fn(async () => []),
     getCoinMarket: vi.fn(),
     getFuturesMetrics: vi.fn(),

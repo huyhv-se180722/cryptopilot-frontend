@@ -156,6 +156,7 @@ async function open(
   let overview: ((value: MarketOverview) => void) | null = null;
   const market: MarketService = {
     listPairs: vi.fn(async () => PAIRS),
+    getChartCandles: vi.fn(async () => ({ candles: [], forming: null })),
     getCandles: vi.fn<MarketService['getCandles']>(
       async ({ before, limit }) => {
         const end = before ? (Date.parse(before) - START) / HOUR : 1000;
@@ -469,6 +470,26 @@ describe('Spot demo trading layout (TR-F1, D-86)', () => {
         'aria-checked',
       ),
     ).toBe('true');
+  });
+
+  it('reads the other timeframes of TR-35 from the chart candles, 1s on Spot', async () => {
+    const user = userEvent.setup();
+    const { market } = await open();
+    const more = await screen.findByRole('combobox', {
+      name: 'More timeframes',
+    });
+    expect(
+      within(more)
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toContain('1s');
+    await user.selectOptions(more, '5m');
+    await waitFor(() =>
+      expect(market.getChartCandles).toHaveBeenCalledWith(
+        expect.objectContaining({ symbol: 'BTCUSDT', timeframe: '5m' }),
+      ),
+    );
+    expect(window.localStorage.getItem('cp-trade-timeframe')).toBe('5m');
   });
 
   it('opens on the latest bars and reads older candles at the start, keeping the view', async () => {

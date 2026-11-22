@@ -140,6 +140,7 @@ async function open({
         displayOrder: 1,
       },
     ]),
+    getChartCandles: vi.fn(async () => ({ candles: [], forming: null })),
     getCandles: vi.fn(async () => []),
     getTicker: vi.fn(async () => null),
     getCoinMarket: vi.fn(),

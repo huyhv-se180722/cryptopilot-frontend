@@ -94,7 +94,7 @@ function TradeFutures({
   const f = copy.futures;
   const toast = useToast();
   const navigate = useNavigate();
-  const [timeframe, setTimeframe] = useTradeTimeframe();
+  const [timeframe, setTimeframe, timeframes] = useTradeTimeframe('futures');
   const [region, setRegion] = useState<PhoneRegion>('chart');
   const [picked, setPicked] = useState<PickedPrice | null>(null);
   const [split, setSplit] = useState<SplitLayout>(readSplit);
@@ -207,6 +207,7 @@ function TradeFutures({
             tickSize={pair.tickSize}
             timeframe={timeframe}
             onTimeframeChange={setTimeframe}
+            timeframes={timeframes}
             referenceBars={reference}
             referenceLabel={copy.marketStatus.sourceLabel}
             priceLines={chart.lines}

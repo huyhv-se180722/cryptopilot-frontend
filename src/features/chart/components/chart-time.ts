@@ -1,5 +1,6 @@
 import type { UTCTimestamp } from 'lightweight-charts';
-import type { CandleTimeframe, ISODateTime } from '../../../types/domain';
+import type { ChartTimeframe, ISODateTime } from '../../../types/domain';
+import { isDailyOrLonger } from '../../../utils/chart-timeframe';
 
 /**
  * The chart library draws every time as UTC and has no time zones, so a
@@ -9,14 +10,16 @@ import type { CandleTimeframe, ISODateTime } from '../../../types/domain';
  * saving would give two bars the same time when the clock goes back, and
  * the library refuses times that do not rise.
  *
- * Daily candles stay in UTC: a Binance day runs from 00:00 UTC, so moving
+ * Daily and longer candles (1d, 3d, 1w, 1M) stay in UTC: a Binance day runs from 00:00 UTC, so moving
  * them would only move the date labels away from the day they hold.
  */
 export function chartOffsetSeconds(
-  timeframe: CandleTimeframe | 'intraday',
+  timeframe: ChartTimeframe | 'intraday',
   now: Date = new Date(),
 ): number {
-  return timeframe === '1d' ? 0 : -now.getTimezoneOffset() * 60;
+  return timeframe !== 'intraday' && isDailyOrLonger(timeframe)
+    ? 0
+    : -now.getTimezoneOffset() * 60;
 }
 
 /** An instant as a time on the chart's axis, `offset` seconds from UTC. */

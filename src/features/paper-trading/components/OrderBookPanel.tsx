@@ -4,7 +4,7 @@ import {
   type PropsWithChildren,
   type ReactNode,
 } from 'react';
-import { ArrowDown, ArrowUp } from 'lucide-react';
+import { AreaChart, ArrowDown, ArrowUp } from 'lucide-react';
 import { ErrorState } from '../../../components/feedback/States';
 import { NumericText } from '../../../components/ui/NumericText';
 import { SegmentedControl } from '../../../components/ui/SegmentedControl';
@@ -24,6 +24,7 @@ import {
 } from '../../../utils/decimal-format';
 import type { MarketStream } from '../../market/hooks/use-order-book';
 import { useFitRows } from '../hooks/use-fit-rows';
+import { DepthChart } from './DepthChart';
 import { useTickDirection } from '../hooks/use-tick-direction';
 import {
   formatQuantity,
@@ -34,7 +35,7 @@ import {
 import { LatencyDot } from './LatencyDot';
 import { TradePanel } from './TradePanel';
 
-type View = 'both' | 'bids' | 'asks';
+type View = 'both' | 'bids' | 'asks' | 'depth';
 
 /** Levels a side in the depth the backend relays (depth20). */
 const DEPTH_LEVELS = 20;
@@ -147,7 +148,7 @@ function Rows({
 /**
  * Order book of the trading screen (B order book, plan section 5): the
  * top levels a side from the exchange's depth20, grouped by a price step,
- * in three views; asks above the last price, bids below, a depth bar per
+ * in three views, or as a depth chart; asks above the last price, bids below, a depth bar per
  * row, the spread and the buy / sell share of the shown amount. Selecting
  * a row hands its price to the order form. These are the exchange's
  * orders: demo orders never appear here.
@@ -186,6 +187,15 @@ export function OrderBookPanel({
     () => (book ? groupLevels(book.asks, step, 'ask', count) : []),
     [book, step, count],
   );
+  // The depth chart draws every level held, whatever the rows' room.
+  const depthBids = useMemo(
+    () => (book ? groupLevels(book.bids, step, 'bid', DEPTH_LEVELS) : []),
+    [book, step],
+  );
+  const depthAsks = useMemo(
+    () => (book ? groupLevels(book.asks, step, 'ask', DEPTH_LEVELS) : []),
+    [book, step],
+  );
   const bidTotal = Number(bids[bids.length - 1]?.cumulative ?? 0);
   const askTotal = Number(asks[asks.length - 1]?.cumulative ?? 0);
   const max = Math.max(bidTotal, askTotal);
@@ -211,6 +221,11 @@ export function OrderBookPanel({
               { value: 'both', label: p.viewBoth, icon: <SidesIcon both /> },
               { value: 'bids', label: p.viewBids, icon: <SidesIcon bids /> },
               { value: 'asks', label: p.viewAsks, icon: <SidesIcon /> },
+              {
+                value: 'depth',
+                label: p.viewDepth,
+                icon: <AreaChart size={12} aria-hidden="true" />,
+              },
             ]}
           />
           {steps.length > 1 && (
@@ -248,6 +263,13 @@ export function OrderBookPanel({
         <p className="flex flex-1 items-center justify-center px-2 py-8 text-center text-xs text-muted-dim">
           {p.bookEmpty}
         </p>
+      ) : view === 'depth' ? (
+        <DepthChart
+          bids={depthBids}
+          asks={depthAsks}
+          base={base}
+          stepSize={pair.stepSize}
+        />
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="grid grid-cols-3 gap-2 px-1 pb-1 text-xs text-muted-dim">

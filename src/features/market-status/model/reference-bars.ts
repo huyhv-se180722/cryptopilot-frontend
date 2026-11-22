@@ -1,13 +1,7 @@
-import type { Candle, CandleTimeframe } from '../../../types/domain';
+import type { Candle, ChartTimeframe } from '../../../types/domain';
+import { candleOpen } from '../../../utils/chart-timeframe';
 import type { FallbackCandle } from '../../../services/api/market-status';
 import { compare } from '../../../utils/decimal-math';
-
-const SECONDS: Record<CandleTimeframe, number> = {
-  '15m': 900,
-  '1h': 3_600,
-  '4h': 14_400,
-  '1d': 86_400,
-};
 
 /**
  * The display-only reference one-minute candles of a lost market (D-159)
@@ -18,13 +12,12 @@ const SECONDS: Record<CandleTimeframe, number> = {
  */
 export function referenceBars(
   candles: readonly FallbackCandle[],
-  timeframe: CandleTimeframe,
+  timeframe: ChartTimeframe,
 ): Candle[] {
-  const span = SECONDS[timeframe] * 1000;
   const bars: Candle[] = [];
   let bucket = Number.NaN;
   for (const candle of candles) {
-    const start = Math.floor(Date.parse(candle.openTime) / span) * span;
+    const start = candleOpen(Date.parse(candle.openTime), timeframe);
     const last = bars[bars.length - 1];
     if (last && start === bucket) {
       last.close = candle.close;
