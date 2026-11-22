@@ -1260,6 +1260,7 @@ export const vi: PartialCopy = {
     fieldTakeProfit: 'Chốt lời ({asset})',
     fieldStopLoss: 'Cắt lỗ ({asset})',
     postOnly: 'Post only',
+    advanced: 'Nâng cao',
     tpsl: 'TP/SL',
     tpslNote:
       'Được đặt khi lệnh limit khớp: một lệnh chốt lời và một lệnh cắt lỗ trên phần vừa mua được.',

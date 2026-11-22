@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { FormNotice } from '../../../components/feedback/FormNotice';
+import { Select } from '../../../components/ui/Select';
 import { Checkbox } from '../../../components/ui/Checkbox';
 import { DecimalInput } from '../../../components/ui/DecimalInput';
 import { Input } from '../../../components/ui/Input';
@@ -374,14 +375,19 @@ export function SpotOrderForm({
         />
       )}
 
-      {/* As on the exchange's Spot panel a Limit has TP/SL and no time in
-          force: every order is sent GTC (the draft and the request still
-          carry IOC, FOK and Post only, which the backend takes). */}
+      {/* As on the exchange's Spot panel a Limit has TP/SL on the form;
+          time in force and Post only sit under Advanced below. */}
       {type === 'LIMIT' && (
         <Checkbox
           label={p.tpsl}
           checked={draft.tpsl}
-          onChange={(event) => update({ tpsl: event.target.checked })}
+          onChange={(event) =>
+            // A TP/SL list sends its working leg GTC.
+            update({
+              tpsl: event.target.checked,
+              ...(event.target.checked ? { timeInForce: 'GTC' as const } : {}),
+            })
+          }
         />
       )}
       {type === 'LIMIT' && draft.tpsl && (
@@ -404,6 +410,46 @@ export function SpotOrderForm({
           />
           <p className="text-xs text-muted-dim">{p.tpslNote}</p>
         </>
+      )}
+
+      {/* TR-F3 F1: time in force and Post only under Advanced, closed by
+          default, as on the exchange's panel. Post only sends a
+          LIMIT_MAKER, which has no time in force; a TP/SL list sends its
+          working leg GTC. */}
+      {type === 'LIMIT' && (
+        <details className="group rounded-lg border border-line px-3 py-2">
+          <summary className="cursor-pointer text-xs font-medium text-muted select-none">
+            {p.advanced}
+            {(draft.postOnly || draft.timeInForce !== 'GTC') && (
+              <span className="ml-1.5 text-fg-2">
+                · {draft.postOnly ? p.postOnly : draft.timeInForce}
+              </span>
+            )}
+          </summary>
+          <div className="mt-2 grid gap-2">
+            <Select
+              inline
+              label={p.tifLabel}
+              value={draft.timeInForce}
+              disabled={draft.postOnly || draft.tpsl}
+              onChange={(event) =>
+                update({
+                  timeInForce: event.target.value as 'GTC' | 'IOC' | 'FOK',
+                })
+              }
+            >
+              <option value="GTC">{p.tifGTC}</option>
+              <option value="IOC">{p.tifIOC}</option>
+              <option value="FOK">{p.tifFOK}</option>
+            </Select>
+            <Checkbox
+              label={p.postOnly}
+              checked={draft.postOnly}
+              disabled={draft.timeInForce !== 'GTC'}
+              onChange={(event) => update({ postOnly: event.target.checked })}
+            />
+          </div>
+        </details>
       )}
 
       {notice && <FormNotice tone="error">{notice}</FormNotice>}
