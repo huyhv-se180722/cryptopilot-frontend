@@ -2,6 +2,7 @@
   Decimal,
   MarketPair,
   OrderSide,
+  PaperOcoTakeProfitType,
   PlacePaperOrder,
   PlacePaperOrderList,
   SpotOrderType,
@@ -53,6 +54,15 @@ export interface SpotOrderDraft {
   tpsl: boolean;
   takeProfit: string;
   stopLoss: string;
+  /**
+   * OCO (B1, F2): the take profit's type. A LIMIT_MAKER waits at `price`;
+   * a TAKE_PROFIT_LIMIT or TAKE_PROFIT triggers at `takeProfitStop`, the
+   * first placing a limit at `price`, the second executing at the market.
+   */
+  ocoTakeProfitType: PaperOcoTakeProfitType;
+  takeProfitStop: string;
+  /** OCO: the stop trails the price by `trailing` % instead of waiting at `stop`. */
+  ocoTrailing: boolean;
 }
 
 export const EMPTY_DRAFT: SpotOrderDraft = {
@@ -70,6 +80,9 @@ export const EMPTY_DRAFT: SpotOrderDraft = {
   tpsl: false,
   takeProfit: '',
   stopLoss: '',
+  ocoTakeProfitType: 'LIMIT_MAKER',
+  takeProfitStop: '',
+  ocoTrailing: false,
 };
 
 export type SpotOrderField =
@@ -80,7 +93,8 @@ export type SpotOrderField =
   | 'amount'
   | 'total'
   | 'takeProfit'
-  | 'stopLoss';
+  | 'stopLoss'
+  | 'takeProfitStop';
 export type SpotOrderProblem =
   | 'required'
   | 'invalid'
@@ -208,18 +222,31 @@ export function checkSpotOrder(
     return toStep(value.trim(), tick, side === 'BUY' ? 'down' : 'up');
   };
 
-  const price = hasLimitPrice(type) ? priceOf('price', draft.price) : null;
+  const oco = type === 'OCO';
+  // B1: a market take profit has no limit price; a trailing stop no stop price.
+  const takeProfitKind = oco ? draft.ocoTakeProfitType : null;
+  const ocoTrailing = oco && draft.ocoTrailing;
+  const price =
+    hasLimitPrice(type) && takeProfitKind !== 'TAKE_PROFIT'
+      ? priceOf('price', draft.price)
+      : null;
   const stop =
-    type === 'STOP_LIMIT' || type === 'STOP_MARKET' || type === 'OCO'
+    type === 'STOP_LIMIT' || type === 'STOP_MARKET' || (oco && !ocoTrailing)
       ? priceOf('stop', draft.stop)
       : type === 'TRAILING'
         ? priceOf('stop', draft.stop, false)
         : null;
-  const stopLimit =
-    type === 'OCO' ? priceOf('stopLimit', draft.stopLimit, false) : null;
+  const stopLimit = oco ? priceOf('stopLimit', draft.stopLimit, false) : null;
+  const takeProfitStop =
+    takeProfitKind && takeProfitKind !== 'LIMIT_MAKER'
+      ? priceOf('takeProfitStop', draft.takeProfitStop)
+      : null;
+  // Where the take profit starts to act: its limit price or its trigger.
+  const takeProfitLevel =
+    takeProfitKind === 'LIMIT_MAKER' ? price : takeProfitStop;
 
   let trailingDelta: number | null = null;
-  if (type === 'TRAILING') {
+  if (type === 'TRAILING' || ocoTrailing) {
     if (!filled(draft.trailing)) errors.trailing = 'required';
     else if (!valid(draft.trailing)) errors.trailing = 'invalid';
     else {
@@ -229,6 +256,9 @@ export function checkSpotOrder(
         errors.trailing = 'trailingRange';
     }
   }
+  // A trailing stop that buys holds back its limit, so it needs one.
+  if (ocoTrailing && buy && !stopLimit && !errors.stopLimit)
+    errors.stopLimit = 'required';
 
   let quantity: Decimal | null = null;
   let amountByTotal: Decimal | null = null;
@@ -266,11 +296,20 @@ export function checkSpotOrder(
     else stopType = 'STOP_LOSS_LIMIT';
   }
   // An OCO's take profit lies beyond the last price, its stop on this side.
-  if (type === 'OCO' && price && stop && lastPrice) {
+  if (oco && lastPrice) {
     const sell = !buy;
-    if (sell ? compare(price, lastPrice) <= 0 : compare(price, lastPrice) >= 0)
-      errors.price = 'priceOrder';
-    if (sell ? compare(stop, lastPrice) >= 0 : compare(stop, lastPrice) <= 0)
+    if (
+      takeProfitLevel &&
+      (sell
+        ? compare(takeProfitLevel, lastPrice) <= 0
+        : compare(takeProfitLevel, lastPrice) >= 0)
+    )
+      errors[takeProfitKind === 'LIMIT_MAKER' ? 'price' : 'takeProfitStop'] =
+        'priceOrder';
+    if (
+      stop &&
+      (sell ? compare(stop, lastPrice) >= 0 : compare(stop, lastPrice) <= 0)
+    )
       errors.stop = 'priceOrder';
   }
 
@@ -289,7 +328,10 @@ export function checkSpotOrder(
   }
 
   const valuedAt =
-    price ?? (type === 'STOP_MARKET' ? (stop ?? lastPrice) : lastPrice);
+    price ??
+    (type === 'STOP_MARKET'
+      ? (stop ?? lastPrice)
+      : (takeProfitStop ?? lastPrice));
   const notional =
     amountByTotal ??
     (valuedAt && quantity && isPositive(quantity)
@@ -297,10 +339,10 @@ export function checkSpotOrder(
       : null);
   const sizeField: SpotOrderField = byTotal ? 'total' : 'amount';
   if (notional && !errors[sizeField]) {
+    // A buying OCO locks once the larger of what its two orders need.
+    const stopAt = stopLimit ?? stop;
     const ocoNeed =
-      type === 'OCO' && buy && stop && quantity
-        ? multiply(stopLimit ?? stop, quantity)
-        : null;
+      oco && buy && stopAt && quantity ? multiply(stopAt, quantity) : null;
     const need = ocoNeed && compare(ocoNeed, notional) > 0 ? ocoNeed : notional;
     if (pair.minNotional && compare(notional, pair.minNotional) < 0)
       errors[sizeField] = 'minNotional';
@@ -408,8 +450,16 @@ export function checkSpotOrder(
             oco: {
               side: draft.side,
               quantity: quantity as Decimal,
-              takeProfitPrice: price as Decimal,
-              stopPrice: stop as Decimal,
+              ...(takeProfitKind && takeProfitKind !== 'LIMIT_MAKER'
+                ? {
+                    takeProfitType: takeProfitKind,
+                    takeProfitStopPrice: takeProfitStop as Decimal,
+                  }
+                : {}),
+              ...(price ? { takeProfitPrice: price } : {}),
+              ...(ocoTrailing
+                ? { stopTrailingDelta: trailingDelta as number }
+                : { stopPrice: stop as Decimal }),
               ...(stopLimit ? { stopLimitPrice: stopLimit } : {}),
             },
           },
