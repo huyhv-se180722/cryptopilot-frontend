@@ -4,6 +4,7 @@ import { Select } from '../../../components/ui/Select';
 import { Checkbox } from '../../../components/ui/Checkbox';
 import { DecimalInput } from '../../../components/ui/DecimalInput';
 import { Input } from '../../../components/ui/Input';
+import { buttonClassName } from '../../../components/ui/button-styles';
 import { NumericText } from '../../../components/ui/NumericText';
 import { useCopy } from '../../../hooks/use-copy';
 import { useToast } from '../../../hooks/use-toast';
@@ -12,7 +13,11 @@ import { errorText } from '../../../i18n/messages';
 import { problemOf } from '../../../services/api/errors';
 import type { Decimal, MarketPair, OrderSide } from '../../../types/domain';
 import { classNames } from '../../../utils/class-names';
-import { groupThousands } from '../../../utils/decimal-format';
+import {
+  decimalPlaces,
+  groupThousands,
+  toFixedDecimal,
+} from '../../../utils/decimal-format';
 import { toStep } from '../../../utils/decimal-math';
 import { usePaperActions } from '../hooks/use-paper-orders';
 import { spotRefusal } from '../model/paper-errors';
@@ -99,6 +104,9 @@ export function SpotOrderForm({
     if (seen.type !== type)
       setDraft((current) => ({
         ...current,
+        // An OCO's take profit lies away from the last price, so it starts
+        // empty, as on the exchange, rather than at the price of a limit.
+        ...(type === 'OCO' ? { price: '' } : {}),
         total:
           type === 'MARKET'
             ? ''
@@ -122,6 +130,21 @@ export function SpotOrderForm({
         lastPrice,
       ),
     }));
+  }
+
+  // F6: the price starts at the last price, as on the exchange, once known.
+  const [prefilled, setPrefilled] = useState(false);
+  if (!prefilled && lastPrice) {
+    setPrefilled(true);
+    if (entry.price === '')
+      setDraft((current) =>
+        current.price === ''
+          ? {
+              ...current,
+              price: toFixedDecimal(lastPrice, decimalPlaces(pair.tickSize)),
+            }
+          : current,
+      );
   }
 
   const available = funds ?? { quote: '0', base: '0' };
@@ -295,17 +318,31 @@ export function SpotOrderForm({
       {(type === 'STOP_LIMIT' || type === 'STOP_MARKET') &&
         priceInput('stop', formatCopy(p.fieldStop, { asset: quote }))}
       {type === 'TRAILING' && (
-        <DecimalInput
-          inline
-          label={p.fieldTrailing}
-          autoComplete="off"
-          value={draft.trailing}
-          error={fieldError('trailing')}
-          onValueChange={(trailing) => update({ trailing })}
-        />
+        // F3: the delta with the exchange's quick 1 % and 2 %.
+        <div className="flex gap-2">
+          <div className="min-w-0 flex-1">
+            <DecimalInput
+              inline
+              label={p.fieldTrailing}
+              autoComplete="off"
+              value={draft.trailing}
+              error={fieldError('trailing')}
+              onValueChange={(trailing) => update({ trailing })}
+            />
+          </div>
+          {['1', '2'].map((percent) => (
+            <button
+              key={percent}
+              type="button"
+              aria-pressed={draft.trailing === percent}
+              onClick={() => update({ trailing: percent })}
+              className={buttonClassName('secondary', 'sm', 'h-9 shrink-0')}
+            >
+              {percent}%
+            </button>
+          ))}
+        </div>
       )}
-      {type === 'TRAILING' &&
-        priceInput('stop', formatCopy(p.fieldActivation, { asset: quote }))}
 
       {market ? (
         <Input
@@ -316,39 +353,46 @@ export function SpotOrderForm({
           aria-readonly="true"
         />
       ) : type === 'STOP_MARKET' ? null : type === 'OCO' ? (
-        // F2 (B1): the take profit's type, then its trigger and limit.
-        <fieldset className="flex flex-col gap-2.5">
-          <legend className="mb-1 text-xs font-medium text-muted">
-            {p.ocoTakeProfit}
-          </legend>
-          <Select
-            inline
-            label={p.ocoTakeProfitType}
-            value={draft.ocoTakeProfitType}
-            onChange={(event) =>
-              update({
-                ocoTakeProfitType: event.target
-                  .value as SpotOrderDraft['ocoTakeProfitType'],
-              })
-            }
-          >
-            <option value="LIMIT_MAKER">{p.ocoTypeLimitMaker}</option>
-            <option value="TAKE_PROFIT_LIMIT">
-              {p.ocoTypeTakeProfitLimit}
-            </option>
-            <option value="TAKE_PROFIT">{p.ocoTypeTakeProfit}</option>
-          </Select>
+        // F6: the exchange's OCO form: TP limit, SL trigger, SL limit, then
+        // the amount; the B1 leg types sit under Advanced below.
+        <>
           {draft.ocoTakeProfitType !== 'LIMIT_MAKER' &&
             priceInput(
               'takeProfitStop',
               formatCopy(p.fieldTakeProfitTrigger, { asset: quote }),
             )}
           {draft.ocoTakeProfitType !== 'TAKE_PROFIT' &&
-            priceInput(
-              'price',
-              formatCopy(p.fieldTakeProfitPrice, { asset: quote }),
+            priceInput('price', formatCopy(p.fieldTpLimit, { asset: quote }))}
+        </>
+      ) : type === 'TRAILING' ? (
+        // F3: a limit, or Market as the exchange's toggle beside it.
+        <div className="flex gap-2">
+          <div className="min-w-0 flex-1">
+            {draft.trailingMarket ? (
+              <Input
+                inline
+                label={formatCopy(p.fieldLimit, { asset: quote })}
+                value={p.marketPrice}
+                readOnly
+                aria-readonly="true"
+              />
+            ) : (
+              priceInput('price', formatCopy(p.fieldLimit, { asset: quote }))
             )}
-        </fieldset>
+          </div>
+          <button
+            type="button"
+            aria-pressed={draft.trailingMarket}
+            onClick={() => update({ trailingMarket: !draft.trailingMarket })}
+            className={buttonClassName(
+              draft.trailingMarket ? 'primary' : 'secondary',
+              'sm',
+              'h-9 shrink-0',
+            )}
+          >
+            {p.trailingMarket}
+          </button>
+        </div>
       ) : (
         priceInput(
           'price',
@@ -359,21 +403,7 @@ export function SpotOrderForm({
       )}
 
       {type === 'OCO' && (
-        <fieldset className="flex flex-col gap-2.5">
-          <legend className="mb-1 text-xs font-medium text-muted">
-            {p.ocoStopLoss}
-          </legend>
-          <Select
-            inline
-            label={p.ocoStopKind}
-            value={draft.ocoTrailing ? 'TRAILING' : 'PRICE'}
-            onChange={(event) =>
-              update({ ocoTrailing: event.target.value === 'TRAILING' })
-            }
-          >
-            <option value="PRICE">{p.ocoStopAtPrice}</option>
-            <option value="TRAILING">{p.ocoStopTrailing}</option>
-          </Select>
+        <>
           {draft.ocoTrailing ? (
             <DecimalInput
               inline
@@ -384,13 +414,13 @@ export function SpotOrderForm({
               onValueChange={(trailing) => update({ trailing })}
             />
           ) : (
-            priceInput('stop', formatCopy(p.fieldStop, { asset: quote }))
+            priceInput('stop', formatCopy(p.fieldSlTrigger, { asset: quote }))
           )}
           {priceInput(
             'stopLimit',
-            formatCopy(p.fieldStopLimit, { asset: quote }),
+            formatCopy(p.fieldSlLimit, { asset: quote }),
           )}
-        </fieldset>
+        </>
       )}
 
       {!byTotal && (
@@ -423,6 +453,74 @@ export function SpotOrderForm({
           );
         }}
       />
+
+      {type === 'TRAILING' && (
+        // F3: as on the exchange, the activation price only when ticked.
+        <Checkbox
+          label={p.activationPrice}
+          checked={draft.activation}
+          onChange={(event) =>
+            update({ activation: event.target.checked, stop: '' })
+          }
+        />
+      )}
+      {type === 'TRAILING' &&
+        draft.activation &&
+        priceInput('stop', formatCopy(p.fieldActivation, { asset: quote }))}
+
+      {type === 'OCO' && (
+        <details className="group rounded-lg border border-line px-3 py-2">
+          <summary className="cursor-pointer text-xs font-medium text-muted select-none">
+            {p.advanced}
+            {(draft.ocoTakeProfitType !== 'LIMIT_MAKER' ||
+              draft.ocoTrailing) && (
+              <span className="ml-1.5 text-fg-2">
+                ·{' '}
+                {[
+                  draft.ocoTakeProfitType === 'TAKE_PROFIT_LIMIT'
+                    ? p.ocoTypeTakeProfitLimit
+                    : draft.ocoTakeProfitType === 'TAKE_PROFIT'
+                      ? p.ocoTypeTakeProfit
+                      : null,
+                  draft.ocoTrailing ? p.ocoStopTrailing : null,
+                ]
+                  .filter(Boolean)
+                  .join(', ')}
+              </span>
+            )}
+          </summary>
+          <div className="mt-2 grid gap-2">
+            <Select
+              inline
+              label={p.ocoTakeProfitType}
+              value={draft.ocoTakeProfitType}
+              onChange={(event) =>
+                update({
+                  ocoTakeProfitType: event.target
+                    .value as SpotOrderDraft['ocoTakeProfitType'],
+                })
+              }
+            >
+              <option value="LIMIT_MAKER">{p.ocoTypeLimitMaker}</option>
+              <option value="TAKE_PROFIT_LIMIT">
+                {p.ocoTypeTakeProfitLimit}
+              </option>
+              <option value="TAKE_PROFIT">{p.ocoTypeTakeProfit}</option>
+            </Select>
+            <Select
+              inline
+              label={p.ocoStopKind}
+              value={draft.ocoTrailing ? 'TRAILING' : 'PRICE'}
+              onChange={(event) =>
+                update({ ocoTrailing: event.target.value === 'TRAILING' })
+              }
+            >
+              <option value="PRICE">{p.ocoStopAtPrice}</option>
+              <option value="TRAILING">{p.ocoStopTrailing}</option>
+            </Select>
+          </div>
+        </details>
+      )}
 
       {market && (
         <Checkbox

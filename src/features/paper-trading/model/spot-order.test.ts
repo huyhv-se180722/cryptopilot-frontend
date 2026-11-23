@@ -200,6 +200,52 @@ describe('Spot order check (TR-F3)', () => {
     ).toEqual({ stop: 'noLastPrice' });
   });
 
+  it('sends a trailing stop at the market, and an activation price only when ticked (F3)', () => {
+    const trailing = (
+      over: Partial<SpotOrderDraft>,
+      side: 'BUY' | 'SELL' = 'SELL',
+    ) =>
+      checkSpotOrder(
+        draft({
+          type: 'TRAILING',
+          side,
+          trailing: '1',
+          amount: '0.001',
+          ...over,
+        }),
+        BTC,
+        FUNDS,
+        '60000',
+      );
+    // At the market: a STOP_LOSS with no price and no time in force.
+    expect(orderOf(trailing({ trailingMarket: true }))).toEqual({
+      side: 'SELL',
+      type: 'STOP_LOSS',
+      trailingDelta: 100,
+      quantity: '0.00100',
+    });
+    // An activation price typed but not ticked is not sent.
+    expect(orderOf(trailing({ stop: '62000' }))).not.toHaveProperty(
+      'stopPrice',
+    );
+    expect(
+      orderOf(trailing({ stop: '62000', activation: true })),
+    ).toMatchObject({
+      type: 'TAKE_PROFIT_LIMIT',
+      stopPrice: '62000.00',
+    });
+    expect(
+      orderOf(
+        trailing({ trailingMarket: true, stop: '62000', activation: true }),
+      ),
+    ).toMatchObject({ type: 'TAKE_PROFIT', stopPrice: '62000.00' });
+    // Ticked, it is asked for; a market stop that buys needs one to hold back.
+    expect(trailing({ activation: true }).errors).toEqual({ stop: 'required' });
+    expect(trailing({ trailingMarket: true }, 'BUY').errors).toEqual({
+      stop: 'required',
+    });
+  });
+
   it('sends a trailing stop with its delta in basis points', () => {
     expect(
       orderOf(
@@ -231,6 +277,7 @@ describe('Spot order check (TR-F3)', () => {
             type: 'TRAILING',
             side: 'SELL',
             trailing: '2',
+            activation: true,
             stop: '62000',
             price: '61000',
           }),
@@ -258,6 +305,7 @@ describe('Spot order check (TR-F3)', () => {
         type: 'TRAILING',
         side: 'SELL',
         trailing: '1',
+        activation: true,
         stop: '60000',
         price: '59000',
       }),

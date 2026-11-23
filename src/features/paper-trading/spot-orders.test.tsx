@@ -156,6 +156,7 @@ const field = (form: HTMLElement, name: RegExp) =>
 describe('Spot demo orders (TR-F3)', () => {
   it('places a LIMIT buy that waits, lists it and locks its funds', async () => {
     const { form, user } = await open();
+    await user.clear(field(form, /^Price/));
     await user.type(field(form, /^Price/), '59000');
     await user.type(field(form, /Amount/), '0.01');
     expect((field(form, /Total/) as HTMLInputElement).value).toBe('590.00');
@@ -178,6 +179,7 @@ describe('Spot demo orders (TR-F3)', () => {
   it('groups the price by thousands and takes a comma typed as grouping', async () => {
     const { form, user } = await open();
     const price = field(form, /^Price/) as HTMLInputElement;
+    await user.clear(price);
     await user.type(price, '59000');
     expect(price.value).toBe('59,000');
     await user.clear(price);
@@ -194,6 +196,7 @@ describe('Spot demo orders (TR-F3)', () => {
 
   it('reads an amount typed with a decimal comma ("0,5") as 0.5', async () => {
     const { form, user } = await open();
+    await user.clear(field(form, /^Price/));
     await user.type(field(form, /^Price/), '1000');
     await user.type(field(form, /Amount/), '0,5');
     expect((field(form, /Total/) as HTMLInputElement).value).toBe('500.00');
@@ -202,7 +205,9 @@ describe('Spot demo orders (TR-F3)', () => {
   it('checks the order before sending it', async () => {
     const { form, user } = await open();
     await user.click(within(form).getByRole('button', { name: 'Buy BTC' }));
-    expect(within(form).getAllByText('Enter a value.')).toHaveLength(2);
+    // The price starts at the last price (F6), so only the amount is missing.
+    expect(within(form).getAllByText('Enter a value.')).toHaveLength(1);
+    await user.clear(field(form, /^Price/));
     await user.type(field(form, /^Price/), '60000');
     await user.type(field(form, /Amount/), '1');
     expect(
@@ -234,6 +239,7 @@ describe('Spot demo orders (TR-F3)', () => {
 
   it('fills the amount from the share slider, which follows a typed amount', async () => {
     const { form, user } = await open();
+    await user.clear(field(form, /^Price/));
     await user.type(field(form, /^Price/), '50000');
     const maxRow = () =>
       within(form)
@@ -286,6 +292,7 @@ describe('Spot demo orders (TR-F3)', () => {
       expect(field(buying, /^Stop \(/)).toBeTruthy();
       expect(field(selling, /^Stop \(/)).toBeTruthy();
       await user.click(within(form).getByRole('radio', { name: 'Limit' }));
+      await user.clear(field(selling, /^Price/));
       await user.type(field(selling, /^Price/), '70000');
       await user.type(field(selling, /Amount/), '0.05');
       expect((field(buying, /Amount/) as HTMLInputElement).value).toBe('');
@@ -301,6 +308,7 @@ describe('Spot demo orders (TR-F3)', () => {
   it('cancels an open order', async () => {
     const { form, user } = await open();
     await user.click(within(form).getByRole('radio', { name: 'Sell' }));
+    await user.clear(field(form, /^Price/));
     await user.type(field(form, /^Price/), '70000');
     await user.type(field(form, /Amount/), '0.05');
     await user.click(within(form).getByRole('button', { name: 'Sell BTC' }));
@@ -329,6 +337,7 @@ describe('Spot demo orders (TR-F3)', () => {
         }) as HTMLInputElement
       ).disabled,
     ).toBe(true);
+    await user.clear(field(form, /^Price/));
     await user.type(field(form, /^Price/), '59000');
     await user.type(field(form, /Amount/), '0.01');
     await user.click(within(form).getByRole('button', { name: 'Buy BTC' }));
@@ -341,6 +350,7 @@ describe('Spot demo orders (TR-F3)', () => {
     await user.selectOptions(tif, 'GTC');
     await user.click(within(form).getByRole('checkbox', { name: 'Post only' }));
     expect((tif as HTMLSelectElement).disabled).toBe(true);
+    await user.clear(field(form, /^Price/));
     await user.clear(field(form, /^Price/));
     await user.type(field(form, /^Price/), '59000');
     await user.type(field(form, /Amount/), '0.01');
@@ -371,6 +381,7 @@ describe('Spot demo orders (TR-F3)', () => {
       .mockRejectedValueOnce(
         refusal(409, 'PAPER_MAX_NUM_ORDERS', ['orders', '201', '200', 'MAX']),
       );
+    await user.clear(field(form, /^Price/));
     await user.type(field(form, /^Price/), '30000');
     await user.type(field(form, /Amount/), '0.01');
     await user.click(within(form).getByRole('button', { name: 'Buy BTC' }));
@@ -450,8 +461,9 @@ describe('Spot demo orders (TR-F3)', () => {
       within(form).getByRole('combobox', { name: 'Stop order type' }),
       'OCO',
     );
-    await user.type(field(form, /^Take profit/), '62000');
-    await user.type(field(form, /^Stop \(/), '58000');
+    await user.clear(field(form, /^TP limit/));
+    await user.type(field(form, /^TP limit/), '62000');
+    await user.type(field(form, /^SL trigger/), '58000');
     await user.type(field(form, /Amount/), '0.01');
     await user.click(within(form).getByRole('button', { name: 'Sell BTC' }));
     expect(await screen.findByText('OCO placed.')).toBeTruthy();
@@ -466,6 +478,75 @@ describe('Spot demo orders (TR-F3)', () => {
     expect(openOrders.textContent).toContain('Stop loss');
   });
 
+  it('lays out the trailing stop and the OCO as the exchange does (F3, F6)', async () => {
+    const { form, user, paperTrading } = await open();
+    const place = vi.spyOn(paperTrading, 'placeOrder');
+    const placeList = vi.spyOn(paperTrading, 'placeOrderList');
+    await user.click(within(form).getByRole('radio', { name: 'Sell' }));
+    await user.click(within(form).getByRole('radio', { name: 'Stop' }));
+    const kind = within(form).getByRole('combobox', {
+      name: 'Stop order type',
+    });
+    await user.selectOptions(kind, 'TRAILING');
+    // The quick deltas, a Market toggle beside the limit, and the
+    // activation price only once ticked.
+    await user.click(within(form).getByRole('button', { name: '2%' }));
+    expect((field(form, /Trailing delta/) as HTMLInputElement).value).toBe('2');
+    expect(
+      within(form).queryByRole('textbox', { name: /Activation/ }),
+    ).toBeNull();
+    await user.click(
+      within(form).getByRole('checkbox', { name: 'Activation price' }),
+    );
+    expect(field(form, /Activation/)).toBeTruthy();
+    await user.click(
+      within(form).getByRole('checkbox', { name: 'Activation price' }),
+    );
+    await user.click(within(form).getByRole('button', { name: 'Market' }));
+    await user.type(field(form, /Amount/), '0.01');
+    await user.click(within(form).getByRole('button', { name: 'Sell BTC' }));
+    await waitFor(() =>
+      expect(place).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'STOP_LOSS', trailingDelta: 200 }),
+      ),
+    );
+    expect(place.mock.calls[0]?.[0]).not.toHaveProperty('price');
+
+    // OCO: TP limit, SL trigger, SL limit, amount; the leg types under Advanced.
+    await user.selectOptions(kind, 'OCO');
+    // Closed by default, as the exchange shows only the four fields.
+    expect(
+      within(form)
+        .getByText('Advanced')
+        .closest('details')
+        ?.hasAttribute('open'),
+    ).toBe(false);
+    await user.click(within(form).getByText('Advanced'));
+    await user.selectOptions(
+      within(form).getByRole('combobox', { name: 'Type' }),
+      'TAKE_PROFIT',
+    );
+    expect(
+      within(form).queryByRole('textbox', { name: /^TP limit/ }),
+    ).toBeNull();
+    await user.type(field(form, /^TP trigger/), '62000');
+    await user.type(field(form, /^SL trigger/), '58000');
+    await user.clear(field(form, /Amount/));
+    await user.type(field(form, /Amount/), '0.01');
+    await user.click(within(form).getByRole('button', { name: 'Sell BTC' }));
+    await waitFor(() =>
+      expect(placeList).toHaveBeenCalledWith(
+        expect.objectContaining({
+          oco: expect.objectContaining({
+            takeProfitType: 'TAKE_PROFIT',
+            takeProfitStopPrice: '62000.00',
+            stopPrice: '58000.00',
+          }),
+        }),
+      ),
+    );
+  });
+
   it('sends an OCO again after a timeout with the same list key (Q-70)', async () => {
     const { form, user, paperTrading } = await open();
     const placeList = vi
@@ -477,8 +558,9 @@ describe('Spot demo orders (TR-F3)', () => {
       within(form).getByRole('combobox', { name: 'Stop order type' }),
       'OCO',
     );
-    await user.type(field(form, /^Take profit/), '62000');
-    await user.type(field(form, /^Stop \(/), '58000');
+    await user.clear(field(form, /^TP limit/));
+    await user.type(field(form, /^TP limit/), '62000');
+    await user.type(field(form, /^SL trigger/), '58000');
     await user.type(field(form, /Amount/), '0.01');
     await user.click(within(form).getByRole('button', { name: 'Sell BTC' }));
     await waitFor(() => expect(placeList).toHaveBeenCalledTimes(1));
@@ -491,6 +573,7 @@ describe('Spot demo orders (TR-F3)', () => {
 
   it('places a limit with TP/SL as an OTOCO, its TP and SL pending', async () => {
     const { form, user } = await open();
+    await user.clear(field(form, /^Price/));
     await user.type(field(form, /^Price/), '59000');
     await user.type(field(form, /Amount/), '0.01');
     await user.click(within(form).getByRole('checkbox', { name: 'TP/SL' }));
@@ -518,6 +601,7 @@ describe('Spot demo orders (TR-F3)', () => {
 
   it('trades a pair off the watchlist by its market list id (FEQ-01)', async () => {
     const { form, user } = await open('/trade/spot/ETHUSDT');
+    await user.clear(field(form, /^Price/));
     await user.type(field(form, /^Price/), '2400');
     await user.type(field(form, /Amount/), '0.1');
     await user.click(within(form).getByRole('button', { name: 'Buy ETH' }));
