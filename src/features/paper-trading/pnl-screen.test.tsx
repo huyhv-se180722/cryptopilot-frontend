@@ -137,7 +137,9 @@ describe('Demo PnL analysis (TR-F5, TR-13)', () => {
     expect(drawn.bars.map((bar) => bar.value)).toEqual([30, -82.75, 12.5]);
     expect(analysis).toHaveBeenLastCalledWith(null, 30, expect.anything());
 
-    await user.click(within(section).getByRole('radio', { name: 'Futures wallet' }));
+    await user.click(
+      within(section).getByRole('radio', { name: 'Futures wallet' }),
+    );
     await waitFor(() =>
       expect(analysis).toHaveBeenLastCalledWith(
         'FUTURES',
