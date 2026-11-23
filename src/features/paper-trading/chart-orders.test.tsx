@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createDevelopmentPaperTrading } from '../../dev/dev-paper-trading';
 import { DEV_PAIR_IDS } from '../../dev/fixtures/market';
@@ -42,7 +42,12 @@ vi.mock('lightweight-charts', () => ({
       setData: vi.fn(),
       createPriceLine: (line: (typeof drawn.lines)[number]) => {
         if (definition.name === 'candles') drawn.lines.push(line);
-        return line;
+        // As the library's IPriceLine: its options, changed in place.
+        return Object.assign(line, {
+          options: () => line,
+          applyOptions: (next: Partial<typeof line>) =>
+            Object.assign(line, next),
+        });
       },
       removePriceLine: (line: (typeof drawn.lines)[number]) => {
         const at = drawn.lines.indexOf(line);
@@ -50,6 +55,8 @@ vi.mock('lightweight-charts', () => ({
       },
       priceScale: () => ({ applyOptions: vi.fn() }),
       priceToCoordinate: () => 120,
+      // 100 px from the top of the pane is the price 49,000 in these tests.
+      coordinateToPrice: (y: number) => 49_000 + (120 - y) * 10,
     }),
     panes: () =>
       [0, 1, 2, 3].map(() => ({
@@ -289,6 +296,62 @@ describe('demo orders on the trading chart (TR-F5, Spot)', () => {
       await user.click(onChart);
       await waitFor(() => expect(drawn.lines).toHaveLength(0));
       expect(screen.getByText('No open orders.')).toBeTruthy();
+    },
+    SCREEN_TIMEOUT,
+  );
+
+  it(
+    'moves a waiting order by dragging its line: cancel-replace at the dropped price (B4)',
+    async () => {
+      const { limitBuy } = await open();
+      await limitBuy('59000', '0.01');
+      const handle = await screen.findByRole('button', {
+        name: /Drag to move order/,
+      });
+      const before = drawn.lines.find((line) => line.price === 59000);
+      expect(before).toBeTruthy();
+
+      // From the line at y 120 up to 100: the price 49,200 of the mock scale.
+      fireEvent.pointerDown(handle, { clientY: 120, pointerId: 1 });
+      fireEvent.pointerMove(handle, { clientY: 110, pointerId: 1 });
+      fireEvent.pointerMove(handle, { clientY: 100, pointerId: 1 });
+      await waitFor(() =>
+        expect(handle.textContent).toContain('Move to 49200'),
+      );
+      fireEvent.pointerUp(handle, { clientY: 100, pointerId: 1 });
+
+      expect(await screen.findByText(/Order moved to 49200/)).toBeTruthy();
+      await waitFor(() =>
+        expect(drawn.lines).toContainEqual(
+          expect.objectContaining({ price: 49200 }),
+        ),
+      );
+      expect(drawn.lines.some((line) => line.price === 59000)).toBe(false);
+    },
+    SCREEN_TIMEOUT,
+  );
+
+  it(
+    'moves a waiting order from the keyboard a tick at a time, and Escape puts it back',
+    async () => {
+      const { limitBuy, user } = await open();
+      await limitBuy('59000', '0.01');
+      const handle = await screen.findByRole('button', {
+        name: /Drag to move order/,
+      });
+      handle.focus();
+      await user.keyboard('{ArrowUp}{ArrowUp}');
+      expect(handle.textContent).toContain('Move to 59000.02');
+      await user.keyboard('{Escape}');
+      expect(handle.textContent).toBe('Buy 0.01000');
+
+      await user.keyboard('{ArrowDown}{Enter}');
+      expect(await screen.findByText(/Order moved to 58999.99/)).toBeTruthy();
+      await waitFor(() =>
+        expect(drawn.lines).toContainEqual(
+          expect.objectContaining({ price: 58999.99 }),
+        ),
+      );
     },
     SCREEN_TIMEOUT,
   );

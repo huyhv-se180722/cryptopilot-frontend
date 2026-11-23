@@ -30,9 +30,10 @@ export function useFuturesChartLines(
   const toast = useToast();
   const orders = useFuturesOpenOrders(pair.symbol);
   const algo = useFuturesOpenAlgoOrders(pair.symbol);
-  const { cancel, cancelAlgo } = useFuturesActions();
+  const { cancel, cancelAlgo, amend } = useFuturesActions();
   const cancelRun = cancel.run;
   const cancelAlgoRun = cancelAlgo.run;
+  const amendRun = amend.run;
 
   const lines = useMemo(() => {
     const out: ChartPriceLine[] = [];
@@ -66,6 +67,32 @@ export function useFuturesChartLines(
         }),
         tone: order.side === 'BUY' ? 'positive' : 'negative',
         dashed: true,
+        // TR-25: a LIMIT order moves to the dropped price, its quantity kept.
+        drag: {
+          label: formatCopy(f.dragOrderLabel, { id: order.orderId.slice(-8) }),
+          onDrop: (price) =>
+            void amendRun({
+              symbol: order.symbol,
+              orderId: order.orderId,
+              side: order.side,
+              price,
+              quantity: order.origQty,
+            }).then((result) =>
+              toast.show(
+                result.status === 'error'
+                  ? {
+                      tone: 'error',
+                      message: futuresErrorText(copy, result.error),
+                    }
+                  : {
+                      tone: 'success',
+                      message: formatCopy(f.amendSaved, {
+                        symbol: order.symbol,
+                      }),
+                    },
+              ),
+            ),
+        },
         action: {
           label: f.cancel,
           onSelect: () =>
@@ -112,6 +139,7 @@ export function useFuturesChartLines(
     toast,
     cancelRun,
     cancelAlgoRun,
+    amendRun,
   ]);
   return { lines };
 }

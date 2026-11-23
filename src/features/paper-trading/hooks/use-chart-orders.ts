@@ -43,7 +43,7 @@ export function useChartOrders(pair: MarketPair): {
   const [shown, setShown] = useState(read);
   const open = useOpenOrders(pair.pairId);
   const fills = useFillHistory({ pairId: pair.pairId }, 1, shown);
-  const { cancel } = usePaperActions();
+  const { cancel, replace } = usePaperActions();
 
   const flip = useCallback(() => {
     setShown((was) => {
@@ -79,6 +79,32 @@ export function useChartOrders(pair: MarketPair): {
                 });
             }),
         }),
+        // B4: a LIMIT or LIMIT_MAKER outside a group moves by cancel-replace.
+        (order) =>
+          (order.type === 'LIMIT' || order.type === 'LIMIT_MAKER') &&
+          !order.listId &&
+          order.status !== 'PENDING_NEW'
+            ? {
+                label: formatCopy(p.dragOrderLabel, {
+                  id: order.orderId.slice(-8),
+                }),
+                disabled: replace.pending,
+                onDrop: (price) =>
+                  void replace.run(order.orderId, price).then((result) =>
+                    toast.show(
+                      result.status === 'error'
+                        ? {
+                            tone: 'error',
+                            message: paperErrorText(copy, result.error),
+                          }
+                        : {
+                            tone: 'success',
+                            message: formatCopy(p.orderMoved, { price }),
+                          },
+                    ),
+                  ),
+              }
+            : undefined,
       )
     : [];
   const markers = shown
