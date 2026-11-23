@@ -67,9 +67,13 @@ export interface FuturesDraft {
   callbackRate: string;
   /** A trailing stop's activation price; empty to follow from now. */
   activationPrice: string;
-  /** The size as typed, in the base asset or in USDT (order value). */
+  /**
+   * The size as typed: in the base asset, in USDT as the order value, or
+   * (TR-F4) in USDT as the margin it takes, the exchange's Cost mode, which
+   * the leverage turns into an order value.
+   */
   size: string;
-  sizeUnit: 'BASE' | 'QUOTE';
+  sizeUnit: 'BASE' | 'QUOTE' | 'MARGIN';
   reduceOnly: boolean;
   timeInForce: 'GTC' | 'IOC' | 'FOK' | 'GTX';
   tpsl: boolean;
@@ -235,16 +239,19 @@ export function quantityOf(
   draft: FuturesDraft,
   pair: MarketPair,
   prices: Prices,
+  leverage?: number,
 ): string | null {
   if (!positiveDecimal(draft.size)) return null;
   if (draft.sizeUnit === 'BASE') return draft.size;
   const reference = referencePriceOf(draft, prices);
   if (!reference || !pair.stepSize) return null;
-  const quantity = toStep(
-    divide(draft.size, reference, 18),
-    pair.stepSize,
-    'down',
-  );
+  // A margin buys its leverage times its amount of order value.
+  if (draft.sizeUnit === 'MARGIN' && !leverage) return null;
+  const value =
+    draft.sizeUnit === 'MARGIN'
+      ? multiply(draft.size, String(leverage))
+      : draft.size;
+  const quantity = toStep(divide(value, reference, 18), pair.stepSize, 'down');
   return isPositive(quantity) ? quantity : null;
 }
 
@@ -288,7 +295,7 @@ export function costAndMax(
       maxNotionalAtLeverage(brackets, config.leverage),
       pair.stepSize,
     );
-  const quantity = quantityOf(draft, pair, prices);
+  const quantity = quantityOf(draft, pair, prices, config.leverage);
   let cost: string | null = null;
   if (quantity && !action.closing && !draft.reduceOnly) {
     const closable = opposite ? held : '0';
@@ -306,10 +313,14 @@ export function inUnit(
   quantity: string,
   draft: FuturesDraft,
   prices: Prices,
+  leverage?: number,
 ): string | null {
   if (draft.sizeUnit === 'BASE') return quantity;
   const reference = referencePriceOf(draft, prices);
-  return reference ? multiply(quantity, reference) : null;
+  if (!reference) return null;
+  const value = multiply(quantity, reference);
+  if (draft.sizeUnit === 'QUOTE') return value;
+  return leverage ? divide(value, String(leverage), 18) : null;
 }
 
 /** The MARKET or LIMIT order of the form, for one of its buttons. */

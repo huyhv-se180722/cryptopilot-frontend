@@ -42,6 +42,7 @@ import { ClosePositionDialog } from './ClosePositionDialog';
 import { AdjustMarginDialog } from './AdjustMarginDialog';
 import { AmendOrderDialog } from './AmendOrderDialog';
 import { PositionTpSlDialog } from './PositionTpSlDialog';
+import { exitsOf } from '../model/position-exits';
 
 type Tab =
   'positions' | 'open' | 'orders' | 'trades' | 'income' | 'closed' | 'assets';
@@ -56,6 +57,7 @@ const link =
  * and position histories; the Futures assets. "This pair only" narrows the
  * lists to the pair on screen.
  */
+
 export function FuturesBottomPanel({
   pair,
   positions,
@@ -280,6 +282,34 @@ export function FuturesBottomPanel({
           </span>
         </span>
       ),
+    },
+    {
+      // TR-F4: the take profit and stop loss guarding the position, as the
+      // exchange lists them: its closing conditional orders; opens the TP/SL.
+      id: 'tpsl',
+      header: f.colTpSl,
+      render: (p) => {
+        const exits = exitsOf(p, algo.data ?? []);
+        return (
+          <button
+            type="button"
+            className="flex flex-col items-start text-left hover:underline"
+            aria-label={formatCopy(f.tpslOf, { symbol: p.symbol })}
+            onClick={() => setTpsl(p)}
+          >
+            <span className="text-positive">
+              {exits.takeProfit?.triggerPrice
+                ? formatPrice(exits.takeProfit.triggerPrice, tickOf(p.symbol))
+                : none}
+            </span>
+            <span className="text-negative">
+              {exits.stopLoss?.triggerPrice
+                ? formatPrice(exits.stopLoss.triggerPrice, tickOf(p.symbol))
+                : none}
+            </span>
+          </button>
+        );
+      },
     },
     {
       id: 'actions',
