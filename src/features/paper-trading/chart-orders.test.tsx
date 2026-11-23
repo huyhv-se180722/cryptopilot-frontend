@@ -184,6 +184,7 @@ async function open() {
   const user = userEvent.setup();
   const field = (name: RegExp) => within(form).getByRole('textbox', { name });
   const limitBuy = async (price: string, amount: string) => {
+    await user.clear(field(/Price/));
     await user.type(field(/Price/), price);
     await user.type(field(/Amount/), amount);
     await user.click(within(form).getByRole('button', { name: 'Buy BTC' }));

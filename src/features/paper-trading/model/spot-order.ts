@@ -63,6 +63,13 @@ export interface SpotOrderDraft {
   takeProfitStop: string;
   /** OCO: the stop trails the price by `trailing` % instead of waiting at `stop`. */
   ocoTrailing: boolean;
+  /**
+   * Trailing stop (F3, as the exchange's form): executed at the market once
+   * triggered (a STOP_LOSS or TAKE_PROFIT) instead of placing a limit.
+   */
+  trailingMarket: boolean;
+  /** Trailing stop: tracking starts at the activation price in `stop`. */
+  activation: boolean;
 }
 
 export const EMPTY_DRAFT: SpotOrderDraft = {
@@ -83,6 +90,8 @@ export const EMPTY_DRAFT: SpotOrderDraft = {
   ocoTakeProfitType: 'LIMIT_MAKER',
   takeProfitStop: '',
   ocoTrailing: false,
+  trailingMarket: false,
+  activation: false,
 };
 
 export type SpotOrderField =
@@ -226,15 +235,18 @@ export function checkSpotOrder(
   // B1: a market take profit has no limit price; a trailing stop no stop price.
   const takeProfitKind = oco ? draft.ocoTakeProfitType : null;
   const ocoTrailing = oco && draft.ocoTrailing;
+  // F3: a trailing stop at the market has no limit price; its activation
+  // price is asked only when ticked.
+  const trailingMarket = type === 'TRAILING' && draft.trailingMarket;
   const price =
-    hasLimitPrice(type) && takeProfitKind !== 'TAKE_PROFIT'
+    hasLimitPrice(type) && takeProfitKind !== 'TAKE_PROFIT' && !trailingMarket
       ? priceOf('price', draft.price)
       : null;
   const stop =
     type === 'STOP_LIMIT' || type === 'STOP_MARKET' || (oco && !ocoTrailing)
       ? priceOf('stop', draft.stop)
-      : type === 'TRAILING'
-        ? priceOf('stop', draft.stop, false)
+      : type === 'TRAILING' && draft.activation
+        ? priceOf('stop', draft.stop)
         : null;
   const stopLimit = oco ? priceOf('stopLimit', draft.stopLimit, false) : null;
   const takeProfitStop =
@@ -290,10 +302,12 @@ export function checkSpotOrder(
   if (type === 'TRAILING') {
     if (stop && lastPrice) {
       // An activation at the last price would trigger at once.
-      stopType = stopTypeFor(draft.side, stop, lastPrice, true);
+      stopType = stopTypeFor(draft.side, stop, lastPrice, !trailingMarket);
       if (!stopType) errors.stop = 'atLastPrice';
     } else if (stop && !lastPrice) errors.stop = 'noLastPrice';
-    else stopType = 'STOP_LOSS_LIMIT';
+    else stopType = trailingMarket ? 'STOP_LOSS' : 'STOP_LOSS_LIMIT';
+    // A market stop that buys holds back what it would pay at its stop.
+    if (trailingMarket && buy && !draft.activation) errors.stop = 'required';
   }
   // An OCO's take profit lies beyond the last price, its stop on this side.
   if (oco && lastPrice) {
@@ -435,8 +449,9 @@ export function checkSpotOrder(
           order: {
             side: draft.side,
             type: stopType as SpotOrderType,
-            timeInForce: 'GTC',
-            price: price as Decimal,
+            ...(trailingMarket
+              ? {}
+              : { timeInForce: 'GTC' as const, price: price as Decimal }),
             trailingDelta: trailingDelta as number,
             ...(stop ? { stopPrice: stop } : {}),
             ...size,
