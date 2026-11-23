@@ -1409,6 +1409,21 @@ export const en = {
     pnlNoCoins: 'No coin besides USDT in the Spot wallet.',
     pnlIncomplete:
       'Some coins have no cost or price yet, so the totals leave them out.',
+    analysisTitle: 'Analysis',
+    analysisMarket: 'Wallet',
+    analysisAll: 'All',
+    analysisCumulative: 'PnL, last {days} days',
+    analysisDrawdown: 'Max drawdown',
+    analysisWinRate: 'Win rate',
+    analysisRecord: '{closed} closed: {wins} won, {losses} lost',
+    analysisProfitFactor: 'Profit factor',
+    analysisAverageWin: 'Avg win',
+    analysisAverageLoss: 'Avg loss',
+    analysisChartLabel:
+      'PnL of each day over the last {days} days as bars, and its running total as a line, in USDT',
+    analysisNote:
+      'Days in UTC. Transfers between the wallets are not PnL. A trade is a closed Futures position or a Spot sale, counted by its net result.',
+    analysisIncomplete: 'Some days had no snapshot and are left out.',
     walletTitle: 'Wallet',
     walletSubtitle: 'Demo funds, valued at the Spot last price.',
     estimatedTotal: 'Estimated balance',

@@ -11,14 +11,21 @@ import type {
 import type { MarketTicker } from '../../types/domain';
 import { fakeAuth, page, renderRoutes, testTrader } from '../../test/render';
 
-const drawn = vi.hoisted(() => ({ points: [] as number[] }));
+const drawn = vi.hoisted(() => ({
+  /** The equity line's points: the first line series of a chart. */
+  points: [] as number[],
+  /** The analysis chart's bars, with their colours. */
+  bars: [] as { value: number; color?: string }[],
+}));
 vi.mock('lightweight-charts', () => ({
   LineSeries: { name: 'line' },
+  HistogramSeries: { name: 'histogram' },
   ColorType: { Solid: 'solid' },
   createChart: () => ({
-    addSeries: () => ({
-      setData: (data: { value: number }[]) => {
-        drawn.points = data.map((point) => point.value);
+    addSeries: (kind: { name: string }) => ({
+      setData: (data: { value: number; color?: string }[]) => {
+        if (kind.name === 'histogram') drawn.bars = data;
+        else drawn.points = data.map((point) => point.value);
       },
     }),
     timeScale: () => ({ fitContent: vi.fn() }),
@@ -81,6 +88,71 @@ describe('Demo PnL analysis (TR-F5, TR-13)', () => {
       expect(equity).toHaveBeenLastCalledWith(7, expect.anything()),
     );
     await waitFor(() => expect(drawn.points).toHaveLength(7));
+  });
+
+  it('analyses the period: daily PnL bars, the deepest fall and the closed trades, of one wallet or both', async () => {
+    const analysis = vi.fn<PaperTradingService['pnlAnalysis']>(
+      async (market, days) => ({
+        market,
+        days,
+        todayPnl: '12.5',
+        cumulativePnl: '-40.25',
+        maxDrawdown: '-120',
+        maxDrawdownPercent: '-0.8',
+        complete: false,
+        daily: [
+          { date: '2026-11-21', pnl: '30', cumulativePnl: '30' },
+          { date: '2026-11-22', pnl: '-82.75', cumulativePnl: '-52.75' },
+          { date: '2026-11-23', pnl: '12.5', cumulativePnl: '-40.25' },
+        ],
+        trades: {
+          closed: 4,
+          wins: 3,
+          losses: 1,
+          winRate: '75',
+          totalPnl: '50',
+          averageWin: '20',
+          averageLoss: '-10',
+          profitFactor: '6',
+        },
+      }),
+    );
+    const { user } = await setup({ pnlAnalysis: analysis });
+    const section = await screen.findByRole('region', { name: 'Analysis' });
+    await waitFor(() =>
+      expect(
+        within(section).getByText('PnL, last 30 days').parentElement
+          ?.textContent,
+      ).toContain('-40.25'),
+    );
+    expect(
+      within(section).getByText('Max drawdown').parentElement?.parentElement
+        ?.textContent,
+    ).toContain('-0.8%');
+    expect(within(section).getByText('4 closed: 3 won, 1 lost')).toBeTruthy();
+    expect(
+      within(section).getByText('Profit factor').parentElement?.textContent,
+    ).toContain('6');
+    expect(within(section).getByText(/Some days had no snapshot/)).toBeTruthy();
+    expect(drawn.bars.map((bar) => bar.value)).toEqual([30, -82.75, 12.5]);
+    expect(analysis).toHaveBeenLastCalledWith(null, 30, expect.anything());
+
+    await user.click(within(section).getByRole('radio', { name: 'Futures wallet' }));
+    await waitFor(() =>
+      expect(analysis).toHaveBeenLastCalledWith(
+        'FUTURES',
+        30,
+        expect.anything(),
+      ),
+    );
+    await user.click(screen.getByRole('radio', { name: '7D' }));
+    await waitFor(() =>
+      expect(analysis).toHaveBeenLastCalledWith(
+        'FUTURES',
+        7,
+        expect.anything(),
+      ),
+    );
   });
 
   it('says when totals leave coins out and when today has no snapshot', async () => {

@@ -4,6 +4,9 @@ import type {
   PaperBalance,
   PaperBalanceUpdate,
   PaperEquity,
+  PaperHistoryExport,
+  PaperPnlAnalysis,
+  PaperReplacedOrder,
   CoinPnl,
   SpotPnl,
   PaperFill,
@@ -151,6 +154,73 @@ export function decodeEquity(body: unknown): PaperEquity {
         totalEquity: decimal(point.totalEquity, 'totalEquity'),
       };
     }),
+  };
+}
+
+/** `GET /paper/pnl/analysis` (TR-28); days as `YYYY-MM-DD` (UTC). */
+export function decodePnlAnalysis(body: unknown): PaperPnlAnalysis {
+  const value = record(body);
+  const trades = record(value.trades, 'trades');
+  const market = value.market;
+  return {
+    market:
+      market === null || market === undefined
+        ? null
+        : oneOf(['SPOT', 'FUTURES'] as const, market, 'market'),
+    days: integer(value.days, 'days'),
+    todayPnl: nullableDecimal(value.todayPnl, 'todayPnl'),
+    cumulativePnl: decimal(value.cumulativePnl, 'cumulativePnl'),
+    maxDrawdown: decimal(value.maxDrawdown, 'maxDrawdown'),
+    maxDrawdownPercent: nullableDecimal(
+      value.maxDrawdownPercent,
+      'maxDrawdownPercent',
+    ),
+    complete: flag(value.complete, 'complete'),
+    daily: list(value.daily, 'daily').map((item, index) => {
+      const day = record(item, 'daily[' + index + ']');
+      const date = text(day.date, 'date');
+      if (!DATE.test(date)) throw new Error('date is not YYYY-MM-DD');
+      return {
+        date,
+        pnl: decimal(day.pnl, 'pnl'),
+        cumulativePnl: decimal(day.cumulativePnl, 'cumulativePnl'),
+      };
+    }),
+    trades: {
+      closed: integer(trades.closed, 'trades.closed'),
+      wins: integer(trades.wins, 'trades.wins'),
+      losses: integer(trades.losses, 'trades.losses'),
+      winRate: nullableDecimal(trades.winRate, 'trades.winRate'),
+      totalPnl: decimal(trades.totalPnl, 'trades.totalPnl'),
+      averageWin: nullableDecimal(trades.averageWin, 'trades.averageWin'),
+      averageLoss: nullableDecimal(trades.averageLoss, 'trades.averageLoss'),
+      profitFactor: nullableDecimal(trades.profitFactor, 'trades.profitFactor'),
+    },
+  };
+}
+
+/** `POST /paper/orders/{id}/replace` (B4). */
+export function decodeReplacedOrder(body: unknown): PaperReplacedOrder {
+  const value = record(body);
+  return {
+    canceled: decodeOrder(value.canceled),
+    placed: decodeOrder(value.placed),
+  };
+}
+
+/** `GET /paper/orders/export`, `/paper/fills/export` (B7): the CSV text. */
+export function decodeHistoryExport(
+  body: unknown,
+  headers?: Headers,
+): PaperHistoryExport {
+  if (typeof body !== 'string') throw new Error('CSV must be text');
+  const total = Number(headers?.get('X-Total-Count') ?? NaN);
+  return {
+    csv: body,
+    truncated: (headers?.get('X-Result-Truncated') ?? '')
+      .split(',')
+      .includes('export'),
+    matched: Number.isSafeInteger(total) && total >= 0 ? total : null,
   };
 }
 

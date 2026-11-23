@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { LineSeries, createChart } from 'lightweight-charts';
+import { HistogramSeries, LineSeries, createChart } from 'lightweight-charts';
 import { useCopy, useLocale } from '../../../hooks/use-copy';
 import { formatCopy } from '../../../i18n/copy';
 import type { Decimal, ISODateTime } from '../../../types/domain';
@@ -18,6 +18,11 @@ export interface MetricLine {
    */
   format: 'amount' | 'ratio' | 'usdt';
   points: readonly { time: ISODateTime; value: Decimal }[];
+  /**
+   * A line (the default), or bars from zero coloured by sign (positive and
+   * negative tokens), as a daily PnL.
+   */
+  kind?: 'line' | 'histogram';
 }
 
 /**
@@ -74,9 +79,7 @@ export function MetricChart({
         : {}),
     });
     for (const line of lines) {
-      const series = chart.addSeries(LineSeries, {
-        color: token(line.colorToken),
-        lineWidth: 2,
+      const common = {
         priceScaleId: line.scale,
         priceLineVisible: false,
         lastValueVisible: lastValues,
@@ -86,13 +89,31 @@ export function MetricChart({
             : line.format === 'usdt'
               ? { type: 'price' as const, precision: 2, minMove: 0.01 }
               : { type: 'price' as const, precision: 4, minMove: 0.0001 },
-      });
-      series.setData(
-        line.points.map((point) => ({
-          time: chartTime(point.time, offset),
-          value: Number(point.value),
-        })),
-      );
+      };
+      if (line.kind === 'histogram') {
+        const up = token('--cp-positive');
+        const down = token('--cp-negative');
+        chart.addSeries(HistogramSeries, common).setData(
+          line.points.map((point) => ({
+            time: chartTime(point.time, offset),
+            value: Number(point.value),
+            color: point.value.startsWith('-') ? down : up,
+          })),
+        );
+        continue;
+      }
+      chart
+        .addSeries(LineSeries, {
+          ...common,
+          color: token(line.colorToken),
+          lineWidth: 2,
+        })
+        .setData(
+          line.points.map((point) => ({
+            time: chartTime(point.time, offset),
+            value: Number(point.value),
+          })),
+        );
     }
     chart.timeScale().fitContent();
     return () => chart.remove();

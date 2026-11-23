@@ -19,6 +19,24 @@ export function useSpotPnl() {
   });
 }
 
+/**
+ * TR-28: the period's daily PnL with its running total, the deepest fall
+ * and the closed trades, of one wallet or both (`market` null).
+ */
+export function usePnlAnalysis(
+  market: 'SPOT' | 'FUTURES' | null,
+  days: 7 | 30 | 90,
+) {
+  const { paperTrading } = useServices();
+  return useQuery({
+    queryKey: [...PAPER_KEY, 'pnl-analysis', market, days],
+    queryFn: ({ signal }) => paperTrading.pnlAnalysis(market, days, signal),
+    enabled: usePaperAccount().isSuccess,
+    refetchInterval: EQUITY_REFRESH_MS,
+    placeholderData: keepPreviousData,
+  });
+}
+
 /** The account's worth now and at the start of each of the last `days`. */
 export function usePaperEquity(days: number) {
   const { paperTrading } = useServices();

@@ -1628,6 +1628,56 @@ export interface SpotPnl {
   /** False when a coin had no cost or price: the sums leave it out. */
   complete: boolean;
 }
+/** What a cancel-replace of a Spot order did (B4): both, or neither. */
+export interface PaperReplacedOrder {
+  canceled: PaperOrder;
+  placed: PaperOrder;
+}
+/** A CSV file of the order or trade history (B7). */
+export interface PaperHistoryExport {
+  csv: string;
+  /** Cut at the backend's limit of 10,000 rows. */
+  truncated: boolean;
+  /** How many rows matched, when the file was cut and the backend said. */
+  matched: number | null;
+}
+/** One UTC day of the PnL analysis (TR-28). */
+export interface PaperPnlDay {
+  /** `YYYY-MM-DD`, UTC. */
+  date: string;
+  pnl: Decimal;
+  cumulativePnl: Decimal;
+}
+/** The trades closed in the period, each by its net result (TR-28). */
+export interface PaperPnlTrades {
+  closed: number;
+  wins: number;
+  losses: number;
+  /** Percent, 2 decimals; null when none closed. */
+  winRate: Decimal | null;
+  totalPnl: Decimal;
+  averageWin: Decimal | null;
+  /** Negative; null without a loss. */
+  averageLoss: Decimal | null;
+  /** Null without a loss. */
+  profitFactor: Decimal | null;
+}
+/** `GET /paper/pnl/analysis` (TR-28): the period ending today. */
+export interface PaperPnlAnalysis {
+  /** SPOT, FUTURES, or null for both wallets. */
+  market: 'SPOT' | 'FUTURES' | null;
+  days: number;
+  todayPnl: Decimal | null;
+  cumulativePnl: Decimal;
+  /** The deepest fall from a running high of the account's worth; negative or 0. */
+  maxDrawdown: Decimal;
+  maxDrawdownPercent: Decimal | null;
+  /** False when a day lacked a snapshot: its PnL is left out. */
+  complete: boolean;
+  /** Oldest first. */
+  daily: readonly PaperPnlDay[];
+  trades: PaperPnlTrades;
+}
 /** The account at the start of one UTC day. */
 export interface PaperEquityPoint {
   /** `YYYY-MM-DD`, UTC. */
@@ -1795,7 +1845,15 @@ export interface PaperOrderListLeg {
   stopPrice?: Decimal;
   quantity: Decimal;
 }
-/** The take profit (LIMIT_MAKER) and stop of an OCO, on one side and quantity. */
+/** The take profit kinds of an OCO (B1). */
+export type PaperOcoTakeProfitType =
+  'LIMIT_MAKER' | 'TAKE_PROFIT_LIMIT' | 'TAKE_PROFIT';
+/**
+ * The take profit and stop of an OCO, on one side and quantity. The take
+ * profit is a LIMIT_MAKER at `takeProfitPrice`, or (B1) a TAKE_PROFIT_LIMIT
+ * or TAKE_PROFIT triggered at `takeProfitStopPrice`; the stop waits at
+ * `stopPrice` or trails by `stopTrailingDelta` from its placement.
+ */
 export interface PaperOcoLegs {
   side: OrderSide;
   /**
@@ -1803,10 +1861,18 @@ export interface PaperOcoLegs {
    * working order leaves once its fee is paid.
    */
   quantity?: Decimal;
-  takeProfitPrice: Decimal;
-  stopPrice: Decimal;
+  /** LIMIT_MAKER when absent. */
+  takeProfitType?: PaperOcoTakeProfitType;
+  /** The limit price; absent for a TAKE_PROFIT (executed at the market). */
+  takeProfitPrice?: Decimal;
+  /** A TAKE_PROFIT_LIMIT's or TAKE_PROFIT's trigger. */
+  takeProfitStopPrice?: Decimal;
+  /** Absent for a trailing stop. */
+  stopPrice?: Decimal;
   /** Absent: the stop is a STOP_LOSS, executed at the market. */
   stopLimitPrice?: Decimal;
+  /** Basis points (100 = 1 %); a BUY trailing stop needs a limit price. */
+  stopTrailingDelta?: number;
 }
 /**
  * A group of Spot orders to place together: OCO (`oco`), OTO (`working`
@@ -1843,8 +1909,14 @@ export interface PaperPage<T> {
 export interface PaperHistoryQuery {
   /** One pair; every pair when absent. */
   pairId?: string;
+  /** Trade history only: the fills of one order (B5). */
+  orderId?: string;
   /** Order history only: one status. */
   status?: PaperOrderStatus;
+  /** Order history only: one order type (B6). */
+  type?: PaperOrderType;
+  /** BUY or SELL; both when absent (B6). */
+  side?: OrderSide;
   /** At or after / before, ISO 8601 UTC. */
   from?: ISODateTime;
   to?: ISODateTime;

@@ -95,7 +95,11 @@ import type {
   PaperEquity,
   SpotPnl,
   PaperFill,
+  Decimal,
+  PaperHistoryExport,
   PaperHistoryQuery,
+  PaperPnlAnalysis,
+  PaperReplacedOrder,
   PaperLedgerEntry,
   PaperLedgerQuery,
   PaperOrder,
@@ -422,11 +426,34 @@ export interface PaperTradingService {
     query: PaperHistoryQuery,
     signal?: AbortSignal,
   ): Promise<PaperPage<PaperOrder>>;
-  /** Trade history (every fill), newest first. */
+  /** Trade history (every fill), newest first; of one order with `orderId` (B5). */
   fills(
     query: PaperHistoryQuery,
     signal?: AbortSignal,
   ): Promise<PaperPage<PaperFill>>;
+  /**
+   * B4: cancels a working LIMIT or LIMIT_MAKER order outside a group and
+   * places one at the new price (and quantity; else what was left), in one
+   * transaction: a refused new order leaves the old one working.
+   */
+  replaceOrder(
+    orderId: string,
+    terms: { price: Decimal; quantity?: Decimal },
+  ): Promise<PaperReplacedOrder>;
+  /** B7: the order history of the filters as a CSV file (10,000 rows at most). */
+  exportOrders(
+    query: Omit<PaperHistoryQuery, 'page' | 'pageSize'>,
+  ): Promise<PaperHistoryExport>;
+  /** B7: the trade history of the filters as a CSV file (10,000 rows at most). */
+  exportFills(
+    query: Omit<PaperHistoryQuery, 'page' | 'pageSize'>,
+  ): Promise<PaperHistoryExport>;
+  /** TR-28: the period's daily PnL, deepest fall and closed trades; both wallets when `market` is null. */
+  pnlAnalysis(
+    market: 'SPOT' | 'FUTURES' | null,
+    days: 7 | 30 | 90,
+    signal?: AbortSignal,
+  ): Promise<PaperPnlAnalysis>;
   /** Each Spot coin's average cost, value and unrealised PnL (TR-13). */
   spotPnl(signal?: AbortSignal): Promise<SpotPnl>;
   /** The account's worth now, today's PnL and the last `days` days (1–365). */
