@@ -107,6 +107,12 @@ export function SpotOrderForm({
         // An OCO's take profit lies away from the last price, so it starts
         // empty, as on the exchange, rather than at the price of a limit.
         ...(type === 'OCO' ? { price: '' } : {}),
+        // A trailing stop's field is where tracking starts, not a trigger:
+        // into or out of it the field starts empty, so the activation price
+        // does not turn up as an OCO's or a stop's trigger.
+        ...(type === 'TRAILING' || seen.type === 'TRAILING'
+          ? { stop: '', activation: false }
+          : {}),
         total:
           type === 'MARKET'
             ? ''

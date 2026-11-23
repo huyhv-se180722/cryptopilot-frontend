@@ -478,6 +478,38 @@ describe('Spot demo orders (TR-F3)', () => {
     expect(openOrders.textContent).toContain('Stop loss');
   });
 
+  it('does not carry a trailing activation price over as a trigger', async () => {
+    const { form, user } = await open();
+    await user.click(within(form).getByRole('radio', { name: 'Sell' }));
+    await user.click(within(form).getByRole('radio', { name: 'Stop' }));
+    const kind = within(form).getByRole('combobox', {
+      name: 'Stop order type',
+    });
+    // A stop limit's trigger means the same as an OCO's SL trigger: kept.
+    await user.type(field(form, /^Stop/), '58000');
+    await user.selectOptions(kind, 'OCO');
+    expect((field(form, /^SL trigger/) as HTMLInputElement).value).toBe(
+      '58,000',
+    );
+    // A trailing stop's activation price is not a trigger: dropped both ways.
+    await user.selectOptions(kind, 'TRAILING');
+    await user.click(
+      within(form).getByRole('checkbox', { name: 'Activation price' }),
+    );
+    expect((field(form, /Activation/) as HTMLInputElement).value).toBe('');
+    await user.type(field(form, /Activation/), '57000');
+    await user.selectOptions(kind, 'OCO');
+    expect((field(form, /^SL trigger/) as HTMLInputElement).value).toBe('');
+    await user.selectOptions(kind, 'TRAILING');
+    expect(
+      (
+        within(form).getByRole('checkbox', {
+          name: 'Activation price',
+        }) as HTMLInputElement
+      ).checked,
+    ).toBe(false);
+  });
+
   it('lays out the trailing stop and the OCO as the exchange does (F3, F6)', async () => {
     const { form, user, paperTrading } = await open();
     const place = vi.spyOn(paperTrading, 'placeOrder');
