@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 import { SegmentedControl } from '../../../components/ui/SegmentedControl';
-import { Select } from '../../../components/ui/Select';
+import { ChevronDown } from 'lucide-react';
 import { useCopy } from '../../../hooks/use-copy';
 import { useMediaQuery } from '../../../hooks/use-media-query';
 import type { Decimal, MarketPair, OrderSide } from '../../../types/domain';
@@ -91,22 +91,32 @@ export function SpotOrderTicket({
           ]}
         />
         {isStopForm(type) && (
-          <Select
-            inline
-            label={p.stopFormLabel}
-            value={type}
-            onChange={(event) => {
-              const next = event.target.value as StopForm;
-              setStopForm(next);
-              setType(next);
-            }}
-          >
-            {STOP_FORMS.map((each) => (
-              <option key={each} value={each}>
-                {p[`form${each}`]}
-              </option>
-            ))}
-          </Select>
+          // As the exchange's "Stop Limit ▾": the kind as text beside the
+          // tabs, no field box; the list follows the theme's colours.
+          <div className="relative inline-flex items-center">
+            <select
+              aria-label={p.stopFormLabel}
+              title={p.stopFormLabel}
+              value={type}
+              onChange={(event) => {
+                const next = event.target.value as StopForm;
+                setStopForm(next);
+                setType(next);
+              }}
+              className="h-7 cursor-pointer appearance-none rounded-md bg-transparent py-0 pr-6 pl-1.5 text-xs font-medium text-fg-2 hover:text-fg focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-none pointer-coarse:h-9 [&>option]:bg-surface [&>option]:text-fg"
+            >
+              {STOP_FORMS.map((each) => (
+                <option key={each} value={each}>
+                  {p[`form${each}`]}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              aria-hidden="true"
+              size={13}
+              className="pointer-events-none absolute right-1.5 text-muted-dim"
+            />
+          </div>
         )}
       </div>
 
