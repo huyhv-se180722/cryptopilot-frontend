@@ -153,7 +153,7 @@ export function FuturesOrderForm({
     }));
   }, [picked]);
 
-  const quantity = quantityOf(draft, pair, prices);
+  const quantity = quantityOf(draft, pair, prices, config?.leverage);
   const figures = actions.map((action) =>
     costAndMax(
       action,
@@ -226,7 +226,7 @@ export function FuturesOrderForm({
 
   const maxShown = (index: number) => {
     const max = figures[index]?.max;
-    return max ? inUnit(max, draft, prices) : null;
+    return max ? inUnit(max, draft, prices, config?.leverage) : null;
   };
   const setShareOf = (percent: number) => {
     setShare(percent);
@@ -463,6 +463,9 @@ export function FuturesOrderForm({
           >
             <option value="BASE">{base}</option>
             <option value="QUOTE">{quote}</option>
+            <option value="MARGIN">
+              {formatCopy(f.unitMargin, { asset: quote })}
+            </option>
           </select>
           <ChevronDown
             size={12}
@@ -471,7 +474,7 @@ export function FuturesOrderForm({
           />
         </label>
       </div>
-      {draft.sizeUnit === 'QUOTE' && quantity && (
+      {draft.sizeUnit !== 'BASE' && quantity && (
         <p className="-mt-1 text-xs text-muted-dim">
           ≈ <NumericText value={groupThousands(quantity)} suffix={' ' + base} />
         </p>
