@@ -298,6 +298,128 @@ describe('Spot order check (TR-F3)', () => {
     ).toEqual({ price: 'priceOrder', stop: 'priceOrder' });
   });
 
+  it('sends each OCO take profit type and a trailing stop with only the fields of each (F2, B1)', () => {
+    // SELL from a last price of 60,000: take profit above, stop below.
+    const cases: [Partial<SpotOrderDraft>, Record<string, unknown>][] = [
+      [
+        {
+          ocoTakeProfitType: 'TAKE_PROFIT',
+          takeProfitStop: '62000',
+          price: '61000',
+        },
+        {
+          takeProfitType: 'TAKE_PROFIT',
+          takeProfitStopPrice: '62000.00',
+          stopPrice: '58000.00',
+        },
+      ],
+      [
+        {
+          ocoTakeProfitType: 'TAKE_PROFIT_LIMIT',
+          takeProfitStop: '62000',
+          price: '61900',
+        },
+        {
+          takeProfitType: 'TAKE_PROFIT_LIMIT',
+          takeProfitStopPrice: '62000.00',
+          takeProfitPrice: '61900.00',
+          stopPrice: '58000.00',
+        },
+      ],
+      [
+        { ocoTrailing: true, trailing: '2', price: '62000' },
+        { takeProfitPrice: '62000.00', stopTrailingDelta: 200 },
+      ],
+      [
+        {
+          ocoTrailing: true,
+          trailing: '1.5',
+          stopLimit: '57000',
+          price: '62000',
+        },
+        {
+          takeProfitPrice: '62000.00',
+          stopTrailingDelta: 150,
+          stopLimitPrice: '57000.00',
+        },
+      ],
+    ];
+    for (const [over, oco] of cases)
+      expect(
+        listOf(
+          checkSpotOrder(
+            draft({ type: 'OCO', side: 'SELL', stop: '58000', ...over }),
+            BTC,
+            FUNDS,
+            '60000',
+          ),
+        ),
+      ).toEqual({
+        type: 'OCO',
+        oco: { side: 'SELL', quantity: '0.01000', ...oco },
+      });
+  });
+
+  it('checks the take profit trigger and the trailing stop of an OCO (F2)', () => {
+    const errors = (
+      over: Partial<SpotOrderDraft>,
+      side: 'BUY' | 'SELL' = 'SELL',
+    ) =>
+      checkSpotOrder(
+        draft({
+          type: 'OCO',
+          side,
+          stop: side === 'SELL' ? '58000' : '62000',
+          price: side === 'SELL' ? '62000' : '58000',
+          ...over,
+        }),
+        BTC,
+        FUNDS,
+        '60000',
+      ).errors;
+    expect(errors({ ocoTakeProfitType: 'TAKE_PROFIT' })).toEqual({
+      takeProfitStop: 'required',
+    });
+    expect(
+      errors({ ocoTakeProfitType: 'TAKE_PROFIT', takeProfitStop: '59000' }),
+    ).toEqual({
+      takeProfitStop: 'priceOrder',
+    });
+    expect(
+      errors({
+        ocoTakeProfitType: 'TAKE_PROFIT_LIMIT',
+        takeProfitStop: '62000',
+        price: '',
+      }),
+    ).toEqual({ price: 'required' });
+    expect(errors({ ocoTrailing: true, trailing: '' })).toEqual({
+      trailing: 'required',
+    });
+    expect(errors({ ocoTrailing: true, trailing: '25' })).toEqual({
+      trailing: 'trailingRange',
+    });
+    // A trailing stop that buys needs its limit price.
+    expect(
+      errors(
+        { ocoTrailing: true, trailing: '2', price: '58000', amount: '0.001' },
+        'BUY',
+      ),
+    ).toEqual({ stopLimit: 'required' });
+    // With a trailing stop the stop price is neither asked for nor sent.
+    expect(errors({ ocoTrailing: true, trailing: '2', stop: '' })).toEqual({});
+    // A buying OCO's take profit trigger lies below the last price.
+    expect(
+      errors(
+        {
+          ocoTakeProfitType: 'TAKE_PROFIT',
+          takeProfitStop: '61000',
+          amount: '0.001',
+        },
+        'BUY',
+      ),
+    ).toEqual({ takeProfitStop: 'priceOrder' });
+  });
+
   it('sends a limit with TP/SL as an OTOCO, its quantity left to the backend', () => {
     expect(
       listOf(

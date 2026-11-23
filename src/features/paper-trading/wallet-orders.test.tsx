@@ -200,6 +200,109 @@ describe('Demo orders page (TR-F3)', () => {
     await waitFor(() => expect(fills.textContent).toContain('Taker'));
   });
 
+  it('filters the history by type and side, opens the fills of one order and exports CSV (B5-B7)', async () => {
+    const { paperTrading, user } = await setup(
+      <TradeOrdersPage />,
+      '/trade/orders',
+    );
+    const exportOrders = vi.spyOn(paperTrading, 'exportOrders');
+    const exportFills = vi.spyOn(paperTrading, 'exportFills');
+    const save = vi.spyOn(HTMLAnchorElement.prototype, 'click');
+    save.mockImplementation(() => {});
+    URL.createObjectURL = vi.fn(() => 'blob:csv');
+    URL.revokeObjectURL = vi.fn();
+    const bought = await paperTrading.placeOrder({
+      pairId: BTC_ID,
+      market: 'spot',
+      side: 'BUY',
+      type: 'MARKET',
+      quantity: '0.02',
+      clientOrderId: 'h-1',
+    });
+    await paperTrading.placeOrder({
+      pairId: BTC_ID,
+      market: 'spot',
+      side: 'SELL',
+      type: 'MARKET',
+      quantity: '0.01',
+      clientOrderId: 'h-2',
+    });
+    await paperTrading.placeOrder({
+      pairId: BTC_ID,
+      market: 'spot',
+      side: 'BUY',
+      type: 'LIMIT',
+      price: '50000',
+      quantity: '0.01',
+      clientOrderId: 'h-3',
+    });
+
+    await user.click(await screen.findByRole('tab', { name: 'Order history' }));
+    const history = await screen.findByRole('region', {
+      name: 'Order history',
+    });
+    await waitFor(() =>
+      expect(within(history).getAllByRole('row')).toHaveLength(4),
+    );
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Side' }),
+      'SELL',
+    );
+    await waitFor(() =>
+      expect(within(history).getAllByRole('row')).toHaveLength(2),
+    );
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Side' }),
+      '',
+    );
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Type' }),
+      'LIMIT',
+    );
+    await waitFor(() =>
+      expect(within(history).getAllByRole('row')).toHaveLength(2),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Export CSV' }));
+    await waitFor(() =>
+      expect(exportOrders).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'LIMIT' }),
+      ),
+    );
+    expect(await screen.findByText('CSV file saved.')).toBeTruthy();
+    expect(save).toHaveBeenCalled();
+
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Type' }),
+      '',
+    );
+    await user.click(
+      await within(history).findByRole('button', {
+        name: 'Fills of order ' + bought.orderId.slice(-8),
+      }),
+    );
+    const fills = await screen.findByRole('region', { name: 'Trade history' });
+    expect(
+      screen.getByText('Fills of order ' + bought.orderId.slice(-8)),
+    ).toBeTruthy();
+    await waitFor(() =>
+      expect(within(fills).getAllByRole('row')).toHaveLength(2),
+    );
+    await user.click(screen.getByRole('button', { name: 'Export CSV' }));
+    await waitFor(() =>
+      expect(exportFills).toHaveBeenCalledWith(
+        expect.objectContaining({ orderId: bought.orderId }),
+      ),
+    );
+    await user.click(
+      screen.getByRole('button', { name: 'Show the fills of every order' }),
+    );
+    await waitFor(() =>
+      expect(within(fills).getAllByRole('row')).toHaveLength(3),
+    );
+    save.mockRestore();
+  });
+
   it('offers every Spot pair of the market list (FEQ-01)', async () => {
     const ETH: MarketPair = {
       ...BTC,

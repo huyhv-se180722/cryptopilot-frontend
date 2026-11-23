@@ -233,8 +233,10 @@ export function SpotOrderForm({
       quantity: 'amount',
       quoteOrderQty: 'total',
       'oco.takeProfitPrice': type === 'OCO' ? 'price' : 'takeProfit',
+      'oco.takeProfitStopPrice': 'takeProfitStop',
       'oco.stopPrice': type === 'OCO' ? 'stop' : 'stopLoss',
       'oco.stopLimitPrice': 'stopLimit',
+      'oco.stopTrailingDelta': 'trailing',
       'oco.quantity': 'amount',
       'working.price': 'price',
       'working.quantity': 'amount',
@@ -263,7 +265,10 @@ export function SpotOrderForm({
     setSharePicked(percent);
   };
 
-  const priceInput = (field: 'price' | 'stop' | 'stopLimit', label: string) => (
+  const priceInput = (
+    field: 'price' | 'stop' | 'stopLimit' | 'takeProfitStop',
+    label: string,
+  ) => (
     <DecimalInput
       inline
       label={label}
@@ -310,28 +315,82 @@ export function SpotOrderForm({
           readOnly
           aria-readonly="true"
         />
-      ) : type === 'STOP_MARKET' ? null : (
+      ) : type === 'STOP_MARKET' ? null : type === 'OCO' ? (
+        // F2 (B1): the take profit's type, then its trigger and limit.
+        <fieldset className="flex flex-col gap-2.5">
+          <legend className="mb-1 text-xs font-medium text-muted">
+            {p.ocoTakeProfit}
+          </legend>
+          <Select
+            inline
+            label={p.ocoTakeProfitType}
+            value={draft.ocoTakeProfitType}
+            onChange={(event) =>
+              update({
+                ocoTakeProfitType: event.target
+                  .value as SpotOrderDraft['ocoTakeProfitType'],
+              })
+            }
+          >
+            <option value="LIMIT_MAKER">{p.ocoTypeLimitMaker}</option>
+            <option value="TAKE_PROFIT_LIMIT">
+              {p.ocoTypeTakeProfitLimit}
+            </option>
+            <option value="TAKE_PROFIT">{p.ocoTypeTakeProfit}</option>
+          </Select>
+          {draft.ocoTakeProfitType !== 'LIMIT_MAKER' &&
+            priceInput(
+              'takeProfitStop',
+              formatCopy(p.fieldTakeProfitTrigger, { asset: quote }),
+            )}
+          {draft.ocoTakeProfitType !== 'TAKE_PROFIT' &&
+            priceInput(
+              'price',
+              formatCopy(p.fieldTakeProfitPrice, { asset: quote }),
+            )}
+        </fieldset>
+      ) : (
         priceInput(
           'price',
-          formatCopy(
-            type === 'OCO'
-              ? p.fieldTakeProfitPrice
-              : type === 'LIMIT'
-                ? p.fieldPrice
-                : p.fieldLimit,
-            { asset: quote },
-          ),
+          formatCopy(type === 'LIMIT' ? p.fieldPrice : p.fieldLimit, {
+            asset: quote,
+          }),
         )
       )}
 
       {type === 'OCO' && (
-        <>
-          {priceInput('stop', formatCopy(p.fieldStop, { asset: quote }))}
+        <fieldset className="flex flex-col gap-2.5">
+          <legend className="mb-1 text-xs font-medium text-muted">
+            {p.ocoStopLoss}
+          </legend>
+          <Select
+            inline
+            label={p.ocoStopKind}
+            value={draft.ocoTrailing ? 'TRAILING' : 'PRICE'}
+            onChange={(event) =>
+              update({ ocoTrailing: event.target.value === 'TRAILING' })
+            }
+          >
+            <option value="PRICE">{p.ocoStopAtPrice}</option>
+            <option value="TRAILING">{p.ocoStopTrailing}</option>
+          </Select>
+          {draft.ocoTrailing ? (
+            <DecimalInput
+              inline
+              label={p.fieldTrailing}
+              autoComplete="off"
+              value={draft.trailing}
+              error={fieldError('trailing')}
+              onValueChange={(trailing) => update({ trailing })}
+            />
+          ) : (
+            priceInput('stop', formatCopy(p.fieldStop, { asset: quote }))
+          )}
           {priceInput(
             'stopLimit',
             formatCopy(p.fieldStopLimit, { asset: quote }),
           )}
-        </>
+        </fieldset>
       )}
 
       {!byTotal && (
