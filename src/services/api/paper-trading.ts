@@ -7,6 +7,9 @@ import {
   decodeAccount,
   decodeBalanceUpdate,
   decodeEquity,
+  decodeHistoryExport,
+  decodePnlAnalysis,
+  decodeReplacedOrder,
   decodeSpotPnl,
   decodeFill,
   decodeLedgerEntry,
@@ -37,6 +40,10 @@ export function createPendingPaperTradingService(): PaperTradingService {
     openOrders: async () => integrationPending(),
     orders: async () => integrationPending(),
     fills: async () => integrationPending(),
+    replaceOrder: async () => integrationPending(),
+    exportOrders: async () => integrationPending(),
+    exportFills: async () => integrationPending(),
+    pnlAnalysis: async () => integrationPending(),
     spotPnl: async () => integrationPending(),
     equity: async () => integrationPending(),
     ...noAccountFeed,
@@ -177,18 +184,54 @@ export function createHttpPaperTradingService(
         decode: decodeOrders,
         ...withSignal(signal),
       }),
-    orders: ({ pairId, status, from, to, page, pageSize }, signal) =>
+    orders: (
+      { pairId, status, type, side, from, to, page, pageSize },
+      signal,
+    ) =>
       http.request({
         path:
           'paper/orders' +
-          queryOf({ pairId, status, from, to, page, pageSize }),
+          queryOf({ pairId, status, type, side, from, to, page, pageSize }),
         decode: decodePage(decodeOrder),
         ...withSignal(signal),
       }),
-    fills: ({ pairId, from, to, page, pageSize }, signal) =>
+    fills: ({ pairId, orderId, side, from, to, page, pageSize }, signal) =>
       http.request({
-        path: 'paper/fills' + queryOf({ pairId, from, to, page, pageSize }),
+        path:
+          'paper/fills' +
+          queryOf({ pairId, orderId, side, from, to, page, pageSize }),
         decode: decodePage(decodeFill),
+        ...withSignal(signal),
+      }),
+    replaceOrder: (orderId, terms) =>
+      http.request({
+        path: `paper/orders/${encodeURIComponent(orderId)}/replace`,
+        method: 'POST',
+        body: terms,
+        decode: decodeReplacedOrder,
+      }),
+    exportOrders: ({ pairId, status, type, side, from, to }) =>
+      http.request({
+        path:
+          'paper/orders/export' +
+          queryOf({ pairId, status, type, side, from, to }),
+        headers: { Accept: 'text/csv' },
+        responseType: 'text',
+        decode: decodeHistoryExport,
+      }),
+    exportFills: ({ pairId, orderId, side, from, to }) =>
+      http.request({
+        path:
+          'paper/fills/export' + queryOf({ pairId, orderId, side, from, to }),
+        headers: { Accept: 'text/csv' },
+        responseType: 'text',
+        decode: decodeHistoryExport,
+      }),
+    pnlAnalysis: (market, days, signal) =>
+      http.request({
+        path:
+          'paper/pnl/analysis' + queryOf({ market: market ?? undefined, days }),
+        decode: decodePnlAnalysis,
         ...withSignal(signal),
       }),
     spotPnl: (signal) =>

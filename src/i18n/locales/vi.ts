@@ -1096,6 +1096,7 @@ export const vi: PartialCopy = {
     lineEntryShort: 'Short {size}',
     lineLiq: 'Thanh lý',
     lineOrder: '{side} {size}',
+    dragOrderLabel: 'Kéo để chuyển lệnh {id} sang giá mới',
     lineTakeProfit: 'TP',
     lineStopLoss: 'SL',
     errRequired: 'Bắt buộc.',
@@ -1347,6 +1348,8 @@ export const vi: PartialCopy = {
     byTotalAmount: 'Tổng {total} {asset}',
     cancelOrder: 'Hủy',
     cancelOrderLabel: 'Hủy lệnh {id}',
+    dragOrderLabel: 'Kéo để chuyển lệnh {id} sang giá mới',
+    orderMoved: 'Đã chuyển lệnh tới giá {price}.',
     chartOrders: 'Lệnh',
     chartOrderTitle: '{side} {quantity}',
     cancelAll: 'Hủy tất cả',
@@ -1398,6 +1401,22 @@ export const vi: PartialCopy = {
     pnlNoCoins: 'Ví Spot chưa có coin nào ngoài USDT.',
     pnlIncomplete:
       'Một số coin chưa có giá vốn hoặc giá nên không được tính vào tổng.',
+    analysisTitle: 'Phân tích',
+    analysisMarket: 'Ví',
+    analysisAll: 'Tất cả',
+    analysisCumulative: 'Lãi/lỗ {days} ngày qua',
+    analysisDrawdown: 'Sụt giảm lớn nhất',
+    analysisWinRate: 'Tỷ lệ thắng',
+    analysisRecord: '{closed} lệnh đã đóng: {wins} thắng, {losses} thua',
+    analysisProfitFactor: 'Hệ số lợi nhuận',
+    analysisAverageWin: 'Thắng TB',
+    analysisAverageLoss: 'Thua TB',
+    analysisChartLabel:
+      'Lãi/lỗ từng ngày trong {days} ngày qua dạng cột, và tổng lũy kế dạng đường, tính bằng USDT',
+    analysisNote:
+      'Ngày tính theo UTC. Chuyển tiền giữa các ví không tính là lãi/lỗ. Một giao dịch là một vị thế Futures đã đóng hoặc một lệnh bán Spot, tính theo kết quả ròng.',
+    analysisIncomplete:
+      'Một số ngày không có ảnh chụp số dư nên không được tính.',
     walletTitle: 'Ví',
     walletSubtitle: 'Tài sản demo, định giá theo giá Spot gần nhất.',
     estimatedTotal: 'Số dư ước tính',
@@ -1719,6 +1738,7 @@ export const vi: PartialCopy = {
     errRange: '{field} nằm ngoài phạm vi cho phép.',
   },
   chart: {
+    dragTo: 'Chuyển tới {price}',
     timeframeLabel: 'Khung thời gian',
     moreTimeframes: 'Khung khác',
     itemsLabel: 'Chỉ báo và bảng phụ',

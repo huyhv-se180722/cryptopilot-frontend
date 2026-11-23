@@ -164,6 +164,23 @@ export function createDevelopmentPaperTrading(
       createdAt: at(),
     });
   };
+  /** RFC 4180 lines with CRLF, as the backend's export (B7). */
+  const csvOf = (
+    header: readonly string[],
+    rows: readonly (readonly (string | number | null)[])[],
+  ) =>
+    [header, ...rows]
+      .map((row) =>
+        row
+          .map((value) => {
+            const cell = value === null ? '' : String(value);
+            return /[",\r\n]/.test(cell)
+              ? '"' + cell.replaceAll('"', '""') + '"'
+              : cell;
+          })
+          .join(','),
+      )
+      .join('\r\n') + '\r\n';
   const within = (time: string, query: { from?: string; to?: string }) =>
     (!query.from || time >= query.from) && (!query.to || time < query.to);
   const lastPrice = async (symbol: string) => {
@@ -799,25 +816,67 @@ export function createDevelopmentPaperTrading(
         if (!quantity)
           refuse(400, 'VALIDATION', 'MSG01', { 'oco.quantity': 'MSG01' });
         const sell = legs.side === 'SELL';
-        if (
-          !pending &&
+        // B1: the take profit is a LIMIT_MAKER, or a take profit stop that
+        // triggers at its stopPrice; the stop waits at its price or trails.
+        const takeProfitType = legs.takeProfitType ?? 'LIMIT_MAKER';
+        const level =
+          takeProfitType === 'LIMIT_MAKER'
+            ? legs.takeProfitPrice
+            : legs.takeProfitStopPrice;
+        const trailing = legs.stopTrailingDelta !== undefined;
+        const shape: Record<string, string> = {};
+        if (!level)
+          shape[
+            takeProfitType === 'LIMIT_MAKER'
+              ? 'oco.takeProfitPrice'
+              : 'oco.takeProfitStopPrice'
+          ] = 'MSG01';
+        if (takeProfitType !== 'TAKE_PROFIT' && !legs.takeProfitPrice)
+          shape['oco.takeProfitPrice'] = 'MSG01';
+        if (!trailing && !legs.stopPrice) shape['oco.stopPrice'] = 'MSG01';
+        if (trailing && legs.stopPrice) shape['oco.stopPrice'] = 'MSG15';
+        if (trailing && !sell && !legs.stopLimitPrice)
+          shape['oco.stopLimitPrice'] = 'MSG01';
+        if (Object.keys(shape).length)
+          refuse(400, 'VALIDATION', 'MSG01', shape);
+        const reference = pending ? (request.working?.price ?? last) : last;
+        const takeProfitWrong = sell
+          ? compare(level as string, reference) <= 0
+          : compare(level as string, reference) >= 0;
+        const stopWrong =
+          !!legs.stopPrice &&
           (sell
-            ? compare(legs.takeProfitPrice, last) <= 0 ||
-              compare(legs.stopPrice, last) >= 0
-            : compare(legs.takeProfitPrice, last) >= 0 ||
-              compare(legs.stopPrice, last) <= 0)
-        )
+            ? compare(legs.stopPrice, reference) >= 0
+            : compare(legs.stopPrice, reference) <= 0);
+        if (takeProfitWrong || stopWrong)
           refuse(400, 'VALIDATION', 'MSG15', {
-            'oco.takeProfitPrice': 'MSG15',
+            ...(takeProfitWrong
+              ? {
+                  [takeProfitType === 'LIMIT_MAKER'
+                    ? 'oco.takeProfitPrice'
+                    : 'oco.takeProfitStopPrice']: 'MSG15',
+                }
+              : {}),
+            ...(stopWrong ? { 'oco.stopPrice': 'MSG15' } : {}),
           });
         const takeProfit = leg(
           ':tp',
-          {
-            side: legs.side,
-            type: 'LIMIT_MAKER',
-            price: legs.takeProfitPrice,
-            quantity,
-          },
+          takeProfitType === 'LIMIT_MAKER'
+            ? {
+                side: legs.side,
+                type: 'LIMIT_MAKER',
+                price: legs.takeProfitPrice as string,
+                quantity,
+              }
+            : {
+                side: legs.side,
+                type: takeProfitType,
+                ...(legs.takeProfitPrice
+                  ? { price: legs.takeProfitPrice }
+                  : {}),
+                stopPrice: legs.takeProfitStopPrice as string,
+                quantity,
+              },
           pending,
         );
         const stop = leg(
@@ -826,11 +885,19 @@ export function createDevelopmentPaperTrading(
             side: legs.side,
             type: legs.stopLimitPrice ? 'STOP_LOSS_LIMIT' : 'STOP_LOSS',
             ...(legs.stopLimitPrice ? { price: legs.stopLimitPrice } : {}),
-            stopPrice: legs.stopPrice,
+            ...(legs.stopPrice ? { stopPrice: legs.stopPrice } : {}),
             quantity,
           },
           pending,
         );
+        if (trailing) {
+          const trailed = {
+            ...stop,
+            trailingDelta: legs.stopTrailingDelta as number,
+          };
+          created[created.indexOf(stop)] = trailed;
+          return [takeProfit, trailed] as const;
+        }
         return [takeProfit, stop] as const;
       };
       lists.set(listId, {
@@ -942,6 +1009,8 @@ export function createDevelopmentPaperTrading(
           (order) =>
             (!query.pairId || order.pairId === query.pairId) &&
             (!query.status || order.status === query.status) &&
+            (!query.type || order.type === query.type) &&
+            (!query.side || order.side === query.side) &&
             within(order.placedAt, query),
         )
         .reverse();
@@ -955,10 +1024,174 @@ export function createDevelopmentPaperTrading(
         fills.filter(
           (fill) =>
             (!query.pairId || fill.pairId === query.pairId) &&
+            (!query.orderId || fill.orderId === query.orderId) &&
+            (!query.side || fill.side === query.side) &&
             within(fill.tradedAt, query),
         ),
         query,
       );
+    },
+
+    async replaceOrder(orderId, terms) {
+      await opened();
+      const old = orders.get(orderId);
+      if (!old) refuse(404, 'RESOURCE_NOT_FOUND', 'MSG41');
+      if (old.status !== 'NEW' && old.status !== 'PARTIALLY_FILLED')
+        refuse(409, 'PAPER_ORDER_NOT_OPEN', 'MSG43');
+      if ((old.type !== 'LIMIT' && old.type !== 'LIMIT_MAKER') || old.listId)
+        refuse(400, 'VALIDATION', 'MSG15', { orderId: 'MSG15' });
+      const left = subtract(old.quantity as string, old.executedQuantity);
+      const quantity = terms.quantity ?? left;
+      if (
+        compare(old.price as string, terms.price) === 0 &&
+        compare(left, quantity) === 0
+      )
+        refuse(409, 'PAPER_ORDER_UNCHANGED', 'MSG43');
+      // One step, as the backend's transaction: a refused new order puts
+      // the old one back as it was.
+      const lock = locks.get(orderId);
+      release(old);
+      const canceled = end(old, 'CANCELED');
+      try {
+        const placed = await paperTrading.placeOrder({
+          pairId: old.pairId,
+          market: 'spot',
+          side: old.side,
+          type: old.type,
+          ...(old.type === 'LIMIT' && old.timeInForce
+            ? { timeInForce: old.timeInForce as 'GTC' | 'IOC' | 'FOK' }
+            : {}),
+          price: terms.price,
+          quantity,
+          clientOrderId: id('replace'),
+        });
+        return { canceled, placed };
+      } catch (refusal) {
+        orders.set(orderId, old);
+        if (lock) hold(old, lock);
+        throw refusal;
+      }
+    },
+
+    async exportOrders(query) {
+      const rows = (
+        await paperTrading.orders({ ...query, page: 1, pageSize: 10_000 })
+      ).items;
+      return {
+        csv: csvOf(
+          [
+            'placedAt',
+            'orderId',
+            'clientOrderId',
+            'symbol',
+            'side',
+            'type',
+            'price',
+            'quantity',
+            'executedQuantity',
+            'status',
+          ],
+          rows.map((order) => [
+            order.placedAt,
+            order.orderId,
+            order.clientOrderId,
+            order.symbol,
+            order.side,
+            order.type,
+            order.price,
+            order.quantity,
+            order.executedQuantity,
+            order.status,
+          ]),
+        ),
+        truncated: false,
+        matched: null,
+      };
+    },
+
+    async exportFills(query) {
+      const rows = (
+        await paperTrading.fills({ ...query, page: 1, pageSize: 10_000 })
+      ).items;
+      return {
+        csv: csvOf(
+          [
+            'tradedAt',
+            'fillId',
+            'orderId',
+            'symbol',
+            'side',
+            'price',
+            'quantity',
+            'fee',
+            'feeAsset',
+          ],
+          rows.map((fill) => [
+            fill.tradedAt,
+            fill.fillId,
+            fill.orderId,
+            fill.symbol,
+            fill.side,
+            fill.price,
+            fill.quantity,
+            fill.fee,
+            fill.feeAsset,
+          ]),
+        ),
+        truncated: false,
+        matched: null,
+      };
+    },
+
+    async pnlAnalysis(market, days, signal) {
+      // The worth history of `equity`, day to day, as the backend's TR-28
+      // reads its snapshots; the closed trades are the sales of the fills.
+      const equity = await paperTrading.equity(days, signal);
+      const worth = (point: (typeof equity.history)[number]) =>
+        market === 'SPOT'
+          ? point.spotEquity
+          : market === 'FUTURES'
+            ? point.futuresEquity
+            : point.totalEquity;
+      let running = '0';
+      let high: string | null = null;
+      let deepest = '0';
+      let deepestPercent: string | null = null;
+      const daily = equity.history.map((point, index) => {
+        const before = equity.history[index - 1];
+        const pnl = before ? subtract(worth(point), worth(before)) : '0';
+        running = add(running, pnl);
+        if (high === null || compare(worth(point), high) > 0)
+          high = worth(point);
+        const fall = subtract(worth(point), high);
+        if (compare(fall, deepest) < 0) {
+          deepest = fall;
+          deepestPercent = isPositive(high)
+            ? toStep(multiply(divide(fall, high, 8), '100'), '0.01', 'half-up')
+            : null;
+        }
+        return { date: point.date, pnl, cumulativePnl: running };
+      });
+      return {
+        market,
+        days,
+        todayPnl: equity.todayPnl,
+        cumulativePnl: running,
+        maxDrawdown: deepest,
+        maxDrawdownPercent: deepestPercent,
+        complete: true,
+        daily,
+        trades: {
+          closed: 3,
+          wins: 2,
+          losses: 1,
+          winRate: '66.67',
+          totalPnl: '41.5',
+          averageWin: '30.25',
+          averageLoss: '-19',
+          profitFactor: '3.18',
+        },
+      };
     },
   };
 

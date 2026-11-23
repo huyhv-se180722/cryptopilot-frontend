@@ -11,6 +11,7 @@ import {
 } from '../../features/chart/components/MetricChart';
 import { FuturesPnlSection } from '../../features/futures-trading/components/FuturesAccountSummary';
 import { DemoTradingBanner } from '../../features/paper-trading/components/DemoTradingBanner';
+import { PnlAnalysisSection } from '../../features/paper-trading/components/PnlAnalysisSection';
 import { PaperNav } from '../../features/paper-trading/components/PaperNav';
 import { SpotPnlTable } from '../../features/paper-trading/components/SpotPnlTable';
 import { PaperQueryState } from '../../features/paper-trading/components/paper-tables';
@@ -160,6 +161,8 @@ export function TradePnlPage() {
           }
         </PaperQueryState>
       </section>
+
+      <PnlAnalysisSection days={days as 7 | 30 | 90} />
 
       <PaperQueryState query={pnl}>
         {() => pnl.data && <SpotPnlTable pnl={pnl.data} />}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { X } from 'lucide-react';
+import { GripVertical, X } from 'lucide-react';
 import {
   CandlestickSeries,
   HistogramSeries,
@@ -29,6 +29,7 @@ import type {
 } from '../../../types/domain';
 import { classNames } from '../../../utils/class-names';
 import { decimalPlaces } from '../../../utils/decimal-format';
+import { add, subtract, toStep } from '../../../utils/decimal-math';
 import {
   CHART_ITEMS,
   useChartPreferences,
@@ -125,6 +126,20 @@ export interface ChartPriceLine {
    * exchange charts do), instead of beside the axis.
    */
   action?: ChartLineAction;
+  /**
+   * The line may be dragged to a new price (TR-F5, as the exchange charts
+   * move an order): its chip is the handle. Dropped, the price on the
+   * pair's tick is handed to `onDrop`; the line stays where it was until
+   * the caller's data moves it. From the keyboard, the handle's arrows
+   * move it a tick, Enter drops it there and Escape puts it back.
+   */
+  drag?: ChartLineDrag;
+}
+export interface ChartLineDrag {
+  /** Accessible name and tooltip of the handle. */
+  label: string;
+  onDrop: (price: Decimal) => void;
+  disabled?: boolean;
 }
 export interface ChartLineAction {
   /** Accessible name and tooltip of the button. */
@@ -490,7 +505,30 @@ export function AnalysisChart<T extends ChartTimeframe = CandleTimeframe>({
     .map((marker) => [marker.id, marker.time, marker.direction].join(':'))
     .join('|');
   const latestMarkers = useRef(markers ?? []);
-  const hasActions = lines.some((line) => line.action);
+  const hasActions = lines.some((line) => line.action || line.drag);
+  /** The line being moved and where to: drawn there until dropped. */
+  const dragging = useRef<{ id: string; price: Decimal } | null>(null);
+  const [draggingPrice, setDraggingPrice] = useState<{
+    id: string;
+    price: Decimal;
+  } | null>(null);
+  const tick =
+    tickSize ?? (places === 0 ? '1' : '0.' + '0'.repeat(places - 1) + '1');
+  const moveTo = (next: { id: string; price: Decimal } | null) => {
+    dragging.current = next;
+    setDraggingPrice(next);
+  };
+  const pointer = useRef<{ id: string; startY: number; moved: boolean } | null>(
+    null,
+  );
+  const priceAt = (clientY: number): Decimal | null => {
+    const candles = priceSeries.current;
+    const box = container.current?.getBoundingClientRect();
+    if (!candles || !box) return null;
+    const value = candles.coordinateToPrice(clientY - box.top);
+    if (value === null || !Number.isFinite(value) || value <= 0) return null;
+    return toStep(String(value), tick, 'half-up');
+  };
   const hasYielding = lines.some((line) => line.yields);
   const [anchors, setAnchors] = useState<readonly Anchor[]>([]);
 
@@ -642,9 +680,23 @@ export function AnalysisChart<T extends ChartTimeframe = CandleTimeframe>({
       const next: Anchor[] = [];
       if (chart && candles) {
         const height = chart.panes()[0]?.getHeight() ?? 0;
+        latestLines.current.forEach((line, index) => {
+          if (!line.drag) return;
+          // The dragged line follows the handle; put back once dropped.
+          const at = Number(
+            dragging.current?.id === line.id
+              ? dragging.current.price
+              : line.price,
+          );
+          const drawn = drawnLines.current[index];
+          if (drawn && drawn.options().price !== at)
+            drawn.applyOptions({ price: at });
+        });
         for (const line of latestLines.current) {
-          if (!line.action) continue;
-          const y = candles.priceToCoordinate(Number(line.price));
+          if (!line.action && !line.drag) continue;
+          const moving =
+            dragging.current?.id === line.id ? dragging.current.price : null;
+          const y = candles.priceToCoordinate(Number(moving ?? line.price));
           if (y !== null && y >= 0 && y <= height)
             next.push({ id: line.id, y: Math.round(y) });
         }
@@ -857,26 +909,114 @@ export function AnalysisChart<T extends ChartTimeframe = CandleTimeframe>({
             {(hasActions ? anchors : []).map((anchor) => {
               const line = lines.find((each) => each.id === anchor.id);
               const action = line?.action;
-              return line && action ? (
+              const drag = line?.drag;
+              const moving =
+                draggingPrice?.id === anchor.id ? draggingPrice.price : null;
+              const drop = () => {
+                const next = dragging.current;
+                moveTo(null);
+                if (drag && line && next && next.price !== line.price)
+                  drag.onDrop(next.price);
+              };
+              return line && (action || drag) ? (
                 <div
                   key={anchor.id}
                   style={{ top: anchor.y }}
                   className={classNames(
-                    'absolute left-2 z-10 inline-flex -translate-y-1/2 items-center gap-1 rounded border bg-surface pl-1.5 font-mono text-xs leading-none',
+                    'absolute left-2 z-10 inline-flex -translate-y-1/2 items-center gap-1 rounded border bg-surface font-mono text-xs leading-none',
+                    drag ? '' : 'pl-1.5',
+                    moving ? 'ring-1 ring-primary' : '',
                     CHIP_TONES[line.tone],
                   )}
                 >
-                  <span className="py-1">{line.label}</span>
-                  <button
-                    type="button"
-                    aria-label={action.label}
-                    title={action.label}
-                    disabled={action.disabled}
-                    onClick={action.onSelect}
-                    className="inline-flex h-5 w-5 items-center justify-center border-l border-inherit text-muted hover:text-fg disabled:opacity-50 pointer-coarse:h-8 pointer-coarse:w-8"
-                  >
-                    <X size={12} aria-hidden="true" />
-                  </button>
+                  {drag ? (
+                    <button
+                      type="button"
+                      aria-label={drag.label}
+                      title={drag.label}
+                      disabled={drag.disabled}
+                      data-testid={'chart-line-drag-' + line.id}
+                      className="inline-flex cursor-ns-resize touch-none items-center gap-0.5 py-1 pr-0.5 pl-1 disabled:cursor-not-allowed disabled:opacity-50"
+                      onPointerDown={(event) => {
+                        event.currentTarget.setPointerCapture?.(
+                          event.pointerId,
+                        );
+                        pointer.current = {
+                          id: line.id,
+                          startY: event.clientY,
+                          moved: false,
+                        };
+                      }}
+                      onPointerMove={(event) => {
+                        const held = pointer.current;
+                        if (!held || held.id !== line.id) return;
+                        if (
+                          !held.moved &&
+                          Math.abs(event.clientY - held.startY) < 3
+                        )
+                          return;
+                        held.moved = true;
+                        const price = priceAt(event.clientY);
+                        if (price) moveTo({ id: line.id, price });
+                      }}
+                      onPointerUp={() => {
+                        const held = pointer.current;
+                        pointer.current = null;
+                        if (held?.moved) drop();
+                      }}
+                      onPointerCancel={() => {
+                        pointer.current = null;
+                        moveTo(null);
+                      }}
+                      onKeyDown={(event) => {
+                        if (
+                          event.key === 'ArrowUp' ||
+                          event.key === 'ArrowDown'
+                        ) {
+                          event.preventDefault();
+                          const from = dragging.current?.price ?? line.price;
+                          const next =
+                            event.key === 'ArrowUp'
+                              ? add(from, tick)
+                              : subtract(from, tick);
+                          if (Number(next) > 0)
+                            moveTo({
+                              id: line.id,
+                              price: toStep(next, tick, 'half-up'),
+                            });
+                        } else if (event.key === 'Enter' && dragging.current) {
+                          event.preventDefault();
+                          drop();
+                        } else if (event.key === 'Escape') {
+                          moveTo(null);
+                        }
+                      }}
+                      onBlur={() => {
+                        if (!pointer.current) moveTo(null);
+                      }}
+                    >
+                      <GripVertical size={11} aria-hidden="true" />
+                      <span>
+                        {moving
+                          ? formatCopy(c.dragTo, { price: moving })
+                          : line.label}
+                      </span>
+                    </button>
+                  ) : (
+                    <span className="py-1">{line.label}</span>
+                  )}
+                  {action && (
+                    <button
+                      type="button"
+                      aria-label={action.label}
+                      title={action.label}
+                      disabled={action.disabled}
+                      onClick={action.onSelect}
+                      className="inline-flex h-5 w-5 items-center justify-center border-l border-inherit text-muted hover:text-fg disabled:opacity-50 pointer-coarse:h-8 pointer-coarse:w-8"
+                    >
+                      <X size={12} aria-hidden="true" />
+                    </button>
+                  )}
                 </div>
               ) : null;
             })}

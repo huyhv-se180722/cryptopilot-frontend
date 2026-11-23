@@ -233,6 +233,22 @@ export function usePaperActions() {
       [paperTrading, refresh],
     ),
   );
+  /** B4: a working LIMIT or LIMIT_MAKER at a new price, as one step. */
+  const replace = useMutation(
+    useCallback(
+      async (orderId: string, price: string, quantity?: string) => {
+        try {
+          return await paperTrading.replaceOrder(
+            orderId,
+            quantity === undefined ? { price } : { price, quantity },
+          );
+        } finally {
+          await refresh();
+        }
+      },
+      [paperTrading, refresh],
+    ),
+  );
   const cancelAll = useMutation(
     useCallback(
       async (pairId: string) => {
@@ -264,5 +280,5 @@ export function usePaperActions() {
       [paperTrading, refresh],
     ),
   );
-  return { place, placeList, cancel, cancelAll, transfer };
+  return { place, placeList, cancel, replace, cancelAll, transfer };
 }
