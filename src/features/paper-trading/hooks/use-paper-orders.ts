@@ -7,9 +7,11 @@ import {
 import { useMutation } from '../../../hooks/use-mutation';
 import { useServices } from '../../../hooks/use-services';
 import type {
+  OrderSide,
   PaperAccountEvent,
   PaperLedgerQuery,
   PaperOrderStatus,
+  PaperOrderType,
   PaperWalletType,
   PlacePaperOrder,
   PlacePaperOrderList,
@@ -117,14 +119,28 @@ export interface HistoryFilter {
   pairId: string | null;
   /** Order history only. */
   status?: PaperOrderStatus | undefined;
+  /** Order history only: one order type (B6). */
+  type?: PaperOrderType | undefined;
+  /** BUY or SELL (B6). */
+  side?: OrderSide | undefined;
+  /** Trade history only: the fills of one order (B5). */
+  orderId?: string | undefined;
   /** Placed / traded at or after, ISO 8601 UTC. */
   from?: string | undefined;
 }
 
-const historyQuery = (filter: HistoryFilter, page: number) => ({
+/** The filters as the API takes them, without a page (also the CSV exports, B7). */
+export const historyFilters = (filter: HistoryFilter) => ({
   ...(filter.pairId ? { pairId: filter.pairId } : {}),
   ...(filter.status ? { status: filter.status } : {}),
+  ...(filter.type ? { type: filter.type } : {}),
+  ...(filter.side ? { side: filter.side } : {}),
+  ...(filter.orderId ? { orderId: filter.orderId } : {}),
   ...(filter.from ? { from: filter.from } : {}),
+});
+
+const historyQuery = (filter: HistoryFilter, page: number) => ({
+  ...historyFilters(filter),
   page,
   pageSize: PAPER_PAGE_SIZE,
 });
@@ -157,7 +173,7 @@ export function useFillHistory(
     queryKey: [...PAPER_KEY, 'fills', filter, page],
     queryFn: ({ signal }) =>
       paperTrading.fills(
-        historyQuery({ ...filter, status: undefined }, page),
+        historyQuery({ ...filter, status: undefined, type: undefined }, page),
         signal,
       ),
     enabled: useAccountReady() && enabled,
@@ -280,5 +296,27 @@ export function usePaperActions() {
       [paperTrading, refresh],
     ),
   );
-  return { place, placeList, cancel, replace, cancelAll, transfer };
+  /** B7: the order or trade history of the filters as a CSV file. */
+  const exportHistory = useMutation(
+    useCallback(
+      (kind: 'orders' | 'fills', filter: HistoryFilter) =>
+        kind === 'orders'
+          ? paperTrading.exportOrders(
+              historyFilters({ ...filter, orderId: undefined }),
+            )
+          : paperTrading.exportFills(
+              historyFilters({ ...filter, status: undefined, type: undefined }),
+            ),
+      [paperTrading],
+    ),
+  );
+  return {
+    place,
+    placeList,
+    cancel,
+    replace,
+    cancelAll,
+    transfer,
+    exportHistory,
+  };
 }

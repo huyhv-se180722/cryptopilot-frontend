@@ -1462,6 +1462,17 @@ export const vi: PartialCopy = {
     filterPeriod: 'Khoảng thời gian',
     filterPair: 'Cặp',
     filterStatus: 'Trạng thái',
+    filterSide: 'Chiều',
+    filterOrder: 'Khớp của lệnh {id}',
+    filterOrderClear: 'Xem khớp của mọi lệnh',
+    orderFills: 'Khớp',
+    orderFillsLabel: 'Các lần khớp của lệnh {id}',
+    exportCsv: 'Xuất CSV',
+    exportDone: 'Đã lưu tệp CSV.',
+    exportCut:
+      'Đã lưu 10.000 dòng mới nhất; thu hẹp bộ lọc để lấy phần còn lại.',
+    exportCutOf:
+      'Đã lưu 10.000 dòng mới nhất trong {matched} dòng; thu hẹp bộ lọc để lấy phần còn lại.',
     period7: '7N',
     period30: '30N',
     period90: '90N',
