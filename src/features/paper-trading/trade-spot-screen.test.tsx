@@ -167,6 +167,7 @@ async function open(
     ),
     getCoinMarket: vi.fn(),
     getFuturesMetrics: vi.fn(),
+    getFuturesOpenInterest: vi.fn(async () => null),
     getTicker: vi.fn(async () => null),
   };
   const marketFeed: MarketFeed = {

@@ -9,9 +9,19 @@ import { useCopy } from '../../../hooks/use-copy';
 import { useToast } from '../../../hooks/use-toast';
 import { formatCopy } from '../../../i18n/copy';
 import type { FuturesPosition } from '../../../types/futures';
-import { groupThousands, toFixedDecimal } from '../../../utils/decimal-format';
+import {
+  formatPrice,
+  groupThousands,
+  toFixedDecimal,
+} from '../../../utils/decimal-format';
 import { isPlainDecimal, isPositive } from '../../../utils/decimal-math';
-import { useFuturesAccount, useFuturesActions } from '../hooks/use-futures';
+import {
+  useFuturesAccount,
+  useFuturesActions,
+  useFuturesBrackets,
+} from '../hooks/use-futures';
+import { isolatedLiquidationAfter } from '../model/adjust-margin';
+import { toBrackets } from '../model/futures-form';
 import { futuresErrorText } from '../model/futures-errors';
 import { maxRemovableMargin } from '../model/futures-math';
 
@@ -22,9 +32,12 @@ import { maxRemovableMargin } from '../model/futures-math';
  */
 export function AdjustMarginDialog({
   position,
+  tickSize,
   onClose,
 }: {
   position: FuturesPosition;
+  /** The pair's tick, for the estimated liquidation price. */
+  tickSize: string | null;
   onClose: () => void;
 }) {
   const copy = useCopy();
@@ -32,6 +45,7 @@ export function AdjustMarginDialog({
   const toast = useToast();
   const account = useFuturesAccount();
   const { adjustMargin } = useFuturesActions();
+  const brackets = useFuturesBrackets(position.symbol);
   const [mode, setMode] = useState<'add' | 'remove'>('add');
   const [amount, setAmount] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
@@ -44,6 +58,14 @@ export function AdjustMarginDialog({
           position.notional,
           position.leverage,
         );
+  const liqAfter = isolatedLiquidationAfter(
+    position,
+    mode,
+    amount,
+    max,
+    brackets.data ? toBrackets(brackets.data) : null,
+    tickSize,
+  );
   const confirm = async () => {
     if (!(isPlainDecimal(amount) && isPositive(amount)))
       return setNotice(f.errInvalid);
@@ -118,6 +140,14 @@ export function AdjustMarginDialog({
           value={groupThousands(toFixedDecimal(position.isolatedWallet, 2))}
           suffix=" USDT"
         />
+      </p>
+      <p className="mt-1 flex justify-between text-xs text-muted">
+        <span>{f.liqAfter}</span>
+        {liqAfter ? (
+          <NumericText value={formatPrice(liqAfter, tickSize)} suffix=" USDT" />
+        ) : (
+          copy.market.noValue
+        )}
       </p>
       {notice && (
         <div className="mt-3">

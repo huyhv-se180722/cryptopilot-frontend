@@ -1,8 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { Badge } from '../../../components/ui/Badge';
 import { NumericText } from '../../../components/ui/NumericText';
 import { useCopy } from '../../../hooks/use-copy';
+import { useFeature } from '../../../hooks/use-entitlement';
+import { useServices } from '../../../hooks/use-services';
 import { formatCopy } from '../../../i18n/copy';
 import type { MarketPair, MarketTicker } from '../../../types/domain';
 import { classNames } from '../../../utils/class-names';
@@ -32,6 +35,24 @@ function Stat({ label, children }: { label: string; children: ReactNode }) {
  * with the countdown to the next settlement read from the source (BR-11),
  * and the 24h change, high, low and volume.
  */
+/**
+ * The pair's latest open interest (NSF-04, read every 5 minutes as it is
+ * stored). The server fills it for a plan with FUTURES_ANALYSIS only (D-60),
+ * so it shows when one came back; a plan known to lack it does not ask.
+ */
+function useOpenInterest(symbol: string) {
+  const { market } = useServices();
+  const asked = useFeature('FUTURES_ANALYSIS') !== 'locked';
+  const query = useQuery({
+    queryKey: ['market', 'futures', 'openInterest', symbol],
+    queryFn: ({ signal }) => market.getFuturesOpenInterest(symbol, signal),
+    enabled: asked,
+    refetchInterval: 5 * 60_000,
+    staleTime: 60_000,
+  });
+  return (asked && query.data) || null;
+}
+
 export function FuturesTickerStrip({
   pair,
   ticker,
@@ -61,6 +82,7 @@ export function FuturesTickerStrip({
       m.noValue
     );
   const countdown = formatCountdown(ticker?.nextFundingTime ?? null, now);
+  const openInterest = useOpenInterest(pair.symbol);
 
   return (
     <section
@@ -140,6 +162,21 @@ export function FuturesTickerStrip({
               m.noValue
             )}
           </Stat>
+          {openInterest && (
+            <Stat label={f.openInterest}>
+              {openInterest.openInterestValue ? (
+                <NumericText
+                  value={compactDecimal(openInterest.openInterestValue)}
+                  suffix={' ' + (pair.quoteAsset ?? '')}
+                />
+              ) : (
+                <NumericText
+                  value={compactDecimal(openInterest.openInterest)}
+                  suffix={' ' + (pair.baseAsset ?? '')}
+                />
+              )}
+            </Stat>
+          )}
           <Stat label={m.colHigh}>{price(ticker?.high24h)}</Stat>
           <Stat label={m.colLow}>{price(ticker?.low24h)}</Stat>
           <Stat

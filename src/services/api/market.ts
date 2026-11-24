@@ -7,6 +7,7 @@ import {
   decodeChartCandles,
   decodeCoinMarket,
   decodeFuturesMetrics,
+  decodeFuturesOpenInterest,
   decodeFuturesStats,
   decodePairPage,
   decodeSpotStats,
@@ -20,6 +21,7 @@ export function createPendingMarketService(): MarketService {
     getCandles: async () => integrationPending(),
     getChartCandles: async () => integrationPending(),
     getTicker: async () => integrationPending(),
+    getFuturesOpenInterest: async () => integrationPending(),
     getFuturesMetrics: async () => integrationPending(),
   };
 }
@@ -92,6 +94,14 @@ export function createHttpMarketService(http: HttpClient): MarketService {
         path: `market/${market}/${encodeURIComponent(symbol)}/stats`,
         decode: market === 'spot' ? decodeSpotStats : decodeFuturesStats,
         anonymous: true,
+        ...withSignal(signal),
+      }),
+    // With the caller's token: the block is filled for a plan with
+    // FUTURES_ANALYSIS only (D-60).
+    getFuturesOpenInterest: (symbol, signal) =>
+      http.request({
+        path: `market/futures/${encodeURIComponent(symbol)}/stats`,
+        decode: decodeFuturesOpenInterest,
         ...withSignal(signal),
       }),
     getFuturesMetrics: (symbol, from, signal) =>

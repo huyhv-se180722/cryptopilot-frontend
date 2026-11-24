@@ -328,6 +328,35 @@ describe('HTTP market adapter', () => {
     expect(headers[0]?.get('Authorization')).toBeNull();
   });
 
+  it('reads the open interest of the stats with the caller token (D-60)', async () => {
+    const stats = (openInterest: unknown) => ({
+      symbol: 'BTCUSDT',
+      serverTime: '2026-10-02T02:21:00Z',
+      price: null,
+      openInterest,
+      longShortRatio: null,
+      lastFundingSettlement: null,
+    });
+    const replies = [
+      stats({
+        time: '2026-10-02T02:20:00Z',
+        openInterest: '80911.004',
+        openInterestValue: '5097393252.00',
+      }),
+      // A plan without FUTURES_ANALYSIS gets the block as null.
+      stats(null),
+    ];
+    const { market, urls, headers } = setup(() => json(200, replies.shift()));
+    expect(await market.getFuturesOpenInterest('BTCUSDT')).toEqual({
+      time: '2026-10-02T02:20:00Z',
+      openInterest: '80911.004',
+      openInterestValue: '5097393252.00',
+    });
+    expect(await market.getFuturesOpenInterest('BTCUSDT')).toBeNull();
+    expect(urls[0]?.pathname).toBe('/api/v1/market/futures/BTCUSDT/stats');
+    expect(headers[0]?.get('Authorization')).toBe('Bearer token-1');
+  });
+
   it('rejects a metrics point without its value', async () => {
     const { market } = setup(() =>
       json(200, {

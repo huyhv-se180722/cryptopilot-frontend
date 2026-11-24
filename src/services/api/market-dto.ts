@@ -217,6 +217,16 @@ export function decodeFuturesStats(body: unknown): MarketTicker | null {
   };
 }
 
+/** The open interest block of `GET /market/futures/{symbol}/stats`, or null. */
+export function decodeFuturesOpenInterest(
+  body: unknown,
+): OpenInterestPoint | null {
+  const value = record(body);
+  return value.openInterest === null || value.openInterest === undefined
+    ? null
+    : openInterestPoint(value.openInterest);
+}
+
 function openInterestPoint(value: unknown): OpenInterestPoint {
   const point = record(value, 'openInterest');
   return {

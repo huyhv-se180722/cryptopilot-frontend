@@ -58,6 +58,7 @@ async function setup(
     getCandles: vi.fn(async () => []),
     getCoinMarket: vi.fn(),
     getFuturesMetrics: vi.fn(),
+    getFuturesOpenInterest: vi.fn(async () => null),
     getTicker: vi.fn(
       async (_m, symbol) =>
         ({ lastPrice: PRICES[symbol] ?? '1' }) as MarketTicker,

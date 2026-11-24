@@ -319,6 +319,16 @@ export function createDevelopmentMarket(now: () => number = Date.now): {
       if (!enabled(marketType, symbol)) notEnabled();
       return ticker(marketType, symbol.toUpperCase());
     },
+    /** The last point of the scripted series below; not market data. */
+    async getFuturesOpenInterest(symbol, signal) {
+      const from = new Date(now() - 60 * 60_000).toISOString();
+      const { openInterest } = await market.getFuturesMetrics(
+        symbol,
+        from,
+        signal,
+      );
+      return openInterest.at(-1) ?? null;
+    },
     /**
      * Sparse 5-minute points (about one in twenty missing) and an 8-hour
      * settlement, scripted from a seeded walk; not market data.
