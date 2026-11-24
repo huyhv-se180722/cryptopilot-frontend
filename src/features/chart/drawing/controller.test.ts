@@ -204,6 +204,18 @@ describe('editing drawings', () => {
     ]);
   });
 
+  it('moves only the anchor pressed on a drawing not yet selected', () => {
+    controller.setDrawings([drawing('a')]);
+    expect(controller.pointerDown(at(30, 700))).toBe(true);
+    expect(events.select).toHaveBeenCalledWith('a');
+    controller.pointerMove(at(35, 650));
+    controller.pointerUp();
+    expect(events.change.mock.calls[0]![1]).toEqual([
+      point(10, 800),
+      point(35, 650),
+    ]);
+  });
+
   it('keeps a position valid while its stop is dragged', () => {
     const position = drawing('p', {
       type: 'LONG_POSITION',

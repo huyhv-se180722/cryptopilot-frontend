@@ -161,6 +161,11 @@ export class DrawingController {
     return this.mode.kind !== 'idle';
   }
 
+  /** A drawing has its first point and follows the pointer to the next. */
+  get placing(): boolean {
+    return this.mode.kind === 'placing' && this.mode.points.length > 0;
+  }
+
   setDrawings(drawings: readonly ChartDrawing[]) {
     this.drawings = drawings;
     if (this.selected && !drawings.some((each) => each.id === this.selected))
@@ -269,7 +274,9 @@ export class DrawingController {
     for (let i = visible.length - 1; i >= 0; i--) {
       const drawing = visible[i]!;
       const figure = this.figure(drawing);
-      const hit = figure && hitFigure(figure, at, drawing.id === this.selected);
+      // An end is grabbed even before the drawing is selected, so a press
+      // on it moves that end, not the whole drawing.
+      const hit = figure && hitFigure(figure, at, true);
       if (hit)
         return { drawing, handle: hit.part === 'handle' ? hit.index : null };
     }

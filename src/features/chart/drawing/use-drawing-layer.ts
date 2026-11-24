@@ -321,11 +321,22 @@ export function useDrawingLayer({
         window.matchMedia?.('(pointer: coarse)').matches ?? false;
       let pressed = false;
       let over = false;
-      const local = (event: PointerEvent): Pixel | null => {
+      /**
+       * The pointer on the price pane. While a drawing is being placed or
+       * moved, a pointer gone past the pane (onto the price scale, a lower
+       * panel or out of the chart) is held at its edge, so the drawing keeps
+       * following it instead of stopping where it left.
+       */
+      const local = (event: PointerEvent, hold = false): Pixel | null => {
         const box = container.getBoundingClientRect();
         const at = { x: event.clientX - box.left, y: event.clientY - box.top };
         const height = chart.panes()[0]?.getHeight() ?? 0;
         const width = chart.timeScale().width();
+        if (hold && width > 0 && height > 0)
+          return {
+            x: Math.min(Math.max(at.x, 0), width),
+            y: Math.min(Math.max(at.y, 0), height),
+          };
         return at.x >= 0 && at.y >= 0 && at.x <= width && at.y <= height
           ? at
           : null;
@@ -342,7 +353,9 @@ export function useDrawingLayer({
       };
       const move = (event: PointerEvent) => {
         const at = local(event);
-        if (at) controller.pointerMove(at, event.shiftKey);
+        const held =
+          at ?? (pressed || controller.placing ? local(event, true) : null);
+        if (held) controller.pointerMove(held, event.shiftKey);
         container.style.cursor = at ? (controller.cursorAt(at) ?? '') : '';
       };
       const up = () => {
