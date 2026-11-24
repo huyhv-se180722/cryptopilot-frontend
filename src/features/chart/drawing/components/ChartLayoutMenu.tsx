@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   Check,
   ChevronDown,
@@ -17,6 +17,7 @@ import { problemOf } from '../../../../services/api/errors';
 import type { ChartLayout } from '../../../../types/domain';
 import { classNames } from '../../../../utils/class-names';
 import { layoutName } from '../layout-name';
+import { MENU_WIDTH, panelPlace } from '../panel-place';
 import type { DrawingLayer } from '../use-drawing-layer';
 
 /** A pair without layouts shows the "Copy 1" its first drawing opens. */
@@ -53,7 +54,24 @@ export function ChartLayoutMenu({
   const [draft, setDraft] = useState('');
   const [removing, setRemoving] = useState<ChartLayout | null>(null);
   const [busy, setBusy] = useState(false);
+  // Where the panel sits: under the trigger's left edge, moved back inside
+  // the viewport when it would spill past either side (the toolbar on one
+  // line at 100% pushes the trigger far right and cut off the rename field),
+  // and narrower than its 288 px on a screen that cannot hold it.
+  const [place, setPlace] = useState({ left: 0, width: MENU_WIDTH });
   const root = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const measure = () => {
+      const trigger = root.current?.getBoundingClientRect();
+      if (!trigger) return;
+      setPlace(panelPlace(trigger.left, window.innerWidth));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -129,7 +147,8 @@ export function ChartLayoutMenu({
         <div
           role="group"
           aria-label={formatCopy(l.menuLabel, { symbol })}
-          className="absolute top-full left-0 z-30 mt-1 w-72 rounded-lg border border-line bg-surface p-1 shadow-overlay"
+          style={{ left: place.left, width: place.width }}
+          className="absolute top-full z-30 mt-1 rounded-lg border border-line bg-surface p-1 shadow-overlay"
         >
           <ul className="flex flex-col">
             {rows.map((layout) => (
