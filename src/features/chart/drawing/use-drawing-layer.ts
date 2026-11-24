@@ -11,9 +11,9 @@ import { useToast } from '../../../hooks/use-toast';
 import { problemOf } from '../../../services/api/errors';
 import type {
   Candle,
-  CandleTimeframe,
   ChartDrawing,
   ChartDrawingChange,
+  ChartTimeframe,
 } from '../../../types/domain';
 import { token } from '../components/chart-theme';
 import {
@@ -105,7 +105,7 @@ export function useDrawingLayer({
 }: {
   pairId: string | undefined;
   bars: readonly Candle[];
-  timeframe: CandleTimeframe;
+  timeframe: ChartTimeframe;
   offset: number;
   places: number;
 }) {

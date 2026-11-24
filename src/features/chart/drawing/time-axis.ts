@@ -1,3 +1,5 @@
+import type { ChartTimeframe } from '../../../types/domain';
+
 /**
  * Turns the time of an anchor into a bar position of the chart and back.
  * The chart places bars by index (its "logical" coordinate), and has no
@@ -63,10 +65,25 @@ export class TimeAxis {
   }
 }
 
-/** The length of one bar of each timeframe, in seconds. */
-export const BAR_SECONDS = {
+/**
+ * The length of one bar of each timeframe, in seconds. A month counts 30
+ * days: only used to place points past the last bar.
+ */
+export const BAR_SECONDS: Readonly<Record<ChartTimeframe, number>> = {
+  '1s': 1,
+  '1m': 60,
+  '3m': 180,
+  '5m': 300,
   '15m': 900,
+  '30m': 1_800,
   '1h': 3_600,
+  '2h': 7_200,
   '4h': 14_400,
+  '6h': 21_600,
+  '8h': 28_800,
+  '12h': 43_200,
   '1d': 86_400,
-} as const;
+  '3d': 259_200,
+  '1w': 604_800,
+  '1M': 2_592_000,
+};

@@ -59,7 +59,7 @@ function ChartScreen({
   const copy = useCopy();
   const c = copy.chartPage;
   const navigate = useNavigate();
-  const [timeframe, setTimeframe] = useTradeTimeframe();
+  const [timeframe, setTimeframe, timeframes] = useTradeTimeframe(market);
   const frame = useRef<HTMLDivElement>(null);
   const [full, toggleFull] = useFullscreen(frame);
   const { ticker } = useLiveTicker(market, pair.symbol);
@@ -144,6 +144,7 @@ function ChartScreen({
         tickSize={pair.tickSize}
         timeframe={timeframe}
         onTimeframeChange={setTimeframe}
+        timeframes={timeframes}
         extendable
         height={
           full ? 'h-[calc(100vh-150px)]' : 'h-[calc(100vh-260px)] min-h-[420px]'
