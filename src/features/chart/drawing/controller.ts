@@ -10,7 +10,9 @@ import {
   type Figure,
   type FigureContext,
   type Pixel,
+  type Shape,
 } from './geometry';
+import { isPattern, swingLabelShapes } from './patterns';
 import { CLICKS, TOOLS, styleOf, type ToolId } from './tools';
 
 /** What the controller needs from the chart: anchors to pixels and back. */
@@ -257,15 +259,64 @@ export class DrawingController {
       if (figure) items.push({ figure, handles: drawing.id === this.selected });
     }
     if (mode.kind === 'placing' && mode.points.length > 0) {
-      const clicks = CLICKS[TOOLS[mode.tool].type];
+      const type = TOOLS[mode.tool].type;
       const shown = [...mode.points];
-      if (mode.cursor && shown.length < clicks) shown.push(mode.cursor);
-      while (shown.length < clicks) shown.push(shown[shown.length - 1]!);
-      const draft = this.draftOf(mode.tool, shown);
-      const figure = draft && this.figure(draft);
+      if (mode.cursor && shown.length < CLICKS[type]) shown.push(mode.cursor);
+      // A pattern is previewed as the chain of swings placed so far, each
+      // named as it lands. Its fills, ratio guides and neckline need every
+      // anchor; drawn on anchors not placed yet they would pile up on one
+      // spot, so they wait until the last click finishes it.
+      const figure = isPattern(type)
+        ? this.previewSwings(mode.tool, shown)
+        : this.placingFigure(mode.tool, shown);
       if (figure) items.push({ figure, handles: true });
     }
     return items;
+  }
+
+  /** The figure for a non-pattern tool mid-placement, its anchors padded out. */
+  private placingFigure(tool: ToolId, shown: DrawingPoint[]): Figure | null {
+    const points = [...shown];
+    while (points.length < CLICKS[TOOLS[tool].type])
+      points.push(points[points.length - 1]!);
+    const draft = this.draftOf(tool, points);
+    return draft ? this.figure(draft) : null;
+  }
+
+  /** A pattern mid-placement: the legs, names and handles of the placed swings. */
+  private previewSwings(
+    tool: ToolId,
+    points: readonly DrawingPoint[],
+  ): Figure | null {
+    const projection = this.projection;
+    if (!projection) return null;
+    const pixels = points.map((point) => projection.pixel(point));
+    if (pixels.some((pixel) => pixel === null)) return null;
+    const p = pixels as Pixel[];
+    const style = styleOf(tool);
+    const shapes: Shape[] = [];
+    for (let i = 1; i < p.length; i++)
+      shapes.push({
+        kind: 'segment',
+        from: p[i - 1]!,
+        to: p[i]!,
+        color: style.lineColor,
+        width: style.lineWidth,
+        dash: style.lineStyle,
+      });
+    // Each name sits on its own anchor, so the Trader can tell them apart
+    // while drawing without labels stacking up.
+    const type = TOOLS[tool].type;
+    if (isPattern(type))
+      shapes.push(
+        ...swingLabelShapes(
+          type,
+          p,
+          projection.context.labels,
+          style.lineColor,
+        ),
+      );
+    return { shapes, handles: p };
   }
 
   /** The drawing and part under a pixel, the topmost first. */

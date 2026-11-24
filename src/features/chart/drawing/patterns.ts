@@ -79,6 +79,58 @@ const middle = (a: Pixel, b: Pixel): Pixel => ({
 });
 
 /**
+ * The name tag for each named swing already placed: the harmonic/Elliott
+ * letters on a coloured chip, a head and shoulders' shoulders and head in the
+ * line colour. Shared by the finished figure and the live placing preview, so
+ * both read the same; an index with no pixel yet is skipped.
+ */
+export function swingLabelShapes(
+  type: PatternType,
+  p: readonly Pixel[],
+  labels: FigureLabels,
+  color: string,
+): Shape[] {
+  const shapes: Shape[] = [];
+  if (type === 'HEAD_AND_SHOULDERS') {
+    const names: [number, string][] = [
+      [1, labels.leftShoulder],
+      [3, labels.head],
+      [5, labels.rightShoulder],
+    ];
+    for (const [i, name] of names) {
+      if (!p[i]) continue;
+      const top = isTop(p, i);
+      shapes.push({
+        kind: 'text',
+        at: { x: p[i]!.x, y: p[i]!.y + (top ? -8 : 8) },
+        text: name,
+        color,
+        size: 11,
+        align: 'center',
+        baseline: top ? 'bottom' : 'top',
+      });
+    }
+    return shapes;
+  }
+  p.forEach((pixel, i) => {
+    const name = SWING_NAMES[type][i];
+    if (!name) return;
+    const top = isTop(p, i);
+    shapes.push({
+      kind: 'text',
+      at: { x: pixel.x, y: pixel.y + (top ? -12 : 12) },
+      text: name,
+      color: '#FFFFFF',
+      size: 11,
+      align: 'center',
+      baseline: 'middle',
+      background: color,
+    });
+  });
+  return shapes;
+}
+
+/**
  * The shapes of a pattern through its swings: the legs, a fill where the
  * pattern has one, the Fibonacci ratio of its legs on dashed guides, and the
  * name of each swing above a top or below a bottom. The handles are the
@@ -176,23 +228,6 @@ export function patternShapes(
       shapes.push(
         guide(lineAt(p[2]!, p[4]!, left), lineAt(p[2]!, p[4]!, right)),
       );
-      const names: [number, string][] = [
-        [1, labels.leftShoulder],
-        [3, labels.head],
-        [5, labels.rightShoulder],
-      ];
-      for (const [i, name] of names) {
-        const top = isTop(p, i);
-        shapes.push({
-          kind: 'text',
-          at: { x: p[i]!.x, y: p[i]!.y + (top ? -8 : 8) },
-          text: name,
-          color,
-          size: 11,
-          align: 'center',
-          baseline: top ? 'bottom' : 'top',
-        });
-      }
       break;
     }
     case 'TRIANGLE_PATTERN': {
@@ -211,11 +246,6 @@ export function patternShapes(
       break;
   }
 
-  p.forEach((pixel, i) => {
-    const name = SWING_NAMES[type][i];
-    if (!name) return;
-    const top = isTop(p, i);
-    shapes.push(tag({ x: pixel.x, y: pixel.y + (top ? -12 : 12) }, name, 11));
-  });
+  shapes.push(...swingLabelShapes(type, p, labels, color));
   return shapes;
 }

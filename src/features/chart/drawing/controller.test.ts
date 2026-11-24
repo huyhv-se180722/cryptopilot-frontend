@@ -110,6 +110,29 @@ describe('placing a drawing', () => {
     expect(controller.activeTool).toBeNull();
   });
 
+  it('previews a pattern with each placed swing named, without labels piling up on one spot', () => {
+    controller.setTool('headAndShoulders');
+    controller.pointerDown(at(10, 820)); // anchor 0, unnamed
+    controller.pointerDown(at(14, 880)); // anchor 1, left shoulder
+    controller.pointerDown(at(18, 840)); // anchor 2, unnamed trough
+    controller.pointerMove(at(22, 940)); // cursor on anchor 3, the head
+    const figure = controller.paintItems()[0]!.figure;
+    const texts = figure.shapes.filter((shape) => shape.kind === 'text');
+    // Only the swings placed so far are named — the left shoulder and the
+    // head under the cursor — never the fills, guides or unplaced anchors.
+    expect(
+      texts.map((shape) => (shape.kind === 'text' ? shape.text : '')),
+    ).toEqual(['LS', 'H']);
+    expect(figure.shapes.some((shape) => shape.kind === 'polygon')).toBe(false);
+    // Each label sits on its own anchor; none collapse onto one point as the
+    // unplaced anchors used to.
+    const spots = texts.map((shape) =>
+      shape.kind === 'text' ? `${shape.at.x},${shape.at.y}` : '',
+    );
+    expect(new Set(spots).size).toBe(texts.length);
+    expect(figure.handles).toHaveLength(4);
+  });
+
   it('keeps the tool in drawing mode and snaps with the magnet', () => {
     controller.setOptions({
       magnet: true,
