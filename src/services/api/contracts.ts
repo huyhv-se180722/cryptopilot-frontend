@@ -155,6 +155,7 @@ import type {
   SystemSetting,
   TokenMention,
   CommunityProfileUpdate,
+  OpenInterestPoint,
 } from '../../types/domain';
 
 /** UI-facing contracts only. Pagination and transport DTOs need backend agreement. */
@@ -221,6 +222,14 @@ export interface MarketService {
     symbol: string,
     signal?: AbortSignal,
   ): Promise<MarketTicker | null>;
+  /**
+   * The latest stored open interest of a Futures pair (NSF-04), from the
+   * pair's stats; null without a reading or without FUTURES_ANALYSIS (D-60).
+   */
+  getFuturesOpenInterest(
+    symbol: string,
+    signal?: AbortSignal,
+  ): Promise<OpenInterestPoint | null>;
   /**
    * Open interest, long/short ratio and settled funding series of a
    * Futures pair from `from` to now (at most 7 days; SRS 3.3.3).

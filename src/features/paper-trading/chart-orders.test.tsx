@@ -125,6 +125,7 @@ async function open() {
     getCandles: vi.fn(async () => candles()),
     getCoinMarket: vi.fn(),
     getFuturesMetrics: vi.fn(),
+    getFuturesOpenInterest: vi.fn(async () => null),
     getTicker: vi.fn(async (_m, symbol) => ticker(symbol)),
   };
   const marketFeed: MarketFeed = {

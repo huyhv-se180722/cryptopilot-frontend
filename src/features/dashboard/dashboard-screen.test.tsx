@@ -134,6 +134,7 @@ async function open(
     getChartCandles: vi.fn(async () => ({ candles: [], forming: null })),
     getCandles: vi.fn(async () => []),
     getCoinMarket: vi.fn(),
+    getFuturesOpenInterest: vi.fn(async () => null),
     getFuturesMetrics: vi.fn(),
     getTicker: vi.fn(async () => null),
   };

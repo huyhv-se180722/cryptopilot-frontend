@@ -808,6 +808,7 @@ export function FuturesBottomPanel({
       {adjusting && (
         <AdjustMarginDialog
           position={adjusting}
+          tickSize={tickOf(adjusting.symbol)}
           onClose={() => setAdjusting(null)}
         />
       )}

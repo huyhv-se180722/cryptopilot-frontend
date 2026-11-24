@@ -937,6 +937,7 @@ export const en = {
     mark: 'Mark',
     index: 'Index',
     fundingCountdown: 'Funding / Countdown',
+    openInterest: 'Open interest',
     volume24h: '24h volume (USDT)',
     cross: 'Cross',
     isolated: 'Isolated',
@@ -1095,6 +1096,7 @@ export const en = {
     maxAdd: 'Max addable',
     maxRemove: 'Max removable',
     currentMargin: 'Current margin',
+    liqAfter: 'Est. liq. price after',
     tpslTitle: '{symbol} TP/SL',
     tpslPosition:
       'Entry {entry} · mark {mark}. Each trigger closes the whole position.',

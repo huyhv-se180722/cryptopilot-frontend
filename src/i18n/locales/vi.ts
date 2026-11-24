@@ -933,6 +933,7 @@ export const vi: PartialCopy = {
     mark: 'Giá đánh dấu',
     index: 'Chỉ số',
     fundingCountdown: 'Funding / Đếm ngược',
+    openInterest: 'Hợp đồng mở',
     volume24h: 'Khối lượng 24h (USDT)',
     cross: 'Cross',
     isolated: 'Isolated',
@@ -1090,6 +1091,7 @@ export const vi: PartialCopy = {
     maxAdd: 'Thêm tối đa',
     maxRemove: 'Rút tối đa',
     currentMargin: 'Ký quỹ hiện tại',
+    liqAfter: 'Giá thanh lý ước tính sau khi đổi',
     tpslTitle: 'TP/SL {symbol}',
     tpslPosition:
       'Giá vào {entry} · mark {mark}. Mỗi lệnh kích hoạt sẽ đóng toàn bộ vị thế.',
