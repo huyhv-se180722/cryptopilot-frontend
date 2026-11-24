@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { useState } from 'react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -7,7 +8,12 @@ import type {
   MarketFeed,
   MarketService,
 } from '../../../services/api/contracts';
-import type { Candle, NewChartDrawing } from '../../../types/domain';
+import type {
+  Candle,
+  ChartTimeframe,
+  DrawingStyle,
+  NewChartDrawing,
+} from '../../../types/domain';
 import { fakeAuth, page, renderRoutes } from '../../../test/render';
 import { AnalysisChart } from '../components/AnalysisChart';
 import type { DrawingPrimitive } from './drawing-primitive';
@@ -81,6 +87,8 @@ const time = (bar: number) => new Date(START + bar * HOUR).toISOString();
 const market = {
   listPairs: vi.fn(async () => []),
   getCandles: vi.fn(async () => candles),
+  // The intervals not stored (TR-35, here 1s) come from the exchange.
+  getChartCandles: vi.fn(async () => ({ candles, forming: null })),
   getFuturesMetrics: vi.fn(),
   getTicker: vi.fn(async () => null),
 } as unknown as MarketService;
@@ -143,6 +151,42 @@ function click(pane: HTMLElement, bar: number, price: number) {
   fireEvent.pointerDown(pane, at);
   fireEvent.pointerUp(window, at);
 }
+
+const LINE_STYLE: DrawingStyle = {
+  lineColor: '#2962FF',
+  lineWidth: 2,
+  lineStyle: 'SOLID',
+  fillColor: null,
+  extendLeft: false,
+  extendRight: false,
+  fontSize: null,
+  fibLevels: null,
+};
+
+/** A horizontal line at `price` in the first copy of pair-1. */
+const line = (service: DevDrawings, price = '104') =>
+  seed(service, {
+    type: 'HORIZONTAL_LINE',
+    points: [{ time: time(20), price }],
+    style: LINE_STYLE,
+    text: null,
+    locked: false,
+    hidden: false,
+  });
+
+/** `call` answered `ms` later, as a slow network would. */
+function slow<A extends unknown[], R>(
+  call: (...args: A) => Promise<R>,
+  ms = 30,
+): (...args: A) => Promise<R> {
+  return (...args) =>
+    new Promise((resolve, reject) =>
+      setTimeout(() => call(...args).then(resolve, reject), ms),
+    );
+}
+
+const pressed = (name: string) =>
+  screen.getByRole('button', { name }).getAttribute('aria-pressed');
 
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal ??= function (this: HTMLDialogElement) {
@@ -600,5 +644,236 @@ describe('drawing on the chart (D-149, T-120, T-121)', () => {
         { time: time(90), price: '98.00' },
       ],
     });
+  });
+
+  it('opens one copy when a second drawing is made before the first copy is saved', async () => {
+    const service = createDevelopmentChartDrawings();
+    service.chartLayouts.create = slow(service.chartLayouts.create);
+    window.localStorage.setItem(
+      'cp-drawing-options',
+      JSON.stringify({ stayInDrawing: true }),
+    );
+    const pane = await render(service);
+    await waitFor(() => expect(chart.primitives).toHaveLength(1));
+    await userEvent.click(screen.getByRole('button', { name: 'Trend line' }));
+    click(pane, 10, 104);
+    click(pane, 20, 102);
+    click(pane, 30, 104);
+    click(pane, 40, 102);
+    await waitFor(async () => expect(await all(service)).toHaveLength(2));
+    const layouts = await service.chartLayouts.list('pair-1');
+    expect(layouts.map((layout) => layout.number)).toEqual([1]);
+    expect(layouts[0]?.drawings).toBe(2);
+  });
+
+  it('keeps the tools and takes a refused change back when the drawings cannot be read again', async () => {
+    const service = createDevelopmentChartDrawings();
+    await line(service);
+    const pane = await render(service);
+    await waitFor(() => expect(chart.primitives).toHaveLength(1));
+    click(pane, 50, 104);
+    await screen.findByRole('toolbar', { name: 'Selected drawing' });
+    const offline = async () => {
+      throw new Error('offline');
+    };
+    service.chartDrawings.update = offline;
+    service.chartDrawings.list = offline;
+    await userEvent.selectOptions(
+      screen.getByRole('combobox', { name: 'Line width' }),
+      '4',
+    );
+    await screen.findByText(/could not be saved/i);
+    // Not shown as kept: the width the server still has comes back.
+    await waitFor(() =>
+      expect(
+        (
+          screen.getByRole('combobox', {
+            name: 'Line width',
+          }) as HTMLSelectElement
+        ).value,
+      ).toBe('2'),
+    );
+    // The drawings stay on the chart with their tools.
+    expect(screen.getByRole('toolbar', { name: 'Drawing tools' })).toBeTruthy();
+    expect(chart.primitives).toHaveLength(1);
+  });
+
+  it('undoes two steps pressed quickly, one after the other', async () => {
+    const service = createDevelopmentChartDrawings();
+    await line(service);
+    const pane = await render(service);
+    await waitFor(() => expect(chart.primitives).toHaveLength(1));
+    click(pane, 50, 104);
+    await screen.findByRole('toolbar', { name: 'Selected drawing' });
+    await userEvent.selectOptions(
+      screen.getByRole('combobox', { name: 'Line width' }),
+      '4',
+    );
+    await waitFor(async () =>
+      expect((await all(service))[0]?.style.lineWidth).toBe(4),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    await waitFor(async () => expect(await all(service)).toHaveLength(0));
+
+    // Undoing the removal brings the line back under a new id; the next
+    // undo must wait for it, or it would name the old id.
+    service.chartDrawings.create = slow(service.chartDrawings.create);
+    const undo = screen.getByRole('button', { name: 'Undo (Ctrl+Z)' });
+    fireEvent.click(undo);
+    fireEvent.click(undo);
+    await waitFor(async () =>
+      expect((await all(service))[0]?.style.lineWidth).toBe(2),
+    );
+    expect(await all(service)).toHaveLength(1);
+    expect(screen.queryByText(/could not be saved/i)).toBeNull();
+  });
+
+  it('keeps the undo buttons of each copy when coming back to it', async () => {
+    const service = createDevelopmentChartDrawings();
+    const pane = await render(service);
+    await waitFor(() => expect(chart.primitives).toHaveLength(1));
+    const undo = () => screen.getByRole('button', { name: 'Undo (Ctrl+Z)' });
+    const drawLine = async (bar: number) => {
+      await userEvent.click(screen.getByRole('button', { name: 'Trend line' }));
+      click(pane, bar, 104);
+      click(pane, bar + 5, 102);
+      await waitFor(() => expect(undo().hasAttribute('disabled')).toBe(false));
+    };
+    await drawLine(10);
+    const menu = screen.getByRole('button', {
+      name: 'Chart copies of BTCUSDT',
+    });
+    await userEvent.click(menu);
+    await userEvent.click(screen.getByRole('button', { name: 'New copy' }));
+    await waitFor(() => expect(menu.textContent).toContain('Copy 2'));
+    await waitFor(() => expect(undo().hasAttribute('disabled')).toBe(true));
+    await drawLine(20);
+
+    await userEvent.click(menu);
+    await userEvent.click(screen.getByRole('button', { name: /^Copy 1/ }));
+    await waitFor(() => expect(menu.textContent).toContain('Copy 1'));
+    expect(undo().hasAttribute('disabled')).toBe(false);
+  });
+
+  it('puts the tool down for good when the chart moves to another pair', async () => {
+    function Switching() {
+      const [pairId, setPairId] = useState('pair-1');
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() =>
+              setPairId((id) => (id === 'pair-1' ? 'pair-2' : 'pair-1'))
+            }
+          >
+            Other pair
+          </button>
+          <AnalysisChart
+            market="spot"
+            symbol={pairId === 'pair-1' ? 'BTCUSDT' : 'ETHUSDT'}
+            tickSize="0.01"
+            timeframe="1h"
+            onTimeframeChange={() => undefined}
+            drawingPairId={pairId}
+          />
+        </>
+      );
+    }
+    const service = createDevelopmentChartDrawings();
+    await renderRoutes([page('/chart', <Switching />)], '/chart', fakeAuth(), {
+      market,
+      marketFeed,
+      ...service,
+    });
+    await screen.findByRole('toolbar', { name: 'Drawing tools' });
+    await userEvent.click(screen.getByRole('button', { name: 'Trend line' }));
+    expect(pressed('Trend line')).toBe('true');
+    await userEvent.click(screen.getByRole('button', { name: 'Other pair' }));
+    await screen.findByRole('button', { name: 'Chart copies of ETHUSDT' });
+    await userEvent.click(screen.getByRole('button', { name: 'Other pair' }));
+    await screen.findByRole('button', { name: 'Chart copies of BTCUSDT' });
+    expect(pressed('Trend line')).toBe('false');
+    // The chart pans again: it was not left frozen for a tool not in hand.
+    expect(chart.options.at(-1)).toMatchObject({
+      handleScroll: true,
+      handleScale: true,
+    });
+  });
+
+  it('keeps the drawing keys to the chart in use', async () => {
+    const service = createDevelopmentChartDrawings();
+    await line(service);
+    const pane = await render(service);
+    await waitFor(() => expect(chart.primitives).toHaveLength(1));
+    click(pane, 50, 104);
+    await screen.findByRole('toolbar', { name: 'Selected drawing' });
+    // Elsewhere on the page, Delete belongs to what has the focus.
+    fireEvent.keyDown(document.body, { key: 'Delete' });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(await all(service)).toHaveLength(1);
+    // Over the chart, it removes the drawing selected.
+    fireEvent.pointerEnter(pane);
+    fireEvent.keyDown(document.body, { key: 'Delete' });
+    await waitFor(async () => expect(await all(service)).toHaveLength(0));
+  });
+
+  it('does not remove every drawing while all are locked', async () => {
+    const service = createDevelopmentChartDrawings();
+    await line(service);
+    await render(service);
+    await waitFor(() => expect(chart.primitives).toHaveLength(1));
+    const removeAll = () =>
+      screen.getByRole('button', { name: 'Remove all drawings' });
+    await waitFor(() =>
+      expect(removeAll().hasAttribute('disabled')).toBe(false),
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Lock all drawings' }),
+    );
+    expect(removeAll().hasAttribute('disabled')).toBe(true);
+  });
+
+  it('stays on the chart when it is rebuilt for another interval', async () => {
+    function Intervals() {
+      const [timeframe, setTimeframe] = useState<ChartTimeframe>('1h');
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => setTimeframe((t) => (t === '1h' ? '1s' : '1h'))}
+          >
+            Other interval
+          </button>
+          <AnalysisChart
+            market="spot"
+            symbol="BTCUSDT"
+            tickSize="0.01"
+            timeframe={timeframe}
+            onTimeframeChange={setTimeframe}
+            timeframes={['1s', '1h']}
+            drawingPairId="pair-1"
+          />
+        </>
+      );
+    }
+    const service = createDevelopmentChartDrawings();
+    await renderRoutes([page('/chart', <Intervals />)], '/chart', fakeAuth(), {
+      market,
+      marketFeed,
+      ...service,
+    });
+    await waitFor(() => expect(chart.primitives).toHaveLength(1));
+    const toggle = screen.getByRole('button', { name: 'Other interval' });
+    await userEvent.click(toggle);
+    await waitFor(() => expect(chart.primitives).toHaveLength(1));
+    // Back to 1h, whose candles are known: the chart is rebuilt at once
+    // and the drawings go on it again.
+    await userEvent.click(toggle);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(chart.primitives).toHaveLength(1);
   });
 });

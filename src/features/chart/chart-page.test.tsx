@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useLocation } from 'react-router-dom';
 import { createDevelopmentChartDrawings } from '../../dev/dev-chart-drawings';
@@ -191,7 +191,7 @@ describe('Chart screen (D-149, T-123)', () => {
     );
   });
 
-  it('offers full screen on the chart frame', async () => {
+  it('shows the chart full screen over the page, under its toasts', async () => {
     const request = vi.fn(async () => undefined);
     HTMLElement.prototype.requestFullscreen = request;
     await render('/chart/spot/BTCUSDT');
@@ -199,6 +199,27 @@ describe('Chart screen (D-149, T-123)', () => {
       await screen.findByRole('button', { name: 'Full screen' }),
     );
     expect(request).toHaveBeenCalledTimes(1);
+    // The whole page, so the toasts outside the frame still show.
+    expect(request.mock.contexts[0]).toBe(document.documentElement);
+    Object.defineProperty(document, 'fullscreenElement', {
+      configurable: true,
+      get: () => document.documentElement,
+    });
+    act(() => {
+      document.dispatchEvent(new Event('fullscreenchange'));
+    });
+    const frame = screen.getByTestId('chart-frame');
+    expect(frame.className).toMatch(/\bfixed\b/);
+    expect(frame.className).toMatch(/\bz-45\b/);
+    expect(
+      screen
+        .getByRole('button', { name: 'Exit full screen' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
+    Object.defineProperty(document, 'fullscreenElement', {
+      configurable: true,
+      get: () => null,
+    });
   });
 
   it('links the other charts to the Chart screen of their pair', async () => {

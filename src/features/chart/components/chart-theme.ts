@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ColorType, type CrosshairMode } from 'lightweight-charts';
+import { ColorType } from 'lightweight-charts';
 import type { Locale } from '../../../i18n/copy';
 
 /** A design token's current value, so charts follow the light and dark themes. */
@@ -32,10 +32,6 @@ export function chartOptions(locale: Locale) {
       vertLines: { color: token('--cp-border') },
       horzLines: { color: token('--cp-border') },
     },
-    // The crosshair stays on the pointer, as the drawings do; the library's
-    // default (Magnet) pulled its price line onto the candle's close.
-    // CrosshairMode.Normal, by value: the enum is not loaded in tests.
-    crosshair: { mode: 0 as CrosshairMode.Normal },
     rightPriceScale: { borderColor: token('--cp-border') },
     timeScale: {
       borderColor: token('--cp-border'),

@@ -14,8 +14,10 @@ export const chartDrawingsKey = (layoutId: string) =>
  * The drawings of the layout shown and the writes on them (D-149 (5)).
  * Every change is shown at once and saved in the background; writes run one
  * after another, so an update always sends the version the last one
- * returned. A failed write reads the drawings again and is thrown. Without
- * a layout yet, the first drawing asks `ensureLayout` to open one.
+ * returned. A failed write takes its own change back, reads the drawings
+ * again and is thrown, so a change the server never took is not shown as
+ * kept, even when the read fails too. Without a layout yet, the first
+ * drawing asks `ensureLayout` to open one.
  */
 export function useChartDrawings(
   layoutId: string | undefined,
@@ -58,15 +60,21 @@ export function useChartDrawings(
   );
 
   const guarded = useCallback(
-    async <T>(write: () => Promise<T>): Promise<T> => {
+    async <T>(write: () => Promise<T>, undo?: () => void): Promise<T> => {
       try {
         return await enqueue(write);
       } catch (error) {
+        undo?.();
         await client.invalidateQueries({ queryKey: key });
         throw error;
       }
     },
     [client, enqueue, key],
+  );
+
+  const known = useCallback(
+    () => client.getQueryData<readonly ChartDrawing[]>(key) ?? [],
+    [client, key],
   );
 
   const create = useCallback(
@@ -85,38 +93,61 @@ export function useChartDrawings(
 
   const update = useCallback(
     (id: string, change: ChartDrawingChange) => {
+      const previous = known().find((each) => each.id === id);
       set((list) =>
         list.map((each) => (each.id === id ? { ...each, ...change } : each)),
       );
-      return guarded(async () => {
-        const current = client
-          .getQueryData<readonly ChartDrawing[]>(key)
-          ?.find((each) => each.id === id);
-        const saved = await chartDrawings.update(
-          id,
-          current?.version ?? 0,
-          change,
-        );
-        set((list) => list.map((each) => (each.id === id ? saved : each)));
-        return saved;
-      });
+      return guarded(
+        async () => {
+          const current = client
+            .getQueryData<readonly ChartDrawing[]>(key)
+            ?.find((each) => each.id === id);
+          const saved = await chartDrawings.update(
+            id,
+            current?.version ?? 0,
+            change,
+          );
+          set((list) => list.map((each) => (each.id === id ? saved : each)));
+          return saved;
+        },
+        () =>
+          set((list) =>
+            list.map((each) => (each.id === id && previous ? previous : each)),
+          ),
+      );
     },
-    [chartDrawings, client, guarded, key, set],
+    [chartDrawings, client, guarded, key, known, set],
   );
 
   const remove = useCallback(
     (id: string) => {
+      const before = known();
+      const index = before.findIndex((each) => each.id === id);
+      const previous = before[index];
       set((list) => list.filter((each) => each.id !== id));
-      return guarded(() => chartDrawings.remove(id));
+      return guarded(
+        () => chartDrawings.remove(id),
+        // Back in its place, so it is painted under and over the same ones.
+        () =>
+          set((list) =>
+            previous && !list.some((each) => each.id === id)
+              ? [...list.slice(0, index), previous, ...list.slice(index)]
+              : list,
+          ),
+      );
     },
-    [chartDrawings, guarded, set],
+    [chartDrawings, guarded, known, set],
   );
 
   const removeAll = useCallback(() => {
     if (!layoutId) return Promise.resolve();
+    const previous = known();
     set(() => []);
-    return guarded(() => chartDrawings.removeAll(layoutId));
-  }, [chartDrawings, guarded, layoutId, set]);
+    return guarded(
+      () => chartDrawings.removeAll(layoutId),
+      () => set(() => previous),
+    );
+  }, [chartDrawings, guarded, known, layoutId, set]);
 
   return { query, create, update, remove, removeAll };
 }

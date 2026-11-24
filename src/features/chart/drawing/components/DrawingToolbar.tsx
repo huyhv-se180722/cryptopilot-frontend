@@ -225,7 +225,8 @@ export function DrawingToolbar({
       <BarButton
         label={d.removeAll}
         onClick={() => setConfirming(true)}
-        disabled={layer.count === 0}
+        // Lock all keeps every drawing, as it does from Remove and Delete.
+        disabled={layer.count === 0 || layer.options.lockAll}
       >
         <Trash size={16} aria-hidden="true" />
       </BarButton>

@@ -274,6 +274,17 @@ export const FILLED: ReadonlySet<DrawingType> = new Set([
   'TRIANGLE_PATTERN',
 ]);
 
+/** The drawings that show a note the Trader writes in their settings. */
+export const NOTED: ReadonlySet<DrawingType> = new Set([
+  'TREND_LINE',
+  'ARROW',
+  'HORIZONTAL_LINE',
+  'HORIZONTAL_RAY',
+  'VERTICAL_LINE',
+  'RECTANGLE',
+  'TEXT',
+]);
+
 /** Types whose line may extend past its anchors. */
 export const EXTENDABLE: ReadonlySet<DrawingType> = new Set([
   'TREND_LINE',

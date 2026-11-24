@@ -65,6 +65,12 @@ export class DrawingHistory {
     this.past.push(entry);
   }
 
+  /** Puts back an entry whose undo or redo could not be saved, to try again. */
+  putBack(direction: 'undo' | 'redo', entry: HistoryEntry) {
+    if (direction === 'undo') this.past.push(entry);
+    else this.future.push(entry);
+  }
+
   /** Rewrites every entry that names `from` to name `to`. */
   rename(from: ChartDrawing, to: ChartDrawing) {
     const swap = (entry: HistoryEntry): HistoryEntry => {

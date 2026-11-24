@@ -12,6 +12,22 @@ export function roundPrice(value: number, places: number): string {
   return rounded.toFixed(places);
 }
 
+/**
+ * `price` moved by `factor` of itself, at `places` decimals, and by one tick
+ * at least: on a coarse tick a 1% step can round back onto the price, and a
+ * position's stop or target must not sit on its entry.
+ */
+export function scalePrice(
+  price: string,
+  factor: number,
+  places: number,
+): string {
+  const from = Number(price);
+  const moved = roundPrice(from * (1 + factor), places);
+  if (factor === 0 || Number(moved) !== from) return moved;
+  return roundPrice(from + Math.sign(factor) * 10 ** -places, places);
+}
+
 /** The bar's price nearest to `y`: its open, high, low or close. */
 export function magnetPrice(
   bar: Candle,
@@ -108,6 +124,6 @@ export function chartProjection({
       const time = logical === null ? null : axis.timeOf(logical + count);
       return time === null ? null : { time: iso(time), price: point.price };
     },
-    scale: (price, factor) => roundPrice(Number(price) * (1 + factor), places),
+    scale: (price, factor) => scalePrice(price, factor, places),
   };
 }

@@ -321,7 +321,7 @@ export const vi: PartialCopy = {
     removeAll: 'Xóa tất cả hình vẽ',
     removeAllTitle: 'Xóa tất cả hình vẽ?',
     removeAllBody:
-      'Mọi hình vẽ của "{layout}" trên {symbol} sẽ bị xóa khỏi cả chart Spot và Futures. Không thể hoàn tác.',
+      'Mọi hình vẽ của "{layout}" trên {symbol}, kể cả hình đã khóa, sẽ bị xóa khỏi cả chart Spot và Futures. Không thể hoàn tác.',
     removeAllConfirm: 'Xóa tất cả',
     cancel: 'Hủy',
     selectedLabel: 'Hình vẽ đang chọn',

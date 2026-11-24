@@ -10,7 +10,7 @@ import type {
   ChartDrawingChange,
 } from '../../../../types/domain';
 import { positionValid } from '../controller';
-import { EXTENDABLE, FILLED, toolOfType } from '../tools';
+import { EXTENDABLE, FILLED, NOTED, toolOfType } from '../tools';
 import type { ToolId } from '../tools';
 
 const PRICE = /^\d+(\.\d+)?$/;
@@ -124,7 +124,12 @@ export function DrawingSettingsDialog({
         drawing.type === 'TEXT'
           ? { ...style, fontSize: fontSizeOf(fontSize) }
           : style,
-      text: text.trim() === '' ? null : text.trim(),
+      // A drawing that shows no note keeps the text it has.
+      text: NOTED.has(drawing.type)
+        ? text.trim() === ''
+          ? null
+          : text.trim()
+        : drawing.text,
       points,
     });
   };
@@ -224,20 +229,22 @@ export function DrawingSettingsDialog({
             onBlur={() => setFontSize(String(fontSizeOf(fontSize)))}
           />
         )}
-        <div className="flex flex-col gap-1">
-          <label htmlFor={id + '-text'} className="text-muted">
-            {d.text}
-          </label>
-          <textarea
-            id={id + '-text'}
-            value={text}
-            maxLength={500}
-            rows={2}
-            placeholder={d.textPlaceholder}
-            onChange={(event) => setText(event.target.value)}
-            className="rounded-md border border-line bg-raised px-2 py-1.5 text-fg"
-          />
-        </div>
+        {NOTED.has(drawing.type) && (
+          <div className="flex flex-col gap-1">
+            <label htmlFor={id + '-text'} className="text-muted">
+              {d.text}
+            </label>
+            <textarea
+              id={id + '-text'}
+              value={text}
+              maxLength={500}
+              rows={2}
+              placeholder={d.textPlaceholder}
+              onChange={(event) => setText(event.target.value)}
+              className="rounded-md border border-line bg-raised px-2 py-1.5 text-fg"
+            />
+          </div>
+        )}
         {priced &&
           prices.map((price, i) => (
             <Input

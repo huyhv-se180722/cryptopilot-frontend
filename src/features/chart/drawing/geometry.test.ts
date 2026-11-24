@@ -9,6 +9,7 @@ import {
   hitFigure,
   positionStats,
   retracementPrice,
+  textBlock,
   type Drawable,
   type FigureContext,
 } from './geometry';
@@ -158,6 +159,44 @@ describe('figures and hits', () => {
     expect(hitFigure(figure, { x: 10, y: 252 }, false)).toEqual({
       part: 'body',
     });
+  });
+
+  it('extends a rectangle to the left edge when asked', () => {
+    const figure = figureOf(
+      drawable('RECTANGLE', ['800', '700'], {
+        fillColor: '#00000033',
+        extendLeft: true,
+      }),
+      [at(100, 800), at(300, 700)],
+      CONTEXT,
+    )!;
+    expect(figure.shapes[0]).toMatchObject({
+      kind: 'rect',
+      from: { x: 0, y: 200 },
+      to: { x: 300, y: 300 },
+    });
+    expect(hitFigure(figure, { x: 40, y: 250 }, false)).toEqual({
+      part: 'body',
+    });
+  });
+
+  it('draws and hits a note written on several lines as one block', () => {
+    expect(textBlock('Support\nweekly', 12)).toEqual({
+      lines: ['Support', 'weekly'],
+      step: 15,
+      height: 27,
+    });
+    const figure = figureOf(
+      drawable('TEXT', ['800'], { fontSize: 20 }, 'Support\nweekly'),
+      [at(100, 800)],
+      CONTEXT,
+    )!;
+    // The text sits around its anchor (y 200): two 20 px lines 25 apart make
+    // a block from y 177.5 to 222.5, so a press on the second line hits it.
+    expect(hitFigure(figure, { x: 110, y: 218 }, false)).toEqual({
+      part: 'body',
+    });
+    expect(hitFigure(figure, { x: 110, y: 240 }, false)).toBeNull();
   });
 
   it('fills a rectangle, extended to the right edge when asked', () => {

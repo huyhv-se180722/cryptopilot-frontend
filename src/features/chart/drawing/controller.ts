@@ -27,7 +27,10 @@ export interface Projection {
   point(at: Pixel, magnet: boolean): DrawingPoint | null;
   /** The anchor `bars` bars later, at the same price. */
   later(point: DrawingPoint, bars: number): DrawingPoint | null;
-  /** A price moved by a fraction of itself, at the pair's precision. */
+  /**
+   * A price moved by a fraction of itself, at the pair's precision, and by
+   * one tick at least.
+   */
   scale(price: string, factor: number): string;
 }
 
@@ -170,7 +173,12 @@ export class DrawingController {
 
   setDrawings(drawings: readonly ChartDrawing[]) {
     this.drawings = drawings;
-    if (this.selected && !drawings.some((each) => each.id === this.selected))
+    // A drawing removed or hidden is no longer selected: its bar closes and
+    // Delete cannot remove a drawing the Trader no longer sees.
+    if (
+      this.selected &&
+      !drawings.some((each) => each.id === this.selected && !each.hidden)
+    )
       this.select(null);
     this.events.repaint();
   }
@@ -236,6 +244,9 @@ export class DrawingController {
           ),
         },
       ];
+      // An entry at the smallest price has no room below it for a long's
+      // stop (nor a short's target): no position rather than a wrong one.
+      if (!positionValid(type, all)) return null;
     }
     return {
       type,

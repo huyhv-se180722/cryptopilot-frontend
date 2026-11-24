@@ -55,10 +55,13 @@ export function useChartLayouts(pairId: string | undefined) {
   const active =
     list.find((layout) => layout.id === chosenId) ?? list[0] ?? null;
   const opening = useRef<Promise<ChartLayout> | null>(null);
+  // The choice as it is now, for `ensure`, which may run from an old render.
+  const chosenNow = useRef(chosen);
 
   const select = useCallback(
     (id: string) => {
       writeChosen(pair, id);
+      chosenNow.current = { pair, id };
       setChosen({ pair, id });
     },
     [pair],
@@ -88,14 +91,23 @@ export function useChartLayouts(pairId: string | undefined) {
     [chartLayouts, client, pair, put, select],
   );
 
-  /** The layout shown, opening "Copy 1" first when the pair has none. */
+  /**
+   * The layout shown, opening "Copy 1" first when the pair has none. It reads
+   * the layouts known now, not those of the render it was made in: a second
+   * drawing saved right after the first holds an `ensure` from before "Copy 1"
+   * existed, and must not open "Copy 2".
+   */
   const ensure = useCallback(async (): Promise<string> => {
-    if (active) return active.id;
+    const known = client.getQueryData<readonly ChartLayout[]>(key) ?? [];
+    const choice =
+      chosenNow.current.pair === pair ? chosenNow.current.id : readChosen(pair);
+    const shown = known.find((layout) => layout.id === choice) ?? known[0];
+    if (shown) return shown.id;
     opening.current ??= create().finally(() => {
       opening.current = null;
     });
     return (await opening.current).id;
-  }, [active, create]);
+  }, [client, create, key, pair]);
 
   const rename = useCallback(
     async (id: string, name: string | null) => {

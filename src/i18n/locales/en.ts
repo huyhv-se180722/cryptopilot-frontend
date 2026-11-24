@@ -1929,7 +1929,7 @@ export const en = {
     removeAll: 'Remove all drawings',
     removeAllTitle: 'Remove all drawings?',
     removeAllBody:
-      'Every drawing of "{layout}" on {symbol} is removed, from both the Spot and the Futures chart. This cannot be undone.',
+      'Every drawing of "{layout}" on {symbol} is removed, locked ones included, from both the Spot and the Futures chart. This cannot be undone.',
     removeAllConfirm: 'Remove all',
     cancel: 'Cancel',
     selectedLabel: 'Selected drawing',

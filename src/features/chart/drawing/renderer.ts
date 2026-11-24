@@ -1,4 +1,10 @@
-import { HANDLE_RADIUS, type Figure, type Pixel, type Shape } from './geometry';
+import {
+  HANDLE_RADIUS,
+  textBlock,
+  type Figure,
+  type Pixel,
+  type Shape,
+} from './geometry';
 
 const DASHES = { SOLID: [], DASHED: [6, 4], DOTTED: [1.5, 3] } as const;
 
@@ -71,9 +77,19 @@ function drawShape(context: CanvasRenderingContext2D, shape: Shape) {
       context.font = `${shape.size}px 'IBM Plex Sans', sans-serif`;
       context.textAlign = shape.align;
       context.textBaseline = shape.baseline;
+      // Several lines stack from the anchor the way one line sits on it: down
+      // from a top, up from a bottom, around a middle.
+      const { lines, step, height: block } = textBlock(shape.text, shape.size);
+      const first =
+        shape.baseline === 'bottom'
+          ? shape.at.y - (lines.length - 1) * step
+          : shape.baseline === 'middle'
+            ? shape.at.y - ((lines.length - 1) * step) / 2
+            : shape.at.y;
       if (shape.background) {
-        const width = context.measureText(shape.text).width + 8;
-        const height = shape.size + 6;
+        const width =
+          Math.max(...lines.map((line) => context.measureText(line).width)) + 8;
+        const height = block + 6;
         const x =
           shape.align === 'right'
             ? shape.at.x - width + 4
@@ -90,7 +106,9 @@ function drawShape(context: CanvasRenderingContext2D, shape: Shape) {
         context.fillRect(x, y, width, height);
       }
       context.fillStyle = shape.color;
-      context.fillText(shape.text, shape.at.x, shape.at.y);
+      lines.forEach((line, i) =>
+        context.fillText(line, shape.at.x, first + i * step),
+      );
       return;
     }
   }

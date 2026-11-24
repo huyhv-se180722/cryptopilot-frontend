@@ -663,7 +663,8 @@ export function AnalysisChart<T extends ChartTimeframe = CandleTimeframe>({
     extendable,
   ]);
 
-  // The drawing layer goes on each chart built once the drawings are loaded.
+  // The drawing layer goes on each chart built once the drawings are loaded:
+  // after every rebuild, so these keys include every key of the rebuild.
   useEffect(() => {
     const chart = chartApi.current;
     const candles = priceSeries.current;
@@ -683,6 +684,7 @@ export function AnalysisChart<T extends ChartTimeframe = CandleTimeframe>({
     extendable,
     time,
     locale,
+    seconds,
   ]);
 
   // Lines change often (orders, levels): redraw them on the same series.

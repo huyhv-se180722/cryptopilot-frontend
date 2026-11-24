@@ -133,6 +133,13 @@ describe('placing a drawing', () => {
     expect(figure.handles).toHaveLength(4);
   });
 
+  it('places no position whose stop cannot sit below its entry', () => {
+    // At the smallest price, 1% below rounds back onto the entry.
+    controller.setTool('longPosition');
+    controller.pointerDown(at(10, 1));
+    expect(events.create).not.toHaveBeenCalled();
+  });
+
   it('keeps the tool in drawing mode and snaps with the magnet', () => {
     controller.setOptions({
       magnet: true,
@@ -282,6 +289,18 @@ describe('editing drawings', () => {
     expect(controller.keyDown('Delete', false, false)).toBe(false);
   });
 
+  it('lets go of a drawing once it is hidden', () => {
+    const line = drawing('a');
+    controller.setDrawings([line]);
+    controller.select('a');
+    controller.setDrawings([{ ...line, hidden: true }]);
+    expect(controller.selectedId).toBeNull();
+    expect(events.select).toHaveBeenLastCalledWith(null);
+    // Delete then removes nothing the Trader cannot see.
+    expect(controller.keyDown('Delete', false, false)).toBe(false);
+    expect(events.remove).not.toHaveBeenCalled();
+  });
+
   it('ignores hidden drawings and all drawings while hidden', () => {
     controller.setDrawings([drawing('a', { hidden: true })]);
     expect(controller.pointerDown(at(20, 750))).toBe(false);
@@ -342,6 +361,13 @@ describe('history', () => {
       drawing: { id: 'b' },
     });
     expect(history.takeRedo()).toMatchObject({ kind: 'update', id: 'b' });
+    history.record({ kind: 'create', drawing: back });
+    // A step that could not be saved goes back where it was taken from.
+    const created = history.takeUndo()!;
+    history.putBack('undo', created);
+    expect(history.takeUndo()).toBe(created);
+    history.putBack('redo', created);
+    expect(history.takeRedo()).toBe(created);
     history.record({ kind: 'create', drawing: back });
     history.clear();
     expect(history.canUndo || history.canRedo).toBe(false);

@@ -26,23 +26,40 @@ import { formatPrice, toFixedDecimal } from '../../utils/decimal-format';
 
 const MARKETS: readonly MarketType[] = ['spot', 'futures'];
 
-/** Whether the browser shows `element` full screen. */
-function useFullscreen(element: React.RefObject<HTMLElement | null>) {
+/**
+ * Whether the screen shows its chart full screen. The whole page goes full
+ * screen and the chart's frame covers it, rather than the frame alone: the
+ * browser shows only what is inside the element put full screen, and the
+ * toasts (a drawing not saved, a limit reached) live outside the frame.
+ */
+function useFullscreen() {
   const [full, setFull] = useState(false);
+  // Full screen asked for here, not by another part of the page.
+  const mine = useRef(false);
   useEffect(() => {
-    const sync = () =>
+    const sync = () => {
+      if (document.fullscreenElement === null) mine.current = false;
       setFull(
-        document.fullscreenElement !== null &&
-          document.fullscreenElement === element.current,
+        mine.current && document.fullscreenElement === document.documentElement,
       );
+    };
     document.addEventListener('fullscreenchange', sync);
-    return () => document.removeEventListener('fullscreenchange', sync);
-  }, [element]);
+    return () => {
+      document.removeEventListener('fullscreenchange', sync);
+      // Leaving the screen leaves its full screen too.
+      if (mine.current && document.fullscreenElement)
+        void document.exitFullscreen?.();
+    };
+  }, []);
   const toggle = () => {
-    const target = element.current;
-    if (!target) return;
-    if (document.fullscreenElement) void document.exitFullscreen?.();
-    else void target.requestFullscreen?.();
+    if (document.fullscreenElement) {
+      void document.exitFullscreen?.();
+      return;
+    }
+    mine.current = true;
+    document.documentElement.requestFullscreen?.()?.catch(() => {
+      mine.current = false;
+    });
   };
   return [full, toggle] as const;
 }
@@ -60,8 +77,7 @@ function ChartScreen({
   const c = copy.chartPage;
   const navigate = useNavigate();
   const [timeframe, setTimeframe, timeframes] = useTradeTimeframe(market);
-  const frame = useRef<HTMLDivElement>(null);
-  const [full, toggleFull] = useFullscreen(frame);
+  const [full, toggleFull] = useFullscreen();
   const { ticker } = useLiveTicker(market, pair.symbol);
   const symbols = useMemo(() => pairs.map((each) => each.symbol), [pairs]);
   const board = useMarketTickers(market, symbols);
@@ -85,10 +101,11 @@ function ChartScreen({
 
   return (
     <div
-      ref={frame}
+      data-testid="chart-frame"
       className={classNames(
         'flex w-full flex-col gap-3 bg-page',
-        full && 'h-screen overflow-auto p-4',
+        // Over the page's bars and dock, under its toasts (z-50).
+        full && 'fixed inset-0 z-45 h-screen overflow-auto p-4',
       )}
     >
       <div className="flex flex-wrap items-center gap-3">

@@ -302,7 +302,7 @@ export function figureOf(
     }
     case 'RECTANGLE': {
       const right = style.extendRight ? width : Math.max(p[0]!.x, p[1]!.x);
-      const left = Math.min(p[0]!.x, p[1]!.x);
+      const left = style.extendLeft ? 0 : Math.min(p[0]!.x, p[1]!.x);
       const from = { x: left, y: Math.min(p[0]!.y, p[1]!.y) };
       const to = { x: right, y: Math.max(p[0]!.y, p[1]!.y) };
       shapes.push({
@@ -554,9 +554,24 @@ export type FigureHit = { part: 'handle'; index: number } | { part: 'body' };
 const HANDLE_RADIUS = 6;
 const LINE_TOLERANCE = 5;
 
+/**
+ * The lines of a label, one per line the Trader typed, the step from one
+ * line to the next and the height of them all. The canvas and the hit test
+ * share it, so a note on several lines is drawn and picked the same.
+ */
+export function textBlock(text: string, size: number) {
+  const lines = text.split('\n');
+  const step = Math.round(size * 1.25);
+  return { lines, step, height: size + (lines.length - 1) * step };
+}
+
 /** Approximate width of a label, for hit testing without a canvas. */
 function textWidth(text: string, size: number): number {
-  return text.length * size * 0.6;
+  return (
+    Math.max(...textBlock(text, size).lines.map((line) => line.length)) *
+    size *
+    0.6
+  );
 }
 
 function insideRect(p: Pixel, from: Pixel, to: Pixel, margin = 0): boolean {
@@ -618,6 +633,7 @@ export function hitFigure(
         break;
       case 'text': {
         const w = textWidth(shape.text, shape.size);
+        const h = textBlock(shape.text, shape.size).height;
         const x0 =
           shape.align === 'right'
             ? shape.at.x - w
@@ -626,13 +642,11 @@ export function hitFigure(
               : shape.at.x;
         const y0 =
           shape.baseline === 'bottom'
-            ? shape.at.y - shape.size
+            ? shape.at.y - h
             : shape.baseline === 'middle'
-              ? shape.at.y - shape.size / 2
+              ? shape.at.y - h / 2
               : shape.at.y;
-        if (
-          insideRect(p, { x: x0, y: y0 }, { x: x0 + w, y: y0 + shape.size }, 2)
-        )
+        if (insideRect(p, { x: x0, y: y0 }, { x: x0 + w, y: y0 + h }, 2))
           return { part: 'body' };
         break;
       }

@@ -5,7 +5,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import type { IChartApi, ISeriesApi } from 'lightweight-charts';
+import type { CrosshairMode, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { useCopy } from '../../../hooks/use-copy';
 import { useToast } from '../../../hooks/use-toast';
 import { problemOf } from '../../../services/api/errors';
@@ -120,16 +120,24 @@ export function useDrawingLayer({
   // The undo history belongs to the layout shown.
   const scope = layoutId ?? '';
   const histories = useRef(new Map<string, DrawingHistory>());
-  const [stacks, setStacks] = useState({
-    scope,
-    canUndo: false,
-    canRedo: false,
-  });
+  // Whether each copy's history can be undone or redone, so the buttons of
+  // the copy shown follow its own history when the Trader comes back to it.
+  const [stacks, setStacks] = useState<
+    Readonly<Record<string, { canUndo: boolean; canRedo: boolean }>>
+  >({});
   // The tool belongs to the pair it was picked on.
   const [picked, setPicked] = useState<{ pair: string; tool: ToolId | null }>({
     pair,
     tool: null,
   });
+  // Another pair puts the tool picked down, so that coming back to the pair
+  // does not show it pressed while the chart pans (state set while
+  // rendering, as React advises for a prop that changed).
+  const [seenPair, setSeenPair] = useState(pair);
+  if (seenPair !== pair) {
+    setSeenPair(pair);
+    setPicked({ pair, tool: null });
+  }
   const tool = picked.pair === pair ? picked.tool : null;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [options, setOptions] = useState(readOptions);
@@ -150,11 +158,10 @@ export function useDrawingLayer({
   const syncStacks = useCallback(
     (layout: string = scope) => {
       const history = historyOf(layout);
-      setStacks({
-        scope: layout,
-        canUndo: history.canUndo,
-        canRedo: history.canRedo,
-      });
+      setStacks((current) => ({
+        ...current,
+        [layout]: { canUndo: history.canUndo, canRedo: history.canRedo },
+      }));
     },
     [historyOf, scope],
   );
@@ -207,34 +214,44 @@ export function useDrawingLayer({
     [data, fail, record],
   );
 
+  // Undo and redo run one after another: a step that brings a drawing back
+  // renames it in the history before the next step reads the history.
+  const replaying = useRef<Promise<void>>(Promise.resolve());
   const replay = useCallback(
-    async (direction: 'undo' | 'redo') => {
-      const history = historyOf(scope);
-      const entry =
-        direction === 'undo' ? history.takeUndo() : history.takeRedo();
-      if (!entry) return;
-      const done = (next: HistoryEntry) =>
-        direction === 'undo' ? history.undone(next) : history.redone(next);
-      try {
-        const removing = (entry.kind === 'create') === (direction === 'undo');
-        if (entry.kind === 'update') {
-          await data.update(
-            entry.id,
-            direction === 'undo' ? entry.before : entry.after,
-          );
-          done(entry);
-        } else if (removing) {
-          await data.remove(entry.drawing.id);
-          done(entry);
-        } else {
-          const back = await data.create(draftOf(entry.drawing));
-          history.rename(entry.drawing, back);
-          done({ ...entry, drawing: back });
+    (direction: 'undo' | 'redo') => {
+      const step = async () => {
+        const history = historyOf(scope);
+        const entry =
+          direction === 'undo' ? history.takeUndo() : history.takeRedo();
+        if (!entry) return;
+        const done = (next: HistoryEntry) =>
+          direction === 'undo' ? history.undone(next) : history.redone(next);
+        try {
+          const removing = (entry.kind === 'create') === (direction === 'undo');
+          if (entry.kind === 'update') {
+            await data.update(
+              entry.id,
+              direction === 'undo' ? entry.before : entry.after,
+            );
+            done(entry);
+          } else if (removing) {
+            await data.remove(entry.drawing.id);
+            done(entry);
+          } else {
+            const back = await data.create(draftOf(entry.drawing));
+            history.rename(entry.drawing, back);
+            done({ ...entry, drawing: back });
+          }
+        } catch (error) {
+          // Not saved: the step stays where it was, to be tried again.
+          history.putBack(direction, entry);
+          fail(error);
         }
-      } catch (error) {
-        fail(error);
-      }
-      syncStacks();
+        syncStacks();
+      };
+      const next = replaying.current.then(step);
+      replaying.current = next.catch(() => undefined);
+      return next;
     },
     [data, fail, historyOf, scope, syncStacks],
   );
@@ -314,6 +331,11 @@ export function useDrawingLayer({
         () => token('--cp-primary') || '#2962FF',
       );
       series.attachPrimitive(primitive);
+      // While drawing, the crosshair stays on the pointer, where the anchor
+      // lands; the library's Magnet pulls its price line onto the candle's
+      // close. Charts without drawings keep the Magnet. The modes by value
+      // (Normal 0, Magnet 1): the enum is not loaded in tests.
+      chart.applyOptions({ crosshair: { mode: 0 as CrosshairMode.Normal } });
       const freeze = (frozen: boolean) =>
         chart.applyOptions({ handleScroll: !frozen, handleScale: !frozen });
       // Touch screens show the drawings but do not edit them (D-149 (7)).
@@ -372,7 +394,17 @@ export function useDrawingLayer({
       };
       const key = (event: KeyboardEvent) => {
         if (editing(event.target)) return;
-        if (!over && !controller.selectedId && !controller.activeTool) return;
+        // The drawing keys act on this chart only while it is the one in use:
+        // the pointer over it or the focus in it. Elsewhere on the page,
+        // Backspace or Ctrl+Z belongs to what has the focus. Esc still puts
+        // the tool down or the selection away from anywhere.
+        const here =
+          over ||
+          (event.target instanceof Node && container.contains(event.target));
+        const away =
+          event.key === 'Escape' &&
+          (controller.selectedId !== null || controller.activeTool !== null);
+        if (!here && !away) return;
         if (
           controller.keyDown(
             event.key,
@@ -396,6 +428,12 @@ export function useDrawingLayer({
         primitive,
         freeze,
         release: () => {
+          // A chart frozen for the tool in hand pans and zooms again, and its
+          // crosshair goes back to the Magnet.
+          freeze(false);
+          chart.applyOptions({
+            crosshair: { mode: 1 as CrosshairMode.Magnet },
+          });
           container.removeEventListener('pointerdown', down, true);
           container.removeEventListener('pointermove', move);
           container.removeEventListener('pointerenter', enter);
@@ -465,13 +503,18 @@ export function useDrawingLayer({
     setTextDraft(null);
   };
 
-  const current = stacks.scope === scope;
-  // A layout switch keeps the tools on while its drawings load.
+  const shownStacks = stacks[scope];
+  // A layout switch keeps the tools on while its drawings load. Only a list
+  // never loaded is an error: a failed save reads the drawings again, and a
+  // failed read then keeps the ones known rather than taking the tools away.
+  const unread = (query: { status: string; data: unknown }) =>
+    query.status === 'error' && query.data === undefined;
   const status =
-    layouts.query.status === 'error' ||
-    (layoutId !== undefined && data.query.status === 'error')
+    unread(layouts.query) || (layoutId !== undefined && unread(data.query))
       ? 'error'
-      : layouts.query.status;
+      : layouts.query.data !== undefined
+        ? 'success'
+        : layouts.query.status;
   return {
     status,
     layouts,
@@ -492,8 +535,8 @@ export function useDrawingLayer({
     cancelText: () => setTextDraft(null),
     undo: () => void replay('undo'),
     redo: () => void replay('redo'),
-    canUndo: current && stacks.canUndo,
-    canRedo: current && stacks.canRedo,
+    canUndo: shownStacks?.canUndo ?? false,
+    canRedo: shownStacks?.canRedo ?? false,
   };
 }
 
