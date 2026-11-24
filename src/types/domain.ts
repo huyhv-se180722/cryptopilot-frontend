@@ -2463,3 +2463,105 @@ export interface SystemHealth {
   services: readonly ServiceHealth[];
   feeds: readonly FeedHealth[];
 }
+
+/** The tools a Trader draws with on the chart (D-149). */
+export type DrawingType =
+  | 'TREND_LINE'
+  | 'HORIZONTAL_LINE'
+  | 'HORIZONTAL_RAY'
+  | 'VERTICAL_LINE'
+  | 'RECTANGLE'
+  | 'FIB_RETRACEMENT'
+  | 'LONG_POSITION'
+  | 'SHORT_POSITION'
+  | 'TEXT'
+  | 'PARALLEL_CHANNEL'
+  | 'FIB_EXTENSION'
+  | 'PRICE_RANGE'
+  | 'DATE_RANGE'
+  | 'ARROW'
+  | 'XABCD_PATTERN'
+  | 'CYPHER_PATTERN'
+  | 'ABCD_PATTERN'
+  | 'THREE_DRIVES_PATTERN'
+  | 'HEAD_AND_SHOULDERS'
+  | 'TRIANGLE_PATTERN'
+  | 'ELLIOTT_IMPULSE_WAVE'
+  | 'ELLIOTT_CORRECTION_WAVE'
+  | 'ELLIOTT_TRIANGLE_WAVE'
+  | 'ELLIOTT_DOUBLE_COMBO'
+  | 'ELLIOTT_TRIPLE_COMBO';
+
+export type DrawingLineStyle = 'SOLID' | 'DASHED' | 'DOTTED';
+
+/** One anchor of a drawing: a candle open time and a price (D-149 (4)). */
+export interface DrawingPoint {
+  time: ISODateTime;
+  price: Decimal;
+}
+
+/** How a drawing looks; only these values are stored. */
+export interface DrawingStyle {
+  /** `#RRGGBB` or `#RRGGBBAA`. */
+  lineColor: string;
+  /** 1 to 4 pixels. */
+  lineWidth: number;
+  lineStyle: DrawingLineStyle;
+  fillColor: string | null;
+  extendLeft: boolean;
+  extendRight: boolean;
+  fontSize: number | null;
+  /** The Fibonacci ratios shown; null for the tool's default set. */
+  fibLevels: readonly Decimal[] | null;
+}
+
+/**
+ * One of the signed-in Trader's layouts on a pair's chart
+ * (`/chart-layouts`): a set of drawings the chart switches between. Shown
+ * as "Copy {number}" while it has no name.
+ */
+export interface ChartLayout {
+  id: string;
+  pairId: string;
+  /** From 1; a new layout takes the smallest number still free. */
+  number: number;
+  name: string | null;
+  /** How many drawings it holds. */
+  drawings: number;
+}
+
+/** A new layout: empty, or a copy of another layout of the same pair. */
+export interface NewChartLayout {
+  pairId: string;
+  name?: string | null;
+  copyFrom?: string | null;
+}
+
+/** A drawing of the signed-in Trader in one of their layouts (`/chart-drawings`). */
+export interface ChartDrawing {
+  id: string;
+  layoutId: string;
+  type: DrawingType;
+  points: readonly DrawingPoint[];
+  style: DrawingStyle;
+  text: string | null;
+  locked: boolean;
+  hidden: boolean;
+  /** Sent back with the next change; a stale one is refused (409). */
+  version: number;
+}
+
+/** What the Trader may change on a drawing; every field is replaced. */
+export interface ChartDrawingChange {
+  points: readonly DrawingPoint[];
+  style: DrawingStyle;
+  text: string | null;
+  locked: boolean;
+  hidden: boolean;
+}
+
+/** A new drawing in one of the Trader's layouts. */
+export interface NewChartDrawing extends ChartDrawingChange {
+  layoutId: string;
+  type: DrawingType;
+}

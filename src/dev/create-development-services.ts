@@ -5,6 +5,7 @@ import { createDevelopmentAdminSettings } from './dev-admin-settings';
 import { createDevelopmentAdminDashboard } from './dev-admin-dashboard';
 import { createDevelopmentAdminUsers } from './dev-admin-users';
 import { createDevelopmentAuth } from './dev-auth';
+import { createDevelopmentChartDrawings } from './dev-chart-drawings';
 import { createDevelopmentCommunity } from './dev-community';
 import { createDevelopmentJournal } from './dev-journal';
 import { createDevelopmentMarket } from './dev-market';
@@ -27,6 +28,7 @@ export function createDevelopmentServices(base: Services): Services {
     tradingPlan: createDevelopmentTradingPlan(() => auth.restoreSession()),
     ...createDevelopmentJournal(() => auth.restoreSession()),
     ...createDevelopmentWatchlist(() => auth.restoreSession()),
+    ...createDevelopmentChartDrawings(),
     ...createDevelopmentPaperTrading(
       () => auth.restoreSession(),
       market.market,

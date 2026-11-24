@@ -15,6 +15,7 @@ export type ScreenId =
   | 'D-124'
   | 'D-127'
   | 'D-159'
+  | 'D-149'
   | 'UC-44'
   | 'T-114';
 export type ScreenTitleKey = keyof Copy['screens'];
@@ -85,6 +86,10 @@ export const traderRoutes = [
     screen: 'SCR-11',
     titleKey: 'futuresAnalysis',
   },
+  // The Chart screen with the drawing tools (D-149, T-123).
+  { path: '/chart', screen: 'D-149', titleKey: 'chart' },
+  { path: '/chart/:market', screen: 'D-149', titleKey: 'chart' },
+  { path: '/chart/:market/:symbol', screen: 'D-149', titleKey: 'chart' },
   { path: '/watchlist', screen: 'SCR-12', titleKey: 'watchlist' },
   { path: '/alerts', screen: 'SCR-13', titleKey: 'alerts' },
   { path: '/notifications', screen: 'SCR-15', titleKey: 'notifications' },

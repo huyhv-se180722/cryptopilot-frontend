@@ -5,6 +5,7 @@ import {
   Bell,
   BellRing,
   CandlestickChart,
+  ChartSpline,
   Bot,
   ClipboardList,
   Coins,
@@ -61,6 +62,8 @@ export interface AdminNavGroup {
 export const traderNav: readonly NavItem[] = [
   { to: '/dashboard', labelKey: 'overview', icon: LayoutDashboard },
   { to: '/markets', labelKey: 'markets', icon: TrendingUp },
+  // The full chart with the drawing tools (D-149).
+  { to: '/chart', labelKey: 'chart', icon: ChartSpline },
   // Demo trading (D-86).
   { to: '/trade/spot', labelKey: 'trade', icon: CandlestickChart },
   { to: '/watchlist', labelKey: 'watchlist', icon: Star },

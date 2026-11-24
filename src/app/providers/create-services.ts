@@ -1,4 +1,12 @@
 import {
+  createHttpChartDrawingService,
+  createPendingChartDrawingService,
+} from '../../services/api/chart-drawings';
+import {
+  createHttpChartLayoutService,
+  createPendingChartLayoutService,
+} from '../../services/api/chart-layouts';
+import {
   createHttpFuturesTradingService,
   createPendingFuturesTradingService,
 } from '../../services/api/futures';
@@ -185,6 +193,12 @@ export async function createServices(env: Environment): Promise<Services> {
     watchlist: connected
       ? createHttpWatchlistService(http)
       : createPendingWatchlistService(),
+    chartDrawings: connected
+      ? createHttpChartDrawingService(http)
+      : createPendingChartDrawingService(),
+    chartLayouts: connected
+      ? createHttpChartLayoutService(http)
+      : createPendingChartLayoutService(),
     alerts: connected
       ? createHttpAlertsService(http)
       : createPendingAlertsService(),

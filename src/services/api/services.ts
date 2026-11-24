@@ -30,6 +30,8 @@ import type {
 } from './contracts';
 import type { AdminOrderService } from './admin-orders';
 import type { AdminPackageService } from './admin-packages';
+import type { ChartDrawingService } from './chart-drawings';
+import type { ChartLayoutService } from './chart-layouts';
 import type { FuturesTradingService } from './futures';
 import type { MarketStatusService } from './market-status';
 import type { HttpClient } from './http-client';
@@ -49,6 +51,8 @@ export interface Services {
   journal: JournalService;
   performance: PerformanceService;
   watchlist: WatchlistService;
+  chartDrawings: ChartDrawingService;
+  chartLayouts: ChartLayoutService;
   alerts: AlertsService;
   paperTrading: PaperTradingService;
   futuresTrading: FuturesTradingService;
