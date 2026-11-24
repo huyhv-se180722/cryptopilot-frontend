@@ -11,6 +11,7 @@ import type {
   PerformanceBreakdownRow,
   PerformanceFilter,
   Session,
+  TradingPlan,
 } from '../types/domain';
 import { addDays, businessDay } from '../utils/business-day';
 import { add, compare, divide, subtract } from '../utils/decimal-math';
@@ -159,9 +160,50 @@ function breakdown(
 export function createDevelopmentJournal(
   session: () => Promise<Session | null>,
   now: () => number = Date.now,
-): { journal: JournalService; performance: PerformanceService } {
+): {
+  journal: JournalService;
+  performance: PerformanceService;
+  recordPlanClose: (plan: TradingPlan) => void;
+} {
   // A copy the manual trades of this session are written to.
   const trades = [...devJournalTrades(now())];
+  // T-048a: the backend records a SIMULATED trade when a plan's position closes; the scripted plans do the same, so
+  // the journal shows the trade of a plan closed in this session (T-093, plan → fill → close → journal).
+  const recordPlanClose = (plan: TradingPlan) => {
+    const position = plan.position;
+    if (!position || position.status !== 'CLOSED') return;
+    const id = `0199a0f0-4444-7aaa-8bbb-${plan.id
+      .replace(/[^0-9a-f]/g, '')
+      .padStart(12, '0')
+      .slice(-12)}`;
+    if (trades.some((trade) => trade.id === id)) return;
+    trades.unshift({
+      id,
+      planId: plan.id,
+      pairId: plan.pairId,
+      market: plan.market,
+      direction: plan.direction,
+      source: 'SIMULATED',
+      status: 'CLOSED',
+      leverage: plan.leverage,
+      entryPrice: position.fillPrice,
+      quantity: position.quantity,
+      entryTime: position.entryTime,
+      entryFee: position.entryFee,
+      stopLoss: position.stopLoss,
+      takeProfit: position.takeProfit,
+      exitPrice: position.exitPrice,
+      exitTime: position.exitTime,
+      closeReason: position.closeReason,
+      realizedPnl: position.realizedPnl,
+      feeAmount: position.feeAmount,
+      fundingFeeAmount: position.fundingFeeAmount,
+      netPnl: position.netPnl,
+      provisional: position.provisional,
+      strategy: null,
+      risk: plan.snapshot.riskAmount,
+    });
+  };
   const allowed = async () => {
     const entitlements = (await session())?.entitlements;
     return (
@@ -290,6 +332,7 @@ export function createDevelopmentJournal(
       ?.symbol ?? trade.pairId;
 
   return {
+    recordPlanClose,
     journal: {
       list: async ({ status, pairId, market, page, pageSize }) => {
         const rows = trades.filter(

@@ -1,0 +1,49 @@
+# T-093: the Playwright suite of the main flows (TECHNICAL_DESIGN 11.1, E2E row) every night on develop, and on demand.
+# It drives the app in the Vite development server with the development fixtures (playwright.config.ts), so it needs
+# no backend and no secret. The HTML report is kept 14 days; a failure fails the run (and GitHub e-mails the author of
+# the last commit's schedule).
+name: E2E nightly
+
+on:
+  schedule:
+    # 02:00 in Vietnam (UTC+7).
+    - cron: '0 19 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-nightly
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    name: Playwright (desktop and phone)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Install Playwright's Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run the suite
+        run: npm run e2e
+        env:
+          CI: 'true'
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: reports/e2e/
+          if-no-files-found: ignore
+          retention-days: 14

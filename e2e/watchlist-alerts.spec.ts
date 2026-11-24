@@ -55,8 +55,9 @@ test.describe('Watchlist and alerts: follow a pair, alert on it', () => {
           name: /BNB\/USDT.*Crosses above 700/,
         });
         await expect(row).toBeVisible();
+        // On a phone each cell carries its column name ("Status Active").
         await expect(
-          row.getByRole('cell', { name: 'Active', exact: true }),
+          row.getByRole('cell', { name: /^(Status )?Active$/ }),
         ).toBeVisible();
       });
       noErrors();

@@ -12,6 +12,7 @@ import { createDevelopmentMarket } from './dev-market';
 import { createDevelopmentNotifications } from './dev-notifications';
 import { createDevelopmentPaperTrading } from './dev-paper-trading';
 import { createDevelopmentProfile } from './dev-profile';
+import { createDevelopmentSubscription } from './dev-subscription';
 import { createDevelopmentTradingPlan } from './dev-trading-plan';
 import { createDevelopmentWatchlist } from './dev-watchlist';
 
@@ -19,14 +20,21 @@ import { createDevelopmentWatchlist } from './dev-watchlist';
 export function createDevelopmentServices(base: Services): Services {
   const auth = createDevelopmentAuth();
   const market = createDevelopmentMarket();
+  const journal = createDevelopmentJournal(() => auth.restoreSession());
   return {
     ...base,
     mode: 'development-fixtures',
     auth,
     profile: createDevelopmentProfile(),
+    subscription: createDevelopmentSubscription(),
     ...market,
-    tradingPlan: createDevelopmentTradingPlan(() => auth.restoreSession()),
-    ...createDevelopmentJournal(() => auth.restoreSession()),
+    tradingPlan: createDevelopmentTradingPlan(
+      () => auth.restoreSession(),
+      Date.now,
+      journal.recordPlanClose,
+    ),
+    journal: journal.journal,
+    performance: journal.performance,
     ...createDevelopmentWatchlist(() => auth.restoreSession()),
     ...createDevelopmentChartDrawings(),
     ...createDevelopmentPaperTrading(

@@ -24,7 +24,11 @@ test.describe('performance and journal (SCR-23, SCR-20)', () => {
     await open(page, '/performance');
     await expect(page.getByText('Equity curve')).toBeVisible();
     await expect(page.getByRole('region', { name: 'By coin' })).toBeVisible();
-    await expect(page.getByText('Unassigned').first()).toBeVisible();
+    // One breakdown at a time: trades without a strategy are "Unassigned".
+    await page.getByRole('radio', { name: 'By strategy' }).click();
+    await expect(
+      page.getByRole('region', { name: 'By strategy' }).getByText('Unassigned'),
+    ).toBeVisible();
     expect(await overflowsHorizontally(page)).toBe(false);
     noErrors();
   });
@@ -42,13 +46,16 @@ test.describe('performance and journal (SCR-23, SCR-20)', () => {
     const noErrors = failOnPageErrors(page);
     await signIn(page, ACCOUNTS.pro);
     await open(page, '/journal?market=futures');
+    // A trade opens on its own screen (SCR-21) and the way back keeps the filter.
     await page
-      .getByRole('button', { name: /^Open the / })
+      .getByRole('link', { name: /^Open the / })
       .first()
       .click();
-    await expect(page.getByRole('dialog')).toContainText('Net P/L');
-    await page.keyboard.press('Escape');
+    await expect(page).toHaveURL(/\/journal\/[0-9a-f-]+$/);
+    await expect(page.getByText('Net P/L').first()).toBeVisible();
     expect(await overflowsHorizontally(page)).toBe(false);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/journal\?market=futures$/);
     await page.getByRole('link', { name: 'Performance' }).last().click();
     await expect(page).toHaveURL(/\/performance\?market=futures/);
     noErrors();
