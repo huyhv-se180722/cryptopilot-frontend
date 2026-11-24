@@ -163,8 +163,9 @@ export function decodePnlAnalysis(body: unknown): PaperPnlAnalysis {
   const trades = record(value.trades, 'trades');
   const market = value.market;
   return {
+    // The two wallets together read as ALL (PnlAnalysisResponse), null here.
     market:
-      market === null || market === undefined
+      market === null || market === undefined || market === 'ALL'
         ? null
         : oneOf(['SPOT', 'FUTURES'] as const, market, 'market'),
     days: integer(value.days, 'days'),
