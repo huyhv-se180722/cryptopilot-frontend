@@ -302,8 +302,8 @@ function decodeLevel(item: unknown, index: number): OrderBookLevel {
 
 /**
  * `DepthResponse` (TR-03): `GET /market/{market}/{symbol}/depth` and
- * `/topic/depth.*`. Empty sides and no `lastUpdateId` when no current
- * depth is held.
+ * `/topic/depth.*`. Empty sides, and no `lastUpdateId` nor `receivedAt`,
+ * when no current depth is held.
  */
 export function decodeDepth(body: unknown): OrderBook {
   const value = record(body, 'depth');
@@ -314,7 +314,10 @@ export function decodeDepth(body: unknown): OrderBook {
       value.lastUpdateId === null || value.lastUpdateId === undefined
         ? null
         : integer(value.lastUpdateId, 'lastUpdateId'),
-    receivedAt: instant(value.receivedAt, 'receivedAt'),
+    receivedAt:
+      value.receivedAt === null || value.receivedAt === undefined
+        ? null
+        : instant(value.receivedAt, 'receivedAt'),
     bids: list(value.bids, 'bids').map(decodeLevel),
     asks: list(value.asks, 'asks').map(decodeLevel),
   };

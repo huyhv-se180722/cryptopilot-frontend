@@ -1970,7 +1970,8 @@ export interface OrderBook {
   market: MarketType;
   symbol: string;
   lastUpdateId: number | null;
-  receivedAt: ISODateTime;
+  /** Null when no current depth is held (empty sides). */
+  receivedAt: ISODateTime | null;
   bids: readonly OrderBookLevel[];
   asks: readonly OrderBookLevel[];
 }

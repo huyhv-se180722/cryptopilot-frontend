@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createHttpClient } from './http-client';
 import { createHttpMarketService, createPendingMarketService } from './market';
 import {
+  decodeDepth,
   decodeKline,
   decodeOverview,
   decodePairPage,
@@ -325,7 +326,28 @@ describe('HTTP market adapter', () => {
     });
     expect(urls[0]?.pathname).toBe('/api/v1/market/futures/BTCUSDT/metrics');
     expect(urls[0]?.searchParams.get('from')).toBe('2026-10-02T02:15:30.000Z');
-    expect(headers[0]?.get('Authorization')).toBeNull();
+    // FUTURES_ANALYSIS only (D-60): the backend refuses a call without a token.
+    expect(headers[0]?.get('Authorization')).toBe('Bearer token-1');
+  });
+
+  it('reads a book with no current depth as empty, not as a failure', () => {
+    expect(
+      decodeDepth({
+        market: 'SPOT',
+        symbol: 'ETHUSDT',
+        lastUpdateId: null,
+        receivedAt: null,
+        bids: [],
+        asks: [],
+      }),
+    ).toEqual({
+      market: 'spot',
+      symbol: 'ETHUSDT',
+      lastUpdateId: null,
+      receivedAt: null,
+      bids: [],
+      asks: [],
+    });
   });
 
   it('reads the open interest of the stats with the caller token (D-60)', async () => {

@@ -107,8 +107,8 @@ export function createHttpMarketService(http: HttpClient): MarketService {
     getFuturesMetrics: (symbol, from, signal) =>
       http.request({
         path: `market/futures/${encodeURIComponent(symbol)}/metrics?from=${encodeURIComponent(from)}`,
+        // Signed in: the metrics are FUTURES_ANALYSIS only (D-60), refused without a token.
         decode: decodeFuturesMetrics,
-        anonymous: true,
         ...withSignal(signal),
       }),
   };
