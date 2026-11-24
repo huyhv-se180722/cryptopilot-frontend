@@ -363,6 +363,56 @@ describe('drawing on the chart (D-149, T-120, T-121)', () => {
     );
   });
 
+  it('takes a two-digit font size as typed and keeps it within 12 to 48', async () => {
+    const service = createDevelopmentChartDrawings();
+    await seed(service, {
+      type: 'TEXT',
+      points: [{ time: time(15), price: '101' }],
+      style: {
+        lineColor: '#2962FF',
+        lineWidth: 2,
+        lineStyle: 'SOLID',
+        fillColor: null,
+        extendLeft: false,
+        extendRight: false,
+        fontSize: 14,
+        fibLevels: null,
+      },
+      text: 'FOMC',
+      locked: false,
+      hidden: false,
+    });
+    const pane = await render(service);
+    await waitFor(() => expect(chart.primitives).toHaveLength(1));
+    click(pane, 15, 101);
+    await screen.findByRole('toolbar', { name: 'Selected drawing' });
+    const settings = async () => {
+      await userEvent.click(screen.getByRole('button', { name: 'Settings' }));
+      return screen.findByLabelText('Font size');
+    };
+
+    // "16" typed digit by digit is not bounded on its first digit.
+    let size = await settings();
+    await userEvent.clear(size);
+    await userEvent.type(size, '16');
+    expect((size as HTMLInputElement).value).toBe('16');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(async () =>
+      expect((await all(service))[0]?.style.fontSize).toBe(16),
+    );
+
+    // Below the type scale's 12 px it is raised to 12 when it leaves the field.
+    size = await settings();
+    await userEvent.clear(size);
+    await userEvent.type(size, '8');
+    await userEvent.tab();
+    expect((size as HTMLInputElement).value).toBe('12');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(async () =>
+      expect((await all(service))[0]?.style.fontSize).toBe(12),
+    );
+  });
+
   it('opens a group menu and keeps the magnet and hide options on the device', async () => {
     const service = createDevelopmentChartDrawings();
     await render(service);

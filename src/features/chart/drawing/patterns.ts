@@ -105,7 +105,7 @@ export function swingLabelShapes(
         at: { x: p[i]!.x, y: p[i]!.y + (top ? -8 : 8) },
         text: name,
         color,
-        size: 11,
+        size: 12,
         align: 'center',
         baseline: top ? 'bottom' : 'top',
       });
@@ -121,7 +121,7 @@ export function swingLabelShapes(
       at: { x: pixel.x, y: pixel.y + (top ? -12 : 12) },
       text: name,
       color: '#FFFFFF',
-      size: 11,
+      size: 12,
       align: 'center',
       baseline: 'middle',
       background: color,
@@ -162,7 +162,7 @@ export function patternShapes(
     width: 1,
     dash: 'DASHED',
   });
-  const tag = (at: Pixel, text: string, size = 10): Shape => ({
+  const tag = (at: Pixel, text: string, size = 12): Shape => ({
     kind: 'text',
     at,
     text,

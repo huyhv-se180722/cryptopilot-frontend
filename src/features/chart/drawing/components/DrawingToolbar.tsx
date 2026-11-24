@@ -209,7 +209,7 @@ export function DrawingToolbar({
         >
           <span className="relative">
             <EyeOff size={16} aria-hidden="true" />
-            <span className="absolute -top-1.5 -right-2 rounded-full bg-primary px-1 text-[9px] leading-3 text-white">
+            <span className="absolute -top-1.5 -right-2 rounded-full bg-primary px-1 text-xs leading-3 text-white">
               {layer.hiddenCount}
             </span>
           </span>

@@ -119,7 +119,7 @@ export function ChartLayoutMenu({
         aria-label={formatCopy(l.menuLabel, { symbol })}
         title={formatCopy(l.menuLabel, { symbol })}
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex h-7 max-w-48 items-center gap-1.5 rounded-md border border-line px-2 text-[11px] font-medium text-fg-2 hover:bg-raised pointer-coarse:h-9"
+        className="inline-flex h-7 max-w-48 items-center gap-1.5 rounded-md border border-line px-2 text-xs font-medium text-fg-2 hover:bg-raised pointer-coarse:h-9"
       >
         <Layers size={13} aria-hidden="true" />
         <span className="truncate">{name(active)}</span>
@@ -196,7 +196,7 @@ export function ChartLayoutMenu({
                       >
                         {name(layout)}
                       </span>
-                      <span className="text-[10px] text-muted">
+                      <span className="text-xs text-muted">
                         {formatCopy(l.drawingCount, {
                           count: countOf(layout),
                         })}
@@ -252,7 +252,7 @@ export function ChartLayoutMenu({
               {l.duplicate}
             </button>
             {layouts.full && (
-              <p className="px-2 py-1 text-[10px] text-muted">{l.limitHint}</p>
+              <p className="px-2 py-1 text-xs text-muted">{l.limitHint}</p>
             )}
           </div>
         </div>

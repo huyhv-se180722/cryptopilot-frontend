@@ -15,6 +15,18 @@ import type { ToolId } from '../tools';
 
 const PRICE = /^\d+(\.\d+)?$/;
 
+/** A text drawing's font: 12 px at least (the type scale, D-161), 48 at most. */
+const FONT_MIN = 12;
+const FONT_MAX = 48;
+const FONT_DEFAULT = 14;
+
+/** The font size typed, kept within its bounds; the default when not a number. */
+function fontSizeOf(typed: string): number {
+  const size = Math.round(Number(typed));
+  if (!Number.isFinite(size) || typed.trim() === '') return FONT_DEFAULT;
+  return Math.min(FONT_MAX, Math.max(FONT_MIN, size));
+}
+
 /** `#RRGGBB` of a colour that may carry an alpha byte, for `<input type=color>`. */
 const opaque = (color: string) => color.slice(0, 7);
 
@@ -76,6 +88,11 @@ export function DrawingSettingsDialog({
   const id = useId();
   const [style, setStyle] = useState(drawing.style);
   const [text, setText] = useState(drawing.text ?? '');
+  // Kept as typed so "16" can be entered digit by digit; bounded on blur and
+  // on save, not on every keystroke.
+  const [fontSize, setFontSize] = useState(
+    String(drawing.style.fontSize ?? FONT_DEFAULT),
+  );
   const [prices, setPrices] = useState(drawing.points.map((p) => p.price));
   const [error, setError] = useState<string | null>(null);
   const position =
@@ -102,7 +119,14 @@ export function DrawingSettingsDialog({
       return;
     }
     if (drawing.type === 'TEXT' && text.trim() === '') return;
-    onSave({ style, text: text.trim() === '' ? null : text.trim(), points });
+    onSave({
+      style:
+        drawing.type === 'TEXT'
+          ? { ...style, fontSize: fontSizeOf(fontSize) }
+          : style,
+      text: text.trim() === '' ? null : text.trim(),
+      points,
+    });
   };
 
   return (
@@ -193,18 +217,11 @@ export function DrawingSettingsDialog({
           <Input
             label={d.fontSize}
             type="number"
-            min={8}
-            max={48}
-            value={style.fontSize ?? 14}
-            onChange={(event) =>
-              setStyle({
-                ...style,
-                fontSize: Math.min(
-                  48,
-                  Math.max(8, Number(event.target.value) || 14),
-                ),
-              })
-            }
+            min={FONT_MIN}
+            max={FONT_MAX}
+            value={fontSize}
+            onChange={(event) => setFontSize(event.target.value)}
+            onBlur={() => setFontSize(String(fontSizeOf(fontSize)))}
           />
         )}
         <div className="flex flex-col gap-1">

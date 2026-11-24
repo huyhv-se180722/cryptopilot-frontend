@@ -245,7 +245,7 @@ export function figureOf(
     at,
     text,
     color,
-    size: 11,
+    size: 12,
     align,
     baseline,
     ...(background ? { background } : {}),
