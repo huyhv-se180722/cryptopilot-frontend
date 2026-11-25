@@ -12,7 +12,7 @@ import {
 import { DrawingPrimitive } from '../drawing-primitive';
 import type { FigureLabels, Pixel } from '../geometry';
 import { chartProjection } from '../projection';
-import { TOOLS, type ToolId } from '../tools';
+import { CLICKS, TOOLS, type ToolId } from '../tools';
 
 /**
  * What the layer tells the app, posted over the WebView channel. The app
@@ -39,6 +39,22 @@ export interface LayerBars {
 
 /** Pixels added around lines and handles: a finger is wider than a mouse. */
 export const TOUCH_SLOP = 10;
+
+/**
+ * Pixels a finger travels before a press with a tool in hand becomes a drag
+ * that draws from where it went down; less is a tap's jitter.
+ */
+export const DRAG_TO_DRAW = 12;
+
+type Gesture =
+  | { kind: 'dragging'; pointer: number }
+  | {
+      kind: 'placing';
+      pointer: number;
+      start: Pixel;
+      /** The first anchor went down where the drag started. */
+      fromStart: boolean;
+    };
 
 const ENGLISH_LABELS: FigureLabels = {
   target: 'Target {price} ({change})',
@@ -67,10 +83,13 @@ export function isTool(value: unknown): value is ToolId {
  * The drawing layer of the mobile chart page (D-149, T-153): the web's
  * controller and painter on the page's candlestick series, driven by touch.
  *
- * With a tool in hand the chart stands still and a finger aims each anchor:
- * the crosshair and the preview follow it, and the anchor lands where the
- * finger lifts. Without one, a press on a drawing selects it and a drag moves
- * it whole or by one anchor; a press elsewhere pans the chart as before.
+ * With a tool in hand the chart stands still and the browser does not pan,
+ * so no gesture is taken away mid-way. Each tap places one anchor where the
+ * finger lifts (the crosshair and the preview follow the finger until then);
+ * a drag that starts a drawing of two or more anchors places the first where
+ * it went down and the next where it lifts, like a mouse drag. Without a
+ * tool, a press on a drawing selects it and a drag moves it whole or by one
+ * anchor; a press elsewhere pans the chart as before.
  * Until `setEditable(true)` the layer only paints.
  */
 export class MobileDrawingLayer {
@@ -80,8 +99,7 @@ export class MobileDrawingLayer {
   private labels: FigureLabels = ENGLISH_LABELS;
   private accent = '#2962FF';
   private editable = false;
-  private gesture: { kind: 'placing' | 'dragging'; pointer: number } | null =
-    null;
+  private gesture: Gesture | null = null;
 
   constructor(
     private readonly chart: IChartApi,
@@ -115,6 +133,10 @@ export class MobileDrawingLayer {
     container.addEventListener('pointermove', this.move, true);
     container.addEventListener('pointerup', this.up, true);
     container.addEventListener('pointercancel', this.cancelGesture, true);
+    container.addEventListener('touchmove', this.holdTouch, {
+      capture: true,
+      passive: false,
+    });
   }
 
   setBars(bars: LayerBars) {
@@ -183,6 +205,7 @@ export class MobileDrawingLayer {
       this.cancelGesture,
       true,
     );
+    this.container.removeEventListener('touchmove', this.holdTouch, true);
     this.series.detachPrimitive(this.primitive);
     this.controller.setProjection(null);
   }
@@ -209,6 +232,21 @@ export class MobileDrawingLayer {
       handleScroll: frozen ? false : { vertTouchDrag: false },
       handleScale: !frozen,
     });
+    // Read when a finger goes down: with a tool in hand, every press is ours.
+    this.container.style.touchAction = frozen ? 'none' : '';
+  }
+
+  /** A drag already under way is moved by preventing the browser's pan. */
+  private readonly holdTouch = (event: TouchEvent) => {
+    if (this.gesture && event.cancelable) event.preventDefault();
+  };
+
+  /** The tool needs two anchors or more and none is placed yet. */
+  private startsByDrag(): boolean {
+    const tool = this.controller.activeTool;
+    return (
+      tool !== null && !this.controller.placing && CLICKS[TOOLS[tool].type] >= 2
+    );
   }
 
   /**
@@ -248,7 +286,12 @@ export class MobileDrawingLayer {
     const at = this.local(event, false);
     if (!at) return;
     if (this.controller.activeTool !== null) {
-      this.gesture = { kind: 'placing', pointer: event.pointerId };
+      this.gesture = {
+        kind: 'placing',
+        pointer: event.pointerId,
+        start: at,
+        fromStart: false,
+      };
       this.controller.pointerMove(at);
       this.aim(at);
     } else if (this.controller.pointerDown(at)) {
@@ -264,6 +307,16 @@ export class MobileDrawingLayer {
     if (!gesture || event.pointerId !== gesture.pointer) return;
     const at = this.local(event, true);
     if (!at) return;
+    if (
+      gesture.kind === 'placing' &&
+      !gesture.fromStart &&
+      Math.hypot(at.x - gesture.start.x, at.y - gesture.start.y) >=
+        DRAG_TO_DRAW &&
+      this.startsByDrag()
+    ) {
+      this.controller.pointerDown(gesture.start);
+      gesture.fromStart = this.controller.placing;
+    }
     this.controller.pointerMove(at);
     if (gesture.kind === 'placing') this.aim(at);
     event.preventDefault();
@@ -293,7 +346,10 @@ export class MobileDrawingLayer {
     const gesture = this.gesture;
     if (!gesture || event.pointerId !== gesture.pointer) return;
     this.gesture = null;
-    // A drag keeps where it got to; an anchor not yet lifted is not placed.
+    // A drag keeps where it got to; an anchor not yet lifted is not placed,
+    // nor the first one of a drawing the drag had started.
+    if (gesture.kind === 'placing' && gesture.fromStart)
+      this.controller.keyDown('Escape', false, false);
     this.controller.pointerUp();
     this.clearCrosshair();
     this.freeze(this.controller.activeTool !== null);

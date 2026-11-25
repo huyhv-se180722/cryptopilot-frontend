@@ -144,6 +144,98 @@ describe('MobileDrawingLayer', () => {
     expect(frozen()).toBe(false);
   });
 
+  it('draws a trend line in one drag, from where it went down to the lift', () => {
+    layer.setEditable(true);
+    layer.setTool('trendLine');
+    container.dispatchEvent(pointer('pointerdown', 100, 100));
+    container.dispatchEvent(pointer('pointermove', 150, 150));
+    container.dispatchEvent(pointer('pointermove', 200, 200));
+    container.dispatchEvent(pointer('pointerup', 200, 200));
+    expect(
+      events.filter((event) => event.type === 'drawing.create'),
+    ).toMatchObject([
+      {
+        draft: { type: 'TREND_LINE', points: [point(10, 900), point(20, 800)] },
+      },
+    ]);
+  });
+
+  it('takes a small wobble for a tap, not a drag', () => {
+    layer.setEditable(true);
+    layer.setTool('trendLine');
+    container.dispatchEvent(pointer('pointerdown', 100, 100));
+    container.dispatchEvent(pointer('pointermove', 105, 105));
+    container.dispatchEvent(pointer('pointerup', 105, 105));
+    expect(events.some((event) => event.type === 'drawing.create')).toBe(false);
+    tap(300, 100);
+    expect(
+      events.find((event) => event.type === 'drawing.create'),
+    ).toMatchObject({ draft: { points: [point(11, 895), point(30, 900)] } });
+  });
+
+  it('drags the first two anchors of a channel and taps the third', () => {
+    layer.setEditable(true);
+    layer.setTool('parallelChannel');
+    container.dispatchEvent(pointer('pointerdown', 100, 100));
+    container.dispatchEvent(pointer('pointermove', 300, 100));
+    container.dispatchEvent(pointer('pointerup', 300, 100));
+    expect(events.some((event) => event.type === 'drawing.create')).toBe(false);
+    // A later drag aims the next anchor instead of starting a new drawing.
+    container.dispatchEvent(pointer('pointerdown', 200, 300));
+    container.dispatchEvent(pointer('pointermove', 200, 250));
+    container.dispatchEvent(pointer('pointerup', 200, 200));
+    expect(
+      events.find((event) => event.type === 'drawing.create'),
+    ).toMatchObject({
+      draft: {
+        type: 'PARALLEL_CHANNEL',
+        points: [point(10, 900), point(30, 900), point(20, 800)],
+      },
+    });
+  });
+
+  it('aims a one-anchor drawing with a drag and places it at the lift', () => {
+    layer.setEditable(true);
+    layer.setTool('horizontalLine');
+    container.dispatchEvent(pointer('pointerdown', 100, 100));
+    container.dispatchEvent(pointer('pointermove', 100, 200));
+    container.dispatchEvent(pointer('pointerup', 100, 300));
+    expect(
+      events.find((event) => event.type === 'drawing.create'),
+    ).toMatchObject({
+      draft: { type: 'HORIZONTAL_LINE', points: [{ price: '700' }] },
+    });
+  });
+
+  it('keeps the browser from panning while a finger draws', () => {
+    layer.setEditable(true);
+    layer.setTool('trendLine');
+    expect(container.style.touchAction).toBe('none');
+    const idle = new Event('touchmove', { cancelable: true });
+    container.dispatchEvent(idle);
+    expect(idle.defaultPrevented).toBe(false);
+    container.dispatchEvent(pointer('pointerdown', 100, 100));
+    const held = new Event('touchmove', { cancelable: true });
+    container.dispatchEvent(held);
+    expect(held.defaultPrevented).toBe(true);
+    layer.setTool(null);
+    expect(container.style.touchAction).toBe('');
+  });
+
+  it('drops a drawing whose drag the system took away', () => {
+    layer.setEditable(true);
+    layer.setTool('trendLine');
+    container.dispatchEvent(pointer('pointerdown', 100, 100));
+    container.dispatchEvent(pointer('pointermove', 200, 200));
+    container.dispatchEvent(pointer('pointercancel', 200, 200));
+    tap(300, 100);
+    expect(events.some((event) => event.type === 'drawing.create')).toBe(false);
+    tap(200, 200);
+    expect(
+      events.find((event) => event.type === 'drawing.create'),
+    ).toMatchObject({ draft: { points: [point(30, 900), point(20, 800)] } });
+  });
+
   it('asks for the text of a text drawing instead of creating it', () => {
     layer.setEditable(true);
     layer.setTool('text');
