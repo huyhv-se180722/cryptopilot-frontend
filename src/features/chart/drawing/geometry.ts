@@ -597,16 +597,20 @@ function insidePolygon(p: Pixel, points: readonly Pixel[]): boolean {
   return inside;
 }
 
-/** Whether `p` is on the figure; handles are tested before the body. */
+/**
+ * Whether `p` is on the figure; handles are tested before the body. `slop`
+ * widens every part by that many pixels (touch).
+ */
 export function hitFigure(
   figure: Figure,
   p: Pixel,
   withHandles: boolean,
+  slop = 0,
 ): FigureHit | null {
   if (withHandles) {
     const index = figure.handles.findIndex(
       (handle) =>
-        Math.hypot(handle.x - p.x, handle.y - p.y) <= HANDLE_RADIUS + 2,
+        Math.hypot(handle.x - p.x, handle.y - p.y) <= HANDLE_RADIUS + 2 + slop,
     );
     if (index >= 0) return { part: 'handle', index };
   }
@@ -615,7 +619,7 @@ export function hitFigure(
       case 'segment':
         if (
           distanceToSegment(p, shape.from, shape.to) <=
-          LINE_TOLERANCE + shape.width / 2
+          LINE_TOLERANCE + slop + shape.width / 2
         )
           return { part: 'body' };
         break;
@@ -623,8 +627,8 @@ export function hitFigure(
         if (
           shape.fill
             ? insideRect(p, shape.from, shape.to)
-            : insideRect(p, shape.from, shape.to, LINE_TOLERANCE) &&
-              !insideRect(p, shape.from, shape.to, -LINE_TOLERANCE)
+            : insideRect(p, shape.from, shape.to, LINE_TOLERANCE + slop) &&
+              !insideRect(p, shape.from, shape.to, -(LINE_TOLERANCE + slop))
         )
           return { part: 'body' };
         break;
@@ -646,7 +650,7 @@ export function hitFigure(
             : shape.baseline === 'middle'
               ? shape.at.y - h / 2
               : shape.at.y;
-        if (insideRect(p, { x: x0, y: y0 }, { x: x0 + w, y: y0 + h }, 2))
+        if (insideRect(p, { x: x0, y: y0 }, { x: x0 + w, y: y0 + h }, 2 + slop))
           return { part: 'body' };
         break;
       }

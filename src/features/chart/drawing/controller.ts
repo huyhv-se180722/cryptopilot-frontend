@@ -144,6 +144,12 @@ export class DrawingController {
   private projection: Projection | null = null;
   private events: ControllerEvents = SILENT;
 
+  /**
+   * @param slop pixels added around every line and handle when a press is
+   *   tested against the drawings: a finger is wider than a mouse pointer.
+   */
+  constructor(private readonly slop = 0) {}
+
   /** Where the controller reports what the Trader did. */
   setEvents(events: ControllerEvents) {
     this.events = events;
@@ -338,7 +344,7 @@ export class DrawingController {
       const figure = this.figure(drawing);
       // An end is grabbed even before the drawing is selected, so a press
       // on it moves that end, not the whole drawing.
-      const hit = figure && hitFigure(figure, at, true);
+      const hit = figure && hitFigure(figure, at, true, this.slop);
       if (hit)
         return { drawing, handle: hit.part === 'handle' ? hit.index : null };
     }
