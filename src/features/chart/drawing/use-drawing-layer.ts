@@ -24,6 +24,7 @@ import {
 import { DrawingPrimitive } from './drawing-primitive';
 import type { Pixel } from './geometry';
 import { DrawingHistory, changeOf, type HistoryEntry } from './history';
+import { TOUCH_SLOP } from './mobile/mobile-layer';
 import { chartProjection } from './projection';
 import { BAR_SECONDS } from './time-axis';
 import type { ToolId } from './tools';
@@ -70,6 +71,11 @@ function writeOptions(options: ControllerOptions) {
 
 function draftOf(drawing: ChartDrawing): Draft {
   return { type: drawing.type, ...changeOf(drawing) };
+}
+
+/** A touch screen or a pen: drawings are pressed with a finger. */
+function coarsePointer(): boolean {
+  return window.matchMedia?.('(pointer: coarse)').matches ?? false;
 }
 
 function editing(target: EventTarget | null): boolean {
@@ -142,7 +148,10 @@ export function useDrawingLayer({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [options, setOptions] = useState(readOptions);
   const [textDraft, setTextDraft] = useState<Draft | null>(null);
-  const [controller] = useState(() => new DrawingController());
+  // A finger needs more room around a line than a mouse pointer (T-153).
+  const [controller] = useState(
+    () => new DrawingController(coarsePointer() ? TOUCH_SLOP : 0),
+  );
   const attachment = useRef<Attachment | null>(null);
   const latest = useRef({ bars, timeframe, offset, places, labels: d.labels });
 
@@ -338,9 +347,6 @@ export function useDrawingLayer({
       chart.applyOptions({ crosshair: { mode: 0 as CrosshairMode.Normal } });
       const freeze = (frozen: boolean) =>
         chart.applyOptions({ handleScroll: !frozen, handleScale: !frozen });
-      // Touch screens show the drawings but do not edit them (D-149 (7)).
-      const viewOnly =
-        window.matchMedia?.('(pointer: coarse)').matches ?? false;
       let pressed = false;
       let over = false;
       /**
@@ -414,14 +420,12 @@ export function useDrawingLayer({
         )
           event.preventDefault();
       };
-      if (!viewOnly) {
-        container.addEventListener('pointerdown', down, true);
-        container.addEventListener('pointermove', move);
-        container.addEventListener('pointerenter', enter);
-        container.addEventListener('pointerleave', leave);
-        window.addEventListener('pointerup', up);
-        window.addEventListener('keydown', key);
-      }
+      container.addEventListener('pointerdown', down, true);
+      container.addEventListener('pointermove', move);
+      container.addEventListener('pointerenter', enter);
+      container.addEventListener('pointerleave', leave);
+      window.addEventListener('pointerup', up);
+      window.addEventListener('keydown', key);
       attachment.current = {
         chart,
         series,

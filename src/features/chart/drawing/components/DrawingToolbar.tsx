@@ -104,7 +104,7 @@ export function DrawingToolbar({
       role="toolbar"
       aria-label={d.toolbarLabel}
       aria-orientation="vertical"
-      className="flex shrink-0 flex-col items-center gap-0.5 border-r border-line pr-1 pointer-coarse:hidden"
+      className="flex shrink-0 flex-col items-center gap-0.5 border-r border-line pr-1"
     >
       {TOOL_GROUPS.map((group) => {
         const current = recent[group.id];
