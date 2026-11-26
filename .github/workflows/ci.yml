@@ -37,3 +37,25 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+
+  # T-004, T-009: the production image builds (Dockerfile, deploy/nginx.conf). Not pushed: the backend address is
+  # compiled into the build, so the staging host builds its own (backend repository, deploy/docker-compose.yml).
+  image:
+    name: Build the web image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image for a placeholder host
+        run: >
+          docker build
+          --build-arg VITE_API_BASE_URL=https://staging.invalid/api/v1
+          --build-arg VITE_WS_URL=wss://staging.invalid/ws
+          -t cryptopilot-web:ci .
+      - name: Serve the app and its health check
+        run: |
+          docker run -d --name web -p 8080:80 cryptopilot-web:ci
+          for i in $(seq 1 10); do curl -fs http://localhost:8080/healthz && break; sleep 1; done
+          curl -fs http://localhost:8080/ | grep -q '<div id="root">'
+          curl -fs -o /dev/null http://localhost:8080/trade/spot/BTCUSDT

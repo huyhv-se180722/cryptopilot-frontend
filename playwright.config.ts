@@ -15,6 +15,8 @@ const channel = CI ? undefined : (process.env.E2E_CHANNEL ?? 'msedge');
 
 export default defineConfig({
   testDir: './e2e',
+  // Compiles the app once before the first test (e2e/global-setup.ts).
+  globalSetup: './e2e/global-setup.ts',
   timeout: 45_000,
   expect: { timeout: 8_000 },
   fullyParallel: true,

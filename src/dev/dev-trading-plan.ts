@@ -183,6 +183,8 @@ const pause = (signal?: AbortSignal) =>
 export function createDevelopmentTradingPlan(
   session: () => Promise<Session | null>,
   now: () => number = Date.now,
+  // Told of each position closed here, as the backend's journal is (T-048a).
+  onClosed: (plan: TradingPlan) => void = () => undefined,
 ): TradingPlanService {
   const plans = new Map(
     devPlanSeeds(now()).map((plan) => [plan.id, plan] as const),
@@ -483,6 +485,7 @@ export function createDevelopmentTradingPlan(
         },
       };
       plans.set(id, closed);
+      onClosed(closed);
       return closed;
     },
     subscribePositions: () => () => undefined,
