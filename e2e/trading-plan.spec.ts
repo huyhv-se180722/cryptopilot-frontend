@@ -98,10 +98,17 @@ test.describe('Trading plan: analyse, plan, activate', () => {
       await signIn(page, ACCOUNTS.premium);
       await open(page, '/plans');
       await page.getByRole('tab', { name: 'Active' }).click();
-      await page
-        .getByRole('link', { name: /Open plan/ })
-        .first()
-        .click();
+      // The list of the previous tab stays on screen until the Active one has loaded: wait until the first row
+      // is Active, or the first link may still be a draft's. (A row's text runs its cells together, so no \b.)
+      const activeRow = page
+        .locator('table tbody tr')
+        .filter({ hasText: 'Active' })
+        .first();
+      await expect(page).toHaveURL(/[?&]tab=ACTIVE\b/);
+      await expect(page.locator('table tbody tr').first()).toContainText(
+        'Active',
+      );
+      await activeRow.getByRole('link', { name: /Open plan/ }).click();
       await page.waitForURL(/\/plans\/[0-9a-f-]{36}$/);
       await open(page, new URL(page.url()).pathname + '/edit');
       await expect(
