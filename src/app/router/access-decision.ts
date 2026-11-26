@@ -8,6 +8,7 @@ export type AccessDecision =
   | { type: 'loading' }
   | { type: 'unavailable' }
   | { type: 'login' }
+  | { type: 'signed-out' }
   | { type: 'blocked'; status: Exclude<AccountStatus, 'active'> }
   | { type: 'denied'; home: string }
   | { type: 'home'; path: string }
@@ -35,7 +36,12 @@ export function decideAccess(
   if (state.status === 'loading') return { type: 'loading' };
   if (state.status === 'error') return { type: 'unavailable' };
   const session = state.session;
-  if (!session) return { type: 'login' };
+  // A protected screen still on view while its user signs out goes to the landing page, not to sign-in: the
+  // shells navigate there themselves, and this guard must not race them to /login (E2E UC-01..03, 2026-11-26).
+  if (!session)
+    return state.status === 'ready' && state.ended === 'signed-out'
+      ? { type: 'signed-out' }
+      : { type: 'login' };
   if (session.user.status !== 'active')
     return { type: 'blocked', status: session.user.status };
   if (!requirement.roles.includes(session.user.role))

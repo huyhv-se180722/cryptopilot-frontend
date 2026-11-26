@@ -66,7 +66,24 @@ describe('session lifecycle', () => {
     expect(store.getSnapshot()).toMatchObject({
       status: 'ready',
       session: null,
+      ended: 'signed-out',
     });
+  });
+  it('marks a sign-out, which a later sign-in clears', async () => {
+    const store = new AuthStore(service({}));
+    await store.login({
+      email: 'user@example.test',
+      password: 'test-only-value',
+      rememberMe: false,
+    });
+    await store.logout();
+    expect(store.getSnapshot()).toMatchObject({ ended: 'signed-out' });
+    await store.login({
+      email: 'user@example.test',
+      password: 'test-only-value',
+      rememberMe: false,
+    });
+    expect(store.getSnapshot()).not.toHaveProperty('ended');
   });
   it('never grants access to inactive accounts', async () => {
     const store = new AuthStore(
