@@ -466,7 +466,7 @@ describe('SCR-18 plan detail (T-041)', () => {
   it('T-142: sums the plan up in its card: price ladder and four figures', async () => {
     await open('/plans/' + PLAN.id);
     const card = within(
-      await screen.findByRole('region', { name: 'BTC/USDT Plan 0000a1b2' }),
+      await screen.findByRole('region', { name: 'BTC/USDT Trading plan' }),
     );
     expect(
       card.getByRole('img', {
@@ -515,7 +515,7 @@ describe('SCR-18 plan detail (T-041)', () => {
     expect(
       await screen.findByRole('heading', {
         level: 1,
-        name: 'BTC/USDT Plan 0000a1b2',
+        name: 'BTC/USDT Trading plan',
       }),
     ).toBeTruthy();
     // The chart of the plan's market carries its lines (FEQ-01 gives the pair).
@@ -1551,7 +1551,7 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
     expect(
       await screen.findByRole('heading', {
         level: 1,
-        name: 'BTC/USDT Plan 0000a1b2',
+        name: 'BTC/USDT Trading plan',
       }),
     ).toBeTruthy();
   });

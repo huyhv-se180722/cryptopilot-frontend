@@ -5,7 +5,6 @@ import { Button } from '../../components/ui/Button';
 import { ErrorState } from '../../components/feedback/States';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useCopy } from '../../hooks/use-copy';
-import { formatCopy } from '../../i18n/copy';
 import { errorText } from '../../i18n/messages';
 import { usePairLookup } from '../../features/market/hooks/use-market-data';
 import { PlanActions } from '../../features/trading-plan/components/PlanActions';
@@ -23,7 +22,6 @@ import { PlanPositionPanel } from '../../features/trading-plan/components/PlanPo
 import { PlanSummary } from '../../features/trading-plan/components/PlanSummary';
 import { PositionLevelsDialog } from '../../features/trading-plan/components/PositionLevelsDialog';
 import { ClosePositionDialog } from '../../features/trading-plan/components/ClosePositionDialog';
-import { shortPlanId } from '../../features/trading-plan/components/plan-format';
 import { planLines } from '../../features/trading-plan/components/plan-lines';
 import {
   usePlan,
@@ -95,7 +93,7 @@ export function PlanDetailPage() {
               >
                 {pair && `${pairLabel(pair.symbol)} `}
                 <span className={pair ? 'font-normal text-muted' : undefined}>
-                  {formatCopy(p.detailTitle, { id: shortPlanId(plan.id) })}
+                  {p.detailTitle}
                 </span>
               </h1>
               <span className="rounded border border-line px-1.5 text-xs font-semibold text-muted">
