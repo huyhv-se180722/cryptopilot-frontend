@@ -7,12 +7,12 @@ import { formatCopy } from '../../i18n/copy';
 import { errorText } from '../../i18n/messages';
 import { PlanStatusBadge } from '../../features/trading-plan/components/PlanBadges';
 import { PlanEditor } from '../../features/trading-plan/components/PlanEditor';
-import { shortPlanId } from '../../features/trading-plan/components/plan-format';
 import { usePairLookup } from '../../features/market/hooks/use-market-data';
 import { useProfileData } from '../../features/profile/hooks/use-profile';
 import { usePlan } from '../../features/trading-plan/hooks/use-plans';
 import { PlanChart } from './plan-chart';
 import { PlanFuturesStrip } from './plan-futures-strip';
+import { pairLabel } from '../../utils/pair-label';
 
 /**
  * SCR-17 Edit Trading Plan (SRS 3.5.1, UC-17) for a DRAFT; any other status
@@ -27,8 +27,8 @@ export function PlanEditPage() {
   const { planId = '' } = useParams();
   const query = usePlan(planId);
   const plan = query.data;
-  const id = shortPlanId(planId);
   const pairOf = usePairLookup();
+  const pair = plan ? pairOf(plan.pairId, plan.market) : undefined;
   const profile = useProfileData().state;
 
   return (
@@ -38,11 +38,13 @@ export function PlanEditPage() {
         className="mb-3 inline-flex items-center gap-1 text-xs text-muted no-underline hover:text-fg-2"
       >
         <ChevronLeft size={13} aria-hidden="true" />
-        {formatCopy(p.backToPlan, { id })}
+        {p.backToPlan}
       </Link>
       <header className="mb-4 flex flex-wrap items-center gap-3">
         <h1 className="text-xl font-semibold text-fg">
-          {formatCopy(p.editTitle, { id })}
+          {formatCopy(p.editTitle, {
+            pair: pair ? pairLabel(pair.symbol) : '',
+          }).trim()}
         </h1>
         {plan && <PlanStatusBadge status={plan.status} />}
       </header>
@@ -68,9 +70,7 @@ export function PlanEditPage() {
           {formatCopy(p.notEditable, {
             status: p[`status${plan.status}`].toLowerCase(),
           })}{' '}
-          <Link to={`/plans/${plan.id}`}>
-            {formatCopy(p.backToPlan, { id })}
-          </Link>
+          <Link to={`/plans/${plan.id}`}>{p.backToPlan}</Link>
         </p>
       ) : (
         <PlanEditor
@@ -78,7 +78,7 @@ export function PlanEditPage() {
           target={{
             mode: 'edit',
             plan,
-            pair: pairOf(plan.pairId, plan.market),
+            pair,
           }}
           accountCapital={
             profile.status === 'success'
