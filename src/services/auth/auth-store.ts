@@ -6,8 +6,11 @@ export type AuthState =
   | {
       status: 'ready';
       session: Session | null;
-      /** Set when a live session was ended by the server (MSG44). */
-      ended?: 'expired';
+      /**
+       * How a live session ended: by the server (MSG44, `expired`) or by the user signing out (`signed-out`,
+       * so the route guard sends them to the landing page rather than to sign-in).
+       */
+      ended?: 'expired' | 'signed-out';
     }
   | { status: 'error'; session: null; message: string };
 
@@ -72,7 +75,10 @@ export class AuthStore {
   logout = async () => {
     this.nextRevision();
     // Clear local access immediately even if backend revocation fails.
-    this.accept(null);
+    const hadSession = this.state.session !== null;
+    if (hadSession)
+      this.setState({ status: 'ready', session: null, ended: 'signed-out' });
+    else this.accept(null);
     await this.service.logout();
   };
   /** Called when the server reports the session has ended (401). */

@@ -30,6 +30,8 @@ export function ProtectedRoute({ roles }: { roles: readonly AccountRole[] }) {
           state={{ from: location.pathname + location.search }}
         />
       );
+    case 'signed-out':
+      return <Navigate to="/" replace />;
     case 'blocked':
       return <AccountBlockedScreen status={decision.status} />;
     case 'denied':

@@ -34,6 +34,21 @@ describe('decideAccess — protected areas', () => {
     expect(decideAccess(ready(null), trader)).toEqual({ type: 'login' });
   });
 
+  it('sends a user who just signed out to the landing page, one whose session expired to sign in', () => {
+    const ended = (how: 'signed-out' | 'expired'): AuthState => ({
+      status: 'ready',
+      session: null,
+      ended: how,
+    });
+    expect(decideAccess(ended('signed-out'), trader)).toEqual({
+      type: 'signed-out',
+    });
+    expect(decideAccess(ended('signed-out'), admin)).toEqual({
+      type: 'signed-out',
+    });
+    expect(decideAccess(ended('expired'), trader)).toEqual({ type: 'login' });
+  });
+
   it('blocks locked or banned accounts before any role check', () => {
     expect(decideAccess(ready(session('Trader', 'locked')), trader)).toEqual({
       type: 'blocked',
