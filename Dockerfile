@@ -21,6 +21,7 @@ RUN test -n "$VITE_API_BASE_URL" || (echo "VITE_API_BASE_URL is required" >&2; e
 FROM nginx:1.30.8-alpine
 RUN apk upgrade --no-cache
 COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
+COPY deploy/security-headers.conf /etc/nginx/snippets/security-headers.conf
 COPY --from=build /src/dist /usr/share/nginx/html
 EXPOSE 80
 HEALTHCHECK --interval=15s --timeout=3s --retries=5 CMD wget -qO- http://127.0.0.1/healthz >/dev/null || exit 1

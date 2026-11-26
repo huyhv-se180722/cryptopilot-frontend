@@ -10,21 +10,8 @@
     />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <title>CryptoPilot</title>
-    <script>
-      // Apply the saved theme before first paint (ThemeProvider takes over after mount).
-      (function () {
-        var theme = 'light';
-        try {
-          var saved = localStorage.getItem('cp-theme');
-          if (saved === 'dark') theme = 'dark';
-          else if (saved === 'system')
-            theme = matchMedia('(prefers-color-scheme: dark)').matches
-              ? 'dark'
-              : 'light';
-        } catch (e) {}
-        document.documentElement.setAttribute('data-theme', theme);
-      })();
-    </script>
+    <!-- The saved theme before first paint; not inline, for the Content-Security-Policy (deploy/nginx.conf). -->
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>
