@@ -172,6 +172,11 @@ export interface SetupScore {
   timeframe: CandleTimeframe;
   openTime: ISODateTime | null;
   components: ComponentScores;
+  /**
+   * The server left the components out for the caller's plan (CR-08):
+   * shown locked with MSG29 even when the session does not know the plan.
+   */
+  componentsLocked: boolean;
   /** Futures only; null when the score is insufficient. */
   dominantSide?: DominantSide | null;
 }
@@ -402,6 +407,11 @@ export interface PlanPosition {
   levelWarnings: readonly PlanWarning[];
   /** The first 1-minute candle the current levels act on; null if never changed. */
   levelsEffectiveFrom: ISODateTime | null;
+  /**
+   * The plan was applied with paper orders (RF-33): the position is closed
+   * and its levels changed on the trading screen, not here.
+   */
+  onDemoAccount: boolean;
 }
 
 /**
@@ -460,6 +470,23 @@ export interface PositionUpdate {
 export interface PositionLevels {
   stopLoss: Decimal | null;
   takeProfit: Decimal | null;
+}
+
+/**
+ * The paper orders an ACTIVE plan was applied with (RF-33,
+ * `POST /paper/plans/{id}/apply`): the entry first, then its take profit
+ * and stop loss. The plan is EXECUTED once the entry fills.
+ */
+export interface AppliedPlan {
+  planId: string;
+  market: MarketType;
+  symbol: string;
+  entryOrderId: string;
+  orderIds: readonly string[];
+  /** FILLED for a MARKET entry that filled at once; NEW while it waits. */
+  entryStatus: string;
+  /** Whether a stop loss order was placed with it (not for a STOP entry). */
+  protectedByStopLoss: boolean;
 }
 
 /** SCR-18: inputs, snapshot, warnings and status history of one plan. */
@@ -589,7 +616,8 @@ export interface JournalTrade {
   pairId: string;
   market: MarketType;
   direction: PlanDirection;
-  source: 'SIMULATED' | 'MANUAL';
+  /** SIMULATED: a plan's order; DEMO_ORDER: a paper order placed directly (RF-35); MANUAL: entered by hand. */
+  source: 'SIMULATED' | 'MANUAL' | 'DEMO_ORDER';
   status: PositionStatus;
   leverage: number | null;
   entryPrice: Decimal;
@@ -708,7 +736,7 @@ export interface ManualTradeInput {
   lessonsLearned: string | null;
   mistakes: string | null;
 }
-export type PerformanceSource = 'SIMULATED' | 'MANUAL' | 'ALL';
+export type PerformanceSource = 'SIMULATED' | 'DEMO_ORDER' | 'MANUAL' | 'ALL';
 /** The filters of every `/journal/performance/*` read (SCR-23, UC-25). */
 export interface PerformanceFilter {
   /** First day counted, `yyyy-MM-dd` in UTC+7; absent from the first trade. */

@@ -187,6 +187,15 @@ function fakePlans(overrides: Partial<TradingPlanService> = {}) {
         : { items: [ROW], page: query.page, pageSize: 20, total: 1 },
     ),
     get: vi.fn(async () => PLAN),
+    apply: vi.fn(async () => ({
+      planId: PLAN.id,
+      market: PLAN.market,
+      symbol: 'BTCUSDT',
+      entryOrderId: 'o1',
+      orderIds: ['o1', 'o2', 'o3'],
+      entryStatus: 'FILLED',
+      protectedByStopLoss: true,
+    })),
     activate: vi.fn(async () => ({
       ...PLAN,
       status: 'ACTIVE' as const,
@@ -665,6 +674,7 @@ describe('SCR-18 plan detail (T-041)', () => {
         breakevenProvisional: true,
         levelWarnings: [],
         levelsEffectiveFrom: '2026-10-08T05:01:00Z',
+        onDemoAccount: false,
       },
     };
     await open(
@@ -729,6 +739,7 @@ describe('SCR-18 plan detail (T-041)', () => {
         breakevenProvisional: false,
         levelWarnings: [],
         levelsEffectiveFrom: null,
+        onDemoAccount: false,
       },
     };
     await open(
@@ -901,6 +912,46 @@ describe('SCR-18 plan detail (T-041)', () => {
     await waitFor(() =>
       expect(screen.queryByRole('button', { name: 'Cancel plan' })).toBeNull(),
     );
+  });
+
+  it('applies an active plan only after confirming its order (RF-33)', async () => {
+    const active = { ...PLAN, status: 'ACTIVE' as const, editable: false };
+    const service = fakePlans({ get: vi.fn(async () => active) });
+    await open('/plans/' + PLAN.id, service);
+    expect(screen.queryByRole('button', { name: 'Activate' })).toBeNull();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Apply plan' }),
+    );
+    const dialog = within(screen.getByRole('dialog'));
+    expect(dialog.getByText(active.snapshot.positionQuantity)).toBeTruthy();
+    expect(service.apply).not.toHaveBeenCalled();
+    await userEvent.click(dialog.getByRole('button', { name: 'Place order' }));
+    await waitFor(() => expect(service.apply).toHaveBeenCalledWith(PLAN.id));
+    expect(
+      await screen.findByText(
+        'Plan applied: the entry filled and its orders are placed.',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('shows why a plan could not be applied', async () => {
+    const active = { ...PLAN, status: 'ACTIVE' as const, editable: false };
+    const service = fakePlans({
+      get: vi.fn(async () => active),
+      apply: vi
+        .fn()
+        .mockRejectedValue(refusal(400, 'PAPER_INSUFFICIENT_BALANCE', 'MSG01')),
+    });
+    await open('/plans/' + PLAN.id, service);
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Apply plan' }),
+    );
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: 'Place order',
+      }),
+    );
+    expect(await screen.findByRole('alert')).toBeTruthy();
   });
 
   it('reads the plan again when it changed elsewhere', async () => {
@@ -1689,6 +1740,7 @@ describe('SCR-18 edit the levels of an open position (TP-E, D-124)', () => {
     breakevenProvisional: false,
     levelWarnings: [],
     levelsEffectiveFrom: null,
+    onDemoAccount: false,
   };
   // A SHORT whose current price is already below its breakeven stop.
   const executed: TradingPlan = {
@@ -1715,6 +1767,7 @@ describe('SCR-18 edit the levels of an open position (TP-E, D-124)', () => {
         saved({
           stopLoss: '62700.000000000000',
           levelsEffectiveFrom: '2026-10-08T05:01:00Z',
+          onDemoAccount: false,
         }),
       ),
     });
@@ -1965,6 +2018,7 @@ describe('SCR-19 close an open position (T-047, UC-21)', () => {
     breakevenProvisional: false,
     levelWarnings: [],
     levelsEffectiveFrom: null,
+    onDemoAccount: false,
   };
   const executed: TradingPlan = {
     ...PLAN,

@@ -16,6 +16,7 @@ export const MARKET_CHOICES: readonly MarketChoice[] = [
 ];
 export const SOURCES: readonly PerformanceSource[] = [
   'SIMULATED',
+  'DEMO_ORDER',
   'MANUAL',
   'ALL',
 ];

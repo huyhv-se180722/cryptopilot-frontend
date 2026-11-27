@@ -70,7 +70,7 @@ describe('SCR-20 trading journal', () => {
     const table = await screen.findByRole('table');
     expect(within(table).getByText(/\+19\.29 USDT/)).toBeTruthy();
     expect(within(table).getByText('Win')).toBeTruthy();
-    expect(within(table).getByText('Simulated')).toBeTruthy();
+    expect(within(table).getByText('Plan')).toBeTruthy();
   });
 
   it('sends the filters of the address and links the dashboard', async () => {

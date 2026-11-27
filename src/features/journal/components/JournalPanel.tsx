@@ -222,6 +222,12 @@ function TradeRow({
         {trade.source === 'MANUAL' && (
           <span className="text-muted-x">{p.journalManual}</span>
         )}
+        {trade.source === 'DEMO_ORDER' && (
+          <span className="text-muted-x">{p.journalDemoOrder}</span>
+        )}
+        {trade.source !== 'MANUAL' && trade.stopLoss === null && (
+          <span className="text-warning">{p.journalNoStopLoss}</span>
+        )}
         <time
           dateTime={trade.exitTime ?? trade.entryTime}
           title={formatInstantUtc(trade.exitTime ?? trade.entryTime)}

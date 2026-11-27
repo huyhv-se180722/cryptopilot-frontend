@@ -51,7 +51,7 @@ test.describe('Main flows (T-093)', () => {
           .filter({ hasText: 'BTC/USDT' })
           .filter({ hasText: '61,500.00' })
           .filter({ hasText: '62,050.00' });
-        await expect(row).toContainText('Simulated');
+        await expect(row).toContainText('Plan');
         await expect(row).toContainText('Closed');
       });
       noErrors();

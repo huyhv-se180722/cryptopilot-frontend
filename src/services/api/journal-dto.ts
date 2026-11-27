@@ -31,7 +31,11 @@ import { marketOf } from './market-dto';
  */
 
 const DIRECTIONS: readonly PlanDirection[] = ['LONG', 'SHORT'];
-const SOURCES: readonly JournalTrade['source'][] = ['SIMULATED', 'MANUAL'];
+const SOURCES: readonly JournalTrade['source'][] = [
+  'SIMULATED',
+  'MANUAL',
+  'DEMO_ORDER',
+];
 const STATUSES: readonly PositionStatus[] = ['OPEN', 'CLOSED'];
 const CLOSE_REASONS: readonly PositionCloseReason[] = [
   'TAKE_PROFIT',

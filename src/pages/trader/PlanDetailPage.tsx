@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ChevronLeft, LogOut, SlidersHorizontal } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import { buttonClassName } from '../../components/ui/button-styles';
 import { ErrorState } from '../../components/feedback/States';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useCopy } from '../../hooks/use-copy';
@@ -129,7 +130,24 @@ export function PlanDetailPage() {
                   {p.chartUnlisted}
                 </p>
               ) : null}
-              {plan.status === 'EXECUTED' && (
+              {plan.status === 'EXECUTED' && plan.position?.onDemoAccount && (
+                <PlanPositionPanel
+                  plan={plan}
+                  actions={
+                    <Link
+                      to={`/trade/${plan.market}/${pair?.symbol ?? ''}`}
+                      className={buttonClassName(
+                        'secondary',
+                        'sm',
+                        'no-underline',
+                      )}
+                    >
+                      {p.manageOnTrade}
+                    </Link>
+                  }
+                />
+              )}
+              {plan.status === 'EXECUTED' && !plan.position?.onDemoAccount && (
                 <PlanPositionPanel
                   plan={plan}
                   actions={

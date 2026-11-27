@@ -89,6 +89,7 @@ const OPEN_LEVELS = {
   levelChanges: [],
   levelWarnings: [],
   levelsEffectiveFrom: null,
+  onDemoAccount: false,
 } as const;
 
 const SEEDS: readonly Seed[] = [
@@ -186,6 +187,7 @@ const SEEDS: readonly Seed[] = [
       breakevenProvisional: false,
       levelWarnings: [],
       levelsEffectiveFrom: new Date(created + 20 * HOUR + 60_000).toISOString(),
+      onDemoAccount: false,
     }),
   },
   {

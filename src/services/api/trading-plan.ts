@@ -3,6 +3,7 @@ import { integrationPending } from './errors';
 import type { HttpClient } from './http-client';
 import type { AccountFeed } from './paper-trading';
 import {
+  decodeAppliedPlan,
   decodeCalculation,
   decodeCloseEstimate,
   decodePositionUpdate,
@@ -18,6 +19,7 @@ export function createPendingTradingPlanService(): TradingPlanService {
     get: async () => integrationPending(),
     activate: async () => integrationPending(),
     cancel: async () => integrationPending(),
+    apply: async () => integrationPending(),
     create: async () => integrationPending(),
     calculate: async () => integrationPending(),
     update: async () => integrationPending(),
@@ -78,6 +80,12 @@ export function createHttpTradingPlanService(
         path: planPath(id) + '/cancel',
         method: 'POST',
         decode: decodePlan,
+      }),
+    apply: (id) =>
+      http.request({
+        path: 'paper/plans/' + encodeURIComponent(id) + '/apply',
+        method: 'POST',
+        decode: decodeAppliedPlan,
       }),
     create: (pairId, inputs, activate, confirmDeviation = false) =>
       http.request({
