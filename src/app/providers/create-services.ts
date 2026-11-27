@@ -137,6 +137,10 @@ import {
   createHttpMarketStatusService,
   createPendingMarketStatusService,
 } from '../../services/api/market-status';
+import {
+  createHttpMarketTestToolsService,
+  createPendingMarketTestToolsService,
+} from '../../services/api/market-test-tools';
 
 export async function createServices(env: Environment): Promise<Services> {
   // The session renews through the same client it authorizes (anonymous call).
@@ -175,6 +179,9 @@ export async function createServices(env: Environment): Promise<Services> {
     marketStatus: connected
       ? createHttpMarketStatusService(http, stomp)
       : createPendingMarketStatusService(),
+    marketTestTools: connected
+      ? createHttpMarketTestToolsService(http)
+      : createPendingMarketTestToolsService(),
     tradingMarket: connected
       ? createHttpTradingMarketService(http, stomp)
       : createPendingTradingMarketService(),

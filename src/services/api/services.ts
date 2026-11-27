@@ -34,6 +34,7 @@ import type { ChartDrawingService } from './chart-drawings';
 import type { ChartLayoutService } from './chart-layouts';
 import type { FuturesTradingService } from './futures';
 import type { MarketStatusService } from './market-status';
+import type { MarketTestToolsService } from './market-test-tools';
 import type { HttpClient } from './http-client';
 
 export interface Services {
@@ -45,6 +46,8 @@ export interface Services {
   marketFeed: MarketFeed;
   /** The markets' data health, reference prices and maintenance (D-159). */
   marketStatus: MarketStatusService;
+  /** Price replay and stream fault switch of a test environment (RF-07, RF-12). */
+  marketTestTools: MarketTestToolsService;
   tradingMarket: TradingMarketService;
   analysis: AnalysisService;
   tradingPlan: TradingPlanService;
