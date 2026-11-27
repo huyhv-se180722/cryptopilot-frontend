@@ -3457,6 +3457,9 @@ export const en = {
     modeMineHint:
       'The assistant reads your plan (with the state of its coin) and your trading statistics.',
     noPlans: 'You have no plan to ask about yet.',
+    noPlansCreate:
+      'You have no plan yet. Create one to ask the assistant about it.',
+    createPlan: 'Create a plan',
     placeholderMine: 'Ask about your plan or your trading performance…',
     pairNeedsChoice: 'Pick a coin for the assistant to analyse.',
     mineNeedsChoice: 'Pick a plan or tick the performance to ask.',

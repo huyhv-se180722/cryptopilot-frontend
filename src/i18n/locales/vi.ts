@@ -3448,6 +3448,8 @@ export const vi: PartialCopy = {
     modeMineHint:
       'Trợ lý xem plan của bạn (kèm tình hình coin của plan) và thống kê giao dịch.',
     noPlans: 'Bạn chưa có plan nào để hỏi.',
+    noPlansCreate: 'Bạn chưa có plan nào. Tạo một plan để hỏi trợ lý về nó.',
+    createPlan: 'Tạo plan',
     placeholderMine: 'Hỏi về plan hoặc hiệu suất giao dịch của bạn…',
     pairNeedsChoice: 'Chọn một coin để trợ lý phân tích.',
     mineNeedsChoice: 'Chọn một plan hoặc tick hiệu suất để hỏi.',

@@ -438,9 +438,12 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
       await screen.findByText('Bạn chưa có plan nào để hỏi.'),
     ).toBeTruthy();
     expect(screen.queryByLabelText('Cặp coin')).toBeNull();
-    expect(
-      screen.getByText('Chọn một plan hoặc tick hiệu suất để hỏi.'),
-    ).toBeTruthy();
+    // PREMIUM without a plan: the performance is ticked on open.
+    const performance = screen.getByRole('checkbox', {
+      name: /Hiệu suất giao dịch của tôi/,
+    }) as HTMLInputElement;
+    await waitFor(() => expect(performance.checked).toBe(true));
+    expect(screen.getByText('Hiệu suất giao dịch')).toBeTruthy();
     const box = screen.getByPlaceholderText(
       'Hỏi về plan hoặc hiệu suất giao dịch của bạn…',
     );
@@ -448,12 +451,6 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
     const send = screen.getByRole('button', {
       name: /Gửi/,
     }) as HTMLButtonElement;
-    expect(send.disabled).toBe(true);
-
-    await user.click(
-      screen.getByRole('checkbox', { name: /Hiệu suất giao dịch của tôi/ }),
-    );
-    expect(screen.getByText('Hiệu suất giao dịch')).toBeTruthy();
     await user.click(send);
 
     await waitFor(() =>
@@ -461,12 +458,37 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
         { question: 'Tôi cần cải thiện gì?', includePerformance: true },
       ]),
     );
+    // Dropped by the Trader, it stays dropped, and the reason shows by the box.
     await user.click(
       screen.getByRole('button', { name: 'Bỏ Hiệu suất giao dịch' }),
     );
+    expect(performance.checked).toBe(false);
     expect(
-      screen.getByText('Chọn một plan hoặc tick hiệu suất để hỏi.'),
-    ).toBeTruthy();
+      screen.getAllByText('Chọn một plan hoặc tick hiệu suất để hỏi.'),
+    ).toHaveLength(2);
+  });
+
+  it('PRO without a plan: the box says why it cannot send and links to a new plan', async () => {
+    const user = userEvent.setup();
+    await openAssistant(aiService(PRO, { items: [] }), '/ai/my-trading');
+
+    const create = await screen.findByRole('link', { name: 'Tạo plan' });
+    expect(create.getAttribute('href')).toBe('/plans/new');
+    await user.type(
+      screen.getByPlaceholderText(
+        'Hỏi về plan hoặc hiệu suất giao dịch của bạn…',
+      ),
+      'Plan này ổn không?',
+    );
+    expect(
+      (screen.getByRole('button', { name: /Gửi/ }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+    expect(
+      screen.getAllByText(
+        'Bạn chưa có plan nào. Tạo một plan để hỏi trợ lý về nó.',
+      ).length,
+    ).toBeGreaterThan(0);
   });
 
   it('keeps the two pages apart: each lists and starts only its own topic', async () => {
@@ -571,13 +593,11 @@ describe('AI assistant screen (SCR-29, UC-35, UC-36, T-076)', () => {
       withPlan,
     );
 
-    await screen.findByRole('option', { name: /BTCUSDT · LONG/ });
-    await user.selectOptions(
-      screen.getByLabelText('Một plan của tôi'),
-      'plan-1',
-    );
-
+    // The Trader's ACTIVE plan is chosen when the page opens.
     expect(await screen.findByText('Plan BTCUSDT LONG')).toBeTruthy();
+    expect(
+      (screen.getByLabelText('Một plan của tôi') as HTMLSelectElement).value,
+    ).toBe('plan-1');
     expect(
       await screen.findByText('Tình hình BTCUSDT · Spot · 4h'),
     ).toBeTruthy();
