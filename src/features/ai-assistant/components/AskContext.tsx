@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Plus } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { buttonClassName } from '../../../components/ui/button-styles';
 import { useCopy } from '../../../hooks/use-copy';
 import { formatCopy } from '../../../i18n/copy';
 import { classNames } from '../../../utils/class-names';
@@ -186,6 +188,7 @@ function number(value: string) {
 export function MineContextBar({
   value,
   plans,
+  plansLoaded = true,
   symbolOf,
   planTimeframe,
   performanceAllowed,
@@ -193,6 +196,8 @@ export function MineContextBar({
 }: {
   value: AiContextValue;
   plans: readonly TradingPlanSummary[];
+  /** Whether the plan list has been read: only then is "no plan" true. */
+  plansLoaded?: boolean;
   symbolOf: (pairId: string) => string | undefined;
   /** The chosen plan's timeframe, once read. */
   planTimeframe: string | undefined;
@@ -296,6 +301,19 @@ export function MineContextBar({
           className="pointer-events-none shrink-0 text-muted"
         />
       </div>
+      {plansLoaded && plans.length === 0 && (
+        <Link
+          to="/plans/new"
+          className={buttonClassName(
+            'secondary',
+            'sm',
+            'justify-center gap-1.5 no-underline',
+          )}
+        >
+          <Plus size={14} aria-hidden="true" />
+          {t.createPlan}
+        </Link>
+      )}
       <label
         className={classNames(
           'flex min-w-0 flex-[1_1_260px] cursor-pointer items-center gap-3 xl:flex-none rounded-xl border border-line-strong bg-surface px-3 py-2.5',

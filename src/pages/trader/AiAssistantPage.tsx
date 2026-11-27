@@ -211,6 +211,10 @@ function TopicWorkspace({ tab }: { tab: Tab }) {
   // The coin the market page falls back to while none is picked: the one an
   // analysis screen named, else BTCUSDT.
   const [symbolHint, setSymbolHint] = useState(params.get('symbol'));
+  // Until the Trader sets the context of the "mine" page, it asks about their
+  // first ACTIVE plan (else the first plan), or on PREMIUM without a plan
+  // about the performance, so the page is ready to ask when it opens.
+  const [contextTouched, setContextTouched] = useState(false);
   const [renaming, setRenaming] = useState<AiConversation | null>(null);
   const [title, setTitle] = useState('');
   const [deleting, setDeleting] = useState<AiConversation | null>(null);
@@ -235,9 +239,25 @@ function TopicWorkspace({ tab }: { tab: Tab }) {
           (pair) => pair.symbol === (symbolHint ?? DEFAULT_SYMBOL),
         ) ?? marketPairs[0])
       : undefined;
-  const chosen: AiContextValue = fallback
-    ? { ...context, pairId: fallback.pairId }
-    : context;
+  const performanceAllowed = quota.data?.performanceContext ?? false;
+  const planList = plans.data ?? [];
+  const untouchedMine =
+    tab === 'mine' &&
+    !contextTouched &&
+    context.planId === '' &&
+    !context.includePerformance;
+  const fallbackPlan = untouchedMine
+    ? (planList.find((item) => item.status === 'ACTIVE') ?? planList[0])
+    : undefined;
+  const fallbackPerformance =
+    untouchedMine &&
+    plans.data !== undefined &&
+    planList.length === 0 &&
+    performanceAllowed;
+  let chosen: AiContextValue = context;
+  if (fallback) chosen = { ...chosen, pairId: fallback.pairId };
+  if (fallbackPlan) chosen = { ...chosen, planId: fallbackPlan.id };
+  if (fallbackPerformance) chosen = { ...chosen, includePerformance: true };
   const start = useStartConversation();
   const rename = useRenameConversation();
   const removal = useDeleteConversation();
@@ -275,6 +295,7 @@ function TopicWorkspace({ tab }: { tab: Tab }) {
 
   function change(next: AiContextValue) {
     setSymbolHint(null);
+    setContextTouched(true);
     setContext(next);
   }
 
@@ -293,8 +314,11 @@ function TopicWorkspace({ tab }: { tab: Tab }) {
   }
 
   async function newConversation() {
-    if ((await startConversation()) !== null)
-      change(initialContext(tab, new URLSearchParams()));
+    if ((await startConversation()) !== null) {
+      setSymbolHint(null);
+      setContextTouched(false);
+      setContext(initialContext(tab, new URLSearchParams()));
+    }
   }
 
   async function askQuestion(text: string): Promise<boolean> {
@@ -362,7 +386,6 @@ function TopicWorkspace({ tab }: { tab: Tab }) {
           market: marketLabel(chosen.market),
           timeframe: chosen.timeframe,
         });
-  const performanceAllowed = quota.data?.performanceContext ?? false;
   const icon = (node: ReactNode, tone: string) => (
     <SuggestionIcon className={tone}>{node}</SuggestionIcon>
   );
@@ -572,7 +595,8 @@ function TopicWorkspace({ tab }: { tab: Tab }) {
             ) : (
               <MineContextBar
                 value={chosen}
-                plans={plans.data ?? []}
+                plans={planList}
+                plansLoaded={plans.data !== undefined}
                 symbolOf={symbolOf}
                 planTimeframe={plan ? planTimeframe : undefined}
                 performanceAllowed={performanceAllowed}
@@ -630,7 +654,13 @@ function TopicWorkspace({ tab }: { tab: Tab }) {
             placeholder={placeholder}
             attachments={attachments}
             emptyAttachmentText={
-              tab === 'mine' ? t.mineNeedsChoice : t.pairNeedsChoice
+              tab === 'market'
+                ? t.pairNeedsChoice
+                : plans.data !== undefined &&
+                    planList.length === 0 &&
+                    !performanceAllowed
+                  ? t.noPlansCreate
+                  : t.mineNeedsChoice
             }
             canSend={isReady(chosen)}
             accent={accent}

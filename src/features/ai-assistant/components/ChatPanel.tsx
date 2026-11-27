@@ -489,6 +489,9 @@ export function ChatPanel({
 
   const sendDisabled =
     !canAsk || !canSend || asking || pending || draft.trim() === '';
+  // Why the send button stays off although the quota allows a question.
+  const missingContext =
+    canAsk && !canSend && emptyAttachmentText !== undefined;
 
   return (
     <section
@@ -587,14 +590,20 @@ export function ChatPanel({
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-1 text-xs">
               <span
                 className={classNames(
-                  quota && !canAsk ? 'text-negative' : 'text-muted-dim',
+                  quota && !canAsk
+                    ? 'text-negative'
+                    : missingContext
+                      ? 'font-medium text-warning'
+                      : 'text-muted-dim',
                 )}
               >
                 {quota && !canAsk
                   ? quotaLine(t, quota)
-                  : compact
-                    ? t.disclaimerShort
-                    : t.sendHint}
+                  : missingContext
+                    ? emptyAttachmentText
+                    : compact
+                      ? t.disclaimerShort
+                      : t.sendHint}
               </span>
               <span className="font-mono text-muted-dim">
                 {compact && quota && canAsk && quota.limit !== null
