@@ -4,6 +4,7 @@ import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { Table } from '../../components/ui/Table';
 import { MarketHealthCard } from '../../features/market-status/components/MarketHealthCard';
+import { MarketTestTools } from '../../features/market-status/components/MarketTestTools';
 import {
   useMarketIncidents,
   type HealthMarket,
@@ -17,7 +18,8 @@ import { formatInstantLocal } from '../../utils/instant-format';
 /**
  * The markets' data health on the administration console (D-159, no SRS
  * screen): each market's state with its maintenance switch and reopening
- * by hand, and the incidents of each, newest first.
+ * by hand, and the incidents of each, newest first; on a test environment,
+ * the price replay and stream fault switch (RF-07, RF-12).
  */
 export function AdminMarketHealthPage() {
   const t = useCopy().marketHealthAdmin;
@@ -34,6 +36,7 @@ export function AdminMarketHealthPage() {
         <Incidents market="SPOT" />
         <Incidents market="FUTURES" />
       </div>
+      <MarketTestTools />
     </div>
   );
 }
