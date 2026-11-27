@@ -3626,6 +3626,9 @@ export const vi: PartialCopy = {
     resultSlowTitle: 'Xác nhận đang lâu hơn bình thường',
     resultSlowBody:
       'Nếu bạn đã thanh toán, gói sẽ được kích hoạt ngay khi cổng xác nhận. Hãy xem lại lịch sử thanh toán sau.',
+    resultCancelledTitle: 'Bạn đã hủy thanh toán',
+    resultCancelledBody:
+      'Gói của bạn không thay đổi. Bạn có thể chọn lại gói bất cứ lúc nào.',
     checkAgain: 'Kiểm tra lại',
     resultPaidTitle: 'Thanh toán thành công',
     resultPaidBody: '{plan} có hiệu lực đến {end}.',
