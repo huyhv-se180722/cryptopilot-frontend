@@ -24,7 +24,10 @@ import { formatInstantLocal } from '../../utils/instant-format';
  * SCR-31 Payment result (UC-38, BR-53): the gateway sends the browser here
  * with `?orderCode=`, which proves nothing. The page reads the order every
  * 5 s for up to 2 minutes and shows only what the backend reports after the
- * gateway's IPN: paid, failed, expired, or still waiting.
+ * gateway's IPN: paid, failed, expired, or still waiting. SePay comes back
+ * with `&result=cancelled` when the Trader cancelled its page and
+ * `&result=error` when it failed: the page then reads the order once and,
+ * unless it is already paid, says so at once instead of waiting.
  */
 export function PaymentResultPage() {
   const copy = useCopy();
@@ -33,7 +36,10 @@ export function PaymentResultPage() {
   const code = params.get('orderCode');
   const [round, setRound] = useState(0);
   const [timedOut, setTimedOut] = useState(false);
-  const order = useOrder(code, !timedOut);
+  const result = params.get('result');
+  const left =
+    result === 'cancelled' ? 'cancelled' : result === 'error' ? 'error' : null;
+  const order = useOrder(code, !timedOut && left === null);
   const client = useQueryClient();
   const status = order.data?.status;
   const paid = status === 'PAID';
@@ -77,6 +83,9 @@ export function PaymentResultPage() {
     );
   else {
     const o = order.data;
+    // The gateway's word only explains an order it has not settled as paid.
+    const leftUnpaid =
+      left !== null && (o.status === 'PENDING' || o.status === 'EXPIRED');
     const view =
       o.status === 'PAID'
         ? {
@@ -95,41 +104,49 @@ export function PaymentResultPage() {
                 })
               : null,
           }
-        : o.status === 'FAILED'
+        : leftUnpaid && left === 'cancelled'
           ? {
               icon: (
-                <XCircle
-                  className="text-negative"
-                  size={40}
-                  aria-hidden="true"
-                />
+                <XCircle className="text-muted" size={40} aria-hidden="true" />
               ),
-              title: b.resultFailedTitle,
-              body: b.resultFailedBody,
+              title: b.resultCancelledTitle,
+              body: b.resultCancelledBody,
             }
-          : o.status === 'EXPIRED'
+          : o.status === 'FAILED' || leftUnpaid
             ? {
                 icon: (
                   <XCircle
-                    className="text-muted"
+                    className="text-negative"
                     size={40}
                     aria-hidden="true"
                   />
                 ),
-                title: b.resultExpiredTitle,
-                body: b.resultExpiredBody,
+                title: b.resultFailedTitle,
+                body: b.resultFailedBody,
               }
-            : {
-                icon: (
-                  <Clock
-                    className="text-warning"
-                    size={40}
-                    aria-hidden="true"
-                  />
-                ),
-                title: timedOut ? b.resultSlowTitle : b.resultPendingTitle,
-                body: timedOut ? b.resultSlowBody : b.resultPendingBody,
-              };
+            : o.status === 'EXPIRED'
+              ? {
+                  icon: (
+                    <XCircle
+                      className="text-muted"
+                      size={40}
+                      aria-hidden="true"
+                    />
+                  ),
+                  title: b.resultExpiredTitle,
+                  body: b.resultExpiredBody,
+                }
+              : {
+                  icon: (
+                    <Clock
+                      className="text-warning"
+                      size={40}
+                      aria-hidden="true"
+                    />
+                  ),
+                  title: timedOut ? b.resultSlowTitle : b.resultPendingTitle,
+                  body: timedOut ? b.resultSlowBody : b.resultPendingBody,
+                };
     content = (
       <Card
         padding="lg"
@@ -144,7 +161,7 @@ export function PaymentResultPage() {
           {o.packageName} · {vnd(o.amount)}
         </p>
         <div className="mt-2 flex flex-wrap justify-center gap-2">
-          {o.status === 'PENDING' && timedOut && (
+          {o.status === 'PENDING' && timedOut && !leftUnpaid && (
             <Button
               onClick={() => {
                 setTimedOut(false);
@@ -158,7 +175,7 @@ export function PaymentResultPage() {
           <Link
             to="/subscription"
             className={buttonClassName(
-              o.status === 'PAID' ? 'primary' : 'secondary',
+              o.status === 'PAID' || leftUnpaid ? 'primary' : 'secondary',
               'md',
             )}
           >

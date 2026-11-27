@@ -322,6 +322,48 @@ describe('Subscription screens', () => {
     ).toBeTruthy();
   });
 
+  it('says a cancelled or failed gateway page at once, unless the order is paid', async () => {
+    const pending = billing({ order: async () => ORDER });
+    const cancelled = await renderRoutes(
+      [page('/subscription/payment-result', <PaymentResultPage />)],
+      '/subscription/payment-result?orderCode=CP1&result=cancelled',
+      trader(),
+      { subscription: pending },
+    );
+    expect(await screen.findByText('You cancelled the payment')).toBeTruthy();
+    expect(
+      screen.queryByText('Waiting for the payment confirmation'),
+    ).toBeNull();
+    cancelled.unmount();
+
+    const failed = await renderRoutes(
+      [page('/subscription/payment-result', <PaymentResultPage />)],
+      '/subscription/payment-result?orderCode=CP1&result=error',
+      trader(),
+      { subscription: billing({ order: async () => ORDER }) },
+    );
+    expect(await screen.findByText('Payment failed')).toBeTruthy();
+    failed.unmount();
+
+    // The address proves nothing: a paid order shows as paid.
+    await renderRoutes(
+      [page('/subscription/payment-result', <PaymentResultPage />)],
+      '/subscription/payment-result?orderCode=CP1&result=cancelled',
+      trader(),
+      {
+        subscription: billing({
+          order: async () => ({
+            ...ORDER,
+            status: 'PAID',
+            paidAt: ORDER.createdAt,
+          }),
+          current: async () => PREMIUM,
+        }),
+      },
+    );
+    expect(await screen.findByText('Payment confirmed')).toBeTruthy();
+  });
+
   it('keeps waiting on a pending order and needs an order code', async () => {
     const { unmount } = await renderRoutes(
       [page('/subscription/payment-result', <PaymentResultPage />)],

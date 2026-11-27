@@ -3636,6 +3636,9 @@ export const en = {
     resultSlowTitle: 'The confirmation is taking longer than usual',
     resultSlowBody:
       'If you paid, the plan is activated as soon as the gateway confirms it. Check your payment history later.',
+    resultCancelledTitle: 'You cancelled the payment',
+    resultCancelledBody:
+      'Your plan did not change. You can choose a plan again at any time.',
     checkAgain: 'Check again',
     resultPaidTitle: 'Payment confirmed',
     resultPaidBody: '{plan} is active until {end}.',
