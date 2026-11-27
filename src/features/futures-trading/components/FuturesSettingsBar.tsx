@@ -163,7 +163,7 @@ function MarginModeDialog({
       }
     >
       <SegmentedControl
-        label={f.marginModeTitle}
+        label={formatCopy(f.marginModeTitle, { symbol })}
         value={chosen}
         onChange={setChosen}
         options={[
