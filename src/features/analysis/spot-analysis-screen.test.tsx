@@ -87,6 +87,7 @@ const ANALYSIS: PairAnalysis = {
     presetVersion: 'v1',
     timeframe: '1h',
     openTime: '2026-10-09T09:00:00Z',
+    componentsLocked: false,
     components: {
       formulaVersion: 'v1',
       trend: '75.00',

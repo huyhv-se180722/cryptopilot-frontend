@@ -505,6 +505,7 @@ export function createDevelopmentMarket(now: () => number = Date.now): {
           presetVersion: 'v1',
           timeframe: '1h',
           openTime: new Date(now() - 3_600_000).toISOString(),
+          componentsLocked: false,
           components: {
             formulaVersion: 'v1',
             trend: short ? null : '75.00',

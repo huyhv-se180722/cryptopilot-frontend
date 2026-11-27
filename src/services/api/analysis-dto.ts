@@ -7,6 +7,7 @@ import type {
   SetupPreset,
 } from '../../types/domain';
 import {
+  flag,
   integer,
   nullableDecimal,
   nullableInstant,
@@ -118,6 +119,10 @@ export function decodeAnalysis(body: unknown): PairAnalysis {
         setup.components,
         'setupScore.components',
         futures,
+      ),
+      componentsLocked: flag(
+        value.componentsLocked ?? false,
+        'componentsLocked',
       ),
       ...(futures ? { dominantSide: dominantSideOf(setup.dominantSide) } : {}),
     },

@@ -98,7 +98,7 @@ export function SetupScoreCard({ setup }: { setup: SetupScore }) {
       <h3 className="mb-1.5 text-xs font-medium text-muted">
         {a.componentsTitle}
       </h3>
-      {access === 'locked' ? (
+      {access === 'locked' || setup.componentsLocked ? (
         <div className="rounded-lg border border-dashed border-line p-3 text-xs text-muted">
           <p className="mb-2 flex items-start gap-1.5">
             <Lock size={12} aria-hidden="true" className="mt-0.5 shrink-0" />
