@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Pencil, Play, Send, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Pencil, Play, X } from 'lucide-react';
 import { Alert } from '../../../components/feedback/States';
 import { Button } from '../../../components/ui/Button';
 import { Dialog } from '../../../components/ui/Dialog';
@@ -28,10 +28,9 @@ export function PlanActions({ plan }: { plan: TradingPlan }) {
   const copy = useCopy();
   const p = copy.plan;
   const { show } = useToast();
-  const { activate, cancel, apply, applying, pending, error, errorCode } =
-    usePlanActions(plan.id);
-  const navigate = useNavigate();
-  const [applyOpen, setApplyOpen] = useState(false);
+  const { activate, cancel, pending, error, errorCode } = usePlanActions(
+    plan.id,
+  );
   // D-159: while the plan's market is closed, a plan is neither activated
   // nor cancelled once active; drafts stay editable and cancellable.
   const closed = useTradingBlock(
@@ -52,18 +51,6 @@ export function PlanActions({ plan }: { plan: TradingPlan }) {
   async function onCancel() {
     setConfirming(false);
     await cancel();
-  }
-
-  async function onApply() {
-    const applied = await apply();
-    setApplyOpen(false);
-    if (applied === null) return;
-    show({
-      tone: 'success',
-      message:
-        applied.entryStatus === 'FILLED' ? p.appliedFilled : p.appliedWaiting,
-    });
-    navigate(`/trade/${applied.market}/${applied.symbol}`);
   }
 
   const canCancel = plan.status === 'DRAFT' || plan.status === 'ACTIVE';
@@ -89,15 +76,6 @@ export function PlanActions({ plan }: { plan: TradingPlan }) {
           >
             <Play size={14} aria-hidden="true" />
             {p.activate}
-          </Button>
-        )}
-        {plan.status === 'ACTIVE' && (
-          <Button
-            onClick={() => setApplyOpen(true)}
-            disabled={pending || closed !== null}
-          >
-            <Send size={14} aria-hidden="true" />
-            {p.apply}
           </Button>
         )}
         {canCancel && (
@@ -149,49 +127,6 @@ export function PlanActions({ plan }: { plan: TradingPlan }) {
         onConfirm={() => void onActivate(true)}
         onClose={() => setDeviationOpen(false)}
       />
-      <Dialog
-        open={applyOpen}
-        onOpenChange={setApplyOpen}
-        title={p.applyTitle}
-        description={p.applyBody}
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setApplyOpen(false)}>
-              {p.keepPlan}
-            </Button>
-            <Button
-              onClick={() => void onApply()}
-              disabled={applying}
-              aria-busy={applying}
-            >
-              {p.applyConfirm}
-            </Button>
-          </>
-        }
-      >
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-          <dt className="text-muted-dim">{p.applyEntry}</dt>
-          <dd className="font-mono">
-            {p[`direction${plan.direction}`]} · {plan.entryType}
-            {plan.entryType === 'MARKET' ? '' : ` @ ${plan.entryPrice}`}
-          </dd>
-          <dt className="text-muted-dim">{p.applyQuantity}</dt>
-          <dd className="font-mono">{plan.snapshot.positionQuantity}</dd>
-          <dt className="text-muted-dim">{p.applyStopLoss}</dt>
-          <dd className="font-mono">{plan.stopLoss}</dd>
-          <dt className="text-muted-dim">{p.applyTakeProfit}</dt>
-          <dd className="font-mono">{plan.takeProfit ?? p.applyNone}</dd>
-          {plan.leverage !== null && (
-            <>
-              <dt className="text-muted-dim">{p.applyLeverage}</dt>
-              <dd className="font-mono">{plan.leverage}x</dd>
-            </>
-          )}
-        </dl>
-        {plan.entryType === 'STOP' && (
-          <p className="mt-3 text-xs text-warning">{p.applyStopHint}</p>
-        )}
-      </Dialog>
       <Dialog
         open={confirming}
         onOpenChange={setConfirming}

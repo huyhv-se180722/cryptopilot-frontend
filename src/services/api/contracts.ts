@@ -1,5 +1,4 @@
 import type {
-  AppliedPlan,
   AcademyArticle,
   AcademyArticlePage,
   AcademyArticleQuery,
@@ -317,14 +316,6 @@ export interface TradingPlanService {
   activate(id: string, confirmDeviation?: boolean): Promise<TradingPlan>;
   /** DRAFT or ACTIVE → CANCELLED (UC-19). */
   cancel(id: string): Promise<TradingPlan>;
-  /**
-   * Places an ACTIVE plan's paper orders: its entry with its take profit
-   * and stop loss, at the plan's own quantity (RF-33). The plan becomes
-   * EXECUTED when the entry fills; the fills reach the demo wallet and the
-   * journal. 409 MSG43 when the plan is not ACTIVE or an order of it still
-   * works; the order refusals (balance, filters) as for any order.
-   */
-  apply(id: string): Promise<AppliedPlan>;
   /**
    * A new plan on a pair of the market lists (UC-16): a DRAFT, or ACTIVE
    * with `activate`; nothing is saved when activation is refused (MSG18,

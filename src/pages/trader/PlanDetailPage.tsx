@@ -130,35 +130,33 @@ export function PlanDetailPage() {
                   {p.chartUnlisted}
                 </p>
               ) : null}
-              {plan.status === 'EXECUTED' && plan.position?.onDemoAccount && (
+              {plan.status === 'EXECUTED' && (
                 <PlanPositionPanel
                   plan={plan}
                   actions={
-                    <Link
-                      to={`/trade/${plan.market}/${pair?.symbol ?? ''}`}
-                      className={buttonClassName(
-                        'secondary',
-                        'sm',
-                        'no-underline',
+                    <>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setEditingLevels(true)}
+                      >
+                        <SlidersHorizontal size={13} aria-hidden="true" />
+                        {p.levelsEdit}
+                      </Button>
+                      {/* RF-33: the position is the demo account's, also shown on the trading screen. */}
+                      {plan.position?.onDemoAccount && pair && (
+                        <Link
+                          to={`/trade/${plan.market}/${pair.symbol}`}
+                          className={buttonClassName(
+                            'secondary',
+                            'sm',
+                            'no-underline',
+                          )}
+                        >
+                          {p.manageOnTrade}
+                        </Link>
                       )}
-                    >
-                      {p.manageOnTrade}
-                    </Link>
-                  }
-                />
-              )}
-              {plan.status === 'EXECUTED' && !plan.position?.onDemoAccount && (
-                <PlanPositionPanel
-                  plan={plan}
-                  actions={
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setEditingLevels(true)}
-                    >
-                      <SlidersHorizontal size={13} aria-hidden="true" />
-                      {p.levelsEdit}
-                    </Button>
+                    </>
                   }
                   closeAction={
                     <Button

@@ -408,23 +408,6 @@ export function createDevelopmentTradingPlan(
         refuse(409, 'TRADING_PLAN_STATUS_TRANSITION_INVALID', 'MSG43');
       return move(plan, 'CANCELLED');
     },
-    // RF-33: the dev server fills the entry at once, as a MARKET order would.
-    async apply(id) {
-      await pause();
-      const plan = find(id);
-      if (plan.status !== 'ACTIVE')
-        refuse(409, 'TRADING_PLAN_STATUS_TRANSITION_INVALID', 'MSG43');
-      move(plan, 'EXECUTED');
-      return {
-        planId: id,
-        market: plan.market,
-        symbol: plan.pairId,
-        entryOrderId: 'dev-order-' + id,
-        orderIds: ['dev-order-' + id],
-        entryStatus: 'FILLED',
-        protectedByStopLoss: true,
-      };
-    },
     // TP-E with its refusals: neither level, a level on the wrong side of
     // the current price (MSG16), no open position (409 MSG43). Risk-profile
     // warnings and the breakeven stop are not recalculated here.

@@ -147,6 +147,9 @@ export function usePlanActions(id: string) {
     (plan: TradingPlan) => {
       client.setQueryData(detailKey(id), plan);
       void client.invalidateQueries({ queryKey: LIST_KEY });
+      // RF-33: activating places the plan's paper orders and cancelling an
+      // active plan takes them back, so the demo account is read again.
+      void client.invalidateQueries({ queryKey: ['paper'] });
       return plan;
     },
     [client, id],
@@ -164,19 +167,6 @@ export function usePlanActions(id: string) {
       [tradingPlan, id, settle],
     ),
   );
-  // RF-33: the plan, its list and the demo account's orders, wallet and
-  // positions are read again once its orders are placed.
-  const application = useMutation(
-    useCallback(async () => {
-      const applied = await tradingPlan.apply(id);
-      await Promise.all([
-        client.invalidateQueries({ queryKey: detailKey(id) }),
-        client.invalidateQueries({ queryKey: LIST_KEY }),
-        client.invalidateQueries({ queryKey: ['paper'] }),
-      ]);
-      return applied;
-    }, [tradingPlan, id, client]),
-  );
 
   const finish = useCallback(
     (result: MutationState<TradingPlan>) => {
@@ -191,47 +181,29 @@ export function usePlanActions(id: string) {
   );
   const { run: runActivation, reset: resetActivation } = activation;
   const { run: runCancellation, reset: resetCancellation } = cancellation;
-  const { run: runApplication, reset: resetApplication } = application;
   /** With `confirmDeviation` after the Trader confirmed MSG51 (TP-C). */
   const activate = useCallback(
     async (confirmDeviation = false) => {
       resetCancellation();
-      resetApplication();
       return finish(await runActivation(confirmDeviation));
     },
-    [finish, runActivation, resetCancellation, resetApplication],
+    [finish, runActivation, resetCancellation],
   );
   const cancel = useCallback(async () => {
     resetActivation();
-    resetApplication();
     return finish(await runCancellation());
-  }, [finish, runCancellation, resetActivation, resetApplication]);
+  }, [finish, runCancellation, resetActivation]);
 
-  /** Places the plan's orders (RF-33); the placed orders, or null. */
-  const apply = useCallback(async () => {
-    resetActivation();
-    resetCancellation();
-    const result = await runApplication();
-    if (result.status === 'success') return result.data;
-    // A plan no longer ACTIVE, or already applied, is read again.
-    if (result.status === 'error')
-      void client.invalidateQueries({ queryKey: detailKey(id) });
-    return null;
-  }, [client, id, runApplication, resetActivation, resetCancellation]);
   const error =
     activation.state.status === 'error'
       ? activation.state.error
       : cancellation.state.status === 'error'
         ? cancellation.state.error
-        : application.state.status === 'error'
-          ? application.state.error
-          : null;
+        : null;
   return {
     activate,
     cancel,
-    apply,
-    pending: activation.pending || cancellation.pending || application.pending,
-    applying: application.pending,
+    pending: activation.pending || cancellation.pending,
     error,
     errorCode: problemOf(error)?.code ?? null,
   };

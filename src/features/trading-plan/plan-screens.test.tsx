@@ -187,15 +187,6 @@ function fakePlans(overrides: Partial<TradingPlanService> = {}) {
         : { items: [ROW], page: query.page, pageSize: 20, total: 1 },
     ),
     get: vi.fn(async () => PLAN),
-    apply: vi.fn(async () => ({
-      planId: PLAN.id,
-      market: PLAN.market,
-      symbol: 'BTCUSDT',
-      entryOrderId: 'o1',
-      orderIds: ['o1', 'o2', 'o3'],
-      entryStatus: 'FILLED',
-      protectedByStopLoss: true,
-    })),
     activate: vi.fn(async () => ({
       ...PLAN,
       status: 'ACTIVE' as const,
@@ -818,9 +809,10 @@ describe('SCR-18 plan detail (T-041)', () => {
     expect(value('Share of the risk')).toBe('65.05%');
     expect(snapshot.getByText(/Funding and the liquidation fee/)).toBeTruthy();
     const inputs = within(screen.getByRole('region', { name: 'Plan inputs' }));
-    expect(inputs.getByText('Expected fill').nextSibling?.textContent).toBe(
-      '62,003.10',
-    );
+    expect(
+      inputs.getByText('Estimated fill (with slippage)').nextSibling
+        ?.textContent,
+    ).toBe('62,003.10');
     const warnings = within(screen.getByRole('region', { name: 'Warnings' }));
     expect(
       warnings.getByText('Fees and slippage are 65.05% of the risk'),
@@ -840,7 +832,7 @@ describe('SCR-18 plan detail (T-041)', () => {
       snapshot.getByText('Reward / risk after fees').nextSibling?.textContent,
     ).toBe('—');
     expect(snapshot.queryByText('Fees and slippage (est.)')).toBeNull();
-    expect(screen.queryByText('Expected fill')).toBeNull();
+    expect(screen.queryByText('Estimated fill (with slippage)')).toBeNull();
   });
 
   it('activates a draft with MSG19 and shows the new status', async () => {
@@ -914,43 +906,29 @@ describe('SCR-18 plan detail (T-041)', () => {
     );
   });
 
-  it('applies an active plan only after confirming its order (RF-33)', async () => {
+  it('offers no Apply button: activating places the orders (RF-33)', async () => {
     const active = { ...PLAN, status: 'ACTIVE' as const, editable: false };
-    const service = fakePlans({ get: vi.fn(async () => active) });
-    await open('/plans/' + PLAN.id, service);
-    expect(screen.queryByRole('button', { name: 'Activate' })).toBeNull();
-    await userEvent.click(
-      await screen.findByRole('button', { name: 'Apply plan' }),
+    await open(
+      '/plans/' + PLAN.id,
+      fakePlans({ get: vi.fn(async () => active) }),
     );
-    const dialog = within(screen.getByRole('dialog'));
-    expect(dialog.getByText(active.snapshot.positionQuantity)).toBeTruthy();
-    expect(service.apply).not.toHaveBeenCalled();
-    await userEvent.click(dialog.getByRole('button', { name: 'Place order' }));
-    await waitFor(() => expect(service.apply).toHaveBeenCalledWith(PLAN.id));
     expect(
-      await screen.findByText(
-        'Plan applied: the entry filled and its orders are placed.',
-      ),
+      await screen.findByRole('button', { name: 'Cancel plan' }),
     ).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /apply/i })).toBeNull();
   });
 
-  it('shows why a plan could not be applied', async () => {
-    const active = { ...PLAN, status: 'ACTIVE' as const, editable: false };
+  it('shows why the demo account refused the activation (BR-71)', async () => {
     const service = fakePlans({
-      get: vi.fn(async () => active),
-      apply: vi
+      activate: vi
         .fn()
         .mockRejectedValue(refusal(400, 'PAPER_INSUFFICIENT_BALANCE', 'MSG01')),
     });
     await open('/plans/' + PLAN.id, service);
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Apply plan' }),
+      await screen.findByRole('button', { name: 'Activate' }),
     );
-    await userEvent.click(
-      within(screen.getByRole('dialog')).getByRole('button', {
-        name: 'Place order',
-      }),
-    );
+    await waitFor(() => expect(service.activate).toHaveBeenCalled());
     expect(await screen.findByRole('alert')).toBeTruthy();
   });
 
@@ -1496,7 +1474,8 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
     });
     await open(editPath, service);
     expect(
-      (await screen.findByText('Expected fill')).nextSibling?.textContent,
+      (await screen.findByText('Estimated fill (with slippage)')).nextSibling
+        ?.textContent,
     ).toBe('62,003.10');
   });
 
@@ -1515,7 +1494,7 @@ describe('SCR-17 edit a draft plan (T-040)', () => {
     );
     await panel.findByText('Risk (USDT)');
     expect(screen.getByText('Current last price')).toBeTruthy();
-    expect(screen.queryByText('Expected fill')).toBeNull();
+    expect(screen.queryByText('Estimated fill (with slippage)')).toBeNull();
   });
 
   it('keeps the STOP of a saved STOP draft and says why a reached stop was refused (MSG16)', async () => {
@@ -1759,6 +1738,20 @@ describe('SCR-18 edit the levels of an open position (TP-E, D-124)', () => {
     await user.click(await screen.findByRole('button', { name: 'Edit SL/TP' }));
     return { user, dialog: within(screen.getByRole('dialog')) };
   };
+
+  it('manages a position on the demo account here and links the trading screen (RF-33)', async () => {
+    await open(
+      '/plans/' + PLAN.id,
+      fakePlans({ get: vi.fn(async () => saved({ onDemoAccount: true })) }),
+    );
+    expect(
+      await screen.findByRole('button', { name: 'Edit SL/TP' }),
+    ).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Close position' })).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: 'Manage on the trading screen' }),
+    ).toBeTruthy();
+  });
 
   it('sends only the changed level and says from when it applies', async () => {
     const service = fakePlans({

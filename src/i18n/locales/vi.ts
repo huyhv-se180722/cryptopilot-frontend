@@ -626,24 +626,6 @@ export const vi: PartialCopy = {
     activate: 'Kích hoạt',
     cancel: 'Hủy plan',
     keepPlan: 'Giữ plan',
-    apply: 'Áp dụng plan',
-    applyTitle: 'Áp dụng plan này?',
-    applyBody:
-      'Lệnh dưới đây được đặt trên tài khoản demo với đúng khối lượng của plan. Plan chuyển sang Đã khớp khi lệnh vào khớp; giao dịch được ghi vào ví demo và nhật ký.',
-    applyEntry: 'Giá vào',
-    applyQuantity: 'Khối lượng',
-    applyStopLoss: 'Cắt lỗ',
-    applyTakeProfit: 'Chốt lời',
-    applyLeverage: 'Đòn bẩy',
-    applyNone: 'Không có',
-    applyStopHint:
-      'Lệnh vào kiểu STOP được đặt không kèm chốt lời và cắt lỗ: hãy thêm khi lệnh khớp.',
-    applyConfirm: 'Đặt lệnh',
-    appliedFilled:
-      'Đã áp dụng plan: lệnh vào đã khớp và các lệnh đi kèm đã được đặt.',
-    appliedWaiting:
-      'Đã áp dụng plan: lệnh vào đang chờ giá. Plan chuyển sang Đã khớp khi lệnh khớp.',
-    viewOrders: 'Xem lệnh',
     manageOnTrade: 'Quản lý ở màn hình giao dịch',
     inputsTitle: 'Thông số plan',
     entryType: 'Loại lệnh vào',
@@ -683,9 +665,9 @@ export const vi: PartialCopy = {
     feeShare: 'Tỷ trọng so với rủi ro',
     costsNote:
       'Lỗ thực tế và lợi nhuận / rủi ro sau phí đã tính phí vào lệnh, phí thoát lệnh ở mức cắt lỗ (hoặc chốt lời) và mức trượt giá đã cấu hình. Chưa tính funding và phí thanh lý.',
-    expectedFill: 'Giá khớp dự kiến',
+    expectedFill: 'Giá khớp ước tính (có trượt giá)',
     expectedFillNote:
-      'Giá hiện tại cộng thêm mức trượt giá đã cấu hình; khối lượng vị thế được tính theo giá này.',
+      'Giá hiện tại cộng thêm mức trượt giá đã cấu hình; khối lượng vị thế được tính theo giá này. Lệnh khớp trên tài khoản demo theo giá thị trường lúc đó nên có thể khác.',
     lineLiquidation: 'Thanh lý (ước tính)',
     chartUnlisted:
       'Không có biểu đồ: cặp này không còn niêm yết trên thị trường của plan.',

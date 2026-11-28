@@ -472,23 +472,6 @@ export interface PositionLevels {
   takeProfit: Decimal | null;
 }
 
-/**
- * The paper orders an ACTIVE plan was applied with (RF-33,
- * `POST /paper/plans/{id}/apply`): the entry first, then its take profit
- * and stop loss. The plan is EXECUTED once the entry fills.
- */
-export interface AppliedPlan {
-  planId: string;
-  market: MarketType;
-  symbol: string;
-  entryOrderId: string;
-  orderIds: readonly string[];
-  /** FILLED for a MARKET entry that filled at once; NEW while it waits. */
-  entryStatus: string;
-  /** Whether a stop loss order was placed with it (not for a STOP entry). */
-  protectedByStopLoss: boolean;
-}
-
 /** SCR-18: inputs, snapshot, warnings and status history of one plan. */
 export interface TradingPlan {
   id: string;

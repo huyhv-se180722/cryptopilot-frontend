@@ -1,6 +1,5 @@
 import type { ApiProblem } from './problem';
 import type {
-  AppliedPlan,
   CloseEstimate,
   EntryDeviation,
   PlanCalculation,
@@ -299,19 +298,6 @@ export function decodePosition(body: unknown): PlanPosition | null {
 }
 
 /** `GET /plans/{id}` and the activate / cancel answers. */
-export function decodeAppliedPlan(body: unknown): AppliedPlan {
-  const value = record(body);
-  return {
-    planId: text(value.planId, 'planId'),
-    market: marketOf(value.market),
-    symbol: text(value.symbol, 'symbol'),
-    entryOrderId: text(value.entryOrderId, 'entryOrderId'),
-    orderIds: list(value.orderIds, 'orderIds').map((id) => text(id, 'orderId')),
-    entryStatus: text(value.entryStatus, 'entryStatus'),
-    protectedByStopLoss: flag(value.protectedByStopLoss, 'protectedByStopLoss'),
-  };
-}
-
 export function decodePlan(body: unknown): TradingPlan {
   const value = record(body);
   const margin = value.marginMode;

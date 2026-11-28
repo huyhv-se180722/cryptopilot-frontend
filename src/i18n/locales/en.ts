@@ -497,23 +497,6 @@ export const en = {
     activate: 'Activate',
     cancel: 'Cancel plan',
     keepPlan: 'Keep plan',
-    apply: 'Apply plan',
-    applyTitle: 'Apply this plan?',
-    applyBody:
-      'The order below is placed on your demo account at the plan’s own size. The plan becomes Executed when the entry fills; the fill goes to your demo wallet and journal.',
-    applyEntry: 'Entry',
-    applyQuantity: 'Quantity',
-    applyStopLoss: 'Stop loss',
-    applyTakeProfit: 'Take profit',
-    applyLeverage: 'Leverage',
-    applyNone: 'None',
-    applyStopHint:
-      'A STOP entry is placed without its take profit and stop loss: add them once it fills.',
-    applyConfirm: 'Place order',
-    appliedFilled: 'Plan applied: the entry filled and its orders are placed.',
-    appliedWaiting:
-      'Plan applied: the entry order waits for its price. The plan becomes Executed when it fills.',
-    viewOrders: 'View orders',
     manageOnTrade: 'Manage on the trading screen',
     inputsTitle: 'Plan inputs',
     entryType: 'Entry type',
@@ -554,9 +537,9 @@ export const en = {
     feeShare: 'Share of the risk',
     costsNote:
       'The real loss and the reward / risk after fees include the fees of the entry and of the exit at the stop loss (or the take profit) and the configured slippage. Funding and the liquidation fee are not included.',
-    expectedFill: 'Expected fill',
+    expectedFill: 'Estimated fill (with slippage)',
     expectedFillNote:
-      'The current price moved by the configured slippage; the position is sized on it.',
+      'The current price moved by the configured slippage; the position is sized on it. The order fills on your demo account at the market price then, which may differ.',
     lineLiquidation: 'Liquidation (est.)',
     chartUnlisted:
       'No chart: this pair is no longer listed on the market of the plan.',
